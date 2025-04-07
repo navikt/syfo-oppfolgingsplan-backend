@@ -1,0 +1,63 @@
+apiVersion: "nais.io/v1alpha1"
+kind: "Application"
+metadata:
+  name: oppfolgingsplan-bff
+  namespace: team-esyfo
+  labels:
+    team: team-esyfo
+spec:
+  image: {{ image }}
+  port: 8080
+  liveness:
+    path: /internal/is_alive
+    initialDelay: 10
+    timeout: 5
+    periodSeconds: 10
+    failureThreshold: 5
+  readiness:
+    path: /internal/is_ready
+    initialDelay: 10
+    periodSeconds: 5
+    timeout: 5
+  resources:
+    limits:
+      memory: 1536Mi
+    requests:
+      cpu: 300m
+      memory: 1024Mi
+  replicas:
+    min: 2
+    max: 4
+    cpuThresholdPercentage: 90
+  prometheus:
+    enabled: true
+    path: /internal/metrics
+  observability:
+    autoInstrumentation:
+      enabled: true
+      runtime: java
+  azure:
+    application:
+      allowAllUsers: true
+      enabled: true
+      tenant: nav.no
+      claims:
+        extra:
+          - "NAVident"
+  gcp:
+    sqlInstances:
+      - type: POSTGRES_17
+        tier: db-custom-1-3840
+        databases:
+          - name: oppfolgingsplan-bff-instance
+            envVarPrefix: OPPFOLGINGSPLAN_DB
+        diskAutoresize: true
+  ingresses:
+    - "https://oppfolgingsplan-bff.intern.nav.no"
+  tokenx:
+    enabled: true
+  kafka:
+    pool: nav-prod
+  env:
+    - name: KTOR_ENV
+      value: production
