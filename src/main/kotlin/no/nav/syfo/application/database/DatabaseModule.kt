@@ -10,7 +10,7 @@ fun Application.databaseModule(
     isDev {
         applicationDatabase = Database(
             DatabaseConfig(
-                jdbcUrl = "jdbc:postgresql://localhost:5432/oppfolgingsplan-bff_dev",
+                jdbcUrl = "jdbc:postgresql://localhost:5432/followupplan-backend_dev",
                 password = "password",
                 username = "username",
             )

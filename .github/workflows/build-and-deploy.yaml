@@ -14,4 +14,4 @@ jobs:
       id-token: write
     secrets: inherit
     with:
-      app: oppfolgingsplan-bff
+      app: followupplan-backend

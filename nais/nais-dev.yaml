@@ -1,7 +1,7 @@
 apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
-  name: oppfolgingsplan-bff
+  name: followupplan-backend
   namespace: team-esyfo
   labels:
     team: team-esyfo
@@ -45,11 +45,11 @@ spec:
       - type: POSTGRES_17
         tier: db-f1-micro
         databases:
-          - name: oppfolgingsplan-bff-instance
+          - name: followupplan-backend-instance
             envVarPrefix: OPPFOLGINGSPLAN_DB
         diskAutoresize: true
   ingresses:
-    - "https://oppfolgingsplan-bff.intern.dev.nav.no"
+    - "https://followupplan-backend.intern.dev.nav.no"
   tokenx:
     enabled: true
   kafka:
