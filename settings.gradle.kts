@@ -1,1 +1,1 @@
-rootProject.name = "oppfolgingsplan-bff"
+rootProject.name = "followupplan-backend"
