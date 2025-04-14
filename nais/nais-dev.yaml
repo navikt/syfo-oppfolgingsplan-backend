@@ -32,6 +32,14 @@ spec:
   prometheus:
     enabled: true
     path: /internal/metrics
+  observability:
+    logging:
+      destinations:
+        - id: elastic
+        - id: loki
+    autoInstrumentation:
+      enabled: true
+      runtime: java
   azure:
     application:
       allowAllUsers: true
