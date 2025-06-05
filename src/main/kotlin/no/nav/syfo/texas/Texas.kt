@@ -1,11 +1,13 @@
 package no.nav.syfo.texas
 
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.response.*
+import io.ktor.client.call.body
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headers
+import io.ktor.server.application.createRouteScopedPlugin
+import io.ktor.server.auth.authentication
+import io.ktor.server.response.respondNullable
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -37,10 +39,8 @@ data class TexasIntrospectionResponse(
 )
 
 class TexasHttpClient(val environment: TexasEnvironment) {
-    var client = defaultHttpClientClient()
-
     suspend fun introspectToken(identityProvider: String, token: String): TexasIntrospectionResponse {
-        return client.use { client ->
+        return defaultHttpClientClient().use { client ->
              client.post(environment.tokenIntrospectionEndpoint) {
                  headers {
                      append("Content-Type", "application/json")
