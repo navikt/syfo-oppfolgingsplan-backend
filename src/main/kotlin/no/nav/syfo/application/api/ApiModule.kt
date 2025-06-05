@@ -5,6 +5,7 @@ import io.ktor.server.routing.*
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.metric.registerMetricApi
+import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.TexasEnvironment
 import registerPodApi
 
@@ -23,6 +24,12 @@ fun Application.apiModule(
             database = database
         )
         registerMetricApi()
-        registerFollowUpPlanApi(texasEnvironment)
+
+        route("/api/v1") {
+            install(TexasAuthPlugin) {
+                environment = texasEnvironment
+            }
+            registerFollowUpPlanApi()
+        }
     }
 }

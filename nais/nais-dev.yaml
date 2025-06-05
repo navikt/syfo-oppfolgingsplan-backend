@@ -62,6 +62,12 @@ spec:
     - "https://followupplan-backend.intern.dev.nav.no"
   tokenx:
     enabled: true
+  accessPolicy:
+    inbound:
+      rules:
+        - application: tokenx-token-generator
+          namespace: nais
+          cluster: dev-gcp
   kafka:
     pool: nav-dev
   env:

@@ -1,18 +1,11 @@
 package no.nav.syfo.application.api
 
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.response.respond
-import io.ktor.server.routing.Routing
-import io.ktor.server.routing.get
-import no.nav.syfo.texas.TexasAuthPlugin
-import no.nav.syfo.texas.TexasEnvironment
+import io.ktor.http.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
-fun Routing.registerFollowUpPlanApi(texasEnvironment: TexasEnvironment) {
-
-    get("/api/v1/followupplans") {
-        install(TexasAuthPlugin) {
-            environment = texasEnvironment
-        }
+fun Routing.registerFollowUpPlanApi() {
+    get("/followupplans") {
         call.respond(HttpStatusCode.OK)
     }
 }
