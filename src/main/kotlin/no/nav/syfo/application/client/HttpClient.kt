@@ -7,7 +7,7 @@ import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 
-fun defaultHttpClientClient() = HttpClient(Apache) {
+fun defaultHttpClient() = HttpClient(Apache) {
     install(ContentNegotiation) {
         json()
     }
