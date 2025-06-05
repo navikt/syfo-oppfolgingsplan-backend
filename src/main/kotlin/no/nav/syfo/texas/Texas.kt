@@ -6,8 +6,10 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.response.*
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 import no.nav.syfo.application.client.defaultHttpClientClient
 
 @Serializable
@@ -17,17 +19,21 @@ data class TexasIntrospectionRequest(
     val token: String,
 )
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
+@JsonIgnoreUnknownKeys
 data class TexasIntrospectionResponse(
     val active: Boolean,
     val error: String? = null,
-    val scope: String? = null,
-    val clientId: String? = null,
-    val sub: String? = null,
-    val aud: List<String>? = null,
-    val iss: String? = null,
-    val iat: Long? = null,
+    val aud: String? = null,
+    val azp: String? = null,
     val exp: Long? = null,
+    val iat: Long? = null,
+    val iss: String? = null,
+    val jti: String? = null,
+    val nbf: Long? = null,
+    val sub: String? = null,
+    val tid: String? = null,
 )
 
 class TexasHttpClient(val environment: TexasEnvironment) {
@@ -75,8 +81,6 @@ val TexasAuthPlugin = createRouteScopedPlugin(
             call.respondNullable(HttpStatusCode.Unauthorized)
             return@onCall
         }
-
-        println(introspectionResponse)
 
         if (!introspectionResponse.active) {
             println("Token is not active")
