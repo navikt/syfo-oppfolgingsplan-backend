@@ -19,7 +19,7 @@ data class Environment(
         sslmode = getEnvVar("${NAIS_DATABASE_ENV_PREFIX}_SSLMODE"),
     ),
     val texas: TexasEnvironment = TexasEnvironment(
-        tokenIntrospectionEndpoint = getEnvVar("NAIS_TEXAS_INTROSPECTION_ENDPOINT"),
+        tokenIntrospectionEndpoint = getEnvVar("NAIS_TOKEN_INTROSPECTION_ENDPOINT"),
     )
 )
 
