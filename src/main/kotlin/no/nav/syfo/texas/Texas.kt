@@ -20,13 +20,14 @@ data class TexasIntrospectionRequest(
 @Serializable
 data class TexasIntrospectionResponse(
     val active: Boolean,
-    val scope: String,
-    val clientId: String,
-    val sub: String,
-    val aud: List<String>,
-    val iss: String,
-    val iat: Long,
-    val exp: Long,
+    val error: String? = null,
+    val scope: String? = null,
+    val clientId: String? = null,
+    val sub: String? = null,
+    val aud: List<String>? = null,
+    val iss: String? = null,
+    val iat: Long? = null,
+    val exp: Long? = null,
 )
 
 class TexasHttpClient(val environment: TexasEnvironment) {
@@ -75,12 +76,19 @@ val TexasAuthPlugin = createRouteScopedPlugin(
             return@onCall
         }
 
+        println(introspectionResponse)
+
         if (!introspectionResponse.active) {
             println("Token is not active")
             call.respondNullable(HttpStatusCode.Unauthorized)
             return@onCall
         }
 
+        if (introspectionResponse.sub == null) {
+            println("Token introspection response does not contain 'sub'")
+            call.respondNullable(HttpStatusCode.Unauthorized)
+            return@onCall
+        }
         call.authentication.principal( introspectionResponse.sub)
     }
     println("TexasAuthPlugin installed")
