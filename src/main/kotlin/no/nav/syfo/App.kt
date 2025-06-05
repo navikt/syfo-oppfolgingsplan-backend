@@ -43,6 +43,7 @@ fun main() {
             apiModule(
                 applicationState = applicationState,
                 database = applicationDatabase,
+                texasEnvironment = environment.texas,
             )
 
             monitor.subscribe(ApplicationStarted) {

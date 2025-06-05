@@ -2,6 +2,7 @@ package no.nav.syfo.application
 
 import io.ktor.server.application.*
 import no.nav.syfo.application.database.DatabaseEnvironment
+import no.nav.syfo.texas.TexasEnvironment
 
 const val NAIS_DATABASE_ENV_PREFIX = "OPPFOLGINGSPLAN_DB"
 
@@ -17,6 +18,9 @@ data class Environment(
         sslrootcert = getEnvVar("${NAIS_DATABASE_ENV_PREFIX}_SSLROOTCERT"),
         sslmode = getEnvVar("${NAIS_DATABASE_ENV_PREFIX}_SSLMODE"),
     ),
+    val texas: TexasEnvironment = TexasEnvironment(
+        tokenIntrospectionEndpoint = getEnvVar("NAIS_TEXAS_INTROSPECTION_ENDPOINT"),
+    )
 )
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =
