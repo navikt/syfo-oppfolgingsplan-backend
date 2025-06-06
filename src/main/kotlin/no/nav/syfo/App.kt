@@ -12,6 +12,7 @@ import no.nav.syfo.application.Environment
 import no.nav.syfo.application.api.apiModule
 import no.nav.syfo.application.database.applicationDatabase
 import no.nav.syfo.application.database.databaseModule
+import no.nav.syfo.texas.TexasHttpClient
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 
@@ -43,7 +44,7 @@ fun main() {
             apiModule(
                 applicationState = applicationState,
                 database = applicationDatabase,
-                texasEnvironment = environment.texas,
+                texasHttpClient = TexasHttpClient(environment.texas),
             )
 
             monitor.subscribe(ApplicationStarted) {

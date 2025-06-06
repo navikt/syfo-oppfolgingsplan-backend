@@ -11,15 +11,14 @@ import org.slf4j.LoggerFactory
 internal val LOGGER = LoggerFactory.getLogger("TexasAuthPlugin")
 
 class TexasAuthPluginConfiguration(
-    var environment: TexasEnvironment? = null,
+    var client: TexasHttpClient? = null,
 )
 
 val TexasAuthPlugin = createRouteScopedPlugin(
     name = "TexasAuthPlugin",
     createConfiguration = ::TexasAuthPluginConfiguration,
 ) {
-    val environment = pluginConfig.environment ?: throw IllegalArgumentException("TexasAuthPlugin: environment must be set")
-    val texasHttpClient = TexasHttpClient(environment)
+    val texasHttpClient = pluginConfig.client ?: throw IllegalArgumentException("TexasAuthPlugin: environment must be set")
 
     onCall { call ->
         val bearerToken = call.bearerToken()

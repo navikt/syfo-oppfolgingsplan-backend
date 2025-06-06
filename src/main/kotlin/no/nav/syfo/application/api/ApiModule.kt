@@ -6,13 +6,13 @@ import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.metric.registerMetricApi
 import no.nav.syfo.oppfolgingsplan.registerOppfolgingsplanApi
-import no.nav.syfo.texas.TexasEnvironment
+import no.nav.syfo.texas.TexasHttpClient
 import registerPodApi
 
 fun Application.apiModule(
     applicationState: ApplicationState,
     database: DatabaseInterface,
-    texasEnvironment: TexasEnvironment,
+    texasHttpClient: TexasHttpClient
 ) {
     installCallId()
     installContentNegotiation()
@@ -24,6 +24,6 @@ fun Application.apiModule(
             database = database
         )
         registerMetricApi()
-        registerOppfolgingsplanApi(texasEnvironment)
+        registerOppfolgingsplanApi(texasHttpClient)
     }
 }
