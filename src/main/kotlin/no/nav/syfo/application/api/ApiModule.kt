@@ -1,13 +1,11 @@
 package no.nav.syfo.application.api
 
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.*
-import io.ktor.server.response.respond
-import io.ktor.server.routing.*
+import io.ktor.server.application.Application
+import io.ktor.server.routing.routing
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.metric.registerMetricApi
-import no.nav.syfo.texas.TexasAuthPlugin
+import no.nav.syfo.oppfolgingsplan.registerOppfolgingsplanApi
 import no.nav.syfo.texas.TexasEnvironment
 import registerPodApi
 
@@ -26,14 +24,6 @@ fun Application.apiModule(
             database = database
         )
         registerMetricApi()
-
-        route("api/v1") {
-            install(TexasAuthPlugin) {
-                environment = texasEnvironment
-            }
-            get("followup-plans") {
-                call.respond(HttpStatusCode.OK)
-            }
-        }
+        registerOppfolgingsplanApi(texasEnvironment)
     }
 }

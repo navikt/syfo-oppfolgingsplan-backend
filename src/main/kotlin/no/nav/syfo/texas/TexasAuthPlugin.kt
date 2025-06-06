@@ -1,10 +1,14 @@
 package no.nav.syfo.texas
 
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.response.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.createRouteScopedPlugin
+import io.ktor.server.auth.authentication
+import io.ktor.server.request.authorization
+import io.ktor.server.response.respondNullable
+import org.slf4j.LoggerFactory
 
+internal val LOGGER = LoggerFactory.getLogger("TexasAuthPlugin")
 
 class TexasAuthPluginConfiguration(
     var environment: TexasEnvironment? = null,
@@ -18,34 +22,41 @@ val TexasAuthPlugin = createRouteScopedPlugin(
     val texasHttpClient = TexasHttpClient(environment)
 
     onCall { call ->
-        val authorizationHeader = call.request.headers["Authorization"]
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            println("Missing bearer token")
+        val bearerToken = call.bearerToken()
+        if (bearerToken == null) {
+            call.application.environment.log.warn("No bearer token found in request")
             call.respondNullable(HttpStatusCode.Unauthorized)
             return@onCall
         }
 
-        val token = authorizationHeader.removePrefix("Bearer ")
         val introspectionResponse = try {
-            texasHttpClient.introspectToken("tokenx", token)
+            texasHttpClient.introspectToken("tokenx", bearerToken)
         } catch (e: Exception) {
-            println("Failed to introspect token: ${e.message}")
+
+            call.application.environment.log.error("Failed to introspect token: ${e.message}", e)
             call.respondNullable(HttpStatusCode.Unauthorized)
             return@onCall
         }
 
         if (!introspectionResponse.active) {
-            println("Token is not active")
+            call.application.environment.log.warn("Token is not active: ${introspectionResponse.error ?: "No error message"}")
             call.respondNullable(HttpStatusCode.Unauthorized)
             return@onCall
         }
 
         if (introspectionResponse.sub == null) {
-            println("Token introspection response does not contain 'sub'")
+            call.application.environment.log.warn("No sub in token claims")
             call.respondNullable(HttpStatusCode.Unauthorized)
             return@onCall
         }
         call.authentication.principal( introspectionResponse.sub)
     }
-    println("TexasAuthPlugin installed")
+    LOGGER.info("TexasAuthPlugin installed")
 }
+
+fun ApplicationCall.bearerToken(): String? =
+    request
+        .authorization()
+        ?.takeIf { it.startsWith("Bearer ", ignoreCase = true) }
+        ?.removePrefix("Bearer ")
+        ?.removePrefix("bearer ")
