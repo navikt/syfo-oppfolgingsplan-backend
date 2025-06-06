@@ -8,10 +8,12 @@ import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import no.nav.syfo.application.ApplicationState
-import no.nav.syfo.application.Environment
+import no.nav.syfo.application.DevelopmentEnvironment
+import no.nav.syfo.application.NaisEnvironment
 import no.nav.syfo.application.api.apiModule
 import no.nav.syfo.application.database.applicationDatabase
 import no.nav.syfo.application.database.databaseModule
+import no.nav.syfo.application.isDev
 import no.nav.syfo.texas.TexasHttpClient
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
@@ -21,7 +23,6 @@ const val applicationPort = 8080
 fun main() {
     val applicationState = ApplicationState()
     val logger = LoggerFactory.getLogger("ktor.application")
-    val environment = Environment()
     val applicationEngineEnvironment = applicationEnvironment {
         log = logger
         config = HoconApplicationConfig(ConfigFactory.load())
@@ -38,6 +39,10 @@ fun main() {
             callGroupSize = 16
         },
         module = {
+            val environment = if (isDev()) {
+                DevelopmentEnvironment()
+            } else NaisEnvironment()
+
             databaseModule(
                 databaseEnvironment = environment.database,
             )

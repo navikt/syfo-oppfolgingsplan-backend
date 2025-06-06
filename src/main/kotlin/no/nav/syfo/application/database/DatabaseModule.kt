@@ -1,29 +1,15 @@
 package no.nav.syfo.application.database
 
-import io.ktor.server.application.*
-import no.nav.syfo.application.*
 
 lateinit var applicationDatabase: DatabaseInterface
-fun Application.databaseModule(
+fun databaseModule(
     databaseEnvironment: DatabaseEnvironment
 ) {
-    isDev {
-        applicationDatabase = Database(
-            DatabaseConfig(
-                jdbcUrl = "jdbc:postgresql://localhost:5432/followupplan-backend_dev",
-                password = "password",
-                username = "username",
-            )
+    applicationDatabase = Database(
+        DatabaseConfig(
+            jdbcUrl = databaseEnvironment.jdbcUrl(),
+            username = databaseEnvironment.username,
+            password = databaseEnvironment.password,
         )
-    }
-
-    isProd {
-        applicationDatabase = Database(
-            DatabaseConfig(
-                jdbcUrl = databaseEnvironment.jdbcUrl(),
-                username = databaseEnvironment.username,
-                password = databaseEnvironment.password,
-            )
-        )
-    }
+    )
 }

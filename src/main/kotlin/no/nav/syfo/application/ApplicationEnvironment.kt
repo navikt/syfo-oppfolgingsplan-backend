@@ -6,8 +6,13 @@ import no.nav.syfo.texas.TexasEnvironment
 
 const val NAIS_DATABASE_ENV_PREFIX = "OPPFOLGINGSPLAN_DB"
 
-data class Environment(
-    val database: DatabaseEnvironment = DatabaseEnvironment(
+interface Environment {
+    val database: DatabaseEnvironment
+    val texas: TexasEnvironment
+}
+
+data class NaisEnvironment(
+    override val database: DatabaseEnvironment = DatabaseEnvironment(
         host = getEnvVar("${NAIS_DATABASE_ENV_PREFIX}_HOST"),
         port = getEnvVar("${NAIS_DATABASE_ENV_PREFIX}_PORT"),
         name = getEnvVar("${NAIS_DATABASE_ENV_PREFIX}_DATABASE"),
@@ -18,20 +23,32 @@ data class Environment(
         sslrootcert = getEnvVar("${NAIS_DATABASE_ENV_PREFIX}_SSLROOTCERT"),
         sslmode = getEnvVar("${NAIS_DATABASE_ENV_PREFIX}_SSLMODE"),
     ),
-    val texas: TexasEnvironment = TexasEnvironment(
+    override val texas: TexasEnvironment = TexasEnvironment(
         tokenIntrospectionEndpoint = getEnvVar("NAIS_TOKEN_INTROSPECTION_ENDPOINT"),
     )
-)
+) : Environment
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =
     System.getenv(varName) ?: defaultValue ?: throw RuntimeException("Missing required variable \"$varName\"")
 
 val Application.envKind get() = environment.config.property("ktor.environment").getString()
 
-fun Application.isDev(block: () -> Unit) {
-    if (envKind == "development") block()
-}
+fun Application.isDev(): Boolean = (envKind == "development")
 
-fun Application.isProd(block: () -> Unit) {
-    if (envKind == "production") block()
-}
+
+data class DevelopmentEnvironment(
+    override val database: DatabaseEnvironment = DatabaseEnvironment(
+        host = "localhost",
+        port = "5432",
+        name = "followupplan-backend_dev",
+        username = "username",
+        password = "password",
+        sslcert = null,
+        sslkey = "",
+        sslrootcert = "",
+        sslmode = "",
+    ),
+    override val texas: TexasEnvironment = TexasEnvironment(
+        tokenIntrospectionEndpoint = "http://localhost:3000/api/v1/introspect",
+    )
+) : Environment
