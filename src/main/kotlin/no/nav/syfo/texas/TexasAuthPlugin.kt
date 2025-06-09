@@ -6,6 +6,7 @@ import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.authentication
 import io.ktor.server.request.authorization
 import io.ktor.server.response.respondNullable
+import no.nav.syfo.application.auth.BrukerPrincipal
 import org.slf4j.LoggerFactory
 
 internal val LOGGER = LoggerFactory.getLogger("TexasAuthPlugin")
@@ -43,12 +44,12 @@ val TexasAuthPlugin = createRouteScopedPlugin(
             return@onCall
         }
 
-        if (introspectionResponse.sub == null) {
-            call.application.environment.log.warn("No sub in token claims")
+        if (introspectionResponse.pid == null) {
+            call.application.environment.log.warn("No pid in token claims")
             call.respondNullable(HttpStatusCode.Unauthorized)
             return@onCall
         }
-        call.authentication.principal( introspectionResponse.sub)
+        call.authentication.principal(BrukerPrincipal(introspectionResponse.pid))
     }
     LOGGER.info("TexasAuthPlugin installed")
 }

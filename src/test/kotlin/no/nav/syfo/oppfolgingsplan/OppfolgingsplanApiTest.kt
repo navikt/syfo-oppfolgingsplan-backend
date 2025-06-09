@@ -58,7 +58,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 }
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, sub = "user")
+                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier")
 
                 // Act
                 val response = client.get {
