@@ -58,7 +58,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 }
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier")
+                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
                 // Act
                 val response = client.get {
@@ -67,6 +67,27 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
+            }
+        }
+        it("GET /oppfolgingsplaner should respond with Forbidden when texas acr claim is not Level4") {
+            testApplication {
+                // Arrange
+                application {
+                    routing {
+                        registerOppfolgingsplanApi(texasClientMock)
+                    }
+                }
+                coEvery {
+                    texasClientMock.introspectToken(any(), any())
+                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/oppfolgingsplaner")
+                    headers.append("Authorization", "Bearer token")
+                }
+                // Assert
+                response.status shouldBe HttpStatusCode.Forbidden
             }
         }
         it("GET /oppfolgingsplaner should respond with Unauthorized when texas client gives inactive response") {

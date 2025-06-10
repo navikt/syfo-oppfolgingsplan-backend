@@ -43,6 +43,11 @@ val TexasAuthPlugin = createRouteScopedPlugin(
             call.respondNullable(HttpStatusCode.Unauthorized)
             return@onCall
         }
+        if (!introspectionResponse.acr.equals("Level4", ignoreCase = true)) {
+            call.application.environment.log.warn("User does not have Level4 access: ${introspectionResponse.acr}")
+            call.respondNullable(HttpStatusCode.Forbidden)
+            return@onCall
+        }
 
         if (introspectionResponse.pid == null) {
             call.application.environment.log.warn("No pid in token claims")
