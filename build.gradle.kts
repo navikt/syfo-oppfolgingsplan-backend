@@ -6,6 +6,9 @@ val logback_version: String by project
 val postgres_vesion: String by project
 val flyway_version: String by project
 val hikari_version: String by project
+val kotestVersion: String by project
+val kotestExtensionsVersion: String by project
+val mockkVersion: String by project
 
 plugins {
     kotlin("jvm") version "2.1.21"
@@ -34,6 +37,10 @@ dependencies {
     implementation("io.ktor:ktor-server-call-logging")
     implementation("io.ktor:ktor-server-call-id")
     implementation("io.ktor:ktor-server-content-negotiation")
+    implementation("io.ktor:ktor-client-core")
+    implementation("io.ktor:ktor-client-content-negotiation")
+    implementation("io.ktor:ktor-client-apache-jvm")
+    implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-serialization-jackson")
     implementation("io.insert-koin:koin-ktor:$koin_version")
     implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
@@ -50,6 +57,13 @@ dependencies {
     implementation("org.postgresql:postgresql:$postgres_vesion")
     implementation("com.zaxxer:HikariCP:$hikari_version")
     implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
+
+    // Testing
+    testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
+    testImplementation("io.kotest:kotest-assertions-core:${kotestVersion}")
+    testImplementation("io.kotest:kotest-property:${kotestVersion}")
+    testImplementation("io.kotest.extensions:kotest-assertions-ktor:$kotestExtensionsVersion")
+    testImplementation("io.mockk:mockk:$mockkVersion")
 }
 
 application {
