@@ -67,3 +67,5 @@ spec:
   env:
     - name: KTOR_ENV
       value: production
+    - name: DINE_SYKMELDTE_BASE_URL
+      value: https://dinesykmeldte-backend.prod.intern.nav.no

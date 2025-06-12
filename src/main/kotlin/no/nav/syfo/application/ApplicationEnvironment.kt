@@ -9,6 +9,7 @@ const val NAIS_DATABASE_ENV_PREFIX = "OPPFOLGINGSPLAN_DB"
 interface Environment {
     val database: DatabaseEnvironment
     val texas: TexasEnvironment
+    val dineSykmeldteBaseUrl: String
 }
 
 data class NaisEnvironment(
@@ -25,7 +26,8 @@ data class NaisEnvironment(
     ),
     override val texas: TexasEnvironment = TexasEnvironment(
         tokenIntrospectionEndpoint = getEnvVar("NAIS_TOKEN_INTROSPECTION_ENDPOINT"),
-    )
+    ),
+    override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
 ) : Environment
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =
@@ -50,5 +52,6 @@ data class DevelopmentEnvironment(
     ),
     override val texas: TexasEnvironment = TexasEnvironment(
         tokenIntrospectionEndpoint = "http://localhost:3000/api/v1/introspect",
-    )
+    ),
+    override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
 ) : Environment

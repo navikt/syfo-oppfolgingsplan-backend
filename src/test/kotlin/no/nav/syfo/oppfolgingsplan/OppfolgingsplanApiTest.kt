@@ -9,12 +9,15 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
+import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.texas.TexasHttpClient
 import no.nav.syfo.texas.TexasIntrospectionResponse
 
 class OppfolgingsplanApiTest : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
+    val dineSykmeldteClientMock = mockk<DineSykmeldteHttpClient>()
 
     describe("Oppfolgingsplan API") {
         it("GET /oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
@@ -22,7 +25,11 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(texasClientMock)
+                        registerOppfolgingsplanApi(
+                            texasClientMock,
+                            DineSykmeldteService(dineSykmeldteClientMock
+                            )
+                        )
                     }
                 }
                 // Act
@@ -36,7 +43,11 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(texasClientMock)
+                        registerOppfolgingsplanApi(
+                            texasClientMock,
+                            DineSykmeldteService(dineSykmeldteClientMock
+                            )
+                        )
                     }
                 }
                 // Act
@@ -53,7 +64,11 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(texasClientMock)
+                        registerOppfolgingsplanApi(
+                            texasClientMock,
+                            DineSykmeldteService(dineSykmeldteClientMock
+                            )
+                        )
                     }
                 }
                 coEvery {
@@ -74,7 +89,11 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(texasClientMock)
+                        registerOppfolgingsplanApi(
+                            texasClientMock,
+                            DineSykmeldteService(dineSykmeldteClientMock
+                            )
+                        )
                     }
                 }
                 coEvery {
@@ -95,7 +114,11 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(texasClientMock)
+                        registerOppfolgingsplanApi(
+                            texasClientMock,
+                            DineSykmeldteService(dineSykmeldteClientMock
+                            )
+                        )
                     }
                 }
                 coEvery {
