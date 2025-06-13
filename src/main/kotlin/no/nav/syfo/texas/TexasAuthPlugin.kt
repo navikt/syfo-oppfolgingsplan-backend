@@ -7,6 +7,7 @@ import io.ktor.server.auth.authentication
 import io.ktor.server.request.authorization
 import io.ktor.server.response.respondNullable
 import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.texas.client.TexasHttpClient
 import org.slf4j.LoggerFactory
 
 internal val LOGGER = LoggerFactory.getLogger("TexasAuthPlugin")

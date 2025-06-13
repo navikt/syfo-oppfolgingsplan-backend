@@ -7,7 +7,7 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.metric.registerMetricApi
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.registerOppfolgingsplanApi
-import no.nav.syfo.texas.TexasHttpClient
+import no.nav.syfo.texas.client.TexasHttpClient
 import registerPodApi
 
 fun Application.apiModule(

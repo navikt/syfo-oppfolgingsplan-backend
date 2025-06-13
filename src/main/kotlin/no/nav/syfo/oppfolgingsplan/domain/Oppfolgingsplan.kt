@@ -4,6 +4,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class Oppfolgingsplan(
-    var narmestelederId: String
+    val fnr: String
     // TODO: plus other fields as needed
 )

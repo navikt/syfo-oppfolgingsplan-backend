@@ -11,8 +11,8 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.texas.TexasHttpClient
-import no.nav.syfo.texas.TexasIntrospectionResponse
+import no.nav.syfo.texas.client.TexasHttpClient
+import no.nav.syfo.texas.client.TexasIntrospectionResponse
 
 class OppfolgingsplanApiTest : DescribeSpec({
 
@@ -33,7 +33,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
                     }
                 }
                 // Act
-                val response = client.get("/api/v1/oppfolgingsplaner")
+                val response = client.get("api/v1/narmesteleder/123/oppfolgingsplaner")
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -52,7 +52,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 }
                 // Act
                 val response = client.get {
-                    url("/api/v1/oppfolgingsplaner")
+                    url("api/v1/narmesteleder/123/oppfolgingsplaner")
                     headers.append("Authorization", "")
                 }
                 // Assert
@@ -77,7 +77,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/oppfolgingsplaner")
+                    url("/api/v1/narmesteleder/123/oppfolgingsplaner")
                     headers.append("Authorization", "Bearer token")
                 }
                 // Assert
@@ -102,7 +102,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/oppfolgingsplaner")
+                    url("/api/v1/narmesteleder/123/oppfolgingsplaner")
                     headers.append("Authorization", "Bearer token")
                 }
                 // Assert
@@ -127,7 +127,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/oppfolgingsplaner")
+                    url("/api/v1/narmesteleder/123/oppfolgingsplaner")
                     headers.append("Authorization", "Bearer token")
                 }
                 // Assert

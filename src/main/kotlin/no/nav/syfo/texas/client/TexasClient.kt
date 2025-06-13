@@ -1,62 +1,15 @@
-package no.nav.syfo.texas
+package no.nav.syfo.texas.client
 
 import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 import no.nav.syfo.application.client.defaultHttpClient
-
-@Serializable
-data class TexasIntrospectionRequest(
-    @SerialName("identity_provider")
-    val identityProvider: String,
-    val token: String,
-)
-
-@OptIn(ExperimentalSerializationApi::class)
-@Serializable
-@JsonIgnoreUnknownKeys
-data class TexasIntrospectionResponse(
-    val active: Boolean,
-    val error: String? = null,
-    val pid: String? = null,
-    val acr: String? = null,
-    val aud: String? = null,
-    val azp: String? = null,
-    val exp: Long? = null,
-    val iat: Long? = null,
-    val iss: String? = null,
-    val jti: String? = null,
-    val nbf: Long? = null,
-    val sub: String? = null,
-    val tid: String? = null,
-)
-
-@Serializable
-data class TexasExchangeRequest(
-    @SerialName("identity_provider")
-    val identityProvider: String,
-    val target: String,
-    @SerialName("user_token")
-    val userToken: String,
-)
-
-@Serializable
-data class TexasExchangeResponse(
-    @SerialName("access_token")
-    val accessToken: String,
-    @SerialName("expires_in")
-    val expiresIn: Long,
-    @SerialName("token_type")
-    val tokenType: String,
-)
+import no.nav.syfo.texas.TexasEnvironment
 
 class TexasHttpClient(val environment: TexasEnvironment) {
+
     suspend fun introspectToken(identityProvider: String, token: String): TexasIntrospectionResponse {
         return defaultHttpClient().use { client ->
             client.post(environment.tokenIntrospectionEndpoint) {
@@ -68,6 +21,7 @@ class TexasHttpClient(val environment: TexasEnvironment) {
             }.body<TexasIntrospectionResponse>()
         }
     }
+
     suspend fun exchangeToken(target: String, token: String): TexasExchangeResponse {
         return defaultHttpClient().use { client ->
             client.post(environment.tokenExchangeEndpoint) {

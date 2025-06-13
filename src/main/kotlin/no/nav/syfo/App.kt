@@ -16,7 +16,7 @@ import no.nav.syfo.application.database.databaseModule
 import no.nav.syfo.application.isDev
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.texas.TexasHttpClient
+import no.nav.syfo.texas.client.TexasHttpClient
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 

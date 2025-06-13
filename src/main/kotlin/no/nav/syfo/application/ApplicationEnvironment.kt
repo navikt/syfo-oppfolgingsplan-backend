@@ -10,6 +10,7 @@ interface Environment {
     val database: DatabaseEnvironment
     val texas: TexasEnvironment
     val dineSykmeldteBaseUrl: String
+    val naisClusterName: String
 }
 
 data class NaisEnvironment(
@@ -29,6 +30,7 @@ data class NaisEnvironment(
         tokenExchangeEndpoint = getEnvVar("NAIS_TOKEN_EXCHANGE_ENDPOINT")
     ),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
+    override val naisClusterName: String = getEnvVar("NAIS_CLUSTER_NAME")
 ) : Environment
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =
@@ -56,4 +58,5 @@ data class DevelopmentEnvironment(
         tokenExchangeEndpoint = "http://localhost:3000/api/v1/exchange",
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
+    override val naisClusterName: String = "dev-gcp",
 ) : Environment
