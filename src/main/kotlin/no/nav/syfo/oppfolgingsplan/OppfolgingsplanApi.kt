@@ -11,6 +11,7 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
 import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.TexasHttpClient
+import no.nav.syfo.texas.bearerToken
 
 fun Routing.registerOppfolgingsplanApi(
     texasHttpClient: TexasHttpClient,
@@ -28,7 +29,8 @@ fun Routing.registerOppfolgingsplanApi(
 
         post {
             val oppfolgingsplan = call.receive<Oppfolgingsplan>()
-            val sykmeldt = dineSykmeldteService.getSykmeldtForNarmesteleder(oppfolgingsplan.narmestelederId)
+            val texasResponse = texasHttpClient.exchangeToken("dev-gcp:team-esyfo:dinesykmeldte-backend", call.bearerToken()!!)
+            val sykmeldt = dineSykmeldteService.getSykmeldtForNarmesteleder(oppfolgingsplan.narmestelederId, texasResponse.accessToken)
             if (sykmeldt == null) {
                 call.application.environment.log.warn("Sykmeldt not found for narmestelederId: ${oppfolgingsplan.narmestelederId}")
                 call.respond(HttpStatusCode.NotFound)

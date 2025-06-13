@@ -37,6 +37,24 @@ data class TexasIntrospectionResponse(
     val tid: String? = null,
 )
 
+@Serializable
+data class TexasExchangeRequest(
+    @SerialName("identity_provider")
+    val identityProvider: String,
+    val target: String,
+    @SerialName("user_token")
+    val userToken: String,
+)
+
+data class TexasExchangeResponse(
+    @SerialName("access_token")
+    val accessToken: String,
+    @SerialName("expires_in")
+    val expiresIn: Long,
+    @SerialName("token_type")
+    val tokenType: String,
+)
+
 class TexasHttpClient(val environment: TexasEnvironment) {
     suspend fun introspectToken(identityProvider: String, token: String): TexasIntrospectionResponse {
         return defaultHttpClient().use { client ->
@@ -47,6 +65,18 @@ class TexasHttpClient(val environment: TexasEnvironment) {
                     token = token
                 ))
             }.body<TexasIntrospectionResponse>()
+        }
+    }
+    suspend fun exchangeToken(target: String, token: String): TexasExchangeResponse {
+        return defaultHttpClient().use { client ->
+            client.post(environment.tokenExchangeEndpoint) {
+                contentType(ContentType.Application.Json)
+                setBody(TexasExchangeRequest(
+                    identityProvider = "tokenx",
+                    target = target,
+                    userToken = token
+                ))
+            }.body<TexasExchangeResponse>()
         }
     }
 }

@@ -26,6 +26,7 @@ data class NaisEnvironment(
     ),
     override val texas: TexasEnvironment = TexasEnvironment(
         tokenIntrospectionEndpoint = getEnvVar("NAIS_TOKEN_INTROSPECTION_ENDPOINT"),
+        tokenExchangeEndpoint = getEnvVar("NAIS_TOKEN_EXCHANGE_ENDPOINT")
     ),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
 ) : Environment
@@ -52,6 +53,7 @@ data class DevelopmentEnvironment(
     ),
     override val texas: TexasEnvironment = TexasEnvironment(
         tokenIntrospectionEndpoint = "http://localhost:3000/api/v1/introspect",
+        tokenExchangeEndpoint = "http://localhost:3000/api/v1/exchange",
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
 ) : Environment
