@@ -68,10 +68,15 @@ spec:
         - application: tokenx-token-generator
           namespace: nais
           cluster: dev-gcp
+    outbound:
+      rules:
+        - application: dinesykmeldte-backend
+          namespace: team-esyfo
+          cluster: dev-gcp
   kafka:
     pool: nav-dev
   env:
     - name: KTOR_ENV
       value: production
     - name: DINE_SYKMELDTE_BASE_URL
-      value: https://dinesykmeldte-backend.dev.intern.nav.no
+      value: http://dinesykmeldte-backend
