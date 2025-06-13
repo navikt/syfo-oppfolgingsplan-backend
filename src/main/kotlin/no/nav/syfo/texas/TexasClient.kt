@@ -46,6 +46,7 @@ data class TexasExchangeRequest(
     val userToken: String,
 )
 
+@Serializable
 data class TexasExchangeResponse(
     @SerialName("access_token")
     val accessToken: String,
