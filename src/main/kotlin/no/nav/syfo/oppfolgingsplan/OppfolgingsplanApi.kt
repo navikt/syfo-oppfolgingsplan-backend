@@ -51,11 +51,6 @@ fun Routing.registerOppfolgingsplanApi(
                 call.respond(HttpStatusCode.NotFound)
                 return@post
             }
-            if (sykmeldt.aktivSykmelding == null || !sykmeldt.aktivSykmelding) {
-                call.application.environment.log.warn("Sykmeldt is not aktiv sykmeldt. NarmestelederId: $narmesteLederId")
-                call.respond(HttpStatusCode.Forbidden)
-                return@post
-            }
             // TODO: Implement logic to store the oppfolgingsplan
             val oppfolgingsplan = call.receive<Oppfolgingsplan>()
             call.respond(HttpStatusCode.Created)
