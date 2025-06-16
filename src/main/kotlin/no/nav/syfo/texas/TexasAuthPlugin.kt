@@ -55,7 +55,7 @@ val TexasAuthPlugin = createRouteScopedPlugin(
             call.respondNullable(HttpStatusCode.Unauthorized)
             return@onCall
         }
-        call.authentication.principal(BrukerPrincipal(introspectionResponse.pid))
+        call.authentication.principal(BrukerPrincipal(introspectionResponse.pid, bearerToken))
     }
     LOGGER.info("TexasAuthPlugin installed")
 }

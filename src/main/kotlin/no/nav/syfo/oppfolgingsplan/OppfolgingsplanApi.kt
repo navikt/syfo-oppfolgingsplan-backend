@@ -1,17 +1,18 @@
 package no.nav.syfo.oppfolgingsplan
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
 import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
-import no.nav.syfo.texas.bearerToken
 
 fun Routing.registerOppfolgingsplanApi(
     texasHttpClient: TexasHttpClient,
@@ -29,9 +30,21 @@ fun Routing.registerOppfolgingsplanApi(
 
         post {
             val narmesteLederId = call.parameters["narmesteLederId"]
-                ?: throw IllegalArgumentException("Missing narmesteLederId parameter")
+                ?: run {
+                    call.application.environment.log.warn("No narmesteLederId found in request parameters")
+                    call.respond(HttpStatusCode.BadRequest, "Missing narmesteLederId parameter")
+                    return@post
+                }
 
-            val texasResponse = texasHttpClient.exchangeToken("dev-gcp:team-esyfo:dinesykmeldte-backend", call.bearerToken()!!)
+            val bruker = call.principal<BrukerPrincipal>()
+                ?: run {
+                    call.application.environment.log.warn("No user principal found in request")
+                    call.respond(HttpStatusCode.Unauthorized)
+                    return@post
+                }
+
+            val texasResponse = texasHttpClient.exhangeTokenForDineSykmeldte(bruker.token)
+
             val sykmeldt = dineSykmeldteService.getSykmeldtForNarmesteleder(narmesteLederId, texasResponse.accessToken)
             if (sykmeldt == null) {
                 call.application.environment.log.warn("Sykmeldt not found for narmestelederId: $narmesteLederId")

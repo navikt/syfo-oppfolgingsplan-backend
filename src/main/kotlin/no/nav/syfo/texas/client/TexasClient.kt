@@ -22,7 +22,11 @@ class TexasHttpClient(val environment: TexasEnvironment) {
         }
     }
 
-    suspend fun exchangeToken(target: String, token: String): TexasExchangeResponse {
+    suspend fun exhangeTokenForDineSykmeldte(token: String): TexasExchangeResponse {
+        return exchangeToken(environment.exchangeTargetDineSykmeldte, token)
+    }
+
+    private suspend fun exchangeToken(target: String, token: String): TexasExchangeResponse {
         return defaultHttpClient().use { client ->
             client.post(environment.tokenExchangeEndpoint) {
                 contentType(ContentType.Application.Json)

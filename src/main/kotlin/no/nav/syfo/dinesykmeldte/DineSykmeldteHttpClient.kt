@@ -2,10 +2,8 @@ package no.nav.syfo.dinesykmeldte
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
@@ -17,20 +15,13 @@ class DineSykmeldteHttpClient(
     suspend fun getSykmeldtForNarmesteLederId(
         narmestelederId: String,
         token: String,
-    ): Sykmeldt? {
+    ): Sykmeldt {
         return defaultHttpClient().use { client: HttpClient ->
-            try {
-                client
-                    .get("$dineSykmeldteBaseUrl/api/v2/dinesykmeldte/$narmestelederId") {
-                        header("Authorization", "Bearer $token")
-                    }
-                    .body<Sykmeldt>()
-            } catch (clientRequestException: ClientRequestException) {
-                when (clientRequestException.response.status) {
-                    HttpStatusCode.NotFound -> null
-                    else -> throw clientRequestException
+            client
+                .get("$dineSykmeldteBaseUrl/api/v2/dinesykmeldte/$narmestelederId") {
+                    header("Authorization", "Bearer $token")
                 }
-            }
+                .body<Sykmeldt>()
         }
     }
 }
