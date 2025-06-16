@@ -8,6 +8,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json
 
 fun defaultHttpClient() = HttpClient(Apache) {
+    expectSuccess = true
     install(ContentNegotiation) {
         json()
     }

@@ -1,15 +1,9 @@
-package no.nav.syfo.texas
+package no.nav.syfo.texas.client
 
-import io.ktor.client.call.body
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.contentType
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
-import no.nav.syfo.application.client.defaultHttpClient
 
 @Serializable
 data class TexasIntrospectionRequest(
@@ -36,17 +30,3 @@ data class TexasIntrospectionResponse(
     val sub: String? = null,
     val tid: String? = null,
 )
-
-class TexasHttpClient(val environment: TexasEnvironment) {
-    suspend fun introspectToken(identityProvider: String, token: String): TexasIntrospectionResponse {
-        return defaultHttpClient().use { client ->
-            client.post(environment.tokenIntrospectionEndpoint) {
-                contentType(ContentType.Application.Json)
-                setBody(TexasIntrospectionRequest(
-                    identityProvider = identityProvider,
-                    token = token
-                ))
-            }.body<TexasIntrospectionResponse>()
-        }
-    }
-}

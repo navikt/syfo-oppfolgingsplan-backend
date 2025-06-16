@@ -62,8 +62,16 @@ spec:
     - "https://followupplan-backend.intern.nav.no"
   tokenx:
     enabled: true
+  accessPolicy:
+    outbound:
+      rules:
+        - application: dinesykmeldte-backend
+          namespace: team-esyfo
+          cluster: prod-gcp
   kafka:
     pool: nav-prod
   env:
     - name: KTOR_ENV
       value: production
+    - name: DINE_SYKMELDTE_BASE_URL
+      value: http://dinesykmeldte-backend

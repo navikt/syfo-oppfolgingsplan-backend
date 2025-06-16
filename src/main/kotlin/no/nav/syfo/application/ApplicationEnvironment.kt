@@ -9,6 +9,7 @@ const val NAIS_DATABASE_ENV_PREFIX = "OPPFOLGINGSPLAN_DB"
 interface Environment {
     val database: DatabaseEnvironment
     val texas: TexasEnvironment
+    val dineSykmeldteBaseUrl: String
 }
 
 data class NaisEnvironment(
@@ -25,7 +26,10 @@ data class NaisEnvironment(
     ),
     override val texas: TexasEnvironment = TexasEnvironment(
         tokenIntrospectionEndpoint = getEnvVar("NAIS_TOKEN_INTROSPECTION_ENDPOINT"),
-    )
+        tokenExchangeEndpoint = getEnvVar("NAIS_TOKEN_EXCHANGE_ENDPOINT"),
+        exchangeTargetDineSykmeldte = "${getEnvVar("NAIS_CLUSTER_NAME")}:team-esyfo:dinesykmeldte-backend",
+    ),
+    override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
 ) : Environment
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =
@@ -34,7 +38,6 @@ fun getEnvVar(varName: String, defaultValue: String? = null) =
 val Application.envKind get() = environment.config.property("ktor.environment").getString()
 
 fun Application.isDev(): Boolean = (envKind == "development")
-
 
 data class DevelopmentEnvironment(
     override val database: DatabaseEnvironment = DatabaseEnvironment(
@@ -50,5 +53,8 @@ data class DevelopmentEnvironment(
     ),
     override val texas: TexasEnvironment = TexasEnvironment(
         tokenIntrospectionEndpoint = "http://localhost:3000/api/v1/introspect",
-    )
+        tokenExchangeEndpoint = "http://localhost:3000/api/v1/exchange",
+        exchangeTargetDineSykmeldte = "dev-gcp:team-esyfo:dinesykmeldte-backend",
+    ),
+    override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
 ) : Environment

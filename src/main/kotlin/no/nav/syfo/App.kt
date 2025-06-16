@@ -14,7 +14,9 @@ import no.nav.syfo.application.api.apiModule
 import no.nav.syfo.application.database.applicationDatabase
 import no.nav.syfo.application.database.databaseModule
 import no.nav.syfo.application.isDev
-import no.nav.syfo.texas.TexasHttpClient
+import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.texas.client.TexasHttpClient
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 
@@ -50,6 +52,7 @@ fun main() {
                 applicationState = applicationState,
                 database = applicationDatabase,
                 texasHttpClient = TexasHttpClient(environment.texas),
+                dineSykmeldteService = DineSykmeldteService(DineSykmeldteHttpClient(environment.dineSykmeldteBaseUrl)),
             )
 
             monitor.subscribe(ApplicationStarted) {

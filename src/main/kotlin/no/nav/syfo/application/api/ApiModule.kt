@@ -5,14 +5,16 @@ import io.ktor.server.routing.routing
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.metric.registerMetricApi
+import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.registerOppfolgingsplanApi
-import no.nav.syfo.texas.TexasHttpClient
+import no.nav.syfo.texas.client.TexasHttpClient
 import registerPodApi
 
 fun Application.apiModule(
     applicationState: ApplicationState,
     database: DatabaseInterface,
-    texasHttpClient: TexasHttpClient
+    texasHttpClient: TexasHttpClient,
+    dineSykmeldteService: DineSykmeldteService
 ) {
     installCallId()
     installContentNegotiation()
@@ -24,6 +26,6 @@ fun Application.apiModule(
             database = database
         )
         registerMetricApi()
-        registerOppfolgingsplanApi(texasHttpClient)
+        registerOppfolgingsplanApi(texasHttpClient, dineSykmeldteService)
     }
 }
