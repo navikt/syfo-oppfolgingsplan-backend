@@ -11,8 +11,7 @@ on:
 
 jobs:
   jar-app:
-    if: github.event.pull_request.draft == false
-    uses: navikt/teamesyfo-github-actions-workflows/.github/workflows/jar-app.yaml@main
+    uses: navikt/teamesyfo-github-actions-workflows/.github/workflows/jar-app.yaml@ignore-pr-drafts
     permissions:
       actions: read
       contents: write
