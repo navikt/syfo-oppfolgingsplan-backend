@@ -1,31 +1,20 @@
 package no.nav.syfo.application.api
 
+
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
-import no.nav.syfo.application.ApplicationState
-import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.metric.registerMetricApi
-import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.registerOppfolgingsplanApi
-import no.nav.syfo.texas.client.TexasHttpClient
 import registerPodApi
 
-fun Application.apiModule(
-    applicationState: ApplicationState,
-    database: DatabaseInterface,
-    texasHttpClient: TexasHttpClient,
-    dineSykmeldteService: DineSykmeldteService
-) {
+fun Application.apiModule() {
     installCallId()
     installContentNegotiation()
     installStatusPages()
 
     routing {
-        registerPodApi(
-            applicationState = applicationState,
-            database = database
-        )
+        registerPodApi()
         registerMetricApi()
-        registerOppfolgingsplanApi(texasHttpClient, dineSykmeldteService)
+        registerOppfolgingsplanApi()
     }
 }

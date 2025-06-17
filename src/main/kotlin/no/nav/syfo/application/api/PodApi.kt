@@ -3,11 +3,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.database.DatabaseInterface
+import org.koin.ktor.ext.inject
 
 fun Routing.registerPodApi(
-    applicationState: ApplicationState,
-    database: DatabaseInterface,
 ) {
+    val applicationState by inject<ApplicationState>()
+    val database by inject<DatabaseInterface>()
+
     get("/internal/is_alive") {
         if (applicationState.alive) {
             call.respondText("I'm alive! :)")

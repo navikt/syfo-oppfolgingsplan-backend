@@ -13,11 +13,12 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
 import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
+import org.koin.ktor.ext.inject
 
-fun Routing.registerOppfolgingsplanApi(
-    texasHttpClient: TexasHttpClient,
-    dineSykmeldteService: DineSykmeldteService
-) {
+fun Routing.registerOppfolgingsplanApi() {
+    val texasHttpClient by inject<TexasHttpClient>()
+    val dineSykmeldteService by inject<DineSykmeldteService>()
+
     route("api/v1/narmesteleder/{narmesteLederId}/oppfolgingsplaner") {
         install(TexasAuthPlugin) {
             client = texasHttpClient

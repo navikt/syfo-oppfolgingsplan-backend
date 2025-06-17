@@ -1,65 +1,27 @@
 package no.nav.syfo
 
-import com.typesafe.config.ConfigFactory
-import io.ktor.server.application.*
-import io.ktor.server.config.HoconApplicationConfig
-import io.ktor.server.engine.applicationEnvironment
+import io.ktor.server.application.Application
 import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import no.nav.syfo.application.ApplicationState
-import no.nav.syfo.application.DevelopmentEnvironment
-import no.nav.syfo.application.NaisEnvironment
 import no.nav.syfo.application.api.apiModule
-import no.nav.syfo.application.database.applicationDatabase
-import no.nav.syfo.application.database.databaseModule
-import no.nav.syfo.application.isDev
-import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
-import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.texas.client.TexasHttpClient
-import org.slf4j.LoggerFactory
+import no.nav.syfo.plugins.configureDependencies
+import no.nav.syfo.plugins.configureLifecycleHooks
+import org.koin.ktor.ext.get
 import java.util.concurrent.TimeUnit
 
-const val applicationPort = 8080
-
 fun main() {
-    val applicationState = ApplicationState()
-    val logger = LoggerFactory.getLogger("ktor.application")
-    val applicationEngineEnvironment = applicationEnvironment {
-        log = logger
-        config = HoconApplicationConfig(ConfigFactory.load())
-    }
     val server = embeddedServer(
         Netty,
-        environment = applicationEngineEnvironment,
         configure = {
             connector {
-                port = applicationPort
+                port = 8080
             }
             connectionGroupSize = 8
             workerGroupSize = 8
             callGroupSize = 16
         },
-        module = {
-            val environment = if (isDev()) {
-                DevelopmentEnvironment()
-            } else NaisEnvironment()
-
-            databaseModule(
-                databaseEnvironment = environment.database,
-            )
-            apiModule(
-                applicationState = applicationState,
-                database = applicationDatabase,
-                texasHttpClient = TexasHttpClient(environment.texas),
-                dineSykmeldteService = DineSykmeldteService(DineSykmeldteHttpClient(environment.dineSykmeldteBaseUrl)),
-            )
-
-            monitor.subscribe(ApplicationStarted) {
-                applicationState.ready = true
-                logger.info("Application is ready, running Java VM ${Runtime.version()}")
-            }
-        }
+        module = Application::module
     )
 
     Runtime.getRuntime().addShutdownHook(
@@ -68,5 +30,11 @@ fun main() {
         }
     )
 
-    server.start(wait = true)
+    server.start(true)
+}
+
+fun Application.module() {
+    configureDependencies()
+    apiModule()
+    configureLifecycleHooks(get())
 }

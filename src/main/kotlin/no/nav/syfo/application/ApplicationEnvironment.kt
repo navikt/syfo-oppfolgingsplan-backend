@@ -35,7 +35,7 @@ data class NaisEnvironment(
 fun getEnvVar(varName: String, defaultValue: String? = null) =
     System.getenv(varName) ?: defaultValue ?: throw RuntimeException("Missing required variable \"$varName\"")
 
-val Application.envKind get() = environment.config.property("ktor.environment").getString()
+val Application.envKind get() = getEnvVar("KTOR_ENV", "development")
 
 fun Application.isDev(): Boolean = (envKind == "development")
 
