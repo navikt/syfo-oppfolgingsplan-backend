@@ -13,11 +13,11 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
 import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
-import org.koin.ktor.ext.inject
 
-fun Routing.registerOppfolgingsplanApi() {
-    val texasHttpClient by inject<TexasHttpClient>()
-    val dineSykmeldteService by inject<DineSykmeldteService>()
+fun Routing.registerOppfolgingsplanApi(
+    dineSykmeldteService: DineSykmeldteService,
+    texasHttpClient: TexasHttpClient,
+) {
 
     route("api/v1/narmesteleder/{narmesteLederId}/oppfolgingsplaner") {
         install(TexasAuthPlugin) {
@@ -54,6 +54,7 @@ fun Routing.registerOppfolgingsplanApi() {
             }
             // TODO: Implement logic to store the oppfolgingsplan
             val oppfolgingsplan = call.receive<Oppfolgingsplan>()
+
             call.respond(HttpStatusCode.Created)
         }
     }
