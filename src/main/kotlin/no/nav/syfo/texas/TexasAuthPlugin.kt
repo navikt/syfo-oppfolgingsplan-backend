@@ -8,9 +8,9 @@ import io.ktor.server.request.authorization
 import io.ktor.server.response.respondNullable
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.texas.client.TexasHttpClient
-import org.slf4j.LoggerFactory
+import no.nav.syfo.util.logger
 
-internal val LOGGER = LoggerFactory.getLogger("TexasAuthPlugin")
+internal val logger = logger("no.nav.syfo.texas.TexasAuthPlugin")
 
 class TexasAuthPluginConfiguration(
     var client: TexasHttpClient? = null,
@@ -58,7 +58,7 @@ val TexasAuthPlugin = createRouteScopedPlugin(
             call.authentication.principal(BrukerPrincipal(introspectionResponse.pid, bearerToken))
         }
     }
-    LOGGER.info("TexasAuthPlugin installed")
+    logger.info("TexasAuthPlugin installed")
 }
 
 fun ApplicationCall.bearerToken(): String? =

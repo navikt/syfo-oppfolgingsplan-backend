@@ -8,12 +8,15 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.metric.registerMetricApi
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.registerOppfolgingsplanApi
+import no.nav.syfo.plugins.installCallId
+import no.nav.syfo.plugins.installContentNegotiation
+import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.koin.ktor.ext.inject
 import registerPodApi
 import kotlin.getValue
 
-fun Application.apiModule() {
+fun Application.configureRouting() {
     val applicationState by inject<ApplicationState>()
     val database by inject<DatabaseInterface>()
     val texasHttpClient by inject<TexasHttpClient>()

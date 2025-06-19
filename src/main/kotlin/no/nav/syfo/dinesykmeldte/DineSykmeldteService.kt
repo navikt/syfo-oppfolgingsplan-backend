@@ -3,14 +3,14 @@ package no.nav.syfo.dinesykmeldte
 
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.http.HttpStatusCode
-import org.slf4j.LoggerFactory
+import no.nav.syfo.util.logger
 
-
-internal val logger = LoggerFactory.getLogger("no.nav.syfo.dinesykmeldte")
 
 class DineSykmeldteService(
     private val dineSykmeldteHttpClient: DineSykmeldteHttpClient
 ) {
+    private val logger = logger()
+
     suspend fun getSykmeldtForNarmesteleder(
         narmestelederId: String,
         accessToken: String
