@@ -15,9 +15,10 @@ import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
 
 fun Routing.registerOppfolgingsplanApi(
+    dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
-    dineSykmeldteService: DineSykmeldteService
 ) {
+
     route("api/v1/narmesteleder/{narmesteLederId}/oppfolgingsplaner") {
         install(TexasAuthPlugin) {
             client = texasHttpClient
@@ -53,6 +54,7 @@ fun Routing.registerOppfolgingsplanApi(
             }
             // TODO: Implement logic to store the oppfolgingsplan
             val oppfolgingsplan = call.receive<Oppfolgingsplan>()
+
             call.respond(HttpStatusCode.Created)
         }
     }

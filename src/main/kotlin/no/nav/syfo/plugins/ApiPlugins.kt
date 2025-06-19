@@ -1,4 +1,4 @@
-package no.nav.syfo.application.api
+package no.nav.syfo.plugins
 
 import com.fasterxml.jackson.databind.SerializationFeature
 import io.ktor.http.*

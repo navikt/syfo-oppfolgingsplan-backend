@@ -7,22 +7,20 @@ import io.ktor.client.request.header
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonIgnoreUnknownKeys
-import no.nav.syfo.application.client.defaultHttpClient
 
 class DineSykmeldteHttpClient(
+    private val httpClient: HttpClient,
     private val dineSykmeldteBaseUrl: String,
 ) {
     suspend fun getSykmeldtForNarmesteLederId(
         narmestelederId: String,
         token: String,
     ): Sykmeldt {
-        return defaultHttpClient().use { client: HttpClient ->
-            client
-                .get("$dineSykmeldteBaseUrl/api/v2/dinesykmeldte/$narmestelederId") {
-                    header("Authorization", "Bearer $token")
-                }
-                .body<Sykmeldt>()
-        }
+        return httpClient
+            .get("$dineSykmeldteBaseUrl/api/v2/dinesykmeldte/$narmestelederId") {
+                header("Authorization", "Bearer $token")
+            }
+            .body<Sykmeldt>()
     }
 }
 

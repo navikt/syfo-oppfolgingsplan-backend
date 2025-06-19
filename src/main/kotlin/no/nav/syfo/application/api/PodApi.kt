@@ -6,8 +6,9 @@ import no.nav.syfo.application.database.DatabaseInterface
 
 fun Routing.registerPodApi(
     applicationState: ApplicationState,
-    database: DatabaseInterface,
+    database: DatabaseInterface
 ) {
+
     get("/internal/is_alive") {
         if (applicationState.alive) {
             call.respondText("I'm alive! :)")
