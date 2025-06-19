@@ -16,13 +16,11 @@ class DineSykmeldteHttpClient(
         narmestelederId: String,
         token: String,
     ): Sykmeldt {
-        return httpClient.use { client: HttpClient ->
-            client
-                .get("$dineSykmeldteBaseUrl/api/v2/dinesykmeldte/$narmestelederId") {
-                    header("Authorization", "Bearer $token")
-                }
-                .body<Sykmeldt>()
-        }
+        return httpClient
+            .get("$dineSykmeldteBaseUrl/api/v2/dinesykmeldte/$narmestelederId") {
+                header("Authorization", "Bearer $token")
+            }
+            .body<Sykmeldt>()
     }
 }
 

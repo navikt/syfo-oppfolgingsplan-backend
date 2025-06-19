@@ -1,12 +1,17 @@
 package no.nav.syfo.plugins
 
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.apache.Apache
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.LocalEnvironment
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.NaisEnvironment
-import no.nav.syfo.application.client.defaultHttpClient
 import no.nav.syfo.application.database.Database
 import no.nav.syfo.application.database.DatabaseConfig
 import no.nav.syfo.application.database.DatabaseInterface
@@ -45,7 +50,18 @@ private fun environmentModule(isLocalEnv: Boolean) = module {
 
 private fun httpClient() = module {
     single {
-        defaultHttpClient()
+        HttpClient(Apache) {
+            expectSuccess = true
+            install(ContentNegotiation) {
+                json()
+            }
+            install(HttpRequestRetry) {
+                retryOnExceptionIf(2) { _, cause ->
+                    cause !is ClientRequestException
+                }
+                constantDelay(500L)
+            }
+        }
     }
 }
 
@@ -63,7 +79,7 @@ private fun databaseModule() = module {
 
 private fun servicesModule() = module {
     single { DineSykmeldteService(DineSykmeldteHttpClient(get(), env().dineSykmeldteBaseUrl)) }
-    single { TexasHttpClient(env().texas) }
+    single { TexasHttpClient(get(),env().texas) }
 }
 
 private fun Scope.env() = get<Environment>()
