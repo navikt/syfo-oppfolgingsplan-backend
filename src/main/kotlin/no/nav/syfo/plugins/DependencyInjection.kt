@@ -18,6 +18,8 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanDAO
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.koin.core.scope.Scope
 import org.koin.dsl.module
@@ -80,6 +82,7 @@ private fun databaseModule() = module {
 private fun servicesModule() = module {
     single { DineSykmeldteService(DineSykmeldteHttpClient(get(), env().dineSykmeldteBaseUrl)) }
     single { TexasHttpClient(get(),env().texas) }
+    single { OppfolgingsplanService(OppfolgingsplanDAO()) }
 }
 
 private fun Scope.env() = get<Environment>()

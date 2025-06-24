@@ -4,9 +4,11 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import kotlinx.coroutines.Dispatchers
 import org.flywaydb.core.Flyway
+import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import java.sql.Connection
-import java.sql.ResultSet
 
 data class DatabaseConfig(
     val jdbcUrl: String,
@@ -37,6 +39,7 @@ class Database(
 
     init {
         runFlywayMigrations()
+        Database.connect(dataSource)
     }
 
     private fun runFlywayMigrations() = Flyway.configure().run {
@@ -53,8 +56,5 @@ interface DatabaseInterface {
     val connection: Connection
 }
 
-fun <T> ResultSet.toList(mapper: ResultSet.() -> T) = mutableListOf<T>().apply {
-    while (next()) {
-        add(mapper())
-    }
-}
+suspend fun <T> dbQuery(block: suspend () -> T): T =
+    newSuspendedTransaction(Dispatchers.IO) { block() }

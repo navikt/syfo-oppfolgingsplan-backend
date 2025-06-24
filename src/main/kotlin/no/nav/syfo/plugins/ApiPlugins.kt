@@ -1,22 +1,29 @@
 package no.nav.syfo.plugins
 
-import com.fasterxml.jackson.databind.SerializationFeature
 import io.ktor.http.*
-import io.ktor.serialization.jackson.*
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.plugins.callid.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.contextual
 import java.util.*
 
 const val NAV_CALL_ID_HEADER = "Nav-Call-Id"
 
 fun Application.installContentNegotiation() {
     install(ContentNegotiation) {
-        jackson {
-            enable(SerializationFeature.INDENT_OUTPUT)
-        }
+        json(
+            Json {
+                serializersModule = SerializersModule {
+                    contextual(LocalDate.serializer())
+                }
+            }
+        )
     }
 }
 

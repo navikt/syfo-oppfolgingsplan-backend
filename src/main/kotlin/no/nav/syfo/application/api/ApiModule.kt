@@ -8,6 +8,7 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.metric.registerMetricApi
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.registerOppfolgingsplanApi
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.plugins.installCallId
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
@@ -21,6 +22,7 @@ fun Application.configureRouting() {
     val database by inject<DatabaseInterface>()
     val texasHttpClient by inject<TexasHttpClient>()
     val dineSykmeldteService by inject<DineSykmeldteService>()
+    val oppfolgingsplanService by inject<OppfolgingsplanService>()
 
     installCallId()
     installContentNegotiation()
@@ -29,6 +31,10 @@ fun Application.configureRouting() {
     routing {
         registerPodApi(applicationState, database)
         registerMetricApi()
-        registerOppfolgingsplanApi(dineSykmeldteService, texasHttpClient)
+        registerOppfolgingsplanApi(
+            dineSykmeldteService,
+            texasHttpClient,
+            oppfolgingsplanService
+        )
     }
 }

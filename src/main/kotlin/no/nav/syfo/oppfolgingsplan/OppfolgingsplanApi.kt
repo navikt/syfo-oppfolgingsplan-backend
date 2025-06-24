@@ -11,12 +11,14 @@ import io.ktor.server.routing.route
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
 
 fun Routing.registerOppfolgingsplanApi(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
+    oppfolgingsplanService: OppfolgingsplanService
 ) {
 
     route("api/v1/narmesteleder/{narmesteLederId}/oppfolgingsplaner") {
@@ -52,8 +54,19 @@ fun Routing.registerOppfolgingsplanApi(
                 call.respond(HttpStatusCode.NotFound)
                 return@post
             }
-            // TODO: Implement logic to store the oppfolgingsplan
-            val oppfolgingsplan = call.receive<Oppfolgingsplan>()
+
+            val oppfolgingsplan = try { call.receive<Oppfolgingsplan>() } catch (e: Exception) {
+                call.application.environment.log.error("Failed to parse Oppfolgingsplan from request: ${e.message}", e)
+                call.respond(HttpStatusCode.BadRequest, "Invalid Oppfolgingsplan format")
+                return@post
+            }
+            if (oppfolgingsplan.sykmeldtFnr != sykmeldt.fnr) {
+                call.application.environment.log.warn("Sykmeldt FNR does not match for narmestelederId: $narmesteLederId")
+                call.respond(HttpStatusCode.Forbidden, "Sykmeldt FNR does not match")
+                return@post
+            }
+
+            oppfolgingsplanService.persistOppfolgingsplan(narmesteLederId, oppfolgingsplan)
 
             call.respond(HttpStatusCode.Created)
         }
