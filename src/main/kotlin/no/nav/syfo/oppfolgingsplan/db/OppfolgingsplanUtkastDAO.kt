@@ -1,13 +1,13 @@
 package no.nav.syfo.oppfolgingsplan.db
 
-import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.domain.OppfolgingsplanUtkast
 import java.sql.ResultSet
+import java.time.Instant
 import java.util.UUID
 
-data class OppfolgingsplanUtkastDTO(
+data class OppfolgingsplanUtkastDTO (
     val uuid: UUID,
     val sykmeldtFnr: String,
     val narmesteLederId: String,
