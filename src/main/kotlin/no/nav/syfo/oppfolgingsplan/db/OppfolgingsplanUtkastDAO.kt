@@ -1,20 +1,10 @@
 package no.nav.syfo.oppfolgingsplan.db
 
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.json.Json
-import no.nav.syfo.application.database.dbQuery
+import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.domain.OppfolgingsplanUtkast
-import org.jetbrains.exposed.sql.ResultRow
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.Table
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.json.jsonb
-import org.jetbrains.exposed.sql.kotlin.datetime.date
-import org.jetbrains.exposed.sql.kotlin.datetime.timestamp
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.upsert
+import java.sql.ResultSet
 import java.util.UUID
 
 data class OppfolgingsplanUtkastDTO(
@@ -29,67 +19,78 @@ data class OppfolgingsplanUtkastDTO(
     val updatedAt: Instant,
 )
 
-class OppfolgingsplanUtkastDAO {
-    object OppfolgingsplanUtkastTable : Table("oppfolgingsplan_utkast") {
-        val uuid = uuid("uuid").autoGenerate()
-        val sykmeldtFnr = varchar("sykemeldt_fnr", 11)
-        val narmesteLederId = varchar("narmeste_leder_id", 150).uniqueIndex()
-        val narmesteLederFnr = varchar("narmeste_leder_fnr", 11)
-        val orgnummer = varchar("orgnummer", 9)
-        val content = jsonb<String>("content", Json {
-            prettyPrint = false
-            explicitNulls = false
-        }).nullable()
-        val sluttdato = date("sluttdato").nullable()
-        val createdAt = timestamp("created_at")
-        val updatedAt = timestamp("updated_at")
+fun DatabaseInterface.upsertOppfolgingsplanUtkast(
+    narmesteLederId: String,
+    oppfolgingsplanUtkast: OppfolgingsplanUtkast,
+) {
+    val statement =
+        """
+        INSERT INTO oppfolgingsplan_utkast (
+            sykemeldt_fnr,
+            narmeste_leder_id,
+            narmeste_leder_fnr,
+            orgnummer,
+            content,
+            sluttdato,
+            created_at,
+            updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ON CONFLICT (narmeste_leder_id) DO UPDATE SET
+            sykemeldt_fnr = EXCLUDED.sykemeldt_fnr,
+            narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
+            orgnummer = EXCLUDED.orgnummer,
+            content = EXCLUDED.content,
+            sluttdato = EXCLUDED.sluttdato,
+            updated_at = NOW()
+        """.trimIndent()
 
-        override val primaryKey = PrimaryKey(uuid)
-    }
-
-    suspend fun upsert(narmesteLederId: String, utkast: OppfolgingsplanUtkast): UUID {
-        return dbQuery {
-            OppfolgingsplanUtkastTable.upsert {
-                it[sykmeldtFnr] = utkast.sykmeldtFnr
-                it[this.narmesteLederId] = narmesteLederId
-                it[narmesteLederFnr] = utkast.narmesteLederFnr
-                it[orgnummer] = utkast.orgnummer
-                it[content] = utkast.content
-                it[sluttdato] = utkast.sluttdato
-                it[createdAt] = Clock.System.now()
-                it[updatedAt] = Clock.System.now()
-            }[OppfolgingsplanUtkastTable.uuid]
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, oppfolgingsplanUtkast.sykmeldtFnr)
+            preparedStatement.setString(2, narmesteLederId)
+            preparedStatement.setString(3, oppfolgingsplanUtkast.narmesteLederFnr)
+            preparedStatement.setString(4, oppfolgingsplanUtkast.orgnummer)
+            preparedStatement.setObject(5, oppfolgingsplanUtkast.content)
+            preparedStatement.setObject(6, oppfolgingsplanUtkast.sluttdato)
+            preparedStatement.executeUpdate()
         }
+        connection.commit()
     }
+}
 
-    suspend fun findBy(narmesteLederId: String): OppfolgingsplanUtkastDTO? {
-        return dbQuery {
-            OppfolgingsplanUtkastTable.selectAll()
-                .where { OppfolgingsplanUtkastTable.narmesteLederId eq narmesteLederId }
-                .map { it.toOppfolgingsplanUtkast() }
-                .singleOrNull()
-        }
-    }
+fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
+    narmesteLederId: String,
+): OppfolgingsplanUtkastDTO? {
+    val statement =
+        """
+        SELECT *
+        FROM oppfolgingsplan_utkast
+        WHERE narmeste_leder_id = ?
+        """.trimIndent()
 
-    suspend fun deleteBy(narmesteLederId: String) {
-        dbQuery {
-            OppfolgingsplanUtkastTable.deleteWhere {
-                OppfolgingsplanUtkastTable.narmesteLederId eq narmesteLederId
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, narmesteLederId)
+            val resultSet = preparedStatement.executeQuery()
+            return if (resultSet.next()) {
+                resultSet.toOppfolgingsplanUtkastDTO()
+            } else {
+                null
             }
         }
     }
+}
 
-    fun ResultRow.toOppfolgingsplanUtkast(): OppfolgingsplanUtkastDTO {
-        return OppfolgingsplanUtkastDTO(
-            uuid = this[OppfolgingsplanUtkastTable.uuid],
-            sykmeldtFnr = this[OppfolgingsplanUtkastTable.sykmeldtFnr],
-            narmesteLederId = this[OppfolgingsplanUtkastTable.narmesteLederId],
-            narmesteLederFnr = this[OppfolgingsplanUtkastTable.narmesteLederFnr],
-            orgnummer = this[OppfolgingsplanUtkastTable.orgnummer],
-            content = this[OppfolgingsplanUtkastTable.content],
-            sluttdato = this[OppfolgingsplanUtkastTable.sluttdato],
-            createdAt = this[OppfolgingsplanUtkastTable.createdAt],
-            updatedAt = this[OppfolgingsplanUtkastTable.updatedAt],
-        )
-    }
+fun ResultSet.toOppfolgingsplanUtkastDTO(): OppfolgingsplanUtkastDTO {
+    return OppfolgingsplanUtkastDTO(
+        uuid = getObject("uuid") as UUID,
+        sykmeldtFnr = getString("sykemeldt_fnr"),
+        narmesteLederId = getString("narmeste_leder_id"),
+        narmesteLederFnr = getString("narmeste_leder_fnr"),
+        orgnummer = getString("orgnummer"),
+        content = getString("content"),
+        sluttdato = getObject("sluttdato") as LocalDate?,
+        createdAt = getObject("created_at") as Instant,
+        updatedAt = getObject("updated_at") as Instant,
+    )
 }

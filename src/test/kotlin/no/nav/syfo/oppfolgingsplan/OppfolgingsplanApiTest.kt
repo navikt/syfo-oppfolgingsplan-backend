@@ -9,7 +9,9 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
+import no.nav.syfo.TestDB
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 
@@ -17,6 +19,8 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteServiceMock = mockk<DineSykmeldteService>()
+    val testDb = TestDB.database
+
 
     describe("Oppfolgingsplan API") {
         it("GET /oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
@@ -24,11 +28,17 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(dineSykmeldteServiceMock, texasClientMock)
+                        registerOppfolgingsplanApi(
+                            dineSykmeldteServiceMock,
+                            texasClientMock,
+                            oppfolgingsplanService = OppfolgingsplanService(
+                                database = testDb,
+                            )
+                        )
                     }
                 }
                 // Act
-                val response = client.get("api/v1/narmesteleder/123/oppfolgingsplaner")
+                val response = client.get("api/v1/arbeidsgiver/123/oppfolgingsplaner")
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -38,12 +48,18 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(dineSykmeldteServiceMock, texasClientMock)
+                        registerOppfolgingsplanApi(
+                            dineSykmeldteServiceMock,
+                            texasClientMock,
+                            oppfolgingsplanService = OppfolgingsplanService(
+                                database = testDb,
+                            )
+                        )
                     }
                 }
                 // Act
                 val response = client.get {
-                    url("api/v1/narmesteleder/123/oppfolgingsplaner")
+                    url("api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     headers.append("Authorization", "")
                 }
                 // Assert
@@ -55,7 +71,13 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(dineSykmeldteServiceMock, texasClientMock)
+                        registerOppfolgingsplanApi(
+                            dineSykmeldteServiceMock,
+                            texasClientMock,
+                            oppfolgingsplanService = OppfolgingsplanService(
+                                database = testDb,
+                            )
+                        )
                     }
                 }
                 coEvery {
@@ -64,7 +86,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/narmesteleder/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     headers.append("Authorization", "Bearer token")
                 }
                 // Assert
@@ -76,7 +98,13 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(dineSykmeldteServiceMock, texasClientMock)
+                        registerOppfolgingsplanApi(
+                            dineSykmeldteServiceMock,
+                            texasClientMock,
+                            oppfolgingsplanService = OppfolgingsplanService(
+                                database = testDb,
+                            )
+                        )
                     }
                 }
                 coEvery {
@@ -85,7 +113,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/narmesteleder/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     headers.append("Authorization", "Bearer token")
                 }
                 // Assert
@@ -97,7 +125,13 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Arrange
                 application {
                     routing {
-                        registerOppfolgingsplanApi(dineSykmeldteServiceMock, texasClientMock)
+                        registerOppfolgingsplanApi(
+                            dineSykmeldteServiceMock,
+                            texasClientMock,
+                            oppfolgingsplanService = OppfolgingsplanService(
+                                database = testDb,
+                            )
+                        )
                     }
                 }
                 coEvery {
@@ -106,7 +140,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/narmesteleder/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     headers.append("Authorization", "Bearer token")
                 }
                 // Assert

@@ -21,7 +21,7 @@ fun Routing.registerOppfolgingsplanApi(
     oppfolgingsplanService: OppfolgingsplanService
 ) {
 
-    route("api/v1/narmesteleder/{narmesteLederId}/oppfolgingsplaner") {
+    route("api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner") {
         install(TexasAuthPlugin) {
             client = texasHttpClient
         }
@@ -61,8 +61,8 @@ fun Routing.registerOppfolgingsplanApi(
                 return@post
             }
             if (oppfolgingsplan.sykmeldtFnr != sykmeldt.fnr) {
-                call.application.environment.log.warn("Sykmeldt FNR does not match for narmestelederId: $narmesteLederId")
-                call.respond(HttpStatusCode.Forbidden, "Sykmeldt FNR does not match")
+                call.application.environment.log.warn("Sykmeldt fnr does not match for narmestelederId: $narmesteLederId")
+                call.respond(HttpStatusCode.Forbidden, "Sykmeldt fnr does not match")
                 return@post
             }
 

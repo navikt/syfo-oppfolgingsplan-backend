@@ -9,6 +9,7 @@ val hikari_version: String by project
 val kotestVersion: String by project
 val kotestExtensionsVersion: String by project
 val mockkVersion: String by project
+val testcontainersVersion: String by project
 
 plugins {
     kotlin("jvm") version "2.1.21"
@@ -41,12 +42,7 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-apache-jvm")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
-    implementation("io.ktor:ktor-serialization-jackson")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.2")
-    implementation("org.jetbrains.exposed:exposed-core:0.61.0")
-    implementation("org.jetbrains.exposed:exposed-jdbc:0.61.0")
-    implementation("org.jetbrains.exposed:exposed-json:0.61.0")
-    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.61.0")
     implementation("io.insert-koin:koin-ktor:$koin_version")
     implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
     implementation("io.ktor:ktor-server-netty")
@@ -71,6 +67,8 @@ dependencies {
     testImplementation("io.mockk:mockk:$mockkVersion")
     testImplementation("io.insert-koin:koin-test:${koin_version}")
     testImplementation("io.kotest.extensions:kotest-extensions-koin:1.3.0")
+    testImplementation("org.testcontainers:testcontainers:${testcontainersVersion}")
+    testImplementation("org.testcontainers:postgresql:${testcontainersVersion}")
 }
 
 application {

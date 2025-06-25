@@ -1,14 +1,14 @@
 package no.nav.syfo.oppfolgingsplan.service
 
-import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanDAO
+import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
-import java.util.UUID
 
 class OppfolgingsplanService(
-    private val oppfolgingsplanDAO: OppfolgingsplanDAO,
+    private val database: DatabaseInterface,
 ) {
 
-    suspend fun persistOppfolgingsplan(narmesteLederId: String, oppfolgingsplan: Oppfolgingsplan): UUID {
-        return oppfolgingsplanDAO.persist(narmesteLederId, oppfolgingsplan)
+    fun persistOppfolgingsplan(narmesteLederId: String, oppfolgingsplan: Oppfolgingsplan) {
+        database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederId, oppfolgingsplan)
     }
 }
