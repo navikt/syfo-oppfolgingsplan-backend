@@ -2,41 +2,86 @@ package no.nav.syfo.oppfolgingsplan
 
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.request.url
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.install
 import io.ktor.server.routing.routing
+import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.datetime.LocalDate
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.contextual
 import no.nav.syfo.TestDB
+import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dinesykmeldte.Sykmeldt
+import no.nav.syfo.oppfolgingsplan.db.findAllByNarmesteLederId
+import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 
 class OppfolgingsplanApiTest : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
-    val dineSykmeldteServiceMock = mockk<DineSykmeldteService>()
+    val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
     val testDb = TestDB.database
+
+    fun withTestApplication(
+        fn: suspend ApplicationTestBuilder.() -> Unit
+    ) {
+        testApplication {
+            this.client = createClient {
+                install(ContentNegotiation) {
+                    json(
+                        Json {
+                            serializersModule = SerializersModule {
+                                contextual(LocalDate.serializer())
+                            }
+                        }
+                    )
+                }
+            }
+            application {
+                install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
+                    json(
+                        Json {
+                            serializersModule = SerializersModule {
+                                contextual(LocalDate.serializer())
+                            }
+                        }
+                    )
+                }
+                routing {
+                    registerOppfolgingsplanApi(
+                        DineSykmeldteService(dineSykmeldteHttpClientMock),
+                        texasClientMock,
+                        oppfolgingsplanService = OppfolgingsplanService(
+                            database = testDb,
+                        )
+                    )
+                }
+            }
+            fn(this)
+        }
+    }
 
 
     describe("Oppfolgingsplan API") {
         it("GET /oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
-            testApplication {
-                // Arrange
-                application {
-                    routing {
-                        registerOppfolgingsplanApi(
-                            dineSykmeldteServiceMock,
-                            texasClientMock,
-                            oppfolgingsplanService = OppfolgingsplanService(
-                                database = testDb,
-                            )
-                        )
-                    }
-                }
+            withTestApplication {
                 // Act
                 val response = client.get("api/v1/arbeidsgiver/123/oppfolgingsplaner")
                 // Assert
@@ -44,42 +89,19 @@ class OppfolgingsplanApiTest : DescribeSpec({
             }
         }
         it("GET /oppfolgingsplaner should respond with Unauthorized when no bearer token is provided") {
-            testApplication {
-                // Arrange
-                application {
-                    routing {
-                        registerOppfolgingsplanApi(
-                            dineSykmeldteServiceMock,
-                            texasClientMock,
-                            oppfolgingsplanService = OppfolgingsplanService(
-                                database = testDb,
-                            )
-                        )
-                    }
-                }
+            withTestApplication {
                 // Act
                 val response = client.get {
                     url("api/v1/arbeidsgiver/123/oppfolgingsplaner")
-                    headers.append("Authorization", "")
+                    bearerAuth( "")
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
         }
         it("GET /oppfolgingsplaner should respond with OK when texas client gives active response") {
-            testApplication {
+            withTestApplication {
                 // Arrange
-                application {
-                    routing {
-                        registerOppfolgingsplanApi(
-                            dineSykmeldteServiceMock,
-                            texasClientMock,
-                            oppfolgingsplanService = OppfolgingsplanService(
-                                database = testDb,
-                            )
-                        )
-                    }
-                }
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
@@ -87,26 +109,15 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Act
                 val response = client.get {
                     url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
-                    headers.append("Authorization", "Bearer token")
+                    bearerAuth("Bearer token")
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
             }
         }
         it("GET /oppfolgingsplaner should respond with Forbidden when texas acr claim is not Level4") {
-            testApplication {
+            withTestApplication {
                 // Arrange
-                application {
-                    routing {
-                        registerOppfolgingsplanApi(
-                            dineSykmeldteServiceMock,
-                            texasClientMock,
-                            oppfolgingsplanService = OppfolgingsplanService(
-                                database = testDb,
-                            )
-                        )
-                    }
-                }
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
@@ -114,26 +125,15 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Act
                 val response = client.get {
                     url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
-                    headers.append("Authorization", "Bearer token")
+                    bearerAuth("Bearer token")
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Forbidden
             }
         }
         it("GET /oppfolgingsplaner should respond with Unauthorized when texas client gives inactive response") {
-            testApplication {
+            withTestApplication {
                 // Arrange
-                application {
-                    routing {
-                        registerOppfolgingsplanApi(
-                            dineSykmeldteServiceMock,
-                            texasClientMock,
-                            oppfolgingsplanService = OppfolgingsplanService(
-                                database = testDb,
-                            )
-                        )
-                    }
-                }
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
                 } returns TexasIntrospectionResponse(active = false, sub = "user")
@@ -141,11 +141,73 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Act
                 val response = client.get {
                     url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
-                    headers.append("Authorization", "Bearer token")
+                    bearerAuth("Bearer token")
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
+        }
+        it("POST /oppfolgingsplaner should respond with 201 when oppfolgingsplan is created successfully") {
+            withTestApplication {
+                // Arrange
+                coEvery {
+                    texasClientMock.introspectToken(any(), any())
+                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+
+                coEvery {
+                    texasClientMock.exhangeTokenForDineSykmeldte(any())
+                } returns TexasExchangeResponse("token", 111, "tokenType")
+
+                coEvery {
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
+                } returns Sykmeldt(
+                    "123",
+                    "orgnummer",
+                    "12345678901",
+                    "Navn Sykmeldt",
+                    true,
+                )
+
+                // Act
+                val response = client.post {
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    bearerAuth("Bearer token")
+                    contentType(ContentType.Application.Json)
+                    setBody(Oppfolgingsplan(
+                        sykmeldtFnr = "12345678901",
+                        narmesteLederFnr = "10987654321",
+                        orgnummer = "987654321",
+                        content = Json.parseToJsonElement(
+                            """
+                            {
+                                "tittel": "Oppfølgingsplan for Navn Sykmeldt",
+                                "innhold": "Dette er en testoppfølgingsplan"
+                            }
+                            """
+                        ),
+                        sluttdato = LocalDate(2023, 10, 31),
+                        skalDelesMedLege = false,
+                        skalDelesMedVeileder = false,
+                    ))
+                }
+                // Assert
+                response.status shouldBe HttpStatusCode.Created
+
+                val persisted = testDb.findAllByNarmesteLederId("123")
+                persisted.size shouldBe 1
+                persisted.first().sykmeldtFnr shouldBe "12345678901"
+                persisted.first().narmesteLederFnr shouldBe "10987654321"
+                persisted.first().narmesteLederId shouldBe "123"
+                persisted.first().orgnummer shouldBe "987654321"
+                persisted.first().content.toString() shouldBe
+                        """{"tittel":"Oppfølgingsplan for Navn Sykmeldt","innhold":"Dette er en testoppfølgingsplan"}"""
+                persisted.first().sluttdato shouldBe LocalDate(2023, 10, 31)
+                persisted.first().skalDelesMedLege shouldBe false
+                persisted.first().skalDelesMedVeileder shouldBe false
+                persisted.first().deltMedVeilederTidspunkt shouldBe null
+                persisted.first().deltMedLegeTidspunkt shouldBe null
+            }
+
         }
     }
 })
