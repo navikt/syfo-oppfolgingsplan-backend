@@ -68,7 +68,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     }
 }
 
-fun DatabaseInterface.findAllByNarmesteLederId(
+fun DatabaseInterface.findAllOppfolgingsplanerBy(
     narmesteLederId: String,
 ): List<PersistedOppfolgingsplan> {
     val statement = """

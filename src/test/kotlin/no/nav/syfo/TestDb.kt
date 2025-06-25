@@ -13,7 +13,7 @@ import kotlin.run
 import kotlin.to
 import kotlin.use
 
-class PsqlContainer : PostgreSQLContainer<PsqlContainer>("postgres:15-alpine")
+class PsqlContainer : PostgreSQLContainer<PsqlContainer>("postgres:17-alpine")
 
 private val log = LoggerFactory.getLogger(TestDB::class.qualifiedName)
 
@@ -85,9 +85,8 @@ class TestDB private constructor() {
                 it
                     .prepareStatement(
                         """
-                    DELETE FROM FOLLOW_UP_PLAN_LPS_V1;
-                    DELETE FROM SYKMELDINGSPERIODE;
-                    DELETE FROM ALTINN_LPS;
+                    DELETE FROM oppfolgingsplan_utkast;
+                    DELETE FROM oppfolgingsplan;
                 """,
                     ).use { ps -> ps.executeUpdate() }
                 it.commit()

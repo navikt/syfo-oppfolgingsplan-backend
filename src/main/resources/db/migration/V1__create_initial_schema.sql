@@ -1,21 +1,21 @@
 CREATE TABLE oppfolgingsplan_utkast
 (
-    "uuid"               UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
-    "sykemeldt_fnr"      VARCHAR(11)      NOT NULL,
-    "narmeste_leder_id"  VARCHAR(150)      NOT NULL,
-    "narmeste_leder_fnr" VARCHAR(11)      NOT NULL,
-    "orgnummer"          VARCHAR(9)       NOT NULL,
-    "content"            JSONB            NOT NULL,
+    "uuid"               UUID PRIMARY KEY    NOT NULL DEFAULT gen_random_uuid(),
+    "sykemeldt_fnr"      VARCHAR(11)         NOT NULL,
+    "narmeste_leder_id"  VARCHAR(150) UNIQUE NOT NULL,
+    "narmeste_leder_fnr" VARCHAR(11)         NOT NULL,
+    "orgnummer"          VARCHAR(9)          NOT NULL,
+    "content"            JSONB               NOT NULL,
     "sluttdato"          DATE,
-    "created_at"         TIMESTAMP        NOT NULL,
-    "updated_at"         TIMESTAMP        NOT NULL
+    "created_at"         TIMESTAMP           NOT NULL,
+    "updated_at"         TIMESTAMP           NOT NULL
 );
 
 CREATE TABLE oppfolgingsplan
 (
     "uuid"                        UUID PRIMARY KEY NOT NULL DEFAULT gen_random_uuid(),
     "sykemeldt_fnr"               VARCHAR(11)      NOT NULL,
-    "narmeste_leder_id"           VARCHAR(150)      NOT NULL,
+    "narmeste_leder_id"           VARCHAR(150)     NOT NULL,
     "narmeste_leder_fnr"          VARCHAR(11)      NOT NULL,
     "orgnummer"                   VARCHAR(9)       NOT NULL,
     "content"                     JSONB            NOT NULL,

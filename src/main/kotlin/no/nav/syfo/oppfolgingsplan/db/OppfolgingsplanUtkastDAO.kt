@@ -3,11 +3,13 @@ package no.nav.syfo.oppfolgingsplan.db
 import kotlinx.datetime.LocalDate
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.domain.OppfolgingsplanUtkast
+import java.sql.Date
 import java.sql.ResultSet
+import java.sql.Types
 import java.time.Instant
 import java.util.UUID
 
-data class OppfolgingsplanUtkastDTO (
+data class PersistedOppfolgingsplanUtkast (
     val uuid: UUID,
     val sykmeldtFnr: String,
     val narmesteLederId: String,
@@ -50,17 +52,17 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             preparedStatement.setString(2, narmesteLederId)
             preparedStatement.setString(3, oppfolgingsplanUtkast.narmesteLederFnr)
             preparedStatement.setString(4, oppfolgingsplanUtkast.orgnummer)
-            preparedStatement.setObject(5, oppfolgingsplanUtkast.content)
-            preparedStatement.setObject(6, oppfolgingsplanUtkast.sluttdato)
+            preparedStatement.setObject(5, oppfolgingsplanUtkast.content.toString(), Types.OTHER)
+            preparedStatement.setDate(6, Date.valueOf(oppfolgingsplanUtkast.sluttdato.toString()))
             preparedStatement.executeUpdate()
         }
         connection.commit()
     }
 }
 
-fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
+fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     narmesteLederId: String,
-): OppfolgingsplanUtkastDTO? {
+): PersistedOppfolgingsplanUtkast? {
     val statement =
         """
         SELECT *
@@ -81,8 +83,8 @@ fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
     }
 }
 
-fun ResultSet.toOppfolgingsplanUtkastDTO(): OppfolgingsplanUtkastDTO {
-    return OppfolgingsplanUtkastDTO(
+fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
+    return PersistedOppfolgingsplanUtkast(
         uuid = getObject("uuid") as UUID,
         sykmeldtFnr = getString("sykemeldt_fnr"),
         narmesteLederId = getString("narmeste_leder_id"),

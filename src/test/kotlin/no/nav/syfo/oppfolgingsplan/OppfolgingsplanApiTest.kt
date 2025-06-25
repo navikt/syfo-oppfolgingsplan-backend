@@ -16,6 +16,7 @@ import io.ktor.server.application.install
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.datetime.LocalDate
@@ -26,8 +27,11 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.db.findAllByNarmesteLederId
+import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
+import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
+import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.domain.OppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -38,6 +42,11 @@ class OppfolgingsplanApiTest : DescribeSpec({
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
     val testDb = TestDB.database
+
+    beforeTest {
+        clearAllMocks()
+        TestDB.clearAllData()
+    }
 
     fun withTestApplication(
         fn: suspend ApplicationTestBuilder.() -> Unit
@@ -193,7 +202,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 // Assert
                 response.status shouldBe HttpStatusCode.Created
 
-                val persisted = testDb.findAllByNarmesteLederId("123")
+                val persisted = testDb.findAllOppfolgingsplanerBy("123")
                 persisted.size shouldBe 1
                 persisted.first().sykmeldtFnr shouldBe "12345678901"
                 persisted.first().narmesteLederFnr shouldBe "10987654321"
@@ -207,7 +216,60 @@ class OppfolgingsplanApiTest : DescribeSpec({
                 persisted.first().deltMedVeilederTidspunkt shouldBe null
                 persisted.first().deltMedLegeTidspunkt shouldBe null
             }
+        }
+        it("POST /oppfolgingsplaner creates new oppfolgingsplan and deletes existing utkast for narmesteLederId") {
+            withTestApplication {
+                // Arrange
+                coEvery {
+                    texasClientMock.introspectToken(any(), any())
+                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
+                coEvery {
+                    texasClientMock.exhangeTokenForDineSykmeldte(any())
+                } returns TexasExchangeResponse("token", 111, "tokenType")
+
+                coEvery {
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
+                } returns Sykmeldt(
+                    "123",
+                    "orgnummer",
+                    "12345678901",
+                    "Navn Sykmeldt",
+                    true,
+                )
+                testDb.upsertOppfolgingsplanUtkast(
+                    "123",
+                    OppfolgingsplanUtkast(
+                        sykmeldtFnr = "12345678901",
+                        narmesteLederFnr = "10987654321",
+                        orgnummer = "987654321",
+                        content = Json.parseToJsonElement("{}"),
+                        sluttdato = LocalDate(2023, 10, 31)
+                    )
+                )
+
+                // Act
+                client.post {
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    bearerAuth("Bearer token")
+                    contentType(ContentType.Application.Json)
+                    setBody(Oppfolgingsplan(
+                        sykmeldtFnr = "12345678901",
+                        narmesteLederFnr = "10987654321",
+                        orgnummer = "987654321",
+                        content = Json.parseToJsonElement("{}"),
+                        sluttdato = LocalDate(2023, 10, 31),
+                        skalDelesMedLege = false,
+                        skalDelesMedVeileder = false,
+                    ))
+                }
+                // Assert
+                val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("123")
+                persistedOppfolgingsplaner.size shouldBe 1
+
+                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy("123")
+                persistedUtkast shouldBe null
+            }
         }
     }
 })
