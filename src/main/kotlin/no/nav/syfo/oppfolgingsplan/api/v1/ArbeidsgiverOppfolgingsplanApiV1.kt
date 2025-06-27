@@ -4,7 +4,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.Routing
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
@@ -15,13 +15,13 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
 
-fun Routing.registerArbeidsgiverOppfolgingsplanApiV1(
+fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService
 ) {
 
-    route("arbeidsgiver/{narmesteLederId}/oppfolgingsplaner") {
+    route("/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner") {
         install(TexasAuthPlugin) {
             client = texasHttpClient
         }

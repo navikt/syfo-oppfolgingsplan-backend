@@ -1,23 +1,20 @@
 package no.nav.syfo.texas.client
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import com.fasterxml.jackson.annotation.JsonProperty
 
-@Serializable
 data class TexasExchangeRequest(
-    @SerialName("identity_provider")
+    @get:JsonProperty("identity_provider")
     val identityProvider: String,
     val target: String,
-    @SerialName("user_token")
+    @get:JsonProperty("user_token")
     val userToken: String,
 )
 
-@Serializable
 data class TexasExchangeResponse(
-    @SerialName("access_token")
+    @get:JsonProperty("access_token")
     val accessToken: String,
-    @SerialName("expires_in")
+    @get:JsonProperty("expires_in")
     val expiresIn: Long,
-    @SerialName("token_type")
+    @get:JsonProperty("token_type")
     val tokenType: String,
 )

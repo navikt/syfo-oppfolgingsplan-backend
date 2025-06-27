@@ -1,5 +1,11 @@
 package no.nav.syfo.oppfolgingsplan
 
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -11,18 +17,13 @@ import io.ktor.client.request.url
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.install
+import io.ktor.serialization.jackson.jackson
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
-import kotlinx.datetime.LocalDate
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.modules.SerializersModule
-import kotlinx.serialization.modules.contextual
 import no.nav.syfo.TestDB
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -34,9 +35,11 @@ import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.domain.OppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
+import java.time.LocalDate
 
 class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
 
@@ -55,25 +58,16 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
         testApplication {
             this.client = createClient {
                 install(ContentNegotiation) {
-                    json(
-                        Json {
-                            serializersModule = SerializersModule {
-                                contextual(LocalDate.serializer())
-                            }
-                        }
-                    )
+                    jackson {
+                        registerKotlinModule()
+                        registerModule(JavaTimeModule())
+                        configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+                        configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    }
                 }
             }
             application {
-                install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
-                    json(
-                        Json {
-                            serializersModule = SerializersModule {
-                                contextual(LocalDate.serializer())
-                            }
-                        }
-                    )
-                }
+                installContentNegotiation()
                 routing {
                     registerArbeidsgiverOppfolgingsplanApiV1(
                         DineSykmeldteService(dineSykmeldteHttpClientMock),
@@ -187,7 +181,7 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
                         sykmeldtFnr = "12345678901",
                         narmesteLederFnr = "10987654321",
                         orgnummer = "987654321",
-                        content = Json.parseToJsonElement(
+                        content = ObjectMapper().readValue(
                             """
                             {
                                 "tittel": "Oppfølgingsplan for Navn Sykmeldt",
@@ -195,7 +189,7 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
                             }
                             """
                         ),
-                        sluttdato = LocalDate(2023, 10, 31),
+                        sluttdato = LocalDate.parse("2023-10-31"),
                         skalDelesMedLege = false,
                         skalDelesMedVeileder = false,
                     ))
@@ -211,7 +205,7 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
                 persisted.first().orgnummer shouldBe "987654321"
                 persisted.first().content.toString() shouldBe
                         """{"tittel":"Oppfølgingsplan for Navn Sykmeldt","innhold":"Dette er en testoppfølgingsplan"}"""
-                persisted.first().sluttdato shouldBe LocalDate(2023, 10, 31)
+                persisted.first().sluttdato.toString() shouldBe "2023-10-31"
                 persisted.first().skalDelesMedLege shouldBe false
                 persisted.first().skalDelesMedVeileder shouldBe false
                 persisted.first().deltMedVeilederTidspunkt shouldBe null
@@ -244,8 +238,8 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
                         sykmeldtFnr = "12345678901",
                         narmesteLederFnr = "10987654321",
                         orgnummer = "987654321",
-                        content = Json.parseToJsonElement("{}"),
-                        sluttdato = LocalDate(2023, 10, 31)
+                        content = ObjectMapper().readValue("{}"),
+                        sluttdato = LocalDate.parse("2023-10-31"),
                     )
                 )
 
@@ -258,8 +252,8 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
                         sykmeldtFnr = "12345678901",
                         narmesteLederFnr = "10987654321",
                         orgnummer = "987654321",
-                        content = Json.parseToJsonElement("{}"),
-                        sluttdato = LocalDate(2023, 10, 31),
+                        content = ObjectMapper().readValue("{}"),
+                        sluttdato = LocalDate.parse("2023-10-31"),
                         skalDelesMedLege = false,
                         skalDelesMedVeileder = false,
                     ))

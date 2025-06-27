@@ -1,11 +1,15 @@
 package no.nav.syfo.plugins
 
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.kotlinx.json.json
+import io.ktor.serialization.jackson.jackson
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import no.nav.syfo.application.ApplicationState
@@ -54,7 +58,12 @@ private fun httpClient() = module {
         HttpClient(Apache) {
             expectSuccess = true
             install(ContentNegotiation) {
-                json()
+                jackson {
+                    registerKotlinModule()
+                    registerModule(JavaTimeModule())
+                    configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+                    configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                }
             }
             install(HttpRequestRetry) {
                 retryOnExceptionIf(2) { _, cause ->

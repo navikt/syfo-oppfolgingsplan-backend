@@ -1,12 +1,12 @@
 package no.nav.syfo.oppfolgingsplan.db
 
-import kotlinx.datetime.LocalDate
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.domain.OppfolgingsplanUtkast
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Types
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 data class PersistedOppfolgingsplanUtkast (

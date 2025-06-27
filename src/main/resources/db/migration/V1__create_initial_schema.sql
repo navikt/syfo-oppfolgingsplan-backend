@@ -7,8 +7,8 @@ CREATE TABLE oppfolgingsplan_utkast
     "orgnummer"          VARCHAR(9)          NOT NULL,
     "content"            JSONB,
     "sluttdato"          DATE,
-    "created_at"         TIMESTAMP           NOT NULL,
-    "updated_at"         TIMESTAMP           NOT NULL
+    "created_at"         TIMESTAMPTZ         NOT NULL,
+    "updated_at"         TIMESTAMPTZ         NOT NULL
 );
 
 CREATE TABLE oppfolgingsplan
@@ -20,11 +20,11 @@ CREATE TABLE oppfolgingsplan
     "orgnummer"                   VARCHAR(9)       NOT NULL,
     "content"                     JSONB            NOT NULL,
     "sluttdato"                   DATE             NOT NULL,
-    "created_at"                  TIMESTAMP        NOT NULL,
+    "created_at"                  TIMESTAMPTZ      NOT NULL,
     "skal_deles_med_lege"         BOOLEAN          NOT NULL,
-    "delt_med_lege_tidspunkt"     TIMESTAMP,
+    "delt_med_lege_tidspunkt"     TIMESTAMPTZ,
     "skal_deles_med_veileder"     BOOLEAN          NOT NULL,
-    "delt_med_veileder_tidspunkt" TIMESTAMP
+    "delt_med_veileder_tidspunkt" TIMESTAMPTZ
 );
 
 create index utkast_nl_idx on oppfolgingsplan_utkast (narmeste_leder_id);

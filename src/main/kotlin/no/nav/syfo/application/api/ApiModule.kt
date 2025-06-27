@@ -32,7 +32,7 @@ fun Application.configureRouting() {
     routing {
         registerPodApi(applicationState, database)
         registerMetricApi()
-        route("api/v1") {
+        route("/api/v1") {
             registerArbeidsgiverOppfolgingsplanApiV1(
                 dineSykmeldteService,
                 texasHttpClient,

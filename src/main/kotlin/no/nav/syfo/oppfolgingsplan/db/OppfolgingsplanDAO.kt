@@ -1,6 +1,5 @@
 package no.nav.syfo.oppfolgingsplan.db
 
-import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import no.nav.syfo.application.database.DatabaseInterface
@@ -9,6 +8,7 @@ import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Types
 import java.time.Instant
+import java.time.LocalDate
 import java.util.UUID
 
 data class PersistedOppfolgingsplan(

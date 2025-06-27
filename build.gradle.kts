@@ -1,5 +1,4 @@
 val koin_version: String by project
-val kotlinxVersion: String by project
 val ktor_version: String by project
 val micrometer_version: String by project
 val logback_version: String by project
@@ -41,8 +40,7 @@ dependencies {
     implementation("io.ktor:ktor-client-core")
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-apache-jvm")
-    implementation("io.ktor:ktor-serialization-kotlinx-json")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxVersion")
+    implementation("io.ktor:ktor-serialization-jackson")
     implementation("io.insert-koin:koin-ktor:$koin_version")
     implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
     implementation("io.ktor:ktor-server-netty")
