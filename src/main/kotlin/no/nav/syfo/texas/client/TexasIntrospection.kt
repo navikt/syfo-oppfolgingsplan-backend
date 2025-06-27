@@ -1,20 +1,14 @@
 package no.nav.syfo.texas.client
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonIgnoreUnknownKeys
+import com.fasterxml.jackson.annotation.JsonProperty
 
-@Serializable
+
 data class TexasIntrospectionRequest(
-    @SerialName("identity_provider")
+    @get:JsonProperty("identity_provider")
     val identityProvider: String,
     val token: String,
 )
 
-@OptIn(ExperimentalSerializationApi::class)
-@Serializable
-@JsonIgnoreUnknownKeys
 data class TexasIntrospectionResponse(
     val active: Boolean,
     val error: String? = null,

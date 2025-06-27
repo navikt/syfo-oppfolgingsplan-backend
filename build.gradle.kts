@@ -1,5 +1,4 @@
 val koin_version: String by project
-val kotlin_version: String by project
 val ktor_version: String by project
 val micrometer_version: String by project
 val logback_version: String by project
@@ -9,6 +8,7 @@ val hikari_version: String by project
 val kotestVersion: String by project
 val kotestExtensionsVersion: String by project
 val mockkVersion: String by project
+val testcontainersVersion: String by project
 
 plugins {
     kotlin("jvm") version "2.2.0"
@@ -40,7 +40,6 @@ dependencies {
     implementation("io.ktor:ktor-client-core")
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-apache-jvm")
-    implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-serialization-jackson")
     implementation("io.insert-koin:koin-ktor:$koin_version")
     implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
@@ -66,6 +65,8 @@ dependencies {
     testImplementation("io.mockk:mockk:$mockkVersion")
     testImplementation("io.insert-koin:koin-test:${koin_version}")
     testImplementation("io.kotest.extensions:kotest-extensions-koin:1.3.0")
+    testImplementation("org.testcontainers:testcontainers:${testcontainersVersion}")
+    testImplementation("org.testcontainers:postgresql:${testcontainersVersion}")
 }
 
 application {

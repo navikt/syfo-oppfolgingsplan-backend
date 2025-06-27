@@ -6,7 +6,6 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.flywaydb.core.Flyway
 import java.sql.Connection
-import java.sql.ResultSet
 
 data class DatabaseConfig(
     val jdbcUrl: String,
@@ -51,10 +50,4 @@ class Database(
 
 interface DatabaseInterface {
     val connection: Connection
-}
-
-fun <T> ResultSet.toList(mapper: ResultSet.() -> T) = mutableListOf<T>().apply {
-    while (next()) {
-        add(mapper())
-    }
 }

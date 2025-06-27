@@ -53,7 +53,7 @@ data class LocalEnvironment(
     ),
     override val texas: TexasEnvironment = TexasEnvironment(
         tokenIntrospectionEndpoint = "http://localhost:3000/api/v1/introspect",
-        tokenExchangeEndpoint = "http://localhost:3000/api/v1/exchange",
+        tokenExchangeEndpoint = "http://localhost:3000/api/v1/token/exchange",
         exchangeTargetDineSykmeldte = "dev-gcp:team-esyfo:dinesykmeldte-backend",
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",

@@ -1,25 +1,27 @@
-package no.nav.syfo.oppfolgingsplan
+package no.nav.syfo.oppfolgingsplan.api.v1
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.Routing
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
 
-fun Routing.registerOppfolgingsplanApi(
+fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
+    oppfolgingsplanService: OppfolgingsplanService
 ) {
 
-    route("api/v1/narmesteleder/{narmesteLederId}/oppfolgingsplaner") {
+    route("/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner") {
         install(TexasAuthPlugin) {
             client = texasHttpClient
         }
@@ -52,8 +54,19 @@ fun Routing.registerOppfolgingsplanApi(
                 call.respond(HttpStatusCode.NotFound)
                 return@post
             }
-            // TODO: Implement logic to store the oppfolgingsplan
-            val oppfolgingsplan = call.receive<Oppfolgingsplan>()
+
+            val oppfolgingsplan = try { call.receive<Oppfolgingsplan>() } catch (e: Exception) {
+                call.application.environment.log.error("Failed to parse Oppfolgingsplan from request: ${e.message}", e)
+                call.respond(HttpStatusCode.BadRequest, "Invalid Oppfolgingsplan format")
+                return@post
+            }
+            if (oppfolgingsplan.sykmeldtFnr != sykmeldt.fnr) {
+                call.application.environment.log.warn("Sykmeldt fnr does not match for narmestelederId: $narmesteLederId")
+                call.respond(HttpStatusCode.Forbidden, "Sykmeldt fnr does not match")
+                return@post
+            }
+
+            oppfolgingsplanService.persistOppfolgingsplan(narmesteLederId, oppfolgingsplan)
 
             call.respond(HttpStatusCode.Created)
         }
