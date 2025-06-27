@@ -5,7 +5,7 @@ CREATE TABLE oppfolgingsplan_utkast
     "narmeste_leder_id"  VARCHAR(150) UNIQUE NOT NULL,
     "narmeste_leder_fnr" VARCHAR(11)         NOT NULL,
     "orgnummer"          VARCHAR(9)          NOT NULL,
-    "content"            JSONB               NOT NULL,
+    "content"            JSONB,
     "sluttdato"          DATE,
     "created_at"         TIMESTAMP           NOT NULL,
     "updated_at"         TIMESTAMP           NOT NULL
