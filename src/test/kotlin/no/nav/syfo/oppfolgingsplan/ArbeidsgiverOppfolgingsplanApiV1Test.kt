@@ -27,6 +27,7 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.Sykmeldt
+import no.nav.syfo.oppfolgingsplan.api.v1.registerArbeidsgiverOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
@@ -37,7 +38,7 @@ import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 
-class OppfolgingsplanApiTest : DescribeSpec({
+class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
@@ -74,7 +75,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
                     )
                 }
                 routing {
-                    registerOppfolgingsplanApi(
+                    registerArbeidsgiverOppfolgingsplanApiV1(
                         DineSykmeldteService(dineSykmeldteHttpClientMock),
                         texasClientMock,
                         oppfolgingsplanService = OppfolgingsplanService(
@@ -92,7 +93,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
         it("GET /oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
             withTestApplication {
                 // Act
-                val response = client.get("api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                val response = client.get("/arbeidsgiver/123/oppfolgingsplaner")
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -101,7 +102,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
             withTestApplication {
                 // Act
                 val response = client.get {
-                    url("api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth( "")
                 }
                 // Assert
@@ -117,7 +118,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -133,7 +134,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -149,7 +150,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -179,7 +180,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 val response = client.post {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(Oppfolgingsplan(
@@ -250,7 +251,7 @@ class OppfolgingsplanApiTest : DescribeSpec({
 
                 // Act
                 client.post {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(Oppfolgingsplan(

@@ -1,4 +1,4 @@
-package no.nav.syfo.oppfolgingsplan
+package no.nav.syfo.oppfolgingsplan.api.v1
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
@@ -15,13 +15,13 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
 
-fun Routing.registerOppfolgingsplanApi(
+fun Routing.registerArbeidsgiverOppfolgingsplanApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService
 ) {
 
-    route("api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner") {
+    route("arbeidsgiver/{narmesteLederId}/oppfolgingsplaner") {
         install(TexasAuthPlugin) {
             client = texasHttpClient
         }
