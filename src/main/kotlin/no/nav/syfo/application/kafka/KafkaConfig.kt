@@ -16,11 +16,11 @@ fun commonProperties(env: KafkaEnv): Properties {
     val sslConfig = env.sslConfig
 
     return HashMap<String, String>().apply {
-//        put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SSL)
-//        put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "") // Disable server host name verification
-//        put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, JAVA_KEYSTORE)
-//        put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, PKCS12)
         sslConfig?.let {
+            put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, SSL)
+            put(SslConfigs.SSL_ENDPOINT_IDENTIFICATION_ALGORITHM_CONFIG, "") // Disable server host name verification
+            put(SslConfigs.SSL_TRUSTSTORE_TYPE_CONFIG, JAVA_KEYSTORE)
+            put(SslConfigs.SSL_KEYSTORE_TYPE_CONFIG, PKCS12)
             put(SslConfigs.SSL_TRUSTSTORE_LOCATION_CONFIG, sslConfig.truststoreLocation)
             put(SslConfigs.SSL_TRUSTSTORE_PASSWORD_CONFIG, sslConfig.credstorePassword)
             put(SslConfigs.SSL_KEYSTORE_LOCATION_CONFIG, sslConfig.keystoreLocation)

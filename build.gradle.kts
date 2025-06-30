@@ -1,7 +1,5 @@
-val confluent_version: String by project
 val koin_version: String by project
 
-val kotlin_version: String by project
 val kafka_version: String by project
 val ktor_version: String by project
 val micrometer_version: String by project
@@ -55,10 +53,7 @@ dependencies {
     implementation("org.apache.kafka:kafka_2.13:$kafka_version") {
         exclude(group = "log4j")
     }
-//    implementation("org.apache.avro:avro:${avro_version}")
-    implementation("io.confluent:kafka-avro-serializer:$confluent_version") {
-        exclude(group = "log4j", module = "log4j")
-    }
+
     testImplementation("io.ktor:ktor-server-test-host")
 
     // Metrics and Prometheus
