@@ -1,5 +1,8 @@
 package no.nav.syfo.oppfolgingsplan.db
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
 import java.sql.Date
@@ -15,7 +18,7 @@ data class PersistedOppfolgingsplanUtkast (
     val narmesteLederId: String,
     val narmesteLederFnr: String,
     val orgnummer: String,
-    val content: String?,
+    val content: JsonNode?,
     val sluttdato: LocalDate?,
     val createdAt: Instant,
     val updatedAt: Instant,
@@ -24,7 +27,7 @@ data class PersistedOppfolgingsplanUtkast (
 fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     narmesteLederId: String,
     oppfolgingsplanUtkast: OppfolgingsplanUtkast,
-) {
+): UUID {
     val statement =
         """
         INSERT INTO oppfolgingsplan_utkast (
@@ -44,6 +47,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             content = EXCLUDED.content,
             sluttdato = EXCLUDED.sluttdato,
             updated_at = NOW()
+        RETURNING uuid
         """.trimIndent()
 
     connection.use { connection ->
@@ -54,9 +58,11 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             preparedStatement.setString(4, oppfolgingsplanUtkast.orgnummer)
             preparedStatement.setObject(5, oppfolgingsplanUtkast.content.toString(), Types.OTHER)
             preparedStatement.setDate(6, Date.valueOf(oppfolgingsplanUtkast.sluttdato.toString()))
-            preparedStatement.executeUpdate()
+            val resultSet = preparedStatement.executeQuery()
+            connection.commit()
+            resultSet.next()
+            return resultSet.getObject("uuid", UUID::class.java)
         }
-        connection.commit()
     }
 }
 
@@ -90,9 +96,9 @@ fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
         narmesteLederId = getString("narmeste_leder_id"),
         narmesteLederFnr = getString("narmeste_leder_fnr"),
         orgnummer = getString("orgnummer"),
-        content = getString("content"),
-        sluttdato = getObject("sluttdato") as LocalDate?,
-        createdAt = getObject("created_at") as Instant,
-        updatedAt = getObject("updated_at") as Instant,
+        content = ObjectMapper().readValue(getString("content")),
+        sluttdato = getDate("sluttdato")?.toLocalDate(),
+        createdAt = getTimestamp("created_at").toInstant(),
+        updatedAt = getTimestamp("updated_at").toInstant()
     )
 }
