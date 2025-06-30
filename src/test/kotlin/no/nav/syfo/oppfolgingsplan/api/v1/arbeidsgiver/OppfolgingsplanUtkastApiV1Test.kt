@@ -26,6 +26,8 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import no.nav.syfo.TestDB
+import no.nav.syfo.defaultOppfolginsplanUtkast
+import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.Sykmeldt
@@ -40,7 +42,7 @@ import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import java.time.LocalDate
 
-class OppfolgingsplanUtkastApiV1Test: DescribeSpec({
+class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
@@ -94,32 +96,13 @@ class OppfolgingsplanUtkastApiV1Test: DescribeSpec({
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
-                } returns Sykmeldt(
-                    "123",
-                    "orgnummer",
-                    "12345678901",
-                    "Navn Sykmeldt",
-                    true,
-                )
+                } returns defaultSykmeldt()
 
                 // Act
                 val response = client.put("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(OppfolgingsplanUtkast(
-                        sykmeldtFnr = "12345678901",
-                        narmesteLederFnr = "10987654321",
-                        orgnummer = "orgnummer",
-                        content = ObjectMapper().readValue(
-                            """
-                            {
-                                "tittel": "Oppfølgingsplan for Navn Sykmeldt",
-                                "innhold": "Dette er en testoppfølgingsplan"
-                            }
-                            """
-                        ),
-                        sluttdato = LocalDate.parse("2020-01-01"),
-                    ))
+                    setBody(defaultOppfolginsplanUtkast())
                 }
 
                 // Assert
@@ -151,47 +134,40 @@ class OppfolgingsplanUtkastApiV1Test: DescribeSpec({
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
-                } returns Sykmeldt(
-                    "123",
-                    "orgnummer",
-                    "12345678901",
-                    "Navn Sykmeldt",
-                    true,
-                )
+                } returns defaultSykmeldt()
+
                 val uuid = testDb.upsertOppfolgingsplanUtkast(
                     "123",
-                    OppfolgingsplanUtkast(
-                        sykmeldtFnr = "12345678901",
-                        narmesteLederFnr = "10987654321",
-                        orgnummer = "orgnummer",
-                        content = ObjectMapper().readValue(
-                            """
+                    defaultOppfolginsplanUtkast()
+                        .copy(
+                            content = ObjectMapper().readValue(
+                                """
                             {
                                 "innhold": "Dette er en testoppfølgingsplan"
                             }
                             """
-                        ),
-                        sluttdato = LocalDate.parse("2020-01-01"),
-                    )
+                            ),
+                            sluttdato = LocalDate.parse("2020-01-01")
+                        )
                 )
 
                 // Act
                 val response = client.put("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(OppfolgingsplanUtkast(
-                        sykmeldtFnr = "12345678901",
-                        narmesteLederFnr = "10987654321",
-                        orgnummer = "orgnummer",
-                        content = ObjectMapper().readValue(
-                            """
+                    setBody(
+                        defaultOppfolginsplanUtkast()
+                            .copy(
+                                content = ObjectMapper().readValue(
+                                    """
                             {
                                 "innhold": "Nytt innhold"
                             }
                             """
-                        ),
-                        sluttdato = LocalDate.parse("2020-01-02"),
-                    ))
+                                ),
+                                sluttdato = LocalDate.parse("2020-01-02")
+                            )
+                    )
                 }
 
                 // Assert
@@ -211,7 +187,7 @@ class OppfolgingsplanUtkastApiV1Test: DescribeSpec({
             }
         }
 
-        it("should handle GET request to retrieve the current oppfolgingsplan utkast") {
+        it("GET /oppfolgingsplaner/utkast should retrieve the current oppfolgingsplan utkast") {
             withTestApplication {
                 // Arrange
                 coEvery {
@@ -231,21 +207,9 @@ class OppfolgingsplanUtkastApiV1Test: DescribeSpec({
                     "Navn Sykmeldt",
                     true,
                 )
-                val uuid = testDb.upsertOppfolgingsplanUtkast(
+                val existingUUID = testDb.upsertOppfolgingsplanUtkast(
                     "123",
-                    OppfolgingsplanUtkast(
-                        sykmeldtFnr = "12345678901",
-                        narmesteLederFnr = "10987654321",
-                        orgnummer = "orgnummer",
-                        content = ObjectMapper().readValue(
-                            """
-                            {
-                                "innhold": "Dette er en testoppfølgingsplan"
-                            }
-                            """
-                        ),
-                        sluttdato = LocalDate.parse("2020-01-01"),
-                    )
+                    defaultOppfolginsplanUtkast()
                 )
 
                 // Act
@@ -257,7 +221,7 @@ class OppfolgingsplanUtkastApiV1Test: DescribeSpec({
                 res.status shouldBe HttpStatusCode.OK
                 val utkast = res.body<OppfolgingsplanUtkast>()
                 utkast shouldNotBe null
-                utkast.uuid shouldBe uuid
+                utkast.uuid shouldBe existingUUID
                 utkast.sykmeldtFnr shouldBe "12345678901"
                 utkast.narmesteLederFnr shouldBe "10987654321"
                 utkast.orgnummer shouldBe "orgnummer"
