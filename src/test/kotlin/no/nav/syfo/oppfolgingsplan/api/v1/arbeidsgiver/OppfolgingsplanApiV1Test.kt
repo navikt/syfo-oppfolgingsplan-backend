@@ -24,6 +24,7 @@ import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
+import io.mockk.verify
 import no.nav.syfo.TestDB
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -40,11 +41,13 @@ import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import java.time.LocalDate
+import no.nav.syfo.varsel.EsyfovarselProducer
 
 class OppfolgingsplanApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
+    val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
 
     beforeTest {
@@ -74,7 +77,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         texasClientMock,
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
-                        )
+                        ),
+                        esyfovarselProducer = esyfovarselProducerMock,
                     )
                 }
             }
@@ -90,6 +94,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 val response = client.get("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
+                verify(exactly = 0) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("GET /oppfolgingsplaner should respond with Unauthorized when no bearer token is provided") {
@@ -101,6 +106,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
+                verify(exactly = 0) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("GET /oppfolgingsplaner should respond with OK when texas client gives active response") {
@@ -123,7 +129,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     "Navn Sykmeldt",
                     true,
                 )
-
+                coEvery {
+                    esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
+                } returns Unit
 
                 // Act
                 val response = client.get {
@@ -132,6 +140,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
+                verify(exactly = 1) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("GET /oppfolgingsplaner should respond with Forbidden when texas acr claim is not Level4") {
@@ -149,6 +158,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Forbidden
+                verify(exactly = 0) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("GET /oppfolgingsplaner should respond with Unauthorized when texas client gives inactive response") {
@@ -165,6 +175,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
+                verify(exactly = 0) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("POST /oppfolgingsplaner should respond with 201 when oppfolgingsplan is created successfully") {
