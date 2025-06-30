@@ -3,7 +3,7 @@ package no.nav.syfo.oppfolgingsplan.db
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.dto.Oppfolgingsplan
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Types
