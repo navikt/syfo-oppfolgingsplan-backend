@@ -25,6 +25,7 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.verify
+import java.time.LocalDate
 import no.nav.syfo.TestDB
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -40,8 +41,8 @@ import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
-import java.time.LocalDate
 import no.nav.syfo.varsel.EsyfovarselProducer
+import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 
 class OppfolgingsplanApiV1Test : DescribeSpec({
 
@@ -49,6 +50,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
+
+    val sykemeldtFnr = "12345678901"
+    val narmesteLederFnr = "10987654321"
+    val orgnummer = "987654321"
 
     beforeTest {
         clearAllMocks()
@@ -94,7 +99,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 val response = client.get("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
-                verify(exactly = 0) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("GET /oppfolgingsplaner should respond with Unauthorized when no bearer token is provided") {
@@ -106,7 +110,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
-                verify(exactly = 0) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("GET /oppfolgingsplaner should respond with OK when texas client gives active response") {
@@ -140,7 +143,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                verify(exactly = 1) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("GET /oppfolgingsplaner should respond with Forbidden when texas acr claim is not Level4") {
@@ -158,7 +160,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Forbidden
-                verify(exactly = 0) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("GET /oppfolgingsplaner should respond with Unauthorized when texas client gives inactive response") {
@@ -175,7 +176,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
-                verify(exactly = 0) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
             }
         }
         it("POST /oppfolgingsplaner should respond with 201 when oppfolgingsplan is created successfully") {
@@ -198,6 +198,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     "Navn Sykmeldt",
                     true,
                 )
+
+                coEvery {
+                    esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
+                } returns Unit
 
                 // Act
                 val response = client.post {
@@ -228,17 +232,24 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 val persisted = testDb.findAllOppfolgingsplanerBy("123")
                 persisted.size shouldBe 1
-                persisted.first().sykmeldtFnr shouldBe "12345678901"
-                persisted.first().narmesteLederFnr shouldBe "10987654321"
+                persisted.first().sykmeldtFnr shouldBe sykemeldtFnr
+                    persisted.first().narmesteLederFnr shouldBe narmesteLederFnr
                 persisted.first().narmesteLederId shouldBe "123"
-                persisted.first().orgnummer shouldBe "987654321"
-                persisted.first().content.toString() shouldBe
-                        """{"tittel":"Oppfølgingsplan for Navn Sykmeldt","innhold":"Dette er en testoppfølgingsplan"}"""
+                persisted.first().orgnummer shouldBe orgnummer
+                    persisted.first().content.toString() shouldBe
+                    """{"tittel":"Oppfølgingsplan for Navn Sykmeldt","innhold":"Dette er en testoppfølgingsplan"}"""
                 persisted.first().sluttdato.toString() shouldBe "2023-10-31"
                 persisted.first().skalDelesMedLege shouldBe false
                 persisted.first().skalDelesMedVeileder shouldBe false
                 persisted.first().deltMedVeilederTidspunkt shouldBe null
                 persisted.first().deltMedLegeTidspunkt shouldBe null
+                verify(exactly = 1) {
+                    esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
+                        val hendelse = it as ArbeidstakerHendelse
+                        hendelse.arbeidstakerFnr shouldBe sykemeldtFnr
+                        hendelse.orgnummer shouldBe orgnummer
+                    })
+                }
             }
         }
         it("POST /oppfolgingsplaner creates new oppfolgingsplan and deletes existing utkast for narmesteLederId") {
@@ -261,12 +272,16 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     "Navn Sykmeldt",
                     true,
                 )
+                coEvery {
+                    esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
+                } returns Unit
+
                 testDb.upsertOppfolgingsplanUtkast(
                     "123",
                     OppfolgingsplanUtkast(
-                        sykmeldtFnr = "12345678901",
-                        narmesteLederFnr = "10987654321",
-                        orgnummer = "987654321",
+                        sykmeldtFnr = sykemeldtFnr,
+                        narmesteLederFnr = narmesteLederFnr,
+                        orgnummer = orgnummer,
                         content = ObjectMapper().readValue("{}"),
                         sluttdato = LocalDate.parse("2023-10-31"),
                     )
@@ -295,6 +310,14 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 val persistedUtkast = testDb.findOppfolgingsplanUtkastBy("123")
                 persistedUtkast shouldBe null
+                verify(exactly = 1) {
+                    esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
+                        val hendelse = it as ArbeidstakerHendelse
+                        hendelse.arbeidstakerFnr shouldBe sykemeldtFnr
+                        hendelse.orgnummer shouldBe orgnummer
+                    })
+                }
+
             }
         }
     }
