@@ -82,15 +82,14 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         texasClientMock,
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
+                            esyfovarselProducer = esyfovarselProducerMock
                         ),
-                        esyfovarselProducer = esyfovarselProducerMock,
                     )
                 }
             }
             fn(this)
         }
     }
-
 
     describe("Oppfolgingsplan API") {
         it("GET /oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
@@ -233,10 +232,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 val persisted = testDb.findAllOppfolgingsplanerBy("123")
                 persisted.size shouldBe 1
                 persisted.first().sykmeldtFnr shouldBe sykemeldtFnr
-                    persisted.first().narmesteLederFnr shouldBe narmesteLederFnr
+                persisted.first().narmesteLederFnr shouldBe narmesteLederFnr
                 persisted.first().narmesteLederId shouldBe "123"
                 persisted.first().orgnummer shouldBe orgnummer
-                    persisted.first().content.toString() shouldBe
+                persisted.first().content.toString() shouldBe
                     """{"tittel":"Oppfølgingsplan for Navn Sykmeldt","innhold":"Dette er en testoppfølgingsplan"}"""
                 persisted.first().sluttdato.toString() shouldBe "2023-10-31"
                 persisted.first().skalDelesMedLege shouldBe false

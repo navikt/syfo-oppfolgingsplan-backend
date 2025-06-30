@@ -94,7 +94,7 @@ private fun databaseModule() = module {
 private fun servicesModule() = module {
     single { DineSykmeldteService(DineSykmeldteHttpClient(get(), env().dineSykmeldteBaseUrl)) }
     single { TexasHttpClient(get(),env().texas) }
-    single { OppfolgingsplanService(get()) }
+    single { OppfolgingsplanService(get(), get()) }
     single { TexasHttpClient(get(), env().texas) }
     single {
         EsyfovarselProducer(
