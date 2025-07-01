@@ -51,7 +51,7 @@ val ValidateAccessToSykmeldtPlugin = createRouteScopedPlugin(
                 return@onCall
             }
 
-            call.attributes[AttributeKey<Sykmeldt>("sykmeldt")] = sykmeldt
+            call.attributes[CALL_ATTRIBUTE_SYKMELDT] = sykmeldt
         }
     }
 }
