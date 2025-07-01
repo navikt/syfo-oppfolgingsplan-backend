@@ -15,7 +15,8 @@ class DineSykmeldteService(
         narmestelederId: String,
         accessToken: String
     ): Sykmeldt? {
-        // TODO: Use Valkey cache to avoid multiple calls to dinesykmeldte-backend
+        // TODO: Use Valkey cache to avoid multiple calls to dinesykmeldte-backend.
+        // Should probably not be cached for more than an hour. Cache key should be a compound of fnr in accessToken and narmestelederId.
         return try {
             dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, accessToken)
         } catch (clientRequestException: ClientRequestException) {

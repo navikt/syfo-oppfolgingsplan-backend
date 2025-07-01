@@ -1,4 +1,4 @@
-package no.nav.syfo.oppfolgingsplan
+package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -28,12 +28,12 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.api.v1.registerArbeidsgiverOppfolgingsplanApiV1
+import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.domain.Oppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.domain.OppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.Oppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasExchangeResponse
@@ -41,7 +41,7 @@ import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import java.time.LocalDate
 
-class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
+class OppfolgingsplanApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
@@ -69,7 +69,7 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
             application {
                 installContentNegotiation()
                 routing {
-                    registerArbeidsgiverOppfolgingsplanApiV1(
+                    registerApiV1(
                         DineSykmeldteService(dineSykmeldteHttpClientMock),
                         texasClientMock,
                         oppfolgingsplanService = OppfolgingsplanService(
@@ -87,7 +87,7 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
             withTestApplication {
                 // Act
-                val response = client.get("/arbeidsgiver/123/oppfolgingsplaner")
+                val response = client.get("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -96,7 +96,7 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Act
                 val response = client.get {
-                    url("/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth( "")
                 }
                 // Assert
@@ -110,9 +110,24 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
                     texasClientMock.introspectToken(any(), any())
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
+                coEvery {
+                    texasClientMock.exhangeTokenForDineSykmeldte(any())
+                } returns TexasExchangeResponse("token", 111, "tokenType")
+
+                coEvery {
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
+                } returns Sykmeldt(
+                    "123",
+                    "orgnummer",
+                    "12345678901",
+                    "Navn Sykmeldt",
+                    true,
+                )
+
+
                 // Act
                 val response = client.get {
-                    url("/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -126,9 +141,10 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
                     texasClientMock.introspectToken(any(), any())
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
 
+
                 // Act
                 val response = client.get {
-                    url("/arbeidsgiver/123/oppfolgingsplaner")
+                    url("api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -144,7 +160,7 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -174,25 +190,27 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Act
                 val response = client.post {
-                    url("/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(Oppfolgingsplan(
-                        sykmeldtFnr = "12345678901",
-                        narmesteLederFnr = "10987654321",
-                        orgnummer = "987654321",
-                        content = ObjectMapper().readValue(
-                            """
+                    setBody(
+                        Oppfolgingsplan(
+                            sykmeldtFnr = "12345678901",
+                            narmesteLederFnr = "10987654321",
+                            orgnummer = "987654321",
+                            content = ObjectMapper().readValue(
+                                """
                             {
                                 "tittel": "Oppfølgingsplan for Navn Sykmeldt",
                                 "innhold": "Dette er en testoppfølgingsplan"
                             }
                             """
-                        ),
-                        sluttdato = LocalDate.parse("2023-10-31"),
-                        skalDelesMedLege = false,
-                        skalDelesMedVeileder = false,
-                    ))
+                            ),
+                            sluttdato = LocalDate.parse("2023-10-31"),
+                            skalDelesMedLege = false,
+                            skalDelesMedVeileder = false,
+                        )
+                    )
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Created
@@ -245,18 +263,20 @@ class ArbeidsgiverOppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Act
                 client.post {
-                    url("/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(Oppfolgingsplan(
-                        sykmeldtFnr = "12345678901",
-                        narmesteLederFnr = "10987654321",
-                        orgnummer = "987654321",
-                        content = ObjectMapper().readValue("{}"),
-                        sluttdato = LocalDate.parse("2023-10-31"),
-                        skalDelesMedLege = false,
-                        skalDelesMedVeileder = false,
-                    ))
+                    setBody(
+                        Oppfolgingsplan(
+                            sykmeldtFnr = "12345678901",
+                            narmesteLederFnr = "10987654321",
+                            orgnummer = "987654321",
+                            content = ObjectMapper().readValue("{}"),
+                            sluttdato = LocalDate.parse("2023-10-31"),
+                            skalDelesMedLege = false,
+                            skalDelesMedVeileder = false,
+                        )
+                    )
                 }
                 // Assert
                 val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("123")

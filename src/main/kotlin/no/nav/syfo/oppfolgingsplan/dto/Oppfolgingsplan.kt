@@ -1,4 +1,4 @@
-package no.nav.syfo.oppfolgingsplan.domain
+package no.nav.syfo.oppfolgingsplan.dto
 
 import com.fasterxml.jackson.databind.JsonNode
 import java.time.Instant
