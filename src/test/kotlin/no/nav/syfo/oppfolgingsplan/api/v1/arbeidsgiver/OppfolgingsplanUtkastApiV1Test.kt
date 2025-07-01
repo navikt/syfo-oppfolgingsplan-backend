@@ -30,7 +30,6 @@ import no.nav.syfo.defaultOppfolginsplanUtkast
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
@@ -136,7 +135,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
                 } returns defaultSykmeldt()
 
-                val uuid = testDb.upsertOppfolgingsplanUtkast(
+                val existingUUID = testDb.upsertOppfolgingsplanUtkast(
                     "123",
                     defaultOppfolginsplanUtkast()
                         .copy(
@@ -176,7 +175,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 val persisted = testDb.findOppfolgingsplanUtkastBy("123")
                 persisted shouldNotBe null
                 persisted?.let {
-                    it.uuid shouldBe uuid
+                    it.uuid shouldBe existingUUID
                     it.sykmeldtFnr shouldBe "12345678901"
                     it.narmesteLederId shouldBe "123"
                     it.narmesteLederFnr shouldBe "10987654321"
@@ -200,13 +199,8 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
-                } returns Sykmeldt(
-                    "123",
-                    "orgnummer",
-                    "12345678901",
-                    "Navn Sykmeldt",
-                    true,
-                )
+                } returns defaultSykmeldt()
+
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
                     "123",
                     defaultOppfolginsplanUtkast()
