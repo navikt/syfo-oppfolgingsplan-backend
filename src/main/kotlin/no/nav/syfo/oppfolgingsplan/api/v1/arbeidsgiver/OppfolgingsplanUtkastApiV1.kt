@@ -8,7 +8,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
-import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.auth.NarmesteLederPrincipal
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
@@ -33,7 +33,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
                 return@put
             }
 
-            val innloggetBruker = call.principal<BrukerPrincipal>()
+            val innloggetBruker = call.principal<NarmesteLederPrincipal>()
                 ?: run {
                     call.application.environment.log.warn("No user principal found in request")
                     call.respond(HttpStatusCode.Unauthorized)
@@ -41,7 +41,12 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
                 }
 
             val sykmeldt = innloggetBruker.sykmeldt
-                ?: throw IllegalStateException("Missing sykmeldt information in user principal")
+
+            if (utkast.sykmeldtFnr != sykmeldt.fnr) {
+                call.application.environment.log.warn("Sykmeldt fnr does not match for narmestelederId: ${sykmeldt.narmestelederId}")
+                call.respond(HttpStatusCode.Forbidden, "Sykmeldt fnr does not match")
+                return@put
+            }
 
             oppfolgingsplanService.persistOppfolgingsplanUtkast(sykmeldt.narmestelederId, utkast)
 
@@ -49,7 +54,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
         }
 
         get {
-            val innloggetBruker = call.principal<BrukerPrincipal>()
+            val innloggetBruker = call.principal<NarmesteLederPrincipal>()
                 ?: run {
                     call.application.environment.log.warn("No user principal found in request")
                     call.respond(HttpStatusCode.Unauthorized)
@@ -57,7 +62,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
                 }
 
             val sykmeldt = innloggetBruker.sykmeldt
-                ?: throw IllegalStateException("Missing sykmeldt information in user principal")
 
             val utkast = oppfolgingsplanService.getOppfolgingsplanUtkast(sykmeldt.narmestelederId)
 

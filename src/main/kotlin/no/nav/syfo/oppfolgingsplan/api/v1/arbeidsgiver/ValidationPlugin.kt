@@ -2,9 +2,11 @@ package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin
+import io.ktor.server.auth.authentication
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.auth.NarmesteLederPrincipal
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.texas.client.TexasHttpClient
 
@@ -47,7 +49,11 @@ val ValidateAccessToSykmeldtPlugin = createRouteScopedPlugin(
                 return@onCall
             }
 
-            innloggetBruker.sykmeldt = sykmeldt
+            call.authentication.principal(NarmesteLederPrincipal(
+                ident = innloggetBruker.ident,
+                token = innloggetBruker.token,
+                sykmeldt = sykmeldt,
+            ))
         }
     }
 }

@@ -8,7 +8,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
-import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.auth.NarmesteLederPrincipal
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.dto.Oppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
@@ -37,7 +37,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 call.respond(HttpStatusCode.BadRequest, "Invalid Oppfolgingsplan format")
                 return@post
             }
-            val innloggetBruker = call.principal<BrukerPrincipal>()
+            val innloggetBruker = call.principal<NarmesteLederPrincipal>()
                 ?: run {
                     call.application.environment.log.warn("No user principal found in request")
                     call.respond(HttpStatusCode.Unauthorized)
@@ -45,7 +45,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 }
 
             val sykmeldt = innloggetBruker.sykmeldt
-                ?: throw IllegalStateException("Missing sykmeldt information in user principal")
 
             if (oppfolgingsplan.sykmeldtFnr != sykmeldt.fnr) {
                 call.application.environment.log.warn("Sykmeldt fnr does not match for narmestelederId: ${sykmeldt.narmestelederId}")
