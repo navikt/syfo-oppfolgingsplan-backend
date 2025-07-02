@@ -13,12 +13,9 @@ spec:
   liveness:
     path: /internal/is_alive
     initialDelay: 10
-#    timeout: 5
-#    periodSeconds: 10
-#    failureThreshold: 5
     timeout: 5
-    periodSeconds: 60
-    failureThreshold: 10
+    periodSeconds: 10
+    failureThreshold: 5
   readiness:
     path: /internal/is_ready
     initialDelay: 10
@@ -83,5 +80,3 @@ spec:
       value: production
     - name: DINE_SYKMELDTE_BASE_URL
       value: http://dinesykmeldte-backend
-    - name: JAVA_TOOL_OPTIONS
-      value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
