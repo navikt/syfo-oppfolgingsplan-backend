@@ -32,7 +32,7 @@ class EsyfovarselProducerTest : DescribeSpec({
     }
     describe("sendVarselToEsyfovarsel") {
         it("Calls send on Producer with ProducerRecord") {
-            // Given
+            // Arrange
             val hendelse = createHendelse(orgnummer, arbeidstakerFnr)
             val recordMetadata = createRecordMetadata()
 
@@ -40,10 +40,10 @@ class EsyfovarselProducerTest : DescribeSpec({
             coEvery { futureMock.get() } returns recordMetadata
             coEvery { kafkaProducerMock.send(any<ProducerRecord<String, EsyfovarselHendelse>>()) } returns futureMock
 
-            // When
+            // Act
             producer.sendVarselToEsyfovarsel(hendelse)
 
-            // Then
+            // Assert
             verify(exactly = 1) {
                 kafkaProducerMock.send(withArg {
                     it.shouldBeInstanceOf<ProducerRecord<String, ArbeidstakerHendelse>>()
@@ -55,18 +55,18 @@ class EsyfovarselProducerTest : DescribeSpec({
             verify(exactly = 1) { futureMock.get() }
         }
         it("Throws exception when producer.send fails") {
-            // Given
+            // Arrange
             val hendelse = createHendelse(orgnummer, arbeidstakerFnr)
             val futureMock = mockk<SettableFuture<RecordMetadata>>()
             val forcedError = InterruptedException("Forced")
             coEvery { futureMock.get() } throws forcedError
             coEvery { kafkaProducerMock.send(any<ProducerRecord<String, EsyfovarselHendelse>>()) } returns futureMock
 
-            // When
+            // Act
             val e = shouldThrow<Exception> {
                 producer.sendVarselToEsyfovarsel(hendelse)
             }
-            // Then
+            // Assert
             e.message shouldContain forcedError.message!!
         }
     }
