@@ -139,17 +139,14 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 } returns defaultSykmeldt()
 
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
-                    "123",
-                    defaultOppfolginsplanUtkast()
-                        .copy(
+                    "123", defaultOppfolginsplanUtkast().copy(
                             content = ObjectMapper().readValue(
                                 """
                             {
                                 "innhold": "Dette er en testoppfølgingsplan"
                             }
-                            """
-                            ),
-                            sluttdato = LocalDate.parse("2020-01-01")
+                            """.trimIndent()
+                            ), sluttdato = LocalDate.parse("2020-01-01")
                         )
                 )
 
@@ -158,16 +155,14 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(
-                        defaultOppfolginsplanUtkast()
-                            .copy(
+                        defaultOppfolginsplanUtkast().copy(
                                 content = ObjectMapper().readValue(
                                     """
                             {
                                 "innhold": "Nytt innhold"
                             }
-                            """
-                                ),
-                                sluttdato = LocalDate.parse("2020-01-02")
+                            """.trimIndent()
+                                ), sluttdato = LocalDate.parse("2020-01-02")
                             )
                     )
                 }
@@ -205,8 +200,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 } returns defaultSykmeldt()
 
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
-                    "123",
-                    defaultOppfolginsplanUtkast()
+                    "123", defaultOppfolginsplanUtkast()
                 )
 
                 // Act
