@@ -38,3 +38,8 @@ docker-compose \
 
 ### Kafka-ui 
 You can use [kafka-ui](http://localhost:9000) to inspect your consumers and topics. You can also publish or read messages on the topics
+
+## Remote debug to app in nais-cluster
+```bash
+kubectl port-forward deployment/followupplan-backend  -n team-esyfo 5005:5005
+```
