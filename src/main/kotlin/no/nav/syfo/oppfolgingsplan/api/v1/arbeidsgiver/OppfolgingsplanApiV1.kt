@@ -44,7 +44,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 return@post
             }
             oppfolgingsplanService.persistOppfolgingsplan(sykmeldt.narmestelederId, oppfolgingsplan)
-
+            oppfolgingsplanService.produceVarsel(oppfolgingsplan)
             call.respond(HttpStatusCode.Created)
         }
     }

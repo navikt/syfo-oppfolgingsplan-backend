@@ -105,7 +105,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 // Act
                 val response = client.get {
                     url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
-                    bearerAuth( "")
+                    bearerAuth("")
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized

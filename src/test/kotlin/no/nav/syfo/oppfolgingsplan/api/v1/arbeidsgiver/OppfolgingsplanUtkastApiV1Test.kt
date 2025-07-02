@@ -40,12 +40,14 @@ import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import java.time.LocalDate
+import no.nav.syfo.varsel.EsyfovarselProducer
 
 class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
     val testDb = TestDB.Companion.database
+    val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
 
     beforeTest {
         clearAllMocks()
@@ -74,6 +76,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                         texasClientMock,
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
+                            esyfovarselProducer = esyfovarselProducerMock,
                         )
                     )
                 }
