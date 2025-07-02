@@ -80,3 +80,5 @@ spec:
       value: production
     - name: DINE_SYKMELDTE_BASE_URL
       value: http://dinesykmeldte-backend
+    - name: JAVA_TOOL_OPTIONS
+      value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
