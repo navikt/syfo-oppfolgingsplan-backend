@@ -1,10 +1,8 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
 import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -25,17 +23,17 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.verify
-import java.time.LocalDate
+import java.util.*
 import no.nav.syfo.TestDB
+import no.nav.syfo.defaultOppfolgingsplan
+import no.nav.syfo.defaultOppfolginsplanUtkast
+import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.Oppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasExchangeResponse
@@ -50,10 +48,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
-
-    val sykemeldtFnr = "12345678901"
-    val narmesteLederFnr = "10987654321"
-    val orgnummer = "987654321"
+    val narmestelederId = UUID.randomUUID().toString()
 
     beforeTest {
         clearAllMocks()
@@ -95,7 +90,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
             withTestApplication {
                 // Act
-                val response = client.get("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                val response = client.get("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -104,7 +99,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
                     bearerAuth("")
                 }
                 // Assert
@@ -123,21 +118,12 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns TexasExchangeResponse("token", 111, "tokenType")
 
                 coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
-                } returns Sykmeldt(
-                    "123",
-                    "orgnummer",
-                    "12345678901",
-                    "Navn Sykmeldt",
-                    true,
-                )
-                coEvery {
-                    esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
-                } returns Unit
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+                } returns defaultSykmeldt().copy(narmestelederId, narmestelederId)
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -151,10 +137,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     texasClientMock.introspectToken(any(), any())
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
 
-
                 // Act
                 val response = client.get {
-                    url("api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -170,7 +155,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -189,64 +174,40 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns TexasExchangeResponse("token", 111, "tokenType")
 
                 coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
-                } returns Sykmeldt(
-                    "123",
-                    "orgnummer",
-                    "12345678901",
-                    "Navn Sykmeldt",
-                    true,
-                )
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+                } returns defaultSykmeldt().copy(narmestelederId, narmestelederId)
 
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
                 } returns Unit
-
+                val oppfolgingsplan = defaultOppfolgingsplan()
                 // Act
                 val response = client.post {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(
-                        Oppfolgingsplan(
-                            sykmeldtFnr = "12345678901",
-                            narmesteLederFnr = "10987654321",
-                            orgnummer = "987654321",
-                            content = ObjectMapper().readValue(
-                                """
-                            {
-                                "tittel": "Oppfølgingsplan for Navn Sykmeldt",
-                                "innhold": "Dette er en testoppfølgingsplan"
-                            }
-                            """
-                            ),
-                            sluttdato = LocalDate.parse("2023-10-31"),
-                            skalDelesMedLege = false,
-                            skalDelesMedVeileder = false,
-                        )
-                    )
+                    setBody(oppfolgingsplan)
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Created
 
-                val persisted = testDb.findAllOppfolgingsplanerBy("123")
+                val persisted = testDb.findAllOppfolgingsplanerBy(narmesteLederId = narmestelederId)
                 persisted.size shouldBe 1
-                persisted.first().sykmeldtFnr shouldBe sykemeldtFnr
-                persisted.first().narmesteLederFnr shouldBe narmesteLederFnr
-                persisted.first().narmesteLederId shouldBe "123"
-                persisted.first().orgnummer shouldBe orgnummer
-                persisted.first().content.toString() shouldBe
-                    """{"tittel":"Oppfølgingsplan for Navn Sykmeldt","innhold":"Dette er en testoppfølgingsplan"}"""
-                persisted.first().sluttdato.toString() shouldBe "2023-10-31"
-                persisted.first().skalDelesMedLege shouldBe false
-                persisted.first().skalDelesMedVeileder shouldBe false
-                persisted.first().deltMedVeilederTidspunkt shouldBe null
-                persisted.first().deltMedLegeTidspunkt shouldBe null
+                persisted.first().sykmeldtFnr shouldBe oppfolgingsplan.sykmeldtFnr
+                persisted.first().narmesteLederFnr shouldBe oppfolgingsplan.narmesteLederFnr
+                persisted.first().narmesteLederId shouldBe narmestelederId
+                persisted.first().orgnummer shouldBe oppfolgingsplan.orgnummer
+                persisted.first().content.toString() shouldBe oppfolgingsplan.content.toString()
+                persisted.first().sluttdato.toString() shouldBe oppfolgingsplan.sluttdato.toString()
+                persisted.first().skalDelesMedLege shouldBe oppfolgingsplan.skalDelesMedLege
+                persisted.first().skalDelesMedVeileder shouldBe oppfolgingsplan.skalDelesMedVeileder
+                persisted.first().deltMedVeilederTidspunkt shouldBe oppfolgingsplan.deltMedVeilederTidspunkt
+                persisted.first().deltMedLegeTidspunkt shouldBe oppfolgingsplan.deltMedLegeTidspunkt
                 verify(exactly = 1) {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
                         val hendelse = it as ArbeidstakerHendelse
-                        hendelse.arbeidstakerFnr shouldBe sykemeldtFnr
-                        hendelse.orgnummer shouldBe orgnummer
+                        hendelse.arbeidstakerFnr shouldBe oppfolgingsplan.sykmeldtFnr
+                        hendelse.orgnummer shouldBe oppfolgingsplan.orgnummer
                     })
                 }
             }
@@ -263,60 +224,38 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns TexasExchangeResponse("token", 111, "tokenType")
 
                 coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
-                } returns Sykmeldt(
-                    "123",
-                    "orgnummer",
-                    "12345678901",
-                    "Navn Sykmeldt",
-                    true,
-                )
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+                } returns defaultSykmeldt().copy(narmestelederId, narmestelederId)
+
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
                 } returns Unit
 
                 testDb.upsertOppfolgingsplanUtkast(
-                    "123",
-                    OppfolgingsplanUtkast(
-                        sykmeldtFnr = sykemeldtFnr,
-                        narmesteLederFnr = narmesteLederFnr,
-                        orgnummer = orgnummer,
-                        content = ObjectMapper().readValue("{}"),
-                        sluttdato = LocalDate.parse("2023-10-31"),
-                    )
+                    narmestelederId,
+                    defaultOppfolginsplanUtkast()
                 )
-
+                val oppfolgingsplan = defaultOppfolgingsplan()
                 // Act
                 client.post {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(
-                        Oppfolgingsplan(
-                            sykmeldtFnr = "12345678901",
-                            narmesteLederFnr = "10987654321",
-                            orgnummer = "987654321",
-                            content = ObjectMapper().readValue("{}"),
-                            sluttdato = LocalDate.parse("2023-10-31"),
-                            skalDelesMedLege = false,
-                            skalDelesMedVeileder = false,
-                        )
-                    )
+                    setBody(oppfolgingsplan)
                 }
                 // Assert
-                val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("123")
+                val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy(narmestelederId)
                 persistedOppfolgingsplaner.size shouldBe 1
 
-                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy("123")
+                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(narmestelederId)
                 persistedUtkast shouldBe null
                 verify(exactly = 1) {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
                         val hendelse = it as ArbeidstakerHendelse
-                        hendelse.arbeidstakerFnr shouldBe sykemeldtFnr
-                        hendelse.orgnummer shouldBe orgnummer
+                        hendelse.arbeidstakerFnr shouldBe oppfolgingsplan.sykmeldtFnr
+                        hendelse.orgnummer shouldBe oppfolgingsplan.orgnummer
                     })
                 }
-
             }
         }
     }

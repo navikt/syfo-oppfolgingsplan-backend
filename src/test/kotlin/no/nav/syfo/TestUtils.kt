@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
 import java.time.LocalDate
+import no.nav.syfo.oppfolgingsplan.dto.Oppfolgingsplan
 
 fun defaultOppfolginsplanUtkast() = OppfolgingsplanUtkast(
     sykmeldtFnr = "12345678901",
@@ -12,16 +13,33 @@ fun defaultOppfolginsplanUtkast() = OppfolgingsplanUtkast(
     orgnummer = "orgnummer",
     content = ObjectMapper().readValue(
         """
-                            {
-                                "tittel": "Oppfølgingsplan for Navn Sykmeldt",
-                                "innhold": "Dette er en testoppfølgingsplan"
-                            }
-                            """
+        {
+            "tittel": "Oppfølgingsplan for Navn Sykmeldt",
+            "innhold": "Dette er en testoppfølgingsplan"
+        }
+    """.trimIndent()
     ),
     sluttdato = LocalDate.parse("2020-01-01"),
 )
 
-fun defaultSykmeldt() =Sykmeldt(
+fun defaultOppfolgingsplan() = Oppfolgingsplan(
+    sykmeldtFnr = "12345678901",
+    narmesteLederFnr = "10987654321",
+    orgnummer = "987654321",
+    content = ObjectMapper().readValue(
+        """
+        {
+            "tittel": "Oppfølgingsplan for Navn Sykmeldt",
+            "innhold": "Dette er en testoppfølgingsplan"
+        }
+        """.trimIndent()
+    ),
+    sluttdato = LocalDate.parse("2023-10-31"),
+    skalDelesMedLege = false,
+    skalDelesMedVeileder = false,
+)
+
+fun defaultSykmeldt() = Sykmeldt(
     "123",
     "orgnummer",
     "12345678901",
