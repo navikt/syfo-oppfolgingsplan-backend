@@ -13,9 +13,12 @@ spec:
   liveness:
     path: /internal/is_alive
     initialDelay: 10
+#    timeout: 5
+#    periodSeconds: 10
+#    failureThreshold: 5
     timeout: 5
-    periodSeconds: 10
-    failureThreshold: 5
+    periodSeconds: 60
+    failureThreshold: 10
   readiness:
     path: /internal/is_ready
     initialDelay: 10
