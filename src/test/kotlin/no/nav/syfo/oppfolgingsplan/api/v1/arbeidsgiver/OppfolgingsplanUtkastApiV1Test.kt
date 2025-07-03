@@ -26,7 +26,7 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import no.nav.syfo.TestDB
-import no.nav.syfo.defaultOppfolginsplanUtkast
+import no.nav.syfo.defaultUtkast
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -101,7 +101,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 val response = client.put("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(defaultOppfolginsplanUtkast())
+                    setBody(defaultUtkast())
                 }
 
                 // Assert
@@ -137,7 +137,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
                     "123",
-                    defaultOppfolginsplanUtkast()
+                    defaultUtkast()
                         .copy(
                             content = ObjectMapper().readValue(
                                 """
@@ -155,7 +155,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(
-                        defaultOppfolginsplanUtkast()
+                        defaultUtkast()
                             .copy(
                                 content = ObjectMapper().readValue(
                                     """
@@ -203,7 +203,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
                     "123",
-                    defaultOppfolginsplanUtkast()
+                    defaultUtkast()
                 )
 
                 // Act

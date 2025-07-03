@@ -1,7 +1,8 @@
 package no.nav.syfo.oppfolgingsplan.db
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import java.sql.Date
@@ -17,7 +18,7 @@ data class PersistedOppfolgingsplan(
     val narmesteLederId: String,
     val narmesteLederFnr: String,
     val orgnummer: String,
-    val content: JsonElement,
+    val content: JsonNode,
     val sluttdato: LocalDate,
     val skalDelesMedLege: Boolean,
     val skalDelesMedVeileder: Boolean,
@@ -105,7 +106,7 @@ fun DatabaseInterface.findOppfolgingsplanBy(
 
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setString(1, uuid.toString())
+            preparedStatement.setObject(1, uuid)
             val resultSet = preparedStatement.executeQuery()
             return if (resultSet.next()) {
                 resultSet.mapToOppfolgingsplan()
@@ -118,12 +119,12 @@ fun DatabaseInterface.findOppfolgingsplanBy(
 
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
     return PersistedOppfolgingsplan(
-        uuid = UUID.fromString(this.getString("uuid")),
+        uuid = getObject("uuid") as UUID,
         sykmeldtFnr = this.getString("sykemeldt_fnr"),
         narmesteLederId = this.getString("narmeste_leder_id"),
         narmesteLederFnr = this.getString("narmeste_leder_fnr"),
         orgnummer = this.getString("orgnummer"),
-        content = Json.parseToJsonElement(this.getObject("content").toString()),
+        content = ObjectMapper().readValue(getString("content")),
         sluttdato = LocalDate.parse(this.getString("sluttdato")),
         skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
         skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),
