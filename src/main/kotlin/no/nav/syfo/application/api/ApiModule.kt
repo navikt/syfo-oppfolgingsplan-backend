@@ -2,9 +2,12 @@ package no.nav.syfo.application.api
 
 
 import io.ktor.server.application.Application
+import io.ktor.server.plugins.openapi.openAPI
+import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.routing.routing
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.metric.registerMetricApi
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
@@ -29,6 +32,10 @@ fun Application.configureRouting() {
     installStatusPages()
 
     routing {
+        if (!isProdEnv()) {
+            openAPI(path="openapi", swaggerFile = "openapi/documentation.yaml")
+            swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
+        }
         registerPodApi(applicationState, database)
         registerMetricApi()
         registerApiV1(

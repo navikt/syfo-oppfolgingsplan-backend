@@ -1,6 +1,5 @@
 package no.nav.syfo.application
 
-import io.ktor.server.application.*
 import no.nav.syfo.application.database.DatabaseEnvironment
 import no.nav.syfo.application.kafka.KafkaEnv
 import no.nav.syfo.texas.TexasEnvironment
@@ -39,8 +38,11 @@ fun getEnvVar(varName: String, defaultValue: String? = null) =
     System.getenv(varName) ?: defaultValue ?: throw RuntimeException("Missing required variable \"$varName\"")
 
 
-fun Application.isLocalEnv(): Boolean =
+fun isLocalEnv(): Boolean =
     getEnvVar("NAIS_CLUSTER_NAME", "local") == "local"
+
+fun isProdEnv(): Boolean =
+    getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-gcp"
 
 data class LocalEnvironment(
     override val database: DatabaseEnvironment = DatabaseEnvironment(

@@ -48,6 +48,8 @@ dependencies {
     implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
     implementation("io.ktor:ktor-server-netty")
     implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("io.ktor:ktor-server-swagger")
+    implementation("io.ktor:ktor-server-openapi")
     implementation("io.ktor:ktor-server-config-yaml")
     implementation("org.apache.kafka:kafka-clients:$kafka_version")
     implementation("org.apache.kafka:kafka_2.13:$kafka_version") {
