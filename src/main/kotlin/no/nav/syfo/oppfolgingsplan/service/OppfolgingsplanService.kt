@@ -11,15 +11,12 @@ import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
 ) {
-
     fun persistOppfolgingsplan(narmesteLederId: String, oppfolgingsplan: Oppfolgingsplan) {
         database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederId, oppfolgingsplan)
     }
-
     fun persistOppfolgingsplanUtkast(narmesteLederId: String, utkast: OppfolgingsplanUtkast) {
         database.upsertOppfolgingsplanUtkast(narmesteLederId, utkast)
     }
-
     fun getOppfolgingsplanUtkast(narmesteLederId: String): PersistedOppfolgingsplanUtkast? {
         return database.findOppfolgingsplanUtkastBy(narmesteLederId)
     }
