@@ -32,8 +32,8 @@ import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.Oppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
+import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasExchangeResponse
@@ -84,26 +84,26 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
 
     describe("Oppfolgingsplan API") {
-        it("GET /oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
+        it("GET /oppfolgingsplaner/oversikt should respond with Unauthorized when no authentication is provided") {
             withTestApplication {
                 // Act
-                val response = client.get("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                val response = client.get("/api/v1/arbeidsgiver/123/oppfolgingsplaner/oversikt")
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
         }
-        it("GET /oppfolgingsplaner should respond with Unauthorized when no bearer token is provided") {
+        it("GET /oppfolgingsplaner/oversikt should respond with Unauthorized when no bearer token is provided") {
             withTestApplication {
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner/oversikt")
                     bearerAuth( "")
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
         }
-        it("GET /oppfolgingsplaner should respond with OK when texas client gives active response") {
+        it("GET /oppfolgingsplaner/oversikt should respond with OK when texas client gives active response") {
             withTestApplication {
                 // Arrange
                 coEvery {
@@ -127,14 +127,14 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner/oversikt")
                     bearerAuth("Bearer token")
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
             }
         }
-        it("GET /oppfolgingsplaner should respond with Forbidden when texas acr claim is not Level4") {
+        it("GET /oppfolgingsplaner/oversikt should respond with Forbidden when texas acr claim is not Level4") {
             withTestApplication {
                 // Arrange
                 coEvery {
@@ -144,14 +144,14 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("api/v1/arbeidsgiver/123/oppfolgingsplaner/oversikt")
                     bearerAuth("Bearer token")
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Forbidden
             }
         }
-        it("GET /oppfolgingsplaner should respond with Unauthorized when texas client gives inactive response") {
+        it("GET /oppfolgingsplaner/oversikt should respond with Unauthorized when texas client gives inactive response") {
             withTestApplication {
                 // Arrange
                 coEvery {
@@ -160,7 +160,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner")
+                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner/oversikt")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -194,7 +194,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(
-                        Oppfolgingsplan(
+                        CreateOppfolgingsplanRequest(
                             sykmeldtFnr = "12345678901",
                             narmesteLederFnr = "10987654321",
                             orgnummer = "987654321",
@@ -215,7 +215,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 // Assert
                 response.status shouldBe HttpStatusCode.Created
 
-                val persisted = testDb.findAllOppfolgingsplanerBy("123")
+                val persisted = testDb.findAllOppfolgingsplanerBy("12345678901", "987654321")
                 persisted.size shouldBe 1
                 persisted.first().sykmeldtFnr shouldBe "12345678901"
                 persisted.first().narmesteLederFnr shouldBe "10987654321"
@@ -252,7 +252,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 )
                 testDb.upsertOppfolgingsplanUtkast(
                     "123",
-                    OppfolgingsplanUtkast(
+                    CreateUtkastRequest(
                         sykmeldtFnr = "12345678901",
                         narmesteLederFnr = "10987654321",
                         orgnummer = "987654321",
@@ -267,7 +267,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(
-                        Oppfolgingsplan(
+                        CreateOppfolgingsplanRequest(
                             sykmeldtFnr = "12345678901",
                             narmesteLederFnr = "10987654321",
                             orgnummer = "987654321",
@@ -279,10 +279,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     )
                 }
                 // Assert
-                val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("123")
+                val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "987654321")
                 persistedOppfolgingsplaner.size shouldBe 1
 
-                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy("123")
+                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "987654321")
                 persistedUtkast shouldBe null
             }
         }

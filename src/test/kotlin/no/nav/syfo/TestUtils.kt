@@ -3,10 +3,10 @@ package no.nav.syfo
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.dinesykmeldte.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import java.time.LocalDate
 
-fun defaultOppfolginsplanUtkast() = OppfolgingsplanUtkast(
+fun defaultOppfolginsplanUtkast() = CreateUtkastRequest(
     sykmeldtFnr = "12345678901",
     narmesteLederFnr = "10987654321",
     orgnummer = "orgnummer",

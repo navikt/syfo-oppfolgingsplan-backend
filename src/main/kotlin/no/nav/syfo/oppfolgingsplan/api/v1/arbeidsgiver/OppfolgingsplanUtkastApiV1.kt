@@ -8,7 +8,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
 
@@ -25,7 +25,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
         }
 
         put {
-            val utkast = try { call.receive<OppfolgingsplanUtkast>() } catch (e: Exception) {
+            val utkast = try { call.receive<CreateUtkastRequest>() } catch (e: Exception) {
                 call.application.environment.log.error("Failed to parse OppfolgingsplanUtkast from request: ${e.message}", e)
                 call.respond(HttpStatusCode.BadRequest, "Invalid OppfolgingsplanUtkast format")
                 return@put
@@ -47,7 +47,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
         get {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
-            val utkast = oppfolgingsplanService.getOppfolgingsplanUtkast(sykmeldt.narmestelederId)
+            val utkast = oppfolgingsplanService.getOppfolgingsplanUtkast(sykmeldt.fnr, sykmeldt.orgnummer)
 
             if (utkast == null) {
                 call.respond(HttpStatusCode.NotFound, "No draft found for the given narmestelederId")

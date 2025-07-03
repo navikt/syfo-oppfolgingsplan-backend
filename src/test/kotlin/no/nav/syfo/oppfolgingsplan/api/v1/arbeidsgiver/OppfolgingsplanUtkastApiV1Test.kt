@@ -31,9 +31,9 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasExchangeResponse
@@ -107,7 +107,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
 
-                val persisted = testDb.findOppfolgingsplanUtkastBy("123")
+                val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
                 persisted shouldNotBe null
                 persisted?.let {
                     it.sykmeldtFnr shouldBe "12345678901"
@@ -172,7 +172,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
 
-                val persisted = testDb.findOppfolgingsplanUtkastBy("123")
+                val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
                 persisted shouldNotBe null
                 persisted?.let {
                     it.uuid shouldBe existingUUID
@@ -213,7 +213,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 // Assert
                 res.status shouldBe HttpStatusCode.OK
-                val utkast = res.body<OppfolgingsplanUtkast>()
+                val utkast = res.body<PersistedOppfolgingsplanUtkast>()
                 utkast shouldNotBe null
                 utkast.uuid shouldBe existingUUID
                 utkast.sykmeldtFnr shouldBe "12345678901"

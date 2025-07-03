@@ -3,7 +3,7 @@ package no.nav.syfo.oppfolgingsplan.db
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.oppfolgingsplan.dto.Oppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Types
@@ -23,11 +23,12 @@ data class PersistedOppfolgingsplan(
     val skalDelesMedVeileder: Boolean,
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
+    val createdAt: Instant
 )
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederId: String,
-    oppfolgingsplan: Oppfolgingsplan
+    createOppfolgingsplanRequest: CreateOppfolgingsplanRequest
 ) {
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
@@ -54,14 +55,14 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.executeUpdate()
         }
         connection.prepareStatement(insertStatement).use {
-            it.setString(1, oppfolgingsplan.sykmeldtFnr)
+            it.setString(1, createOppfolgingsplanRequest.sykmeldtFnr)
             it.setString(2, narmesteLederId)
-            it.setString(3, oppfolgingsplan.narmesteLederFnr)
-            it.setString(4, oppfolgingsplan.orgnummer)
-            it.setObject(5, oppfolgingsplan.content.toString(), Types.OTHER)
-            it.setDate(6, Date.valueOf(oppfolgingsplan.sluttdato.toString()))
-            it.setBoolean(7, oppfolgingsplan.skalDelesMedLege)
-            it.setBoolean(8, oppfolgingsplan.skalDelesMedVeileder)
+            it.setString(3, createOppfolgingsplanRequest.narmesteLederFnr)
+            it.setString(4, createOppfolgingsplanRequest.orgnummer)
+            it.setObject(5, createOppfolgingsplanRequest.content.toString(), Types.OTHER)
+            it.setDate(6, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
+            it.setBoolean(7, createOppfolgingsplanRequest.skalDelesMedLege)
+            it.setBoolean(8, createOppfolgingsplanRequest.skalDelesMedVeileder)
             it.executeUpdate()
         }
         connection.commit()
@@ -69,21 +70,47 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
 }
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
-    narmesteLederId: String,
+    sykmeldtFnr: String,
+    orgnummer: String
 ): List<PersistedOppfolgingsplan> {
     val statement = """
         SELECT *
         FROM oppfolgingsplan
-        WHERE narmeste_leder_id = ?
+        WHERE sykemeldt_fnr = ?
+        AND orgnummer = ?
+        ORDER BY created_at DESC
     """.trimIndent()
 
     return connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setString(1, narmesteLederId)
+            preparedStatement.setString(1, sykmeldtFnr)
+            preparedStatement.setString(2, orgnummer)
             preparedStatement.executeQuery().use { resultSet ->
                 generateSequence { if (resultSet.next()) resultSet else null }
                     .map { it.mapToOppfolgingsplan() }
                     .toList()
+            }
+        }
+    }
+}
+
+fun DatabaseInterface.findOppfolgingsplanBy(
+    uuid: UUID,
+): PersistedOppfolgingsplan? {
+    val statement = """
+        SELECT *
+        FROM oppfolgingsplan
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, uuid.toString())
+            val resultSet = preparedStatement.executeQuery()
+            return if (resultSet.next()) {
+                resultSet.mapToOppfolgingsplan()
+            } else {
+                null
             }
         }
     }
@@ -100,7 +127,8 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         sluttdato = LocalDate.parse(this.getString("sluttdato")),
         skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
         skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),
-        deltMedLegeTidspunkt = this.getObject("delt_med_lege_tidspunkt") as? Instant,
-        deltMedVeilederTidspunkt = this.getObject("delt_med_veileder_tidspunkt") as? Instant,
+        deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),
+        deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
+        createdAt = getTimestamp("created_at").toInstant(),
     )
 }
