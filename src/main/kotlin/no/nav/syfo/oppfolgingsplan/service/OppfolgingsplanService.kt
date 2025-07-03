@@ -31,7 +31,7 @@ class OppfolgingsplanService(
     fun produceVarsel(oppfolgingsplan: Oppfolgingsplan) {
         val hendelse = ArbeidstakerHendelse(
             type = HendelseType.SM_OPPFOLGINGSPLAN_OPPRETTET,
-            ferdigstill = true,
+            ferdigstill = false,
             arbeidstakerFnr = oppfolgingsplan.sykmeldtFnr,
             data = null,
             orgnummer = oppfolgingsplan.orgnummer,
