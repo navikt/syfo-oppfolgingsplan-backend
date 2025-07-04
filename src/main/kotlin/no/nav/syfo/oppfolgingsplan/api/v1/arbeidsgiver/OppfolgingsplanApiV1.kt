@@ -11,12 +11,14 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.dto.Oppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
+import no.nav.syfo.util.logger
 
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService
 ) {
+    val logger = logger()
 
     route("/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner") {
         install(ValidateAccessToSykmeldtPlugin) {
@@ -44,7 +46,11 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 return@post
             }
             oppfolgingsplanService.persistOppfolgingsplan(sykmeldt.narmestelederId, oppfolgingsplan)
-            oppfolgingsplanService.produceVarsel(oppfolgingsplan)
+            try {
+                oppfolgingsplanService.produceVarsel(oppfolgingsplan)
+            } catch (e: Exception) {
+                logger.error("Error when producing kafka message", e)
+            }
             call.respond(HttpStatusCode.Created)
         }
     }

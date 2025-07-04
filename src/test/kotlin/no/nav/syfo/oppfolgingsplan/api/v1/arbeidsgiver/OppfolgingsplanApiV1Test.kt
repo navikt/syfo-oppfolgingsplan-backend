@@ -237,13 +237,14 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 )
                 val oppfolgingsplan = defaultOppfolgingsplan()
                 // Act
-                client.post {
+                val response = client.post {
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(oppfolgingsplan)
                 }
                 // Assert
+                response.status shouldBe HttpStatusCode.Created
                 val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy(narmestelederId)
                 persistedOppfolgingsplaner.size shouldBe 1
 
@@ -256,6 +257,53 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         hendelse.orgnummer shouldBe oppfolgingsplan.orgnummer
                     })
                 }
+            }
+        }
+    }
+    it("POST /oppfolgingsplaner still creates new oppfolgingsplan when kafka producer throws exception") {
+        withTestApplication {
+            // Arrange
+            coEvery {
+                texasClientMock.introspectToken(any(), any())
+            } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+
+            coEvery {
+                texasClientMock.exhangeTokenForDineSykmeldte(any())
+            } returns TexasExchangeResponse("token", 111, "tokenType")
+
+            coEvery {
+                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+            } returns defaultSykmeldt().copy(narmestelederId, narmestelederId)
+
+            coEvery {
+                esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
+            } throws Exception("exception")
+
+            testDb.upsertOppfolgingsplanUtkast(
+                narmestelederId,
+                defaultOppfolginsplanUtkast()
+            )
+            val oppfolgingsplan = defaultOppfolgingsplan()
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
+                bearerAuth("Bearer token")
+                contentType(ContentType.Application.Json)
+                setBody(oppfolgingsplan)
+            }
+            // Assert
+            response.status shouldBe HttpStatusCode.Created
+            val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy(narmestelederId)
+            persistedOppfolgingsplaner.size shouldBe 1
+
+            val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(narmestelederId)
+            persistedUtkast shouldBe null
+            verify(exactly = 1) {
+                esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
+                    val hendelse = it as ArbeidstakerHendelse
+                    hendelse.arbeidstakerFnr shouldBe oppfolgingsplan.sykmeldtFnr
+                    hendelse.orgnummer shouldBe oppfolgingsplan.orgnummer
+                })
             }
         }
     }
