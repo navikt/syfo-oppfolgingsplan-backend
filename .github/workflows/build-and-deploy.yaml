@@ -21,3 +21,4 @@ jobs:
     secrets: inherit
     with:
       app: followupplan-backend
+      java-version: '21'

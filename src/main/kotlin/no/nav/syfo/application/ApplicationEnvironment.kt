@@ -2,6 +2,7 @@ package no.nav.syfo.application
 
 import io.ktor.server.application.*
 import no.nav.syfo.application.database.DatabaseEnvironment
+import no.nav.syfo.application.kafka.KafkaEnv
 import no.nav.syfo.texas.TexasEnvironment
 
 const val NAIS_DATABASE_ENV_PREFIX = "OPPFOLGINGSPLAN_DB"
@@ -10,6 +11,7 @@ interface Environment {
     val database: DatabaseEnvironment
     val texas: TexasEnvironment
     val dineSykmeldteBaseUrl: String
+    val kafka: KafkaEnv
 }
 
 data class NaisEnvironment(
@@ -30,6 +32,7 @@ data class NaisEnvironment(
         exchangeTargetDineSykmeldte = "${getEnvVar("NAIS_CLUSTER_NAME")}:team-esyfo:dinesykmeldte-backend",
     ),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
+    override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars()
 ) : Environment
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =
@@ -57,4 +60,5 @@ data class LocalEnvironment(
         exchangeTargetDineSykmeldte = "dev-gcp:team-esyfo:dinesykmeldte-backend",
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
+    override val kafka: KafkaEnv = KafkaEnv.createForLocal()
 ) : Environment

@@ -1,4 +1,6 @@
 val koin_version: String by project
+
+val kafka_version: String by project
 val ktor_version: String by project
 val micrometer_version: String by project
 val logback_version: String by project
@@ -22,6 +24,7 @@ version = "0.0.1"
 
 repositories {
     mavenCentral()
+    maven(url = "https://packages.confluent.io/maven/")
 }
 
 dependencies {
@@ -46,6 +49,11 @@ dependencies {
     implementation("io.ktor:ktor-server-netty")
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("io.ktor:ktor-server-config-yaml")
+    implementation("org.apache.kafka:kafka-clients:$kafka_version")
+    implementation("org.apache.kafka:kafka_2.13:$kafka_version") {
+        exclude(group = "log4j")
+    }
+
     testImplementation("io.ktor:ktor-server-test-host")
 
     // Metrics and Prometheus

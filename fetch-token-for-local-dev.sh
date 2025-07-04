@@ -11,4 +11,4 @@ JSON_BODY=$(jq -n \
 # exchange idporten token for tokenx token
 curl -s -X POST http://localhost:3000/api/v1/token/exchange \
   -H "Content-Type: application/json" \
-  -d "$JSON_BODY" | jq -r '.access_token'
+  -d "$JSON_BODY" | jq -r '.access_token' | tr -d '\n'
