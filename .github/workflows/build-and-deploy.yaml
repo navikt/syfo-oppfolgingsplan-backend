@@ -11,7 +11,7 @@ on:
 
 jobs:
   jar-app:
-    uses: navikt/teamesyfo-github-actions-workflows/.github/workflows/jar-app.yaml@main
+    uses: navikt/teamesyfo-github-actions-workflows/.github/workflows/jar-app.yaml@java-version-by-parameter
     permissions:
       actions: read
       contents: write
@@ -21,3 +21,4 @@ jobs:
     secrets: inherit
     with:
       app: followupplan-backend
+      java-version: '21'
