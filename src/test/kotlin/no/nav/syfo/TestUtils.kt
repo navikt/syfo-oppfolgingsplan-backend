@@ -25,7 +25,7 @@ fun defaultUtkast() = CreateUtkastRequest(
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
     sykmeldtFnr = "12345678901",
     narmesteLederFnr = "10987654321",
-    orgnummer = "987654321",
+    orgnummer = "orgnummer",
     content = ObjectMapper().readValue(
         """
         {

@@ -36,8 +36,6 @@ import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
-import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.persistOppfolgingsplan
@@ -170,6 +168,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         }
         it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
             withTestApplication {
+                // Arrange
                 coEvery {
                     texasClientMock.introspectToken(
                         any(),
@@ -181,13 +180,18 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     111,
                     "tokenType"
                 )
-                coEvery { dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token") } returns Sykmeldt(
-                    "123", "orgnummer", "12345678901", "Navn Sykmeldt", true
-                )
+                coEvery {
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                        narmestelederId,
+                        "token"
+                    )
+                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+                // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner/00000000-0000-0000-0000-000000000000")
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/00000000-0000-0000-0000-000000000000")
                     bearerAuth("Bearer token")
                 }
+                // Assert
                 response.status shouldBe HttpStatusCode.NotFound
             }
         }
@@ -205,16 +209,19 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     111,
                     "tokenType"
                 )
-                coEvery { dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token") } returns Sykmeldt(
-                    "123", "orgnummer", "12345678901", "Navn Sykmeldt", true
-                )
+                coEvery {
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                        narmestelederId,
+                        "token"
+                    )
+                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
                 val existingUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = "123",
+                    narmesteLederId = narmestelederId,
                     createOppfolgingsplanRequest = defaultOppfolgingsplan()
                 )
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner/$existingUUID")
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$existingUUID")
                     bearerAuth("Bearer token")
                 }
                 response.status shouldBe HttpStatusCode.OK
@@ -237,24 +244,27 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     111,
                     "tokenType"
                 )
-                coEvery { dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token") } returns Sykmeldt(
-                    "123", "orgnummer", "12345678901", "Navn Sykmeldt", true
-                )
+                coEvery {
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                        narmestelederId,
+                        "token"
+                    )
+                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = "123",
+                    narmesteLederId = narmestelederId,
                     createOppfolgingsplanRequest = defaultOppfolgingsplan()
                 )
                 val latestPlanUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = "123",
+                    narmesteLederId = narmestelederId,
                     createOppfolgingsplanRequest = defaultOppfolgingsplan()
                 )
                 val utkastUUID = testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederId = "123",
+                    narmesteLederId = narmestelederId,
                     createUtkastRequest = defaultUtkast()
                 )
                 // Act
                 val response = client.get {
-                    url("/api/v1/arbeidsgiver/123/oppfolgingsplaner/oversikt")
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
                     bearerAuth("Bearer token")
                 }
                 // Assert
@@ -285,6 +295,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
                 } returns Unit
                 val oppfolgingsplan = defaultOppfolgingsplan()
+
                 // Act
                 val response = client.post {
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
@@ -337,7 +348,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 testDb.upsertOppfolgingsplanUtkast(
                     narmestelederId,
-                    defaultOppfolginsplanUtkast()
+                    defaultUtkast()
                 )
                 val oppfolgingsplan = defaultOppfolgingsplan()
                 // Act
@@ -349,10 +360,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.Created
-                val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy(narmestelederId)
+                val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
                 persistedOppfolgingsplaner.size shouldBe 1
 
-                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(narmestelederId)
+                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
                 persistedUtkast shouldBe null
                 verify(exactly = 1) {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
@@ -385,7 +396,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
             testDb.upsertOppfolgingsplanUtkast(
                 narmestelederId,
-                defaultOppfolginsplanUtkast()
+                defaultUtkast()
             )
             val oppfolgingsplan = defaultOppfolgingsplan()
             // Act
@@ -397,10 +408,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             }
             // Assert
             response.status shouldBe HttpStatusCode.Created
-            val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy(narmestelederId)
+            val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
             persistedOppfolgingsplaner.size shouldBe 1
 
-            val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(narmestelederId)
+            val persistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
             persistedUtkast shouldBe null
             verify(exactly = 1) {
                 esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
