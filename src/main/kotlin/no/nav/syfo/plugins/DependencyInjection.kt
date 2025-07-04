@@ -20,10 +20,14 @@ import no.nav.syfo.application.database.Database
 import no.nav.syfo.application.database.DatabaseConfig
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
+import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
+import no.nav.syfo.varsel.EsyfovarselProducer
+import no.nav.syfo.varsel.domain.EsyfovarselHendelse
+import org.apache.kafka.clients.producer.KafkaProducer
 import org.koin.core.scope.Scope
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
@@ -90,7 +94,15 @@ private fun databaseModule() = module {
 private fun servicesModule() = module {
     single { DineSykmeldteService(DineSykmeldteHttpClient(get(), env().dineSykmeldteBaseUrl)) }
     single { TexasHttpClient(get(),env().texas) }
-    single { OppfolgingsplanService(get()) }
+    single { OppfolgingsplanService(get(), get()) }
+    single { TexasHttpClient(get(), env().texas) }
+    single {
+        EsyfovarselProducer(
+            KafkaProducer<String, EsyfovarselHendelse>(
+                producerProperties(env().kafka)
+            )
+        )
+    }
 }
 
 private fun Scope.env() = get<Environment>()

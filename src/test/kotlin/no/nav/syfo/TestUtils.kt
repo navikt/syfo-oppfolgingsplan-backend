@@ -13,11 +13,11 @@ fun defaultUtkast() = CreateUtkastRequest(
     orgnummer = "orgnummer",
     content = ObjectMapper().readValue(
         """
-                            {
-                                "tittel": "Oppfølgingsplan for Navn Sykmeldt",
-                                "innhold": "Dette er en testoppfølgingsplan"
-                            }
-                            """
+        {
+            "tittel": "Oppfølgingsplan for Navn Sykmeldt",
+            "innhold": "Dette er en testoppfølgingsplan"
+        }
+    """.trimIndent()
     ),
     sluttdato = LocalDate.parse("2020-01-01"),
 )
@@ -25,14 +25,14 @@ fun defaultUtkast() = CreateUtkastRequest(
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
     sykmeldtFnr = "12345678901",
     narmesteLederFnr = "10987654321",
-    orgnummer = "orgnummer",
+    orgnummer = "987654321",
     content = ObjectMapper().readValue(
         """
-                            {
-                                "tittel": "Oppfølgingsplan for Navn Sykmeldt",
-                                "innhold": "Dette er en testoppfølgingsplan"
-                            }
-                            """.trimIndent()
+        {
+            "tittel": "Oppfølgingsplan for Navn Sykmeldt",
+            "innhold": "Dette er en testoppfølgingsplan"
+        }
+        """.trimIndent()
     ),
     sluttdato = LocalDate.parse("2023-10-31"),
     skalDelesMedLege = false,
