@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Types
@@ -26,7 +26,7 @@ data class PersistedOppfolgingsplanUtkast (
 
 fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     narmesteLederId: String,
-    oppfolgingsplanUtkast: OppfolgingsplanUtkast,
+    createUtkastRequest: CreateUtkastRequest,
 ): UUID {
     val statement =
         """
@@ -52,12 +52,12 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
 
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setString(1, oppfolgingsplanUtkast.sykmeldtFnr)
+            preparedStatement.setString(1, createUtkastRequest.sykmeldtFnr)
             preparedStatement.setString(2, narmesteLederId)
-            preparedStatement.setString(3, oppfolgingsplanUtkast.narmesteLederFnr)
-            preparedStatement.setString(4, oppfolgingsplanUtkast.orgnummer)
-            preparedStatement.setObject(5, oppfolgingsplanUtkast.content.toString(), Types.OTHER)
-            preparedStatement.setDate(6, Date.valueOf(oppfolgingsplanUtkast.sluttdato.toString()))
+            preparedStatement.setString(3, createUtkastRequest.narmesteLederFnr)
+            preparedStatement.setString(4, createUtkastRequest.orgnummer)
+            preparedStatement.setObject(5, createUtkastRequest.content.toString(), Types.OTHER)
+            preparedStatement.setDate(6, Date.valueOf(createUtkastRequest.sluttdato.toString()))
             val resultSet = preparedStatement.executeQuery()
             connection.commit()
             resultSet.next()
@@ -67,18 +67,21 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
 }
 
 fun DatabaseInterface.findOppfolgingsplanUtkastBy(
-    narmesteLederId: String,
+    sykmeldtFnr: String,
+    orgnummer: String
 ): PersistedOppfolgingsplanUtkast? {
     val statement =
         """
         SELECT *
         FROM oppfolgingsplan_utkast
-        WHERE narmeste_leder_id = ?
+        WHERE sykemeldt_fnr = ?
+        AND orgnummer = ?
         """.trimIndent()
 
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setString(1, narmesteLederId)
+            preparedStatement.setString(1, sykmeldtFnr)
+            preparedStatement.setString(2, orgnummer)
             val resultSet = preparedStatement.executeQuery()
             return if (resultSet.next()) {
                 resultSet.toOppfolgingsplanUtkastDTO()

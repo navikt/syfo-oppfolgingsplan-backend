@@ -3,11 +3,11 @@ package no.nav.syfo
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.dinesykmeldte.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
+import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import java.time.LocalDate
-import no.nav.syfo.oppfolgingsplan.dto.Oppfolgingsplan
 
-fun defaultOppfolginsplanUtkast() = OppfolgingsplanUtkast(
+fun defaultUtkast() = CreateUtkastRequest(
     sykmeldtFnr = "12345678901",
     narmesteLederFnr = "10987654321",
     orgnummer = "orgnummer",
@@ -22,10 +22,10 @@ fun defaultOppfolginsplanUtkast() = OppfolgingsplanUtkast(
     sluttdato = LocalDate.parse("2020-01-01"),
 )
 
-fun defaultOppfolgingsplan() = Oppfolgingsplan(
+fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
     sykmeldtFnr = "12345678901",
     narmesteLederFnr = "10987654321",
-    orgnummer = "987654321",
+    orgnummer = "orgnummer",
     content = ObjectMapper().readValue(
         """
         {

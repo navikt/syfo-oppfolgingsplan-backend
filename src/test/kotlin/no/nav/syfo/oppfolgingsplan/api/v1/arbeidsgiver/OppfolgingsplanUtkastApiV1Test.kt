@@ -26,14 +26,14 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import no.nav.syfo.TestDB
-import no.nav.syfo.defaultOppfolginsplanUtkast
+import no.nav.syfo.defaultUtkast
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasExchangeResponse
@@ -104,13 +104,13 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 val response = client.put("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(defaultOppfolginsplanUtkast())
+                    setBody(defaultUtkast())
                 }
 
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
 
-                val persisted = testDb.findOppfolgingsplanUtkastBy("123")
+                val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
                 persisted shouldNotBe null
                 persisted?.let {
                     it.sykmeldtFnr shouldBe "12345678901"
@@ -139,7 +139,9 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 } returns defaultSykmeldt()
 
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
-                    "123", defaultOppfolginsplanUtkast().copy(
+                    "123",
+                    defaultUtkast()
+                        .copy(
                             content = ObjectMapper().readValue(
                                 """
                             {
@@ -155,7 +157,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(
-                        defaultOppfolginsplanUtkast().copy(
+                        defaultUtkast().copy(
                                 content = ObjectMapper().readValue(
                                     """
                             {
@@ -170,7 +172,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
 
-                val persisted = testDb.findOppfolgingsplanUtkastBy("123")
+                val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
                 persisted shouldNotBe null
                 persisted?.let {
                     it.uuid shouldBe existingUUID
@@ -200,7 +202,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 } returns defaultSykmeldt()
 
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
-                    "123", defaultOppfolginsplanUtkast()
+                    "123", defaultUtkast()
                 )
 
                 // Act
@@ -210,7 +212,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 // Assert
                 res.status shouldBe HttpStatusCode.OK
-                val utkast = res.body<OppfolgingsplanUtkast>()
+                val utkast = res.body<PersistedOppfolgingsplanUtkast>()
                 utkast shouldNotBe null
                 utkast.uuid shouldBe existingUUID
                 utkast.sykmeldtFnr shouldBe "12345678901"
