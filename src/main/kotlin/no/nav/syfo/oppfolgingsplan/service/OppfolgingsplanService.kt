@@ -14,6 +14,7 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.UtkastMetadata
 import java.util.UUID
+import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
@@ -47,6 +48,16 @@ class OppfolgingsplanService(
 
         return OppfolgingsplanOverview(
             utkast = utkast,
+            oppfolgingsplan = oppfolgingsplaner.firstOrNull(),
+            previousOppfolgingsplaner = oppfolgingsplaner.drop(1),
+        )
+    }
+
+    fun getOppfolginsplanOverviewFor(sykmeldtFnr: String): SykmeldtOppfolgingsplanOverview {
+        val oppfolgingsplaner = database.findAllOppfolgingsplanerBy(sykmeldtFnr)
+            .map { it.mapToOppfolgingsplanMetadata() }
+
+        return SykmeldtOppfolgingsplanOverview(
             oppfolgingsplan = oppfolgingsplaner.firstOrNull(),
             previousOppfolgingsplaner = oppfolgingsplaner.drop(1),
         )
