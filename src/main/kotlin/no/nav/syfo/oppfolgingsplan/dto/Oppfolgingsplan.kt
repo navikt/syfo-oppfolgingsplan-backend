@@ -52,6 +52,6 @@ data class OppfolgingsplanOverview(
     val previousOppfolgingsplaner: List<OppfolgingsplanMetadata>,
 )
 data class SykmeldtOppfolgingsplanOverview(
-    val oppfolgingsplan: OppfolgingsplanMetadata?,
+    val oppfolgingsplaner: List<OppfolgingsplanMetadata>,
     val previousOppfolgingsplaner: List<OppfolgingsplanMetadata>,
 )

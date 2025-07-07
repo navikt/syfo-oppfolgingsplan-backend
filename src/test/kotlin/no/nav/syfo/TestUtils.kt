@@ -6,6 +6,7 @@ import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 fun defaultUtkast() = CreateUtkastRequest(
     sykmeldtFnr = "12345678901",
@@ -19,7 +20,7 @@ fun defaultUtkast() = CreateUtkastRequest(
         }
     """.trimIndent()
     ),
-    sluttdato = LocalDate.parse("2020-01-01"),
+    sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
 )
 
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
@@ -34,7 +35,7 @@ fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
         }
         """.trimIndent()
     ),
-    sluttdato = LocalDate.parse("2023-10-31"),
+    sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
     skalDelesMedLege = false,
     skalDelesMedVeileder = false,
 )

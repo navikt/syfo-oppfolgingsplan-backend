@@ -1,5 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.service
 
+import java.time.LocalDate
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
@@ -56,10 +57,10 @@ class OppfolgingsplanService(
     fun getOppfolginsplanOverviewFor(sykmeldtFnr: String): SykmeldtOppfolgingsplanOverview {
         val oppfolgingsplaner = database.findAllOppfolgingsplanerBy(sykmeldtFnr)
             .map { it.mapToOppfolgingsplanMetadata() }
-
+        val (current, previous) = oppfolgingsplaner.partition { it.sluttdato >= LocalDate.now() }
         return SykmeldtOppfolgingsplanOverview(
-            oppfolgingsplan = oppfolgingsplaner.firstOrNull(),
-            previousOppfolgingsplaner = oppfolgingsplaner.drop(1),
+            oppfolgingsplaner = current,
+            previousOppfolgingsplaner = previous,
         )
     }
 

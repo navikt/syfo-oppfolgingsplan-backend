@@ -19,6 +19,8 @@ import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.*
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultOppfolgingsplan
@@ -30,6 +32,7 @@ import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
+import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
@@ -258,7 +261,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = oppfolgingsplan
+                    createOppfolgingsplanRequest = oppfolgingsplan.copy(sluttdato = LocalDate.now().minus(45, ChronoUnit.DAYS))
                 )
                 val latestPlanUUID = testDb.persistOppfolgingsplan(
                     narmesteLederId = narmestelederId,
@@ -275,9 +278,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                val overview = response.body<OppfolgingsplanOverview>()
-                overview.utkast shouldBe null
-                overview.oppfolgingsplan?.uuid shouldBe latestPlanUUID
+                val overview = response.body<SykmeldtOppfolgingsplanOverview>()
+                overview.oppfolgingsplaner.firstOrNull()?.uuid shouldBe latestPlanUUID
                 overview.previousOppfolgingsplaner.size shouldBe 1
                 overview.previousOppfolgingsplaner.first().uuid shouldBe firstPlanUUID
             }

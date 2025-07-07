@@ -100,11 +100,13 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
                 } returns defaultSykmeldt()
 
+                val utkast = defaultUtkast()
+
                 // Act
                 val response = client.put("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(defaultUtkast())
+                    setBody(utkast)
                 }
 
                 // Assert
@@ -118,7 +120,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     it.narmesteLederFnr shouldBe "10987654321"
                     it.orgnummer shouldBe "orgnummer"
                     it.content shouldNotBe null
-                    it.sluttdato shouldBe LocalDate.parse("2020-01-01")
+                    it.sluttdato shouldBe utkast.sluttdato
                 }
             }
         }
@@ -200,26 +202,26 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
                 } returns defaultSykmeldt()
-
+                val requestUtkast = defaultUtkast()
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
-                    "123", defaultUtkast()
+                    "123", requestUtkast
                 )
 
                 // Act
-                val res = client.get("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
+                val response = client.get("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                 }
 
                 // Assert
-                res.status shouldBe HttpStatusCode.OK
-                val utkast = res.body<PersistedOppfolgingsplanUtkast>()
+                response.status shouldBe HttpStatusCode.OK
+                val utkast = response.body<PersistedOppfolgingsplanUtkast>()
                 utkast shouldNotBe null
                 utkast.uuid shouldBe existingUUID
                 utkast.sykmeldtFnr shouldBe "12345678901"
                 utkast.narmesteLederFnr shouldBe "10987654321"
                 utkast.orgnummer shouldBe "orgnummer"
                 utkast.content?.get("innhold")?.asText() shouldBe "Dette er en testoppfølgingsplan"
-                utkast.sluttdato shouldBe LocalDate.parse("2020-01-01")
+                utkast.sluttdato shouldBe requestUtkast.sluttdato
             }
         }
     }
