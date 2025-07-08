@@ -202,6 +202,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
                 } returns defaultSykmeldt()
+
                 val requestUtkast = defaultUtkast()
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
                     "123", requestUtkast
