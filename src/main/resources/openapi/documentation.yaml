@@ -40,6 +40,15 @@ paths:
               examples:
                 Example#1:
                   value: "Sykmeldt fnr does not match"
+        "500":
+          description: "Internal Server Error"
+          content:
+            text/plain:
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: ""
         "201":
           description: "Created"
           content:
@@ -174,6 +183,60 @@ paths:
             '*/*':
               schema:
                 type: "object"
+  /api/v1/sykmeldt/oppfolgingsplaner/{uuid}:
+    get:
+      description: ""
+      parameters:
+        - name: "uuid"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "400":
+          description: "Bad Request"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Missing uuid parameter"
+        "404":
+          description: "Not Found"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Oppfolgingsplan not found"
+        "403":
+          description: "Forbidden"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  description: ""
+                  value: "null"
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PersistedOppfolgingsplan"
+  /api/v1/sykmeldt/oppfolgingsplaner/oversikt:
+    get:
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SykmeldtOppfolgingsplanOverview"
   /internal/is_alive:
     get:
       description: ""
@@ -435,3 +498,17 @@ components:
         - "sykmeldtFnr"
         - "narmesteLederFnr"
         - "orgnummer"
+    SykmeldtOppfolgingsplanOverview:
+      type: "object"
+      properties:
+        oppfolgingsplaner:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OppfolgingsplanMetadata"
+        previousOppfolgingsplaner:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OppfolgingsplanMetadata"
+      required:
+        - "oppfolgingsplaner"
+        - "previousOppfolgingsplaner"
