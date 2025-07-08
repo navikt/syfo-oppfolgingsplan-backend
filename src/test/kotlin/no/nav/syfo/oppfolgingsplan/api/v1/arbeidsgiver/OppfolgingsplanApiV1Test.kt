@@ -95,6 +95,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Act
                 val response = client.get("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
+
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -106,6 +107,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
                     bearerAuth("")
                 }
+
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -130,6 +132,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
                     bearerAuth("Bearer token")
                 }
+
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
             }
@@ -146,6 +149,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     url("api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
                     bearerAuth("Bearer token")
                 }
+
                 // Assert
                 response.status shouldBe HttpStatusCode.Forbidden
             }
@@ -162,6 +166,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
                     bearerAuth("Bearer token")
                 }
+
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
@@ -175,22 +180,26 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         any()
                     )
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+
                 coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                     "token",
                     111,
                     "tokenType"
                 )
+
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
                         narmestelederId,
                         "token"
                     )
                 } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+
                 // Act
                 val response = client.get {
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/00000000-0000-0000-0000-000000000000")
                     bearerAuth("Bearer token")
                 }
+
                 // Assert
                 response.status shouldBe HttpStatusCode.NotFound
             }
@@ -198,17 +207,20 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
         it("GET /oppfolgingsplaner/{uuid} should respond with OK and return oppfolgingsplan when found and authorized") {
             withTestApplication {
+                // Arrange
                 coEvery {
                     texasClientMock.introspectToken(
                         any(),
                         any()
                     )
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+
                 coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                     "token",
                     111,
                     "tokenType"
                 )
+
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
                         narmestelederId,
@@ -220,10 +232,14 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     narmesteLederId = narmestelederId,
                     createOppfolgingsplanRequest = defaultOppfolgingsplan()
                 )
+
+                // Act
                 val response = client.get {
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$existingUUID")
                     bearerAuth("Bearer token")
                 }
+
+                // Assert
                 response.status shouldBe HttpStatusCode.OK
                 val plan = response.body<PersistedOppfolgingsplan>()
                 plan.uuid shouldBe existingUUID
@@ -239,17 +255,20 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         any()
                     )
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+
                 coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                     "token",
                     111,
                     "tokenType"
                 )
+
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
                         narmestelederId,
                         "token"
                     )
                 } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     narmesteLederId = narmestelederId,
                     createOppfolgingsplanRequest = defaultOppfolgingsplan()
@@ -262,11 +281,13 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     narmesteLederId = narmestelederId,
                     createUtkastRequest = defaultUtkast()
                 )
+
                 // Act
                 val response = client.get {
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
                     bearerAuth("Bearer token")
                 }
+
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
                 val overview = response.body<OppfolgingsplanOverview>()
@@ -294,6 +315,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
                 } returns Unit
+
                 val oppfolgingsplan = defaultOppfolgingsplan()
 
                 // Act
@@ -351,6 +373,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     defaultUtkast()
                 )
                 val oppfolgingsplan = defaultOppfolgingsplan()
+
                 // Act
                 val response = client.post {
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
@@ -358,6 +381,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     contentType(ContentType.Application.Json)
                     setBody(oppfolgingsplan)
                 }
+
                 // Assert
                 response.status shouldBe HttpStatusCode.Created
                 val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
@@ -399,6 +423,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 defaultUtkast()
             )
             val oppfolgingsplan = defaultOppfolgingsplan()
+
             // Act
             val response = client.post {
                 url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
@@ -406,6 +431,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 contentType(ContentType.Application.Json)
                 setBody(oppfolgingsplan)
             }
+
             // Assert
             response.status shouldBe HttpStatusCode.Created
             val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")

@@ -72,6 +72,28 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
     sykmeldtFnr: String,
+): List<PersistedOppfolgingsplan> {
+    val statement = """
+        SELECT *
+        FROM oppfolgingsplan
+        WHERE sykemeldt_fnr = ?
+        ORDER BY created_at DESC
+    """.trimIndent()
+
+    return connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, sykmeldtFnr)
+            preparedStatement.executeQuery().use { resultSet ->
+                generateSequence { if (resultSet.next()) resultSet else null }
+                    .map { it.mapToOppfolgingsplan() }
+                    .toList()
+            }
+        }
+    }
+}
+
+fun DatabaseInterface.findAllOppfolgingsplanerBy(
+    sykmeldtFnr: String,
     orgnummer: String
 ): List<PersistedOppfolgingsplan> {
     val statement = """
