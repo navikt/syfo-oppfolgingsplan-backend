@@ -4,10 +4,15 @@ info:
   description: "followupplan_backend API"
   version: "1.0.0"
 servers:
-  - url: "https://followupplan_backend"
+  - url: http://localhost:8080
+    description: Local Server
+  - url: https://followupplan-backend.intern.dev.nav.no
+    description: Dev Server
 paths:
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner:
     post:
+      security:
+        - bearerAuth: [ ]
       description: ""
       parameters:
         - name: "narmesteLederId"
@@ -57,6 +62,8 @@ paths:
                 type: "object"
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/{uuid}:
     get:
+      security:
+        - bearerAuth: [ ]
       description: ""
       parameters:
         - name: "uuid"
@@ -105,6 +112,8 @@ paths:
                 $ref: "#/components/schemas/PersistedOppfolgingsplan"
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/oversikt:
     get:
+      security:
+        - bearerAuth: [ ]
       description: ""
       parameters:
         - name: "narmesteLederId"
@@ -121,6 +130,8 @@ paths:
                 $ref: "#/components/schemas/OppfolgingsplanOverview"
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/utkast:
     get:
+      security:
+        - bearerAuth: [ ]
       description: ""
       parameters:
         - name: "narmesteLederId"
@@ -145,6 +156,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/PersistedOppfolgingsplanUtkast"
     put:
+      security:
+        - bearerAuth: [ ]
       description: ""
       parameters:
         - name: "narmesteLederId"
@@ -185,6 +198,8 @@ paths:
                 type: "object"
   /api/v1/sykmeldt/oppfolgingsplaner/{uuid}:
     get:
+      security:
+        - bearerAuth: [ ]
       description: ""
       parameters:
         - name: "uuid"
@@ -229,7 +244,10 @@ paths:
                 $ref: "#/components/schemas/PersistedOppfolgingsplan"
   /api/v1/sykmeldt/oppfolgingsplaner/oversikt:
     get:
-      description: ""
+      security:
+        - bearerAuth: [ ]
+      description: "Gir et subsett av felter for alle oppfolgingsplaner for sykmeldt.\
+        \ <br> Tiltenkt for oversiktsvisning."
       responses:
         "200":
           description: "OK"
@@ -292,6 +310,13 @@ paths:
               schema:
                 type: "string"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token
+
   schemas:
     JsonNode:
       type: "object"
