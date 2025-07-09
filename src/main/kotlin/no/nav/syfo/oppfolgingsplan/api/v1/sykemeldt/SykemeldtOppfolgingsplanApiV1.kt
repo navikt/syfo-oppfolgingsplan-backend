@@ -8,7 +8,6 @@ import io.ktor.server.routing.route
 import java.util.UUID
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
-import no.nav.syfo.util.logger
 
 fun Route.registerSykemeldtOppfolgingsplanApiV1(
     texasHttpClient: TexasHttpClient,
@@ -18,6 +17,10 @@ fun Route.registerSykemeldtOppfolgingsplanApiV1(
         install(ValidateBrukerPrincipalPlugin) {
             this.texasHttpClient = texasHttpClient
         }
+        /**
+         * Gir et subsett av felter for alle oppfolgingsplaner for sykmeldt.
+         * Tiltenkt for oversiktsvisning.
+         */
         get("/oversikt") {
             val principal = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL]
             val oppfolgingsplaner =
@@ -25,7 +28,9 @@ fun Route.registerSykemeldtOppfolgingsplanApiV1(
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }
-
+        /**
+         * Gir en komplett oppfolginsplan.
+         */
         get("/{uuid}") {
             val principal = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL]
             val uuid = call.parameters["uuid"]
