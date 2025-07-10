@@ -33,7 +33,7 @@ fun Application.configureRouting() {
 
     routing {
         if (!isProdEnv()) {
-            openAPI(path="openapi", swaggerFile = "openapi/documentation.yaml")
+            openAPI(path="openapi", swaggerFile = "openapi/documentation.yaml" )
             swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
         }
         registerPodApi(applicationState, database)
