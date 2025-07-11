@@ -1,8 +1,8 @@
 openapi: "3.1.0"
 info:
-  title: "followupplan_backend API"
-  description: "followupplan_backend API"
-  version: "1.0.0"
+  title: "Followupplan API"
+  description: "API for sumbitting and fetching oppfolgingsplan for sykmeldt"
+  version: "0.1.0"
 servers:
   - url: http://localhost:8080
     description: Local Server
@@ -11,6 +11,8 @@ servers:
 paths:
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner:
     post:
+      tags:
+        - Arbeidsgiver
       security:
         - bearerAuth: [ ]
       description: ""
@@ -62,6 +64,8 @@ paths:
                 type: "object"
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/{uuid}:
     get:
+      tags:
+        - Arbeidsgiver
       security:
         - bearerAuth: [ ]
       description: ""
@@ -112,6 +116,8 @@ paths:
                 $ref: "#/components/schemas/PersistedOppfolgingsplan"
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/oversikt:
     get:
+      tags:
+        - Arbeidsgiver
       security:
         - bearerAuth: [ ]
       description: ""
@@ -130,6 +136,8 @@ paths:
                 $ref: "#/components/schemas/OppfolgingsplanOverview"
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/utkast:
     get:
+      tags:
+        - Arbeidsgiver
       security:
         - bearerAuth: [ ]
       description: ""
@@ -156,6 +164,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/PersistedOppfolgingsplanUtkast"
     put:
+      tags:
+        - Arbeidsgiver
       security:
         - bearerAuth: [ ]
       description: ""
@@ -198,6 +208,8 @@ paths:
                 type: "object"
   /api/v1/sykmeldt/oppfolgingsplaner/{uuid}:
     get:
+      tags:
+        - Sykmeldt
       security:
         - bearerAuth: [ ]
       description: ""
@@ -244,6 +256,8 @@ paths:
                 $ref: "#/components/schemas/PersistedOppfolgingsplan"
   /api/v1/sykmeldt/oppfolgingsplaner/oversikt:
     get:
+      tags:
+        - Sykmeldt
       security:
         - bearerAuth: [ ]
       description: "Gir et subsett av felter for alle oppfolgingsplaner for sykmeldt.\
@@ -257,6 +271,8 @@ paths:
                 $ref: "#/components/schemas/SykmeldtOppfolgingsplanOverview"
   /internal/is_alive:
     get:
+      tags:
+        - Health
       description: ""
       responses:
         "200":
@@ -279,6 +295,8 @@ paths:
                   value: "I'm dead x_x"
   /internal/is_ready:
     get:
+      tags:
+        - Health
       description: ""
       responses:
         "200":
@@ -301,6 +319,8 @@ paths:
                   value: "Please wait! I'm not ready :("
   /internal/metrics:
     get:
+      tags:
+        - Metrics
       description: ""
       responses:
         "200":
