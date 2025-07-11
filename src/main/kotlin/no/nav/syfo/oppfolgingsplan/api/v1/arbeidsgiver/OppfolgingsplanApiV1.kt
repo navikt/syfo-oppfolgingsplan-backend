@@ -50,6 +50,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             call.respond(HttpStatusCode.Created)
         }
 
+        /**
+         * Gir et subsett av felter for alle oppfolgingsplaner arbeidsgiver har for sykmeldt identifisert via narmesteLederId.
+         * Tiltenkt for oversiktsvisning.
+         */
         get("/oversikt") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
             val oppfolgingsplaner = oppfolgingsplanService.getOppfolginsplanOverviewFor(sykmeldt.fnr, sykmeldt.orgnummer)
@@ -57,6 +61,9 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }
 
+        /**
+         * Gir en komplett oppfolginsplan.
+         */
         get("/{uuid}") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
             val uuid = call.parameters["uuid"]

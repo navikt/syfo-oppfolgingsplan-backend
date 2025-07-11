@@ -1,0 +1,559 @@
+openapi: "3.1.0"
+info:
+  title: "Followupplan API"
+  description: "API for sumbitting and fetching oppfolgingsplan for sykmeldt"
+  version: "0.1.0"
+servers:
+  - url: http://localhost:8080
+    description: Local Server
+  - url: https://followupplan-backend.intern.dev.nav.no
+    description: Dev Server
+paths:
+  /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner:
+    post:
+      tags:
+        - Arbeidsgiver
+      security:
+        - bearerAuth: [ ]
+      description: ""
+      parameters:
+        - name: "narmesteLederId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOppfolgingsplanRequest"
+        required: true
+      responses:
+        "400":
+          description: "Bad Request"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Invalid Oppfolgingsplan format"
+        "403":
+          description: "Forbidden"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Sykmeldt fnr does not match"
+        "500":
+          description: "Internal Server Error"
+          content:
+            text/plain:
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: ""
+        "201":
+          description: "Created"
+          content:
+            '*/*':
+              schema:
+                type: "object"
+  /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/{uuid}:
+    get:
+      tags:
+        - Arbeidsgiver
+      security:
+        - bearerAuth: [ ]
+      description: ""
+      parameters:
+        - name: "uuid"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+        - name: "narmesteLederId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "400":
+          description: "Bad Request"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Missing uuid parameter"
+        "404":
+          description: "Not Found"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Oppfolgingsplan not found"
+        "403":
+          description: "Forbidden"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Sykmeldt fnr or orgnummer does not match"
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PersistedOppfolgingsplan"
+  /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/oversikt:
+    get:
+      tags:
+        - Arbeidsgiver
+      security:
+        - bearerAuth: [ ]
+      description: ""
+      parameters:
+        - name: "narmesteLederId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OppfolgingsplanOverview"
+  /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/utkast:
+    get:
+      tags:
+        - Arbeidsgiver
+      security:
+        - bearerAuth: [ ]
+      description: ""
+      parameters:
+        - name: "narmesteLederId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "404":
+          description: "Not Found"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "No draft found for the given narmestelederId"
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PersistedOppfolgingsplanUtkast"
+    put:
+      tags:
+        - Arbeidsgiver
+      security:
+        - bearerAuth: [ ]
+      description: ""
+      parameters:
+        - name: "narmesteLederId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUtkastRequest"
+        required: true
+      responses:
+        "400":
+          description: "Bad Request"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Invalid OppfolgingsplanUtkast format"
+        "403":
+          description: "Forbidden"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Sykmeldt fnr does not match"
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                type: "object"
+  /api/v1/sykmeldt/oppfolgingsplaner/{uuid}:
+    get:
+      tags:
+        - Sykmeldt
+      security:
+        - bearerAuth: [ ]
+      description: ""
+      parameters:
+        - name: "uuid"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "400":
+          description: "Bad Request"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Missing uuid parameter"
+        "404":
+          description: "Not Found"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Oppfolgingsplan not found"
+        "403":
+          description: "Forbidden"
+          content:
+            '*/*':
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  description: ""
+                  value: "null"
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PersistedOppfolgingsplan"
+  /api/v1/sykmeldt/oppfolgingsplaner/oversikt:
+    get:
+      tags:
+        - Sykmeldt
+      security:
+        - bearerAuth: [ ]
+      description: "Gir et subsett av felter for alle oppfolgingsplaner for sykmeldt.\
+        \ <br> Tiltenkt for oversiktsvisning."
+      responses:
+        "200":
+          description: "OK"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SykmeldtOppfolgingsplanOverview"
+  /internal/is_alive:
+    get:
+      tags:
+        - Health
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            text/plain:
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "I'm alive! :)"
+        "500":
+          description: "Internal Server Error"
+          content:
+            text/plain:
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "I'm dead x_x"
+  /internal/is_ready:
+    get:
+      tags:
+        - Health
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            text/plain:
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "I'm ready! :)"
+        "500":
+          description: "Internal Server Error"
+          content:
+            text/plain:
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Please wait! I'm not ready :("
+  /internal/metrics:
+    get:
+      tags:
+        - Metrics
+      description: ""
+      responses:
+        "200":
+          description: "OK"
+          content:
+            text/plain:
+              schema:
+                type: "string"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Bearer token
+
+  schemas:
+    JsonNode:
+      type: "object"
+      properties: { }
+    Instant:
+      type: "object"
+      properties: { }
+    CreateOppfolgingsplanRequest:
+      type: "object"
+      properties:
+        sykmeldtFnr:
+          type: "string"
+        narmesteLederFnr:
+          type: "string"
+        orgnummer:
+          type: "string"
+        content:
+          $ref: "#/components/schemas/JsonNode"
+        sluttdato:
+          type: "string"
+          format: "date"
+        skalDelesMedLege:
+          type: "boolean"
+        skalDelesMedVeileder:
+          type: "boolean"
+        deltMedLegeTidspunkt:
+          nullable: true
+          $ref: "#/components/schemas/Instant"
+        deltMedVeilederTidspunkt:
+          nullable: true
+          $ref: "#/components/schemas/Instant"
+      required:
+        - "sykmeldtFnr"
+        - "narmesteLederFnr"
+        - "orgnummer"
+        - "content"
+        - "sluttdato"
+        - "skalDelesMedLege"
+        - "skalDelesMedVeileder"
+    PersistedOppfolgingsplan:
+      type: "object"
+      properties:
+        uuid:
+          type: "string"
+          format: "uuid"
+        sykmeldtFnr:
+          type: "string"
+        narmesteLederId:
+          type: "string"
+        narmesteLederFnr:
+          type: "string"
+        orgnummer:
+          type: "string"
+        content:
+          $ref: "#/components/schemas/JsonNode"
+        sluttdato:
+          type: "string"
+          format: "date"
+        skalDelesMedLege:
+          type: "boolean"
+        skalDelesMedVeileder:
+          type: "boolean"
+        deltMedLegeTidspunkt:
+          nullable: true
+          $ref: "#/components/schemas/Instant"
+        deltMedVeilederTidspunkt:
+          nullable: true
+          $ref: "#/components/schemas/Instant"
+        createdAt:
+          $ref: "#/components/schemas/Instant"
+      required:
+        - "uuid"
+        - "sykmeldtFnr"
+        - "narmesteLederId"
+        - "narmesteLederFnr"
+        - "orgnummer"
+        - "content"
+        - "sluttdato"
+        - "skalDelesMedLege"
+        - "skalDelesMedVeileder"
+        - "createdAt"
+    UtkastMetadata:
+      type: "object"
+      properties:
+        uuid:
+          type: "string"
+          format: "uuid"
+        sykmeldtFnr:
+          type: "string"
+        narmesteLederFnr:
+          type: "string"
+        orgnummer:
+          type: "string"
+        sluttdato:
+          type: "string"
+          format: "date"
+          nullable: true
+      required:
+        - "uuid"
+        - "sykmeldtFnr"
+        - "narmesteLederFnr"
+        - "orgnummer"
+    OppfolgingsplanMetadata:
+      type: "object"
+      properties:
+        uuid:
+          type: "string"
+          format: "uuid"
+        sykmeldtFnr:
+          type: "string"
+        narmesteLederFnr:
+          type: "string"
+        orgnummer:
+          type: "string"
+        sluttdato:
+          type: "string"
+          format: "date"
+        skalDelesMedLege:
+          type: "boolean"
+        skalDelesMedVeileder:
+          type: "boolean"
+        deltMedLegeTidspunkt:
+          nullable: true
+          $ref: "#/components/schemas/Instant"
+        deltMedVeilederTidspunkt:
+          nullable: true
+          $ref: "#/components/schemas/Instant"
+        createdAt:
+          $ref: "#/components/schemas/Instant"
+      required:
+        - "uuid"
+        - "sykmeldtFnr"
+        - "narmesteLederFnr"
+        - "orgnummer"
+        - "sluttdato"
+        - "skalDelesMedLege"
+        - "skalDelesMedVeileder"
+        - "createdAt"
+    OppfolgingsplanOverview:
+      type: "object"
+      properties:
+        utkast:
+          nullable: true
+          $ref: "#/components/schemas/UtkastMetadata"
+        oppfolgingsplan:
+          nullable: true
+          $ref: "#/components/schemas/OppfolgingsplanMetadata"
+        previousOppfolgingsplaner:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OppfolgingsplanMetadata"
+      required:
+        - "previousOppfolgingsplaner"
+    PersistedOppfolgingsplanUtkast:
+      type: "object"
+      properties:
+        uuid:
+          type: "string"
+          format: "uuid"
+        sykmeldtFnr:
+          type: "string"
+        narmesteLederId:
+          type: "string"
+        narmesteLederFnr:
+          type: "string"
+        orgnummer:
+          type: "string"
+        content:
+          nullable: true
+          $ref: "#/components/schemas/JsonNode"
+        sluttdato:
+          type: "string"
+          format: "date"
+          nullable: true
+        createdAt:
+          $ref: "#/components/schemas/Instant"
+        updatedAt:
+          $ref: "#/components/schemas/Instant"
+      required:
+        - "uuid"
+        - "sykmeldtFnr"
+        - "narmesteLederId"
+        - "narmesteLederFnr"
+        - "orgnummer"
+        - "createdAt"
+        - "updatedAt"
+    CreateUtkastRequest:
+      type: "object"
+      properties:
+        sykmeldtFnr:
+          type: "string"
+        narmesteLederFnr:
+          type: "string"
+        orgnummer:
+          type: "string"
+        content:
+          nullable: true
+          $ref: "#/components/schemas/JsonNode"
+        sluttdato:
+          type: "string"
+          format: "date"
+          nullable: true
+      required:
+        - "sykmeldtFnr"
+        - "narmesteLederFnr"
+        - "orgnummer"
+    SykmeldtOppfolgingsplanOverview:
+      type: "object"
+      properties:
+        oppfolgingsplaner:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OppfolgingsplanMetadata"
+        previousOppfolgingsplaner:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/OppfolgingsplanMetadata"
+      required:
+        - "oppfolgingsplaner"
+        - "previousOppfolgingsplaner"
