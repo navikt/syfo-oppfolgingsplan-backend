@@ -2,7 +2,6 @@ package no.nav.syfo.application.api
 
 
 import io.ktor.server.application.Application
-import io.ktor.server.plugins.openapi.openAPI
 import io.ktor.server.plugins.swagger.swaggerUI
 import io.ktor.server.routing.routing
 import no.nav.syfo.application.ApplicationState
@@ -33,7 +32,6 @@ fun Application.configureRouting() {
 
     routing {
         if (!isProdEnv()) {
-            openAPI(path="openapi", swaggerFile = "openapi/documentation.yaml" )
             swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
         }
         registerPodApi(applicationState, database)
