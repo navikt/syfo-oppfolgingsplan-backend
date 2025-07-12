@@ -75,3 +75,5 @@ spec:
       value: production
     - name: DINE_SYKMELDTE_BASE_URL
       value: http://dinesykmeldte-backend
+    - name: PDFGEN_BASE_URL
+      value: http://syfooppdfgen

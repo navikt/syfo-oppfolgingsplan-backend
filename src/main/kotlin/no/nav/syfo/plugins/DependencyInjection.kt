@@ -24,6 +24,8 @@ import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.pdfgen.PdfGenClient
+import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.EsyfovarselHendelse
@@ -93,7 +95,7 @@ private fun databaseModule() = module {
 
 private fun servicesModule() = module {
     single { DineSykmeldteService(DineSykmeldteHttpClient(get(), env().dineSykmeldteBaseUrl)) }
-    single { TexasHttpClient(get(),env().texas) }
+    single { TexasHttpClient(get(), env().texas) }
     single { OppfolgingsplanService(get(), get()) }
     single { TexasHttpClient(get(), env().texas) }
     single {
@@ -103,7 +105,8 @@ private fun servicesModule() = module {
             )
         )
     }
+    single { PdfGenClient(get(), env().pdfGenUrl) }
+    single { PdfGenService(get()) }
 }
 
 private fun Scope.env() = get<Environment>()
-

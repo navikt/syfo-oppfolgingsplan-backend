@@ -1,5 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.sykemeldt
 
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -7,11 +8,13 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import java.util.UUID
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 
 fun Route.registerSykemeldtOppfolgingsplanApiV1(
     texasHttpClient: TexasHttpClient,
-    oppfolgingsplanService: OppfolgingsplanService
+    oppfolgingsplanService: OppfolgingsplanService,
+    pdfGenService: PdfGenService,
 ) {
     route("/sykmeldt/oppfolgingsplaner") {
         install(ValidateBrukerPrincipalPlugin) {
@@ -23,8 +26,7 @@ fun Route.registerSykemeldtOppfolgingsplanApiV1(
          */
         get("/oversikt") {
             val principal = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL]
-            val oppfolgingsplaner =
-                oppfolgingsplanService.getOppfolginsplanOverviewFor(principal.ident)
+            val oppfolgingsplaner = oppfolgingsplanService.getOppfolginsplanOverviewFor(principal.ident)
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }
@@ -33,18 +35,16 @@ fun Route.registerSykemeldtOppfolgingsplanApiV1(
          */
         get("/{uuid}") {
             val principal = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL]
-            val uuid = call.parameters["uuid"]
-                ?: run {
-                    call.application.environment.log.warn("No uuid found in request parameters")
-                    call.respond(HttpStatusCode.BadRequest, "Missing uuid parameter")
-                    return@get
-                }
-            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(UUID.fromString(uuid))
-                ?: run {
-                    call.application.environment.log.warn("Oppfolgingsplan not found for uuid: $uuid")
-                    call.respond(HttpStatusCode.NotFound, "Oppfolgingsplan not found")
-                    return@get
-                }
+            val uuid = call.parameters["uuid"] ?: run {
+                call.application.environment.log.warn("No uuid found in request parameters")
+                call.respond(HttpStatusCode.BadRequest, "Missing uuid parameter")
+                return@get
+            }
+            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(UUID.fromString(uuid)) ?: run {
+                call.application.environment.log.warn("Oppfolgingsplan not found for uuid: $uuid")
+                call.respond(HttpStatusCode.NotFound, "Oppfolgingsplan not found")
+                return@get
+            }
 
             if (oppfolgingsplan.sykmeldtFnr != principal.ident) {
                 val message = "Oppfolginsplan with uuid: ${uuid} does not belong to logged in user"
@@ -54,6 +54,31 @@ fun Route.registerSykemeldtOppfolgingsplanApiV1(
             }
 
             call.respond(HttpStatusCode.OK, oppfolgingsplan)
+        }
+        get("/{uuid}/pdf") {
+            val principal = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL]
+            val uuid = call.parameters["uuid"] ?: run {
+                call.application.environment.log.warn("No uuid found in request parameters")
+                call.respond(HttpStatusCode.BadRequest, "Missing uuid parameter")
+                return@get
+            }
+            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(UUID.fromString(uuid)) ?: run {
+                call.application.environment.log.warn("Oppfolgingsplan not found for uuid: $uuid")
+                call.respond(HttpStatusCode.NotFound, "Oppfolgingsplan not found")
+                return@get
+            }
+
+            if (oppfolgingsplan.sykmeldtFnr != principal.ident) {
+                val message = "Oppfolgingsplan with uuid: ${uuid} does not belong to logged in user"
+                call.application.environment.log.warn(message)
+                call.respond(HttpStatusCode.Forbidden, message)
+                return@get
+            }
+            pdfGenService.generatePdf(oppfolgingsplan)?.let {
+                call.response.status(HttpStatusCode.OK)
+                call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
+                call.respond<ByteArray>(it)
+            } ?: call.respond(HttpStatusCode.InternalServerError, "An error occurred while generating pdf")
         }
     }
 }

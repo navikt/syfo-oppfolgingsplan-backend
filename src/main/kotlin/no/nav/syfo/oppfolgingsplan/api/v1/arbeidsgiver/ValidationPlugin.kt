@@ -50,8 +50,15 @@ val ValidateAccessToSykmeldtPlugin = createRouteScopedPlugin(
                 call.respond(HttpStatusCode.Forbidden)
                 return@onCall
             }
-
             call.attributes[CALL_ATTRIBUTE_SYKMELDT] = sykmeldt
+//            val sykmeldt = Sykmeldt(
+//                narmestelederId = narmesteLederId,
+//                orgnummer = "805824352",
+//                fnr =  "17498233120",
+//                navn = "never mind",
+//                aktivSykmelding = true,
+//            )
+//            call.attributes[CALL_ATTRIBUTE_SYKMELDT] = sykmeldt
         }
     }
 }

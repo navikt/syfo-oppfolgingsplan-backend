@@ -7,13 +7,15 @@ import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfo
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanUtkastApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.sykemeldt.registerSykemeldtOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.TexasAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
 
 fun Route.registerApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
-    oppfolgingsplanService: OppfolgingsplanService
+    oppfolgingsplanService: OppfolgingsplanService,
+    pdfGenService: PdfGenService
 ) {
     route("/api/v1") {
         install(TexasAuthPlugin) {
@@ -32,6 +34,7 @@ fun Route.registerApiV1(
         registerSykemeldtOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
+            pdfGenService
         )
     }
 }
