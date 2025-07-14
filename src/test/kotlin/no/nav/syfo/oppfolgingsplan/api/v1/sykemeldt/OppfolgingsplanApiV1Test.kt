@@ -90,79 +90,138 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     }
 
     describe("Oppfolgingsplan API") {
-        it("GET /oppfolgingsplaner/oversikt should respond with Unauthorized when no authentication is provided") {
-            withTestApplication {
-                // Act
-                val response = client.get("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+        describe("Oversikt") {
+            it("GET /oppfolgingsplaner/oversikt should respond with Unauthorized when no authentication is provided") {
+                withTestApplication {
+                    // Act
+                    val response = client.get("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
 
-                // Assert
-                response.status shouldBe HttpStatusCode.Unauthorized
-            }
-        }
-        it("GET /oppfolgingsplaner/oversikt should respond with Unauthorized when no bearer token is provided") {
-            withTestApplication {
-                // Act
-                val response = client.get {
-                    url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
-                    bearerAuth("")
+                    // Assert
+                    response.status shouldBe HttpStatusCode.Unauthorized
                 }
-
-                // Assert
-                response.status shouldBe HttpStatusCode.Unauthorized
             }
-        }
-        it("GET /oppfolgingsplaner/oversikt should respond with OK when texas client gives active response") {
-            withTestApplication {
-                // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+            it("GET /oppfolgingsplaner/oversikt should respond with Unauthorized when no bearer token is provided") {
+                withTestApplication {
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                        bearerAuth("")
+                    }
 
-                coEvery {
-                    texasClientMock.exhangeTokenForDineSykmeldte(any())
-                } returns TexasExchangeResponse("token", 111, "tokenType")
-
-                // Act
-                val response = client.get {
-                    url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
-                    bearerAuth("Bearer token")
+                    // Assert
+                    response.status shouldBe HttpStatusCode.Unauthorized
                 }
-                // Assert
-                response.status shouldBe HttpStatusCode.OK
             }
-        }
-        it("GET /oppfolgingsplaner/oversikt should respond with Forbidden when texas acr claim is not Level4") {
-            withTestApplication {
-                // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
+            it("GET /oppfolgingsplaner/oversikt should respond with OK when texas client gives active response") {
+                withTestApplication {
+                    // Arrange
+                    coEvery {
+                        texasClientMock.introspectToken(any(), any())
+                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
-                // Act
-                val response = client.get {
-                    url("api/v1/sykmeldt/oppfolgingsplaner/oversikt")
-                    bearerAuth("Bearer token")
+                    coEvery {
+                        texasClientMock.exhangeTokenForDineSykmeldte(any())
+                    } returns TexasExchangeResponse("token", 111, "tokenType")
+
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                        bearerAuth("Bearer token")
+                    }
+                    // Assert
+                    response.status shouldBe HttpStatusCode.OK
                 }
-
-                // Assert
-                response.status shouldBe HttpStatusCode.Forbidden
             }
-        }
-        it("GET /oppfolgingsplaner/oversikt should respond with Unauthorized when texas client gives inactive response") {
-            withTestApplication {
-                // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = false, sub = "user")
+            it("GET /oppfolgingsplaner/oversikt should respond with Forbidden when texas acr claim is not Level4") {
+                withTestApplication {
+                    // Arrange
+                    coEvery {
+                        texasClientMock.introspectToken(any(), any())
+                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
 
-                // Act
-                val response = client.get {
-                    url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
-                    bearerAuth("Bearer token")
+                    // Act
+                    val response = client.get {
+                        url("api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                        bearerAuth("Bearer token")
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.Forbidden
                 }
+            }
+            it("GET /oppfolgingsplaner/oversikt should respond with Unauthorized when texas client gives inactive response") {
+                withTestApplication {
+                    // Arrange
+                    coEvery {
+                        texasClientMock.introspectToken(any(), any())
+                    } returns TexasIntrospectionResponse(active = false, sub = "user")
 
-                // Assert
-                response.status shouldBe HttpStatusCode.Unauthorized
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                        bearerAuth("Bearer token")
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.Unauthorized
+                }
+            }
+            it("GET /oppfolgingsplaner/oversikt should respond with OK and return overview") {
+                val oppfolgingsplan = defaultOppfolgingsplan()
+                withTestApplication {
+                    // Arrange
+                    coEvery {
+                        texasClientMock.introspectToken(
+                            any(),
+                            any()
+                        )
+                    } returns TexasIntrospectionResponse(
+                        active = true,
+                        pid = oppfolgingsplan.sykmeldtFnr,
+                        acr = "Level4"
+                    )
+
+                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                        "token",
+                        111,
+                        "tokenType"
+                    )
+
+                    coEvery {
+                        dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                            narmestelederId,
+                            "token"
+                        )
+                    } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+
+                    val firstPlanUUID = testDb.persistOppfolgingsplan(
+                        narmesteLederId = narmestelederId,
+                        createOppfolgingsplanRequest = oppfolgingsplan.copy(
+                            sluttdato = LocalDate.now().minus(45, ChronoUnit.DAYS)
+                        )
+                    )
+                    val latestPlanUUID = testDb.persistOppfolgingsplan(
+                        narmesteLederId = narmestelederId,
+                        createOppfolgingsplanRequest = oppfolgingsplan
+                    )
+                    testDb.upsertOppfolgingsplanUtkast(
+                        narmesteLederId = narmestelederId,
+                        createUtkastRequest = defaultUtkast()
+                    )
+
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                        bearerAuth("Bearer token")
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.OK
+                    val overview = response.body<SykmeldtOppfolgingsplanOverview>()
+                    overview.oppfolgingsplaner.firstOrNull()?.uuid shouldBe latestPlanUUID
+                    overview.previousOppfolgingsplaner.size shouldBe 1
+                    overview.previousOppfolgingsplaner.first().uuid shouldBe firstPlanUUID
+                }
             }
         }
         it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
@@ -190,125 +249,80 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 response.status shouldBe HttpStatusCode.NotFound
             }
         }
-
-        it("GET /oppfolgingsplaner/{uuid} should respond with OK and return oppfolgingsplan when found and authorized") {
-            withTestApplication {
-                // Arrange
-                val oppfolgingsplan = defaultOppfolgingsplan()
-                coEvery {
-                    texasClientMock.introspectToken(
-                        any(),
-                        any()
+        describe("By uuid") {
+            it("GET /oppfolgingsplaner/{uuid} should respond with OK and return oppfolgingsplan when found and authorized") {
+                withTestApplication {
+                    // Arrange
+                    val oppfolgingsplan = defaultOppfolgingsplan()
+                    coEvery {
+                        texasClientMock.introspectToken(
+                            any(),
+                            any()
+                        )
+                    } returns TexasIntrospectionResponse(
+                        active = true,
+                        pid = oppfolgingsplan.sykmeldtFnr,
+                        acr = "Level4"
                     )
-                } returns TexasIntrospectionResponse(active = true, pid = oppfolgingsplan.sykmeldtFnr, acr = "Level4")
 
-                coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                    "token",
-                    111,
-                    "tokenType"
-                )
+                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                        "token",
+                        111,
+                        "tokenType"
+                    )
 
-                val existingUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = oppfolgingsplan
-                )
+                    val existingUUID = testDb.persistOppfolgingsplan(
+                        narmesteLederId = narmestelederId,
+                        createOppfolgingsplanRequest = oppfolgingsplan
+                    )
 
-                // Act
-                val response = client.get {
-                    url("/api/v1/sykmeldt/oppfolgingsplaner/$existingUUID")
-                    bearerAuth("Bearer token")
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/sykmeldt/oppfolgingsplaner/$existingUUID")
+                        bearerAuth("Bearer token")
+                    }
+                    // Assert
+                    response.status shouldBe HttpStatusCode.OK
+                    val plan = response.body<PersistedOppfolgingsplan>()
+                    plan.uuid shouldBe existingUUID
                 }
-                // Assert
-                response.status shouldBe HttpStatusCode.OK
-                val plan = response.body<PersistedOppfolgingsplan>()
-                plan.uuid shouldBe existingUUID
             }
-        }
 
-        it("GET /oppfolgingsplaner/{uuid} should respond with Forbidden when found and plan does not belong to logged in user") {
-            withTestApplication {
-                // Arrange
-                val oppfolgingsplan = defaultOppfolgingsplan()
-                coEvery {
-                    texasClientMock.introspectToken(
-                        any(),
-                        any()
+            it("GET /oppfolgingsplaner/{uuid} should respond with Forbidden when found and plan does not belong to logged in user") {
+                withTestApplication {
+                    // Arrange
+                    val oppfolgingsplan = defaultOppfolgingsplan()
+                    coEvery {
+                        texasClientMock.introspectToken(
+                            any(),
+                            any()
+                        )
+                    } returns TexasIntrospectionResponse(
+                        active = true,
+                        pid = oppfolgingsplan.sykmeldtFnr,
+                        acr = "Level4"
                     )
-                } returns TexasIntrospectionResponse(active = true, pid = oppfolgingsplan.sykmeldtFnr, acr = "Level4")
 
-                coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                    "token",
-                    111,
-                    "tokenType"
-                )
+                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                        "token",
+                        111,
+                        "tokenType"
+                    )
 
-                val existingUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = oppfolgingsplan.copy(sykmeldtFnr = "12345678902")
-                )
+                    val existingUUID = testDb.persistOppfolgingsplan(
+                        narmesteLederId = narmestelederId,
+                        createOppfolgingsplanRequest = oppfolgingsplan.copy(sykmeldtFnr = "12345678902")
+                    )
 
-                // Act
-                val response = client.get {
-                    url("/api/v1/sykmeldt/oppfolgingsplaner/$existingUUID")
-                    bearerAuth("Bearer token")
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/sykmeldt/oppfolgingsplaner/$existingUUID")
+                        bearerAuth("Bearer token")
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.Forbidden
                 }
-
-                // Assert
-                response.status shouldBe HttpStatusCode.Forbidden
-            }
-        }
-
-        it("GET /oppfolgingsplaner/oversikt should respond with OK and return overview") {
-            val oppfolgingsplan = defaultOppfolgingsplan()
-            withTestApplication {
-                // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(
-                        any(),
-                        any()
-                    )
-                } returns TexasIntrospectionResponse(active = true, pid = oppfolgingsplan.sykmeldtFnr, acr = "Level4")
-
-                coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                    "token",
-                    111,
-                    "tokenType"
-                )
-
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                        narmestelederId,
-                        "token"
-                    )
-                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
-
-                val firstPlanUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = oppfolgingsplan.copy(
-                        sluttdato = LocalDate.now().minus(45, ChronoUnit.DAYS)
-                    )
-                )
-                val latestPlanUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = oppfolgingsplan
-                )
-                testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederId = narmestelederId,
-                    createUtkastRequest = defaultUtkast()
-                )
-
-                // Act
-                val response = client.get {
-                    url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
-                    bearerAuth("Bearer token")
-                }
-
-                // Assert
-                response.status shouldBe HttpStatusCode.OK
-                val overview = response.body<SykmeldtOppfolgingsplanOverview>()
-                overview.oppfolgingsplaner.firstOrNull()?.uuid shouldBe latestPlanUUID
-                overview.previousOppfolgingsplaner.size shouldBe 1
-                overview.previousOppfolgingsplaner.first().uuid shouldBe firstPlanUUID
             }
         }
     }
