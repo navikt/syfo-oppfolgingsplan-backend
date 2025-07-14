@@ -1,6 +1,7 @@
 package no.nav.syfo.pdfgen
 
 import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.ServerResponseException
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.util.logger
 
@@ -13,6 +14,8 @@ class PdfGenService(
     } catch (clientRequestException: ClientRequestException) {
         logger.error("Could not generate pdf for id ${persistedOppfolgingsplan.uuid}")
         throw RuntimeException("Error while generating pdf", clientRequestException)
+    } catch (serverResponseException: ServerResponseException) {
+        throw RuntimeException("Error while generating pdf", serverResponseException)
     }
 }
 

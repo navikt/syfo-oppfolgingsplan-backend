@@ -5,13 +5,17 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.url
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.HttpStatusCode.Companion.InternalServerError
+import io.ktor.http.contentType
 import io.ktor.serialization.jackson.jackson
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
@@ -31,10 +35,8 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.pdfgen.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
@@ -50,7 +52,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
     val narmestelederId = UUID.randomUUID().toString()
-    val pdfGenClient = mockk<PdfGenClient>()
+    val pdfGenService = mockk<PdfGenService>()
 
     beforeTest {
         clearAllMocks()
@@ -81,7 +83,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock
                         ),
-                        pdfGenService = PdfGenService(pdfGenClient),
+                        pdfGenService = pdfGenService,
                     )
                 }
             }
@@ -322,6 +324,113 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                     // Assert
                     response.status shouldBe HttpStatusCode.Forbidden
+                }
+            }
+        }
+        describe("PDF") {
+            it("GET /oppfolgingsplaner/{uuid}/pdf should respond with NotFound if oppfolgingsplan does not exist") {
+                withTestApplication {
+                    // Arrange
+                    coEvery {
+                        texasClientMock.introspectToken(
+                            any(),
+                            any()
+                        )
+                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                        "token",
+                        111,
+                        "tokenType"
+                    )
+
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/sykmeldt/oppfolgingsplaner/00000000-0000-0000-0000-000000000000/pdf")
+                        bearerAuth("Bearer token")
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.NotFound
+                }
+            }
+
+            it("GET /oppfolgingsplaner/{uuid}/pdf should respond with OK and return a ByteArray when found and authorized") {
+                withTestApplication {
+                    // Arrange
+                    val oppfolgingsplan = defaultOppfolgingsplan()
+                    coEvery {
+                        texasClientMock.introspectToken(
+                            any(),
+                            any()
+                        )
+                    } returns TexasIntrospectionResponse(
+                        active = true,
+                        pid = oppfolgingsplan.sykmeldtFnr,
+                        acr = "Level4"
+                    )
+
+                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                        "token",
+                        111,
+                        "tokenType"
+                    )
+                    val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)
+
+                    coEvery { pdfGenService.generatePdf(any()) } returns generatedPdfStandin
+
+                    val existingUUID = testDb.persistOppfolgingsplan(
+                        narmesteLederId = narmestelederId,
+                        createOppfolgingsplanRequest = oppfolgingsplan
+                    )
+
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/sykmeldt/oppfolgingsplaner/$existingUUID/pdf")
+                        bearerAuth("Bearer token")
+                    }
+                    // Assert
+                    response.status shouldBe HttpStatusCode.OK
+                    response.contentType() shouldBe ContentType.Application.Pdf
+                    val pdf = response.body<ByteArray>()
+                    pdf.toString(Charsets.UTF_8) shouldBeEqual generatedPdfStandin.toString(Charsets.UTF_8)
+                }
+            }
+
+            it("GET /oppfolgingsplaner/{uuid}/pdf should respond with InternalServerError if pdf generation fails") {
+                withTestApplication {
+                    // Arrange
+                    val oppfolgingsplan = defaultOppfolgingsplan()
+                    coEvery {
+                        texasClientMock.introspectToken(
+                            any(),
+                            any()
+                        )
+                    } returns TexasIntrospectionResponse(
+                        active = true,
+                        pid = oppfolgingsplan.sykmeldtFnr,
+                        acr = "Level4"
+                    )
+
+                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                        "token",
+                        111,
+                        "tokenType"
+                    )
+
+                    coEvery { pdfGenService.generatePdf(any()) } throws RuntimeException("Forced")
+
+                    val existingUUID = testDb.persistOppfolgingsplan(
+                        narmesteLederId = narmestelederId,
+                        createOppfolgingsplanRequest = oppfolgingsplan
+                    )
+
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/sykmeldt/oppfolgingsplaner/$existingUUID/pdf")
+                        bearerAuth("Bearer token")
+                    }
+                    // Assert
+                    response.status shouldBe InternalServerError
                 }
             }
         }
