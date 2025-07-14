@@ -4,9 +4,11 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
-import java.util.UUID
+import java.util.*
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -16,6 +18,29 @@ fun Route.registerSykemeldtOppfolgingsplanApiV1(
     oppfolgingsplanService: OppfolgingsplanService,
     pdfGenService: PdfGenService,
 ) {
+    suspend fun fetchOppfolginsplanByUuidFromCall(
+        call: RoutingCall,
+    ): PersistedOppfolgingsplan? {
+        val principal = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL]
+        val uuid = call.parameters["uuid"] ?: run {
+            call.application.environment.log.warn("No uuid found in request parameters")
+            call.respond(HttpStatusCode.BadRequest, "Missing uuid parameter")
+            null
+        }
+        val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(UUID.fromString(uuid)) ?: run {
+            call.application.environment.log.warn("Oppfolgingsplan not found for uuid: $uuid")
+            call.respond(HttpStatusCode.NotFound, "Oppfolgingsplan not found")
+            null
+        }
+        return oppfolgingsplan?.run {
+            if (oppfolgingsplan.sykmeldtFnr != principal.ident) {
+                val message = "Oppfolgingsplan with uuid: ${uuid} does not belong to logged in user"
+                call.application.environment.log.warn(message)
+                call.respond(HttpStatusCode.Forbidden, message)
+                null
+            } else this
+        }
+    }
     route("/sykmeldt/oppfolgingsplaner") {
         install(ValidateBrukerPrincipalPlugin) {
             this.texasHttpClient = texasHttpClient
@@ -34,46 +59,11 @@ fun Route.registerSykemeldtOppfolgingsplanApiV1(
          * Gir en komplett oppfolginsplan.
          */
         get("/{uuid}") {
-            val principal = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL]
-            val uuid = call.parameters["uuid"] ?: run {
-                call.application.environment.log.warn("No uuid found in request parameters")
-                call.respond(HttpStatusCode.BadRequest, "Missing uuid parameter")
-                return@get
-            }
-            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(UUID.fromString(uuid)) ?: run {
-                call.application.environment.log.warn("Oppfolgingsplan not found for uuid: $uuid")
-                call.respond(HttpStatusCode.NotFound, "Oppfolgingsplan not found")
-                return@get
-            }
-
-            if (oppfolgingsplan.sykmeldtFnr != principal.ident) {
-                val message = "Oppfolginsplan with uuid: ${uuid} does not belong to logged in user"
-                call.application.environment.log.warn(message)
-                call.respond(HttpStatusCode.Forbidden, message)
-                return@get
-            }
-
+            val oppfolgingsplan = fetchOppfolginsplanByUuidFromCall(call) ?: return@get
             call.respond(HttpStatusCode.OK, oppfolgingsplan)
         }
         get("/{uuid}/pdf") {
-            val principal = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL]
-            val uuid = call.parameters["uuid"] ?: run {
-                call.application.environment.log.warn("No uuid found in request parameters")
-                call.respond(HttpStatusCode.BadRequest, "Missing uuid parameter")
-                return@get
-            }
-            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(UUID.fromString(uuid)) ?: run {
-                call.application.environment.log.warn("Oppfolgingsplan not found for uuid: $uuid")
-                call.respond(HttpStatusCode.NotFound, "Oppfolgingsplan not found")
-                return@get
-            }
-
-            if (oppfolgingsplan.sykmeldtFnr != principal.ident) {
-                val message = "Oppfolgingsplan with uuid: ${uuid} does not belong to logged in user"
-                call.application.environment.log.warn(message)
-                call.respond(HttpStatusCode.Forbidden, message)
-                return@get
-            }
+            val oppfolgingsplan = fetchOppfolginsplanByUuidFromCall(call) ?: return@get
             pdfGenService.generatePdf(oppfolgingsplan)?.let {
                 call.response.status(HttpStatusCode.OK)
                 call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
