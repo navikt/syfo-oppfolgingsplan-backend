@@ -35,6 +35,8 @@ docker-compose \
   -f docker-compose.kafka.yml \
   down
 ```
+You might also want to have access to the pdf generator locally.
+You can clone the [repo](https://github.com/navikt/syfooppdfgen) and follow instructions in the README to spin it up using docker-compose
 
 ### Kafka-ui 
 You can use [kafka-ui](http://localhost:9000) to inspect your consumers and topics. You can also publish or read messages on the topics
