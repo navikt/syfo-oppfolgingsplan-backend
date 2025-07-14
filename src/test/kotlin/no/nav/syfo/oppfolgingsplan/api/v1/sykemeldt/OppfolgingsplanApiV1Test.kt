@@ -34,6 +34,8 @@ import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.pdfgen.PdfGenClient
+import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasExchangeResponse
@@ -48,6 +50,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
     val narmestelederId = UUID.randomUUID().toString()
+    val pdfGenClient = mockk<PdfGenClient>()
 
     beforeTest {
         clearAllMocks()
@@ -78,6 +81,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock
                         ),
+                        pdfGenService = PdfGenService(pdfGenClient),
                     )
                 }
             }

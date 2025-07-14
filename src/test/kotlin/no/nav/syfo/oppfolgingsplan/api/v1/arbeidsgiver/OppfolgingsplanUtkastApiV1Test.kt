@@ -40,6 +40,8 @@ import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import java.time.LocalDate
+import no.nav.syfo.pdfgen.PdfGenClient
+import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.varsel.EsyfovarselProducer
 
 class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
@@ -48,6 +50,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
     val testDb = TestDB.Companion.database
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
+    val pdfGenClient = mockk<PdfGenClient>()
 
     beforeTest {
         clearAllMocks()
@@ -77,7 +80,8 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock,
-                        )
+                        ),
+                        pdfGenService = PdfGenService(pdfGenClient),
                     )
                 }
             }
@@ -160,14 +164,14 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     contentType(ContentType.Application.Json)
                     setBody(
                         defaultUtkast().copy(
-                                content = ObjectMapper().readValue(
-                                    """
+                            content = ObjectMapper().readValue(
+                                """
                             {
                                 "innhold": "Nytt innhold"
                             }
                             """.trimIndent()
-                                ), sluttdato = LocalDate.parse("2020-01-02")
-                            )
+                            ), sluttdato = LocalDate.parse("2020-01-02")
+                        )
                     )
                 }
 
