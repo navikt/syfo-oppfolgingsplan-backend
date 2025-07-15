@@ -8,6 +8,8 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.jackson.jackson
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.plugins.BadRequestException
+import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.plugins.callid.CallId
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -38,8 +40,20 @@ fun Application.installCallId() {
 
 fun Application.installStatusPages() {
     install(StatusPages) {
-        exception<Throwable> { call, cause ->
-            call.respondText(text = "500: $cause", status = HttpStatusCode.InternalServerError)
+        exception<NotFoundException> { call, cause ->
+            call.application.environment.log.warn("Not Found: ${cause.message}")
+            call.respondText(
+                text = cause.message ?: "Resource not found",
+                status = HttpStatusCode.NotFound
+            )
+        }
+
+        exception<BadRequestException> { call, cause ->
+            call.application.environment.log.warn("Bad request: ${cause.message}")
+            call.respondText(
+                text = cause.message ?: "Bad request",
+                status = HttpStatusCode.BadRequest
+            )
         }
     }
 }

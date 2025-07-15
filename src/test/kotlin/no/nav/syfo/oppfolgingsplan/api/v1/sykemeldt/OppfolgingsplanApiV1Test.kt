@@ -290,7 +290,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("GET /oppfolgingsplaner/{uuid} should respond with Forbidden when found and plan does not belong to logged in user") {
+            it("GET /oppfolgingsplaner/{uuid} should respond with Not found when found and plan does not belong to logged in user") {
                 withTestApplication {
                     // Arrange
                     val oppfolgingsplan = defaultOppfolgingsplan()
@@ -323,7 +323,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     }
 
                     // Assert
-                    response.status shouldBe HttpStatusCode.Forbidden
+                    response.status shouldBe HttpStatusCode.NotFound
                 }
             }
         }
