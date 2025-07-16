@@ -16,7 +16,7 @@ Suggestion for Colima
 colima start --arch aarch64 --memory 8 --cpu 4 
 ```
 
-We have a docker-compose.yml file to run a posrtgressql database, texas and a fake authserver.
+We have a docker-compose.yml file to run a postgresql database, texas and a fake authserver.
 In addition, we have a docker-compose.kafka.yml that will run a kafka broker, schema registry and kafka-io
 
 Start them both using
