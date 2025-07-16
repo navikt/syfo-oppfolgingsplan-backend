@@ -12,8 +12,8 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
-import no.nav.syfo.dinesykmeldte.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dinesykmeldte.FakeDineSykmeldteHttpClient
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService

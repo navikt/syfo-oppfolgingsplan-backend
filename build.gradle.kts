@@ -1,4 +1,3 @@
-
 val dataFakerVersion: String by project
 val flyway_version: String by project
 val hikari_version: String by project
@@ -26,6 +25,17 @@ version = "0.0.1"
 repositories {
     mavenCentral()
     maven(url = "https://packages.confluent.io/maven/")
+}
+sourceSets {
+    create("local") {
+        kotlin.srcDir("src/local/kotlin")
+    }
+    main {
+        kotlin.srcDir("src/main/kotlin")
+    }
+    test {
+        kotlin.srcDir("src/test/kotlin")
+    }
 }
 
 dependencies {
@@ -69,9 +79,7 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
 
     // Faker
-    implementation("net.datafaker:datafaker:$dataFakerVersion")
-
-    // Testing
+        "localImplementation"("net.datafaker:datafaker:$dataFakerVersion")
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:${kotestVersion}")
     testImplementation("io.kotest:kotest-property:${kotestVersion}")
