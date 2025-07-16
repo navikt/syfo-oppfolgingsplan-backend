@@ -256,10 +256,6 @@ paths:
                 $ref: "#/components/schemas/PersistedOppfolgingsplan"
   /api/v1/sykmeldt/oppfolgingsplaner/oversikt:
     get:
-      tags:
-        - Sykmeldt
-      security:
-        - bearerAuth: [ ]
       description: "Gir et subsett av felter for alle oppfolgingsplaner for sykmeldt.\
         \ <br> Tiltenkt for oversiktsvisning."
       responses:
@@ -271,8 +267,6 @@ paths:
                 $ref: "#/components/schemas/SykmeldtOppfolgingsplanOverview"
   /internal/is_alive:
     get:
-      tags:
-        - Health
       description: ""
       responses:
         "200":
@@ -295,8 +289,6 @@ paths:
                   value: "I'm dead x_x"
   /internal/is_ready:
     get:
-      tags:
-        - Health
       description: ""
       responses:
         "200":
