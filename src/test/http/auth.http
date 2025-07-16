@@ -1,0 +1,20 @@
+### GET token from fakedings
+GET https://fakedings.intern.dev.nav.no/fake/idporten?pid={{pid}}
+
+> {%
+    client.global.set("fakedings_token", response.body);
+%}
+
+### Exchange token using texas
+POST http://localhost:3000/api/v1/token/exchange
+Content-Type: application/json
+
+{
+  "identity_provider": "tokenx",
+  "target": "followupplan-backend",
+  "user_token": "{{fakedings_token}}"
+}
+
+> {%
+    client.global.set("token", response.body.access_token);
+%}
