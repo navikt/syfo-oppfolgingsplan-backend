@@ -7,7 +7,7 @@ import no.nav.syfo.util.logger
 
 
 class DineSykmeldteService(
-    private val dineSykmeldteHttpClient: DineSykmeldteHttpClient
+    private val dineSykmeldteHttpClient: IDineSykmeldteHttpClient
 ) {
     private val logger = logger()
 
