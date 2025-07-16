@@ -12,6 +12,7 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenClient
@@ -68,7 +69,13 @@ private fun databaseModule() = module {
 }
 
 private fun servicesModule() = module {
-    single { DineSykmeldteService(DineSykmeldteHttpClient(get(), env().dineSykmeldteBaseUrl)) }
+    single {
+        val client =
+            if (isLocalEnv()) FakeDineSykmeldteHttpClient() else DineSykmeldteHttpClient(
+                httpClient = get(), dineSykmeldteBaseUrl = env().dineSykmeldteBaseUrl
+            )
+        DineSykmeldteService(client)
+    }
     single { TexasHttpClient(get(), env().texas) }
     single { OppfolgingsplanService(get(), get()) }
     single { TexasHttpClient(get(), env().texas) }

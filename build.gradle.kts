@@ -1,15 +1,16 @@
-val koin_version: String by project
 
-val kafka_version: String by project
-val ktor_version: String by project
-val micrometer_version: String by project
-val logback_version: String by project
-val postgres_vesion: String by project
+val dataFakerVersion: String by project
 val flyway_version: String by project
 val hikari_version: String by project
-val kotestVersion: String by project
+val kafka_version: String by project
+val koin_version: String by project
 val kotestExtensionsVersion: String by project
+val kotestVersion: String by project
+val ktor_version: String by project
+val logback_version: String by project
+val micrometer_version: String by project
 val mockkVersion: String by project
+val postgres_version: String by project
 val testcontainersVersion: String by project
 
 plugins {
@@ -63,9 +64,12 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-prometheus:$micrometer_version")
 
     // Database
-    implementation("org.postgresql:postgresql:$postgres_vesion")
+    implementation("org.postgresql:postgresql:$postgres_version")
     implementation("com.zaxxer:HikariCP:$hikari_version")
     implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
+
+    // Faker
+    implementation("net.datafaker:datafaker:$dataFakerVersion")
 
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
@@ -73,8 +77,8 @@ dependencies {
     testImplementation("io.kotest:kotest-property:${kotestVersion}")
     testImplementation("io.kotest.extensions:kotest-assertions-ktor:$kotestExtensionsVersion")
     testImplementation("io.mockk:mockk:$mockkVersion")
-    testImplementation("io.ktor:ktor-client-mock:${ktor_version}")
     testImplementation("io.insert-koin:koin-test:${koin_version}")
+    testImplementation("io.ktor:ktor-client-mock:${ktor_version}")
     testImplementation("io.kotest.extensions:kotest-extensions-koin:1.3.0")
     testImplementation("org.testcontainers:testcontainers:${testcontainersVersion}")
     testImplementation("org.testcontainers:postgresql:${testcontainersVersion}")
