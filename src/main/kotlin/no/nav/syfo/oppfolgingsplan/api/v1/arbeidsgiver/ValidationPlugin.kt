@@ -50,7 +50,8 @@ val ValidateAccessToSykmeldtPlugin = createRouteScopedPlugin(
                 call.respond(HttpStatusCode.Forbidden)
                 return@onCall
             }
-            call.attributes[CALL_ATTRIBUTE_SYKMELDT] = sykmeldt
+
+//          // Replace lines above with this to run locally
 //            val sykmeldt = Sykmeldt(
 //                narmestelederId = narmesteLederId,
 //                orgnummer = "805824352",
@@ -58,7 +59,8 @@ val ValidateAccessToSykmeldtPlugin = createRouteScopedPlugin(
 //                navn = "never mind",
 //                aktivSykmelding = true,
 //            )
-//            call.attributes[CALL_ATTRIBUTE_SYKMELDT] = sykmeldt
+
+            call.attributes[CALL_ATTRIBUTE_SYKMELDT] = sykmeldt
         }
     }
 }
