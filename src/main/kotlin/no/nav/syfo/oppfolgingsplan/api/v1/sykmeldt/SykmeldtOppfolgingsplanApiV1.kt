@@ -21,7 +21,8 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
     pdfGenService: PdfGenService,
 ) {
     val log = logger()
-    fun getOppfolgingsplanByUuidOrThrowNotFound(
+
+    fun tryToGetOppfolgingsplanByUuid(
         uuid: UUID,
     ): PersistedOppfolgingsplan =
         oppfolgingsplanService.getOppfolgingsplanByUuid(uuid) ?: run {
@@ -53,13 +54,14 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }
+
         /**
          * Gir en komplett oppfolginsplan.
          */
         get("/{uuid}") {
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
-            val oppfolgingsplan = getOppfolgingsplanByUuidOrThrowNotFound(uuid)
+            val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
 
             val sykmeldtFnr = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL].ident
             checkIfOppfolgingsplanBelongsToSykmeldt(oppfolgingsplan, sykmeldtFnr)
@@ -70,7 +72,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
         get("/{uuid}/pdf") {
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
-            val oppfolgingsplan = getOppfolgingsplanByUuidOrThrowNotFound(uuid)
+            val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
 
             val sykmeldtFnr = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL].ident
             checkIfOppfolgingsplanBelongsToSykmeldt(oppfolgingsplan, sykmeldtFnr)
