@@ -1,4 +1,4 @@
-package no.nav.syfo.oppfolgingsplan.api.v1.sykemeldt
+package no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt
 
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature

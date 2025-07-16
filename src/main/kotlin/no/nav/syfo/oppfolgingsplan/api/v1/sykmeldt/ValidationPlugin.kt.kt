@@ -1,4 +1,4 @@
-package no.nav.syfo.oppfolgingsplan.api.v1.sykemeldt
+package no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin

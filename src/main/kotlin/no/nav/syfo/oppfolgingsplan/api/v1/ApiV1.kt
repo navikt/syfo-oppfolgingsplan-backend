@@ -5,7 +5,7 @@ import io.ktor.server.routing.route
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanUtkastApiV1
-import no.nav.syfo.oppfolgingsplan.api.v1.sykemeldt.registerSykemeldtOppfolgingsplanApiV1
+import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.registerSykmeldtOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.TexasAuthPlugin
@@ -31,7 +31,7 @@ fun Route.registerApiV1(
             texasHttpClient,
             oppfolgingsplanService
         )
-        registerSykemeldtOppfolgingsplanApiV1(
+        registerSykmeldtOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
             pdfGenService
