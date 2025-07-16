@@ -39,6 +39,10 @@ docker-compose \
 ### Kafka-ui 
 You can use [kafka-ui](http://localhost:9000) to inspect your consumers and topics. You can also publish or read messages on the topics
 
+### Premade requests for testing
+We have some [HTTP requests](https://www.jetbrains.com/help/idea/http-client-in-product-code-editor.html) to help with 
+running and testing the api. They are described [here](./src/test/http/README.md)
+
 ## Remote debug to app in nais-cluster
 It is possible to add remote debug capabilities to apps running in the nais-cluster
 A general description of how can be found in the 'utvikling' repo [here](https://github.com/navikt/utvikling/blob/main/docs/teknisk/Remote_debug_i_Intellij.md)
@@ -51,7 +55,7 @@ There are a few tweaks we need to do to the deployment manifest [nais-dev.yaml](
     - name: JAVA_TOOL_OPTIONS
       value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
 ```
-2. Tweak the liveness probe to be more forgivving before forcibly restarting the pod. Change ```periodSeconds``` and/or ```failureThreshold``` to give yourself enough time to debug. E.g.
+2. Tweak the liveness probe to be more forgiving before forcibly restarting the pod. Change ```periodSeconds``` and/or ```failureThreshold``` to give yourself enough time to debug. E.g.
 ```yaml
   liveness:
     path: /internal/is_alive
