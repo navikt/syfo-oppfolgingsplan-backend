@@ -11,6 +11,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import java.util.*
+import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -23,30 +24,12 @@ fun Route.registerSykemeldtOppfolgingsplanApiV1(
     pdfGenService: PdfGenService,
 ) {
     val log = logger()
-
-    fun Parameters.extractAndValidateUUIDParameter(): UUID {
-        val uuid = get("uuid")
-        if (uuid == null) {
-            log.error("No uuid found in request parameters")
-            throw BadRequestException("Missing uuid parameter")
-        }
-
-        return try {
-            UUID.fromString(uuid)
-        } catch (e: IllegalArgumentException) {
-            log.error("Invalid uuid format: $uuid")
-            throw ParameterConversionException("uuid", "UUID")
-        }
-    }
-
     fun getOppfolgingsplanByUuidOrThrowNotFound(
         uuid: UUID,
-    ): PersistedOppfolgingsplan {
-        return oppfolgingsplanService.getOppfolgingsplanByUuid(uuid) ?: run {
-            log.error("Oppfolgingsplan not found for uuid: $uuid")
-            throw NotFoundException("Oppfolgingsplan not found")
+    ): PersistedOppfolgingsplan =
+        oppfolgingsplanService.getOppfolgingsplanByUuid(uuid) ?: run {
+            throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
         }
-    }
 
     fun checkIfOppfolgingsplanBelongsToSykmeldt(
         oppfolgingsplan: PersistedOppfolgingsplan,

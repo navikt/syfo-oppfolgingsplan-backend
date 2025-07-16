@@ -12,6 +12,7 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
 import java.util.UUID
+import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.util.logger
 
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
@@ -66,13 +67,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
          */
         get("/{uuid}") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
-            val uuid = call.parameters["uuid"]
-                ?: run {
-                    call.application.environment.log.warn("No uuid found in request parameters")
-                    call.respond(HttpStatusCode.BadRequest, "Missing uuid parameter")
-                    return@get
-                }
-            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(UUID.fromString(uuid))
+
+            val uuid = call.parameters.extractAndValidateUUIDParameter()
+
+            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid)
                 ?: run {
                     call.application.environment.log.warn("Oppfolgingsplan not found for uuid: $uuid")
                     call.respond(HttpStatusCode.NotFound, "Oppfolgingsplan not found")
