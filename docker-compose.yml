@@ -34,8 +34,6 @@ services:
                     "requestParam": "grant_type",
                     "match": "*",
                     "claims": {
-                      "sub": "13458325183",
-                      "pid": "13458325183",
                       "aud": "followupplan-backend",
                       "acr": "Level4"
                     }

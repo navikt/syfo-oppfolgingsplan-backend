@@ -16,7 +16,7 @@ Suggestion for Colima
 colima start --arch aarch64 --memory 8 --cpu 4 
 ```
 
-We have a docker-compose.yml file to run a posrtgressql database, texas and a fake authserver.
+We have a docker-compose.yml file to run a postgresql database, texas and a fake authserver.
 In addition, we have a docker-compose.kafka.yml that will run a kafka broker, schema registry and kafka-io
 
 Start them both using
@@ -35,6 +35,8 @@ docker-compose \
   -f docker-compose.kafka.yml \
   down
 ```
+You might also want to have access to the pdf generator locally.
+You can clone the [repo](https://github.com/navikt/syfooppdfgen) and follow instructions in the README to spin it up using docker-compose
 
 ### Kafka-ui 
 You can use [kafka-ui](http://localhost:9000) to inspect your consumers and topics. You can also publish or read messages on the topics

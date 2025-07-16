@@ -1,8 +1,7 @@
 #!/bin/bash
-
+PID=${1:-"13458325183"}
 # Fetch fake idporten token
-TOKEN=$(curl -s https://fakedings.intern.dev.nav.no/fake/idporten)
-
+TOKEN=$(curl -s https://fakedings.intern.dev.nav.no/fake/idporten?pid=$PID)
 # Prepare JSON body
 JSON_BODY=$(jq -n \
   --arg token "$TOKEN" \

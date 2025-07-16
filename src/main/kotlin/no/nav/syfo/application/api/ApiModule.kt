@@ -18,6 +18,7 @@ import no.nav.syfo.texas.client.TexasHttpClient
 import org.koin.ktor.ext.inject
 import registerPodApi
 import kotlin.getValue
+import no.nav.syfo.pdfgen.PdfGenService
 
 fun Application.configureRouting() {
     val applicationState by inject<ApplicationState>()
@@ -25,6 +26,7 @@ fun Application.configureRouting() {
     val texasHttpClient by inject<TexasHttpClient>()
     val dineSykmeldteService by inject<DineSykmeldteService>()
     val oppfolgingsplanService by inject<OppfolgingsplanService>()
+    val pdfGenService by inject<PdfGenService>()
 
     installCallId()
     installContentNegotiation()
@@ -39,7 +41,9 @@ fun Application.configureRouting() {
         registerApiV1(
             dineSykmeldteService = dineSykmeldteService,
             texasHttpClient = texasHttpClient,
-            oppfolgingsplanService = oppfolgingsplanService
+            oppfolgingsplanService = oppfolgingsplanService,
+            pdfGenService = pdfGenService,
+
         )
     }
 }

@@ -51,6 +51,15 @@ val ValidateAccessToSykmeldtPlugin = createRouteScopedPlugin(
                 return@onCall
             }
 
+//          // Replace lines above with this to run locally
+//            val sykmeldt = Sykmeldt(
+//                narmestelederId = narmesteLederId,
+//                orgnummer = "805824352",
+//                fnr =  "17498233120",
+//                navn = "never mind",
+//                aktivSykmelding = true,
+//            )
+
             call.attributes[CALL_ATTRIBUTE_SYKMELDT] = sykmeldt
         }
     }

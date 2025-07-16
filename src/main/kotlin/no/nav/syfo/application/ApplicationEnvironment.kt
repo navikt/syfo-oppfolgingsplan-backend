@@ -10,6 +10,7 @@ interface Environment {
     val database: DatabaseEnvironment
     val texas: TexasEnvironment
     val dineSykmeldteBaseUrl: String
+    val pdfGenUrl: String
     val kafka: KafkaEnv
 }
 
@@ -30,6 +31,8 @@ data class NaisEnvironment(
         tokenExchangeEndpoint = getEnvVar("NAIS_TOKEN_EXCHANGE_ENDPOINT"),
         exchangeTargetDineSykmeldte = "${getEnvVar("NAIS_CLUSTER_NAME")}:team-esyfo:dinesykmeldte-backend",
     ),
+
+    override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
     override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars()
 ) : Environment
@@ -62,5 +65,6 @@ data class LocalEnvironment(
         exchangeTargetDineSykmeldte = "dev-gcp:team-esyfo:dinesykmeldte-backend",
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
+    override val pdfGenUrl: String = "http://localhost:9091",
     override val kafka: KafkaEnv = KafkaEnv.createForLocal()
 ) : Environment
