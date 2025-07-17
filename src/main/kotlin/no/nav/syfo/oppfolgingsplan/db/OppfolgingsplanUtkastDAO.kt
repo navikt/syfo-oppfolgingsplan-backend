@@ -31,7 +31,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     val statement =
         """
         INSERT INTO oppfolgingsplan_utkast (
-            sykemeldt_fnr,
+            sykmeldt_fnr,
             narmeste_leder_id,
             narmeste_leder_fnr,
             orgnummer,
@@ -41,7 +41,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
         ON CONFLICT (narmeste_leder_id) DO UPDATE SET
-            sykemeldt_fnr = EXCLUDED.sykemeldt_fnr,
+            sykmeldt_fnr = EXCLUDED.sykmeldt_fnr,
             narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
             orgnummer = EXCLUDED.orgnummer,
             content = EXCLUDED.content,
@@ -74,7 +74,7 @@ fun DatabaseInterface.findOppfolgingsplanUtkastBy(
         """
         SELECT *
         FROM oppfolgingsplan_utkast
-        WHERE sykemeldt_fnr = ?
+        WHERE sykmeldt_fnr = ?
         AND orgnummer = ?
         """.trimIndent()
 
@@ -95,7 +95,7 @@ fun DatabaseInterface.findOppfolgingsplanUtkastBy(
 fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
     return PersistedOppfolgingsplanUtkast(
         uuid = getObject("uuid") as UUID,
-        sykmeldtFnr = getString("sykemeldt_fnr"),
+        sykmeldtFnr = getString("sykmeldt_fnr"),
         narmesteLederId = getString("narmeste_leder_id"),
         narmesteLederFnr = getString("narmeste_leder_fnr"),
         orgnummer = getString("orgnummer"),

@@ -33,7 +33,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
 ) {
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
-            sykemeldt_fnr,
+            sykmeldt_fnr,
             narmeste_leder_id,
             narmeste_leder_fnr,
             orgnummer,
@@ -76,7 +76,7 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
     val statement = """
         SELECT *
         FROM oppfolgingsplan
-        WHERE sykemeldt_fnr = ?
+        WHERE sykmeldt_fnr = ?
         ORDER BY created_at DESC
     """.trimIndent()
 
@@ -99,7 +99,7 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
     val statement = """
         SELECT *
         FROM oppfolgingsplan
-        WHERE sykemeldt_fnr = ?
+        WHERE sykmeldt_fnr = ?
         AND orgnummer = ?
         ORDER BY created_at DESC
     """.trimIndent()
@@ -142,7 +142,7 @@ fun DatabaseInterface.findOppfolgingsplanBy(
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
     return PersistedOppfolgingsplan(
         uuid = getObject("uuid") as UUID,
-        sykmeldtFnr = this.getString("sykemeldt_fnr"),
+        sykmeldtFnr = this.getString("sykmeldt_fnr"),
         narmesteLederId = this.getString("narmeste_leder_id"),
         narmesteLederFnr = this.getString("narmeste_leder_fnr"),
         orgnummer = this.getString("orgnummer"),
