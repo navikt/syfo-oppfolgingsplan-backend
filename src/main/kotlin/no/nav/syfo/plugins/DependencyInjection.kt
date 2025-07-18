@@ -70,11 +70,11 @@ private fun databaseModule() = module {
 
 private fun servicesModule() = module {
     single {
-        val client =
+        val dineSykmeldteHttpClient =
             if (isLocalEnv()) FakeDineSykmeldteHttpClient() else DineSykmeldteHttpClient(
                 httpClient = get(), dineSykmeldteBaseUrl = env().dineSykmeldteBaseUrl
             )
-        DineSykmeldteService(client)
+        DineSykmeldteService(dineSykmeldteHttpClient)
     }
     single { TexasHttpClient(get(), env().texas) }
     single { OppfolgingsplanService(get(), get()) }
