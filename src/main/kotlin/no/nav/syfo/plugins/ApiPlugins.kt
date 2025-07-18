@@ -18,12 +18,12 @@ import io.ktor.server.request.path
 import io.ktor.server.response.respond
 import java.util.*
 import no.nav.syfo.application.exception.ApiError
+import no.nav.syfo.application.exception.ApiError.AuthenticationError
+import no.nav.syfo.application.exception.ApiError.AuthorizationError
 import no.nav.syfo.application.exception.ApiError.BadRequestError
 import no.nav.syfo.application.exception.ApiError.IllegalArgumentError
 import no.nav.syfo.application.exception.ApiError.InternalServerError
-import no.nav.syfo.application.exception.ApiError.AuthenticationError
 import no.nav.syfo.application.exception.ApiError.NotFoundError
-import no.nav.syfo.application.exception.ApiError.AuthorizationError
 import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.application.exception.UnauthorizedException
@@ -56,15 +56,15 @@ private fun determineApiError(cause: Throwable, path: String?): ApiError {
         is IllegalArgumentException -> IllegalArgumentError(cause.message ?: "Illegal argument", path)
         is NotFoundException -> NotFoundError(cause.message ?: "Not found", path)
         is ForbiddenException -> AuthorizationError(cause.message ?: "Forbidden", path)
-        is UnauthorizedException-> AuthenticationError(cause.message ?: "Unauthorized", path)
-        is InternalServerErrorException-> InternalServerError(cause.message ?: "Unauthorized", path)
+        is UnauthorizedException -> AuthenticationError(cause.message ?: "Unauthorized", path)
+        is InternalServerErrorException -> InternalServerError(cause.message ?: "Unauthorized", path)
         else -> InternalServerError(cause.message ?: "Internal server error", path)
     }
 }
 
 private fun logException(call: ApplicationCall, cause: Throwable) {
     val logExceptionMessage = "Caught ${cause::class.simpleName} exception"
-        call.application.log.warn(logExceptionMessage, cause)
+    call.application.log.warn(logExceptionMessage, cause)
 }
 
 
@@ -75,20 +75,5 @@ fun Application.installStatusPages() {
             val apiError = determineApiError(cause, call.request.path())
             call.respond(apiError.status, apiError)
         }
-//        exception<NotFoundException> { call, cause ->
-//            call.application.environment.log.warn("Not Found: ${cause.message}")
-//            call.respondText(
-//                text = cause.message ?: "Resource not found",
-//                status = HttpStatusCode.NotFound
-//            )
-//        }
-//
-//        exception<BadRequestException> { call, cause ->
-//            call.application.environment.log.warn("Bad request: ${cause.message}")
-//            call.respondText(
-//                text = cause.message ?: "Bad request",
-//                status = HttpStatusCode.BadRequest
-//            )
-//        }
     }
 }

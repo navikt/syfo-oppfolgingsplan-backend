@@ -11,7 +11,7 @@ enum class ErrorType {
     ILLEGAL_ARGUMENT,
     BAD_REQUEST,
 }
-sealed class ApiError(
+open class ApiError(
     val status: HttpStatusCode,
     val type: ErrorType,
     open val message: String,
