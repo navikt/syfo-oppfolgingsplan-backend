@@ -41,7 +41,7 @@ GET http://localhost:8080/api/v1/arbeidsgiver/{{narmestelederId}}/oppfolgingspla
 Authorization: Bearer {{token}}
 
 > {%
-    client.global.set("oppflgingsplanUuid", response.body.oppfolgingsplan[0].uuid);
+    client.global.set("oppflgingsplanUuid", response.body.oppfolgingsplan.uuid);
 %}
 
 ### GET Oppfolgingsplan by uuid
