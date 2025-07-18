@@ -129,7 +129,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns defaultSykmeldt().copy(narmestelederId, narmestelederId)
+                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
                 // Act
                 val response = client.get {
@@ -314,7 +314,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns defaultSykmeldt().copy(narmestelederId, narmestelederId)
+                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
@@ -366,7 +366,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns defaultSykmeldt().copy(narmestelederId, narmestelederId)
+                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
@@ -416,7 +416,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
             coEvery {
                 dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-            } returns defaultSykmeldt().copy(narmestelederId, narmestelederId)
+            } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
             coEvery {
                 esyfovarselProducerMock.sendVarselToEsyfovarsel(any())

@@ -25,8 +25,11 @@ class OppfolgingsplanService(
     private val esyfovarselProducer: EsyfovarselProducer,
 ) {
 
-    fun persistOppfolgingsplan(narmesteLederId: String, createOppfolgingsplanRequest: CreateOppfolgingsplanRequest) {
-        database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederId, createOppfolgingsplanRequest)
+    fun persistOppfolgingsplan(
+        narmesteLederId: String,
+        createOppfolgingsplanRequest: CreateOppfolgingsplanRequest
+    ): UUID {
+        return database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederId, createOppfolgingsplanRequest)
     }
 
     fun persistOppfolgingsplanUtkast(narmesteLederId: String, utkast: CreateUtkastRequest) {
