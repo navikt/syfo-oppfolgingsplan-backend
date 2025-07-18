@@ -1,9 +1,7 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt
 
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.principal
-import io.ktor.server.response.respond
 import io.ktor.util.AttributeKey
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.UnauthorizedException
