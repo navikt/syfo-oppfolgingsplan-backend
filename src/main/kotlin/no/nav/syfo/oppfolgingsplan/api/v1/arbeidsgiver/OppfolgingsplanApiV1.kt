@@ -17,7 +17,6 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.util.logger
 
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
@@ -28,7 +27,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
     val logger = logger()
 
     route("/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner") {
-        install(ValidateAccessToSykmeldtPlugin) {
+        install(AuthorizeLeaderAccessToSykmeldtPlugin) {
             this.texasHttpClient = texasHttpClient
             this.dineSykmeldteService = dineSykmeldteService
         }

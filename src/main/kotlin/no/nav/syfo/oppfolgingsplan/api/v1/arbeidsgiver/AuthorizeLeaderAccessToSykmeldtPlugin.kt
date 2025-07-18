@@ -11,16 +11,20 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.texas.client.TexasHttpClient
 
-class ValidateAccessToSykmeldtConfiguration(
+class AuthorizeLeaderAccessToSykmeldtConfiguration(
     var texasHttpClient: TexasHttpClient? = null,
     var dineSykmeldteService: DineSykmeldteService? = null,
 )
 
 val CALL_ATTRIBUTE_SYKMELDT = AttributeKey<Sykmeldt>("sykmeldt")
 
-val ValidateAccessToSykmeldtPlugin = createRouteScopedPlugin(
-    name = "ValidateAccessToSykmeldtPlugin",
-    createConfiguration = ::ValidateAccessToSykmeldtConfiguration,
+/**
+ * Checks that logged in user is the narmeste leder connected to the narmesteLederId parameter.
+ * If so, adds the Sykmeldt connected to the narmesteLederId to the call attributes.
+ */
+val AuthorizeLeaderAccessToSykmeldtPlugin = createRouteScopedPlugin(
+    name = "AuthorizeLeaderAccessToSykmeldtPlugin",
+    createConfiguration = ::AuthorizeLeaderAccessToSykmeldtConfiguration,
 ) {
     pluginConfig.apply {
         onCall { call ->
