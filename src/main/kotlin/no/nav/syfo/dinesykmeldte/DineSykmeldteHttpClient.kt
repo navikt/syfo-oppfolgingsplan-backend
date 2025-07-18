@@ -33,7 +33,7 @@ class DineSykmeldteHttpClient(
     }
 }
 
-class FakeDineSykmeldteHttpClient() : IDineSykmeldteHttpClient {
+class FakeDineSykmeldteHttpClient : IDineSykmeldteHttpClient {
     override suspend fun getSykmeldtForNarmesteLederId(
         narmestelederId: String,
         token: String,
