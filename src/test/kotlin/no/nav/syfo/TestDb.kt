@@ -104,7 +104,7 @@ fun DatabaseInterface.persistOppfolgingsplan(
 ): UUID {
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
-            sykemeldt_fnr,
+            sykmeldt_fnr,
             narmeste_leder_id,
             narmeste_leder_fnr,
             orgnummer,
