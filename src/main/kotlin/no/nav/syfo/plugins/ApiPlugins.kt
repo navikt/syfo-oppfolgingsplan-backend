@@ -57,7 +57,7 @@ private fun determineApiError(cause: Throwable, path: String?): ApiError {
         is NotFoundException -> NotFoundError(cause.message ?: "Not found", path)
         is ForbiddenException -> AuthorizationError(cause.message ?: "Forbidden", path)
         is UnauthorizedException -> AuthenticationError(cause.message ?: "Unauthorized", path)
-        is InternalServerErrorException -> InternalServerError(cause.message ?: "Unauthorized", path)
+        is InternalServerErrorException -> InternalServerError(cause.message ?: "Internal server error", path)
         else -> InternalServerError(cause.message ?: "Internal server error", path)
     }
 }
