@@ -8,6 +8,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import java.util.*
+import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
@@ -20,7 +21,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
     oppfolgingsplanService: OppfolgingsplanService,
     pdfGenService: PdfGenService,
 ) {
-    val log = logger()
+    val logger = logger()
 
     fun tryToGetOppfolgingsplanByUuid(
         uuid: UUID,
@@ -34,7 +35,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
         sykmeldtFnr: String,
     ) {
         if (oppfolgingsplan.sykmeldtFnr != sykmeldtFnr) {
-            log.error("Oppfolgingsplan with uuid: ${oppfolgingsplan.uuid} does not belong to logged in user")
+            logger.error("Oppfolgingsplan with uuid: ${oppfolgingsplan.uuid} does not belong to logged in user")
             throw NotFoundException("Oppfolgingsplan not found")
         }
     }
@@ -77,11 +78,12 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
             val sykmeldtFnr = call.attributes[CALL_ATTRIBUTE_BRUKER_PRINCIPAL].ident
             checkIfOppfolgingsplanBelongsToSykmeldt(oppfolgingsplan, sykmeldtFnr)
 
-            pdfGenService.generatePdf(oppfolgingsplan)?.let {
-                call.response.status(HttpStatusCode.OK)
-                call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
-                call.respond<ByteArray>(it)
-            } ?: call.respond(HttpStatusCode.InternalServerError, "An error occurred while generating pdf")
+            val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
+                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+
+            call.response.status(HttpStatusCode.OK)
+            call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
+            call.respond<ByteArray>(pdfByteArray)
         }
     }
 }

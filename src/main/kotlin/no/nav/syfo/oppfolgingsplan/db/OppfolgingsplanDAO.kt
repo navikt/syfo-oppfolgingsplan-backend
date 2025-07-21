@@ -7,6 +7,7 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import java.sql.Date
 import java.sql.ResultSet
+import java.sql.Statement
 import java.sql.Types
 import java.time.Instant
 import java.time.LocalDate
@@ -30,7 +31,7 @@ data class PersistedOppfolgingsplan(
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederId: String,
     createOppfolgingsplanRequest: CreateOppfolgingsplanRequest
-) {
+): UUID {
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
             sykmeldt_fnr,
@@ -43,6 +44,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             skal_deles_med_veileder,
             created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        RETURNING uuid
     """.trimIndent()
 
     val deleteStatement = """
@@ -55,7 +57,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.setString(1, narmesteLederId)
             it.executeUpdate()
         }
-        connection.prepareStatement(insertStatement).use {
+        val uuid = connection.prepareStatement(insertStatement).use {
             it.setString(1, createOppfolgingsplanRequest.sykmeldtFnr)
             it.setString(2, narmesteLederId)
             it.setString(3, createOppfolgingsplanRequest.narmesteLederFnr)
@@ -64,9 +66,12 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.setDate(6, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
             it.setBoolean(7, createOppfolgingsplanRequest.skalDelesMedLege)
             it.setBoolean(8, createOppfolgingsplanRequest.skalDelesMedVeileder)
-            it.executeUpdate()
+            val resultSet = it.executeQuery()
+            resultSet.next()
+            resultSet.getObject("uuid", UUID::class.java)
         }
         connection.commit()
+        return uuid
     }
 }
 
