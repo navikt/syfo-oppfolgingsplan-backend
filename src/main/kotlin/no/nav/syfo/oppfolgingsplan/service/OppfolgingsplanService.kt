@@ -12,10 +12,10 @@ import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
-import no.nav.syfo.oppfolgingsplan.dto.UtkastMetadata
 import java.util.UUID
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
+import no.nav.syfo.oppfolgingsplan.dto.mapToOppfolgingsplanMetadata
+import no.nav.syfo.oppfolgingsplan.dto.mapToUtkastMetadata
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
@@ -77,29 +77,4 @@ class OppfolgingsplanService(
         )
         esyfovarselProducer.sendVarselToEsyfovarsel(hendelse)
     }
-}
-
-fun PersistedOppfolgingsplanUtkast.mapToUtkastMetadata(): UtkastMetadata {
-    return UtkastMetadata(
-        uuid = uuid,
-        sykmeldtFnr = sykmeldtFnr,
-        narmesteLederFnr = narmesteLederFnr,
-        orgnummer = orgnummer,
-        sluttdato = sluttdato,
-    )
-}
-
-fun PersistedOppfolgingsplan.mapToOppfolgingsplanMetadata(): OppfolgingsplanMetadata {
-    return OppfolgingsplanMetadata(
-        uuid = uuid,
-        sykmeldtFnr = sykmeldtFnr,
-        narmesteLederFnr = narmesteLederFnr,
-        orgnummer = orgnummer,
-        sluttdato = sluttdato,
-        skalDelesMedLege = skalDelesMedLege,
-        skalDelesMedVeileder = skalDelesMedVeileder,
-        deltMedLegeTidspunkt = deltMedLegeTidspunkt,
-        deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
-        createdAt = createdAt,
-    )
 }

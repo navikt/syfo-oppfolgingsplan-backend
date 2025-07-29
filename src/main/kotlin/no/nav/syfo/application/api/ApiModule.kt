@@ -9,6 +9,7 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.metric.registerMetricApi
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.plugins.installCallId
@@ -27,6 +28,7 @@ fun Application.configureRouting() {
     val dineSykmeldteService by inject<DineSykmeldteService>()
     val oppfolgingsplanService by inject<OppfolgingsplanService>()
     val pdfGenService by inject<PdfGenService>()
+    val isDialogmeldingService by inject<IsDialogmeldingService>()
 
     installCallId()
     installContentNegotiation()
@@ -43,7 +45,7 @@ fun Application.configureRouting() {
             texasHttpClient = texasHttpClient,
             oppfolgingsplanService = oppfolgingsplanService,
             pdfGenService = pdfGenService,
-
+            isDialogmeldingService = isDialogmeldingService
         )
     }
 }

@@ -1,5 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt
 
+import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -32,6 +33,7 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
@@ -53,6 +55,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val testDb = TestDB.database
     val narmestelederId = UUID.randomUUID().toString()
     val pdfGenService = mockk<PdfGenService>()
+    val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
 
     beforeTest {
         clearAllMocks()
@@ -84,6 +87,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                             esyfovarselProducer = esyfovarselProducerMock
                         ),
                         pdfGenService = pdfGenService,
+                        isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock)
                     )
                 }
             }
@@ -122,7 +126,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
                     coEvery {
-                        texasClientMock.exhangeTokenForDineSykmeldte(any())
+                        texasClientMock.exchangeTokenForDineSykmeldte(any())
                     } returns TexasExchangeResponse("token", 111, "tokenType")
 
                     // Act
@@ -183,7 +187,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         acr = "Level4"
                     )
 
-                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                         "token",
                         111,
                         "tokenType"
@@ -235,7 +239,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         any()
                     )
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
-                coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                     "token",
                     111,
                     "tokenType"
@@ -267,7 +271,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         acr = "Level4"
                     )
 
-                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                         "token",
                         111,
                         "tokenType"
@@ -305,7 +309,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         acr = "Level4"
                     )
 
-                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                         "token",
                         111,
                         "tokenType"
@@ -337,7 +341,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                             any()
                         )
                     } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
-                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                         "token",
                         111,
                         "tokenType"
@@ -369,7 +373,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         acr = "Level4"
                     )
 
-                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                         "token",
                         111,
                         "tokenType"
@@ -411,7 +415,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         acr = "Level4"
                     )
 
-                    coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                         "token",
                         111,
                         "tokenType"

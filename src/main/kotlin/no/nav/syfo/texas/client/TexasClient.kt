@@ -23,8 +23,12 @@ class TexasHttpClient(
         }.body<TexasIntrospectionResponse>()
     }
 
-    suspend fun exhangeTokenForDineSykmeldte(token: String): TexasExchangeResponse {
+    suspend fun exchangeTokenForDineSykmeldte(token: String): TexasExchangeResponse {
         return exchangeToken(environment.exchangeTargetDineSykmeldte, token)
+    }
+
+    suspend fun exchangeTokenForIsDialogmelding(token: String): TexasExchangeResponse {
+        return exchangeToken(environment.exchangeTargetIsDialogmelding, token)
     }
 
     private suspend fun exchangeToken(target: String, token: String): TexasExchangeResponse {
