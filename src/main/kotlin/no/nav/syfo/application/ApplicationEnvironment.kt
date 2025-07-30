@@ -11,6 +11,7 @@ interface Environment {
     val texas: TexasEnvironment
     val dineSykmeldteBaseUrl: String
     val pdfGenUrl: String
+    val isDialogmeldingBaseUrl: String
     val kafka: KafkaEnv
 }
 
@@ -35,6 +36,7 @@ data class NaisEnvironment(
 
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
+    override val isDialogmeldingBaseUrl: String = getEnvVar("ISDIALOGMELDING_BASE_URL"),
     override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars()
 ) : Environment
 
@@ -67,6 +69,7 @@ data class LocalEnvironment(
         exchangeTargetIsDialogmelding = "dev-gcp:team-sykefravr:isdialogmelding"
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
+    override val isDialogmeldingBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val pdfGenUrl: String = "http://localhost:9091",
     override val kafka: KafkaEnv = KafkaEnv.createForLocal()
 ) : Environment

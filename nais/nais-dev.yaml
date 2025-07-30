@@ -70,9 +70,10 @@ spec:
           cluster: dev-gcp
     outbound:
       rules:
+        - application: syfooppdfgen
         - application: dinesykmeldte-backend
-          namespace: team-esyfo
-          cluster: dev-gcp
+        - application: isdialogmelding
+          namespace: teamsykefravr
   kafka:
     pool: nav-dev
   env:
@@ -82,3 +83,5 @@ spec:
       value: http://dinesykmeldte-backend
     - name: PDFGEN_BASE_URL
       value: http://syfooppdfgen
+    - name: ISDIALOGMELDING_BASE_URL
+      value: http://isdialogmelding.teamsykefravr

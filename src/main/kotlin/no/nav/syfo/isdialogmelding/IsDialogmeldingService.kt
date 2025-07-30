@@ -1,7 +1,9 @@
 package no.nav.syfo.isdialogmelding
 
 import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.plugins.NotFoundException
 import no.nav.syfo.util.logger
 
 class IsDialogmeldingService(
@@ -23,9 +25,16 @@ class IsDialogmeldingService(
         } catch (clientRequestException: ClientRequestException) {
             when (clientRequestException.response.status) {
                 HttpStatusCode.NotFound -> {
-                    logger.warn("Feil ved oppslag av fastlege eller partnerinformasjon")
+                    logger.warn("Unable to determine fastlege, or lacking appropiate 'partnerinformasjon'-data")
+                    throw NotFoundException(
+                        "Unable to determine fastlege, or lacking appropiate 'partnerinformasjon'-data",
+                    )
                 }
-                else -> throw RuntimeException("Error while sending oppfolgingsplan to general practitioner", clientRequestException)
+                else -> {
+                    logger.error("Call to to send LPS plan to fastlege failed with status: " +
+                            "${clientRequestException.response.status}, response body: ${clientRequestException.response.bodyAsText()}")
+                    throw RuntimeException("Error while sending oppfolgingsplan to general practitioner", clientRequestException)
+                }
             }
         }
     }

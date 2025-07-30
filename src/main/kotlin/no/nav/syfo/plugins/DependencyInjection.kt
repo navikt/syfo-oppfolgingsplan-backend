@@ -90,7 +90,14 @@ private fun servicesModule() = module {
     }
     single { PdfGenClient(get(), env().pdfGenUrl) }
     single { PdfGenService(get()) }
-    single { IsDialogmeldingService(IsDialogmeldingClient(get())) }
+    single {
+        IsDialogmeldingService(
+            IsDialogmeldingClient(
+                get(),
+                env().isDialogmeldingBaseUrl
+            )
+        )
+    }
 }
 
 private fun Scope.env() = get<Environment>()
