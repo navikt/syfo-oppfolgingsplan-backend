@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.jackson.jackson
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -73,6 +74,11 @@ fun Application.installStatusPages() {
         exception<Throwable> { call, cause ->
             logException(call, cause)
             val apiError = determineApiError(cause, call.request.path())
+            call.respond(apiError.status, apiError)
+        }
+        status(HttpStatusCode.Forbidden) { call, _ ->
+            val path = call.request.path()
+            val apiError = AuthorizationError("Access denied", path)
             call.respond(apiError.status, apiError)
         }
     }
