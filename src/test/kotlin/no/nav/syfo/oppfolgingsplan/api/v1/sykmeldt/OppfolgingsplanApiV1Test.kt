@@ -33,6 +33,7 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
@@ -378,7 +379,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         111,
                         "tokenType"
                     )
-                    val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)
 
                     coEvery { pdfGenService.generatePdf(any()) } returns generatedPdfStandin
 

@@ -24,6 +24,7 @@ import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.util.logger
+import java.time.Instant
 
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
     dineSykmeldteService: DineSykmeldteService,
@@ -116,6 +117,9 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 throw BadRequestException("Cannot send oppfolgingsplan to general practitioner when there is no active sykmelding")
             }
 
+            val innloggetBruker = call.principal<BrukerPrincipal>()
+                ?: throw UnauthorizedException("No user principal found in request")
+
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
             val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid)
@@ -127,11 +131,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 sykmeldt
             )
 
+            oppfolgingsplanService.updateSkalDelesMedLege(uuid, true)
+
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
-
-            val innloggetBruker = call.principal<BrukerPrincipal>()
-                ?: throw UnauthorizedException("No user principal found in request")
 
             val texasResponse = texasHttpClient.exchangeTokenForIsDialogmelding(innloggetBruker.token)
             isDialogmeldingService.sendLpsPlanToGeneralPractitioner(
@@ -139,6 +142,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 sykmeldt.fnr,
                 pdfByteArray)
 
+            oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, Instant.now())
             call.respond(HttpStatusCode.OK)
         }
     }

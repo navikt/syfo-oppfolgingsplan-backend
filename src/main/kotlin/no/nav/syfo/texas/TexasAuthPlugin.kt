@@ -33,7 +33,6 @@ val TexasAuthPlugin = createRouteScopedPlugin(
                 client?.introspectToken("tokenx", bearerToken)
                     ?: throw IllegalStateException("TexasHttpClient is not configured")
             } catch (e: Exception) {
-
                 call.application.environment.log.error("Failed to introspect token: ${e.message}", e)
                 call.respondNullable(HttpStatusCode.Unauthorized)
                 return@onCall
