@@ -10,6 +10,7 @@ enum class ErrorType {
     INTERNAL_SERVER_ERROR,
     ILLEGAL_ARGUMENT,
     BAD_REQUEST,
+    LEGE_NOT_FOUND,
 }
 open class ApiError(
     val status: HttpStatusCode,
@@ -35,4 +36,6 @@ open class ApiError(
 
     data class AuthorizationError(override val message: String,  override val path: String?) :
         ApiError(HttpStatusCode.Forbidden, ErrorType.AUTHORIZATION_ERROR, message, Instant.now())
+    data class LegeNotFoundError(override val message: String, override val path: String?) :
+        ApiError(HttpStatusCode.NotFound, ErrorType.LEGE_NOT_FOUND, message, Instant.now())
 }

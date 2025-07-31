@@ -29,6 +29,8 @@ import io.mockk.verify
 import java.util.*
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.exception.ApiError
+import no.nav.syfo.application.exception.ErrorType
+import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
@@ -544,6 +546,57 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
             plan.skalDelesMedLege shouldBe true
             plan.deltMedLegeTidspunkt shouldNotBe null
+        }
+    }
+    it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with NOT FOUND when isDialogmeldingClient throws LegeNotFoundException") {
+        withTestApplication {
+            // Arrange
+            coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
+                active = true,
+                pid = "user",
+                acr = "Level4"
+            )
+            coEvery {
+                texasClientMock.exchangeTokenForDineSykmeldte(any())
+            } returns TexasExchangeResponse("token", 111, "tokenType")
+            coEvery {
+                texasClientMock.exchangeTokenForIsDialogmelding(any())
+            } returns TexasExchangeResponse(
+                "token",
+                111,
+                "tokenType"
+            )
+            coEvery {
+                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                    narmestelederId,
+                    "token"
+                )
+            } returns defaultSykmeldt()
+            coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+            coEvery {
+                isDialogmeldingClientMock.sendLpsPlanToGeneralPractitioner(
+                    any(),
+                    any(),
+                    any()
+                )
+            } throws LegeNotFoundException("Lege not found for sykmeldt")
+            val uuid = testDb.persistOppfolgingsplan(
+                narmesteLederId = narmestelederId,
+                createOppfolgingsplanRequest = defaultOppfolgingsplan()
+            )
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-lege")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            response.status shouldBe HttpStatusCode.NotFound
+            val apiError = response.body<ApiError>()
+            apiError.message shouldBe "Lege not found for sykmeldt"
+            apiError.type shouldBe ErrorType.LEGE_NOT_FOUND
+            val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
+            plan.skalDelesMedLege shouldBe true
+            plan.deltMedLegeTidspunkt shouldBe  null
         }
     }
 })

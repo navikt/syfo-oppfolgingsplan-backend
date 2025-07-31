@@ -27,6 +27,7 @@ import no.nav.syfo.application.exception.ApiError.InternalServerError
 import no.nav.syfo.application.exception.ApiError.NotFoundError
 import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.application.exception.UnauthorizedException
 
 const val NAV_CALL_ID_HEADER = "Nav-Call-Id"
@@ -59,6 +60,7 @@ private fun determineApiError(cause: Throwable, path: String?): ApiError {
         is ForbiddenException -> AuthorizationError(cause.message ?: "Forbidden", path)
         is UnauthorizedException -> AuthenticationError(cause.message ?: "Unauthorized", path)
         is InternalServerErrorException -> InternalServerError(cause.message ?: "Internal server error", path)
+        is LegeNotFoundException -> ApiError.LegeNotFoundError(cause.message ?: "Lege not found", path)
         else -> InternalServerError(cause.message ?: "Internal server error", path)
     }
 }

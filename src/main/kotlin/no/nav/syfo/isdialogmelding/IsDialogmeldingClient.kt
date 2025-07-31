@@ -10,7 +10,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.append
-import io.ktor.server.plugins.NotFoundException
+import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.util.logger
 
 class IsDialogmeldingClient(
@@ -41,7 +41,7 @@ class IsDialogmeldingClient(
             when (clientRequestException.response.status) {
                 HttpStatusCode.NotFound -> {
                     logger.warn("Unable to determine fastlege, or lacking appropiate 'partnerinformasjon'-data")
-                    throw NotFoundException(
+                    throw LegeNotFoundException(
                         "Unable to determine fastlege, or lacking appropiate 'partnerinformasjon'-data",
                     )
                 }
