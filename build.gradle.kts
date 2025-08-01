@@ -8,6 +8,7 @@ val kotestExtensionsVersion: String by project
 val kotestVersion: String by project
 val ktor_version: String by project
 val logback_version: String by project
+val logstashEncoderVersion: String by project
 val micrometer_version: String by project
 val mockkVersion: String by project
 val postgres_version: String by project
@@ -49,6 +50,7 @@ dependencies {
     implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
     implementation("io.ktor:ktor-server-netty")
     implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("net.logstash.logback:logstash-logback-encoder:$logstashEncoderVersion")
     implementation("io.ktor:ktor-server-swagger")
     implementation("io.ktor:ktor-server-openapi")
     implementation("io.ktor:ktor-server-config-yaml")
