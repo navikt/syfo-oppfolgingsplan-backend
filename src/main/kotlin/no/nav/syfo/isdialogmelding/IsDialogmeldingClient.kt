@@ -2,14 +2,13 @@ package no.nav.syfo.isdialogmelding
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.ClientRequestException
-import io.ktor.client.request.headers
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.append
 import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.util.logger
 
@@ -26,10 +25,8 @@ class IsDialogmeldingClient(
     ) {
         try {
             httpClient.post("$isDialogmeldingBaseUrl/api/person/v1/oppfolgingsplan") {
-                headers {
-                    append(HttpHeaders.ContentType, ContentType.Application.Json)
-                    append(HttpHeaders.Authorization, token)
-                }
+                header(HttpHeaders.ContentType, ContentType.Application.Json)
+                header("Authorization", "Bearer $token")
                 setBody(
                     OppfolgingsplanDialogmelding(
                         sykmeldtFnr = sykmeldtFnr,
