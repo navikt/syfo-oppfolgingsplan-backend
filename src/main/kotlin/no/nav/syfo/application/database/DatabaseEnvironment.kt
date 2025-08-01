@@ -16,7 +16,6 @@ data class DatabaseEnvironment(
             "?ssl=on&sslrootcert=$sslrootcert&sslcert=$sslcert&sslmode=$sslmode&sslkey=$sslkey"
 
         val url = "jdbc:postgresql://$host:$port/$name$sslsuffix"
-        println("JDBC URL: $url")
         return url
     }
 }

@@ -78,9 +78,14 @@ fun Application.installStatusPages() {
             val apiError = determineApiError(cause, call.request.path())
             call.respond(apiError.status, apiError)
         }
-        status(HttpStatusCode.Forbidden) { call, _ ->
+        status(HttpStatusCode.Forbidden) { call, status ->
             val path = call.request.path()
-            val apiError = AuthorizationError("Access denied", path)
+            val apiError = AuthorizationError(status.description, path)
+            call.respond(apiError.status, apiError)
+        }
+        status(HttpStatusCode.Unauthorized) { call, status ->
+            val path = call.request.path()
+            val apiError = AuthenticationError(status.description, path)
             call.respond(apiError.status, apiError)
         }
     }
