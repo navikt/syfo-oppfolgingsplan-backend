@@ -137,7 +137,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
 
             val texasResponse = texasHttpClient.exchangeTokenForIsDialogmelding(innloggetBruker.token)
-            isDialogmeldingService.sendLpsPlanToGeneralPractitioner(
+            isDialogmeldingService.sendOppfolgingsplanToGeneralPractitioner(
                 texasResponse.accessToken,
                 sykmeldt.fnr,
                 pdfByteArray)

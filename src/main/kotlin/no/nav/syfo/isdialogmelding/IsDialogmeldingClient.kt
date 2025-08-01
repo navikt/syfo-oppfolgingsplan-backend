@@ -19,7 +19,7 @@ class IsDialogmeldingClient(
 ) {
     private val logger = logger()
 
-    suspend fun sendLpsPlanToGeneralPractitioner(
+    suspend fun sendOppfolgingsplanToGeneralPractitioner(
         token: String,
         sykmeldtFnr: String,
         plansAsPdf: ByteArray,
@@ -46,7 +46,7 @@ class IsDialogmeldingClient(
                     )
                 }
                 else -> {
-                    logger.error("Call to to send LPS plan to fastlege failed with status: " +
+                    logger.error("Call to to send oppfolgingsplan to fastlege failed with status: " +
                             "${clientRequestException.response.status}, response body: ${clientRequestException.response.bodyAsText()}")
                     throw RuntimeException("Error while sending oppfolgingsplan to general practitioner", clientRequestException)
                 }

@@ -526,7 +526,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             } returns defaultSykmeldt()
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
             coEvery {
-                isDialogmeldingClientMock.sendLpsPlanToGeneralPractitioner(
+                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
                     any(),
                     any(),
                     any()
@@ -574,7 +574,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             } returns defaultSykmeldt()
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
             coEvery {
-                isDialogmeldingClientMock.sendLpsPlanToGeneralPractitioner(
+                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
                     any(),
                     any(),
                     any()
