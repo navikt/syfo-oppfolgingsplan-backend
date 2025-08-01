@@ -31,7 +31,7 @@ data class NaisEnvironment(
         tokenIntrospectionEndpoint = getEnvVar("NAIS_TOKEN_INTROSPECTION_ENDPOINT"),
         tokenExchangeEndpoint = getEnvVar("NAIS_TOKEN_EXCHANGE_ENDPOINT"),
         exchangeTargetDineSykmeldte = "${getEnvVar("NAIS_CLUSTER_NAME")}:team-esyfo:dinesykmeldte-backend",
-        exchangeTargetIsDialogmelding = "${getEnvVar("NAIS_CLUSTER_NAME")}:team-sykefravr:isdialogmelding"
+        exchangeTargetIsDialogmelding = "${getEnvVar("NAIS_CLUSTER_NAME")}:teamsykefravr:isdialogmelding"
     ),
 
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
@@ -66,7 +66,7 @@ data class LocalEnvironment(
         tokenIntrospectionEndpoint = "http://localhost:3000/api/v1/introspect",
         tokenExchangeEndpoint = "http://localhost:3000/api/v1/token/exchange",
         exchangeTargetDineSykmeldte = "dev-gcp:team-esyfo:dinesykmeldte-backend",
-        exchangeTargetIsDialogmelding = "dev-gcp:team-sykefravr:isdialogmelding"
+        exchangeTargetIsDialogmelding = "dev-gcp:teamsykefravr:isdialogmelding"
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val isDialogmeldingBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
