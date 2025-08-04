@@ -1,6 +1,8 @@
 package no.nav.syfo.oppfolgingsplan.dto
 
 import com.fasterxml.jackson.databind.JsonNode
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -55,3 +57,28 @@ data class SykmeldtOppfolgingsplanOverview(
     val oppfolgingsplaner: List<OppfolgingsplanMetadata>,
     val previousOppfolgingsplaner: List<OppfolgingsplanMetadata>,
 )
+
+fun PersistedOppfolgingsplanUtkast.mapToUtkastMetadata(): UtkastMetadata {
+    return UtkastMetadata(
+        uuid = uuid,
+        sykmeldtFnr = sykmeldtFnr,
+        narmesteLederFnr = narmesteLederFnr,
+        orgnummer = orgnummer,
+        sluttdato = sluttdato,
+    )
+}
+
+fun PersistedOppfolgingsplan.mapToOppfolgingsplanMetadata(): OppfolgingsplanMetadata {
+    return OppfolgingsplanMetadata(
+        uuid = uuid,
+        sykmeldtFnr = sykmeldtFnr,
+        narmesteLederFnr = narmesteLederFnr,
+        orgnummer = orgnummer,
+        sluttdato = sluttdato,
+        skalDelesMedLege = skalDelesMedLege,
+        skalDelesMedVeileder = skalDelesMedVeileder,
+        deltMedLegeTidspunkt = deltMedLegeTidspunkt,
+        deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
+        createdAt = createdAt,
+    )
+}

@@ -3,6 +3,7 @@ package no.nav.syfo.oppfolgingsplan.api.v1
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanUtkastApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.registerSykmeldtOppfolgingsplanApiV1
@@ -15,7 +16,8 @@ fun Route.registerApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService,
-    pdfGenService: PdfGenService
+    pdfGenService: PdfGenService,
+    isDialogmeldingService: IsDialogmeldingService
 ) {
     route("/api/v1") {
         install(TexasAuthPlugin) {
@@ -24,7 +26,9 @@ fun Route.registerApiV1(
         registerArbeidsgiverOppfolgingsplanApiV1(
             dineSykmeldteService,
             texasHttpClient,
-            oppfolgingsplanService
+            oppfolgingsplanService,
+            pdfGenService,
+            isDialogmeldingService
         )
         registerArbeidsgiverOppfolgingsplanUtkastApiV1(
             dineSykmeldteService,

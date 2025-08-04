@@ -40,7 +40,7 @@ val AuthorizeLeaderAccessToSykmeldtPlugin = createRouteScopedPlugin(
             val innloggetBruker = call.principal<BrukerPrincipal>()
                 ?: throw UnauthorizedException("No user principal found in request")
 
-            val texasResponse = texasHttpClient.exhangeTokenForDineSykmeldte(innloggetBruker.token)
+            val texasResponse = texasHttpClient.exchangeTokenForDineSykmeldte(innloggetBruker.token)
 
             val sykmeldt = dineSykmeldteService.getSykmeldtForNarmesteleder(narmesteLederId, texasResponse.accessToken)
                 ?: throw NotFoundException("Sykmeldt not found for narmestelederId: $narmesteLederId")

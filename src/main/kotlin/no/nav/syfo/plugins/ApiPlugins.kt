@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.jackson.jackson
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -26,6 +27,7 @@ import no.nav.syfo.application.exception.ApiError.InternalServerError
 import no.nav.syfo.application.exception.ApiError.NotFoundError
 import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.application.exception.UnauthorizedException
 
 const val NAV_CALL_ID_HEADER = "Nav-Call-Id"
@@ -58,6 +60,7 @@ private fun determineApiError(cause: Throwable, path: String?): ApiError {
         is ForbiddenException -> AuthorizationError(cause.message ?: "Forbidden", path)
         is UnauthorizedException -> AuthenticationError(cause.message ?: "Unauthorized", path)
         is InternalServerErrorException -> InternalServerError(cause.message ?: "Internal server error", path)
+        is LegeNotFoundException -> ApiError.LegeNotFoundError(cause.message ?: "Lege not found", path)
         else -> InternalServerError(cause.message ?: "Internal server error", path)
     }
 }
@@ -73,6 +76,16 @@ fun Application.installStatusPages() {
         exception<Throwable> { call, cause ->
             logException(call, cause)
             val apiError = determineApiError(cause, call.request.path())
+            call.respond(apiError.status, apiError)
+        }
+        status(HttpStatusCode.Forbidden) { call, status ->
+            val path = call.request.path()
+            val apiError = AuthorizationError(status.description, path)
+            call.respond(apiError.status, apiError)
+        }
+        status(HttpStatusCode.Unauthorized) { call, status ->
+            val path = call.request.path()
+            val apiError = AuthenticationError(status.description, path)
             call.respond(apiError.status, apiError)
         }
     }

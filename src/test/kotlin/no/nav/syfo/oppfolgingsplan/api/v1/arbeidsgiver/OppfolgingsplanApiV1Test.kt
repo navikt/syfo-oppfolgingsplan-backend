@@ -1,11 +1,13 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
+import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.bearerAuth
@@ -26,11 +28,16 @@ import io.mockk.mockk
 import io.mockk.verify
 import java.util.*
 import no.nav.syfo.TestDB
+import no.nav.syfo.application.exception.ApiError
+import no.nav.syfo.application.exception.ErrorType
+import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.generatedPdfStandin
+import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
@@ -38,10 +45,10 @@ import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.pdfgen.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
+import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
@@ -55,7 +62,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
     val narmestelederId = UUID.randomUUID().toString()
-    val pdfGenClient = mockk<PdfGenClient>()
+    val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
+    val pdfGenServiceMock = mockk<PdfGenService>()
+
 
     beforeTest {
         clearAllMocks()
@@ -78,6 +87,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             }
             application {
                 installContentNegotiation()
+                installStatusPages()
                 routing {
                     registerApiV1(
                         DineSykmeldteService(dineSykmeldteHttpClientMock),
@@ -86,7 +96,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock
                         ),
-                        pdfGenService = PdfGenService(pdfGenClient),
+                        pdfGenService = pdfGenServiceMock,
+                        isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock)
                     )
                 }
             }
@@ -124,7 +135,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
                 coEvery {
-                    texasClientMock.exhangeTokenForDineSykmeldte(any())
+                    texasClientMock.exchangeTokenForDineSykmeldte(any())
                 } returns TexasExchangeResponse("token", 111, "tokenType")
 
                 coEvery {
@@ -185,7 +196,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     )
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
-                coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                     "token",
                     111,
                     "tokenType"
@@ -219,7 +230,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     )
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
-                coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                     "token",
                     111,
                     "tokenType"
@@ -260,7 +271,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     )
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
-                coEvery { texasClientMock.exhangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
+                coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                     "token",
                     111,
                     "tokenType"
@@ -309,7 +320,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
                 coEvery {
-                    texasClientMock.exhangeTokenForDineSykmeldte(any())
+                    texasClientMock.exchangeTokenForDineSykmeldte(any())
                 } returns TexasExchangeResponse("token", 111, "tokenType")
 
                 coEvery {
@@ -361,7 +372,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
                 coEvery {
-                    texasClientMock.exhangeTokenForDineSykmeldte(any())
+                    texasClientMock.exchangeTokenForDineSykmeldte(any())
                 } returns TexasExchangeResponse("token", 111, "tokenType")
 
                 coEvery {
@@ -411,7 +422,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
 
             coEvery {
-                texasClientMock.exhangeTokenForDineSykmeldte(any())
+                texasClientMock.exchangeTokenForDineSykmeldte(any())
             } returns TexasExchangeResponse("token", 111, "tokenType")
 
             coEvery {
@@ -450,6 +461,142 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     hendelse.orgnummer shouldBe oppfolgingsplan.orgnummer
                 })
             }
+        }
+    }
+    it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with NotFound if plan does not exist") {
+        withTestApplication {
+            // Arrange
+            coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
+                active = true,
+                pid = "user",
+                acr = "Level4"
+            )
+            coEvery {
+                texasClientMock.exchangeTokenForDineSykmeldte(any())
+            } returns TexasExchangeResponse("token", 111, "tokenType")
+            coEvery {
+                texasClientMock.exchangeTokenForIsDialogmelding(any())
+            } returns TexasExchangeResponse(
+                "token",
+                111,
+                "tokenType"
+            )
+            coEvery {
+                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                    narmestelederId,
+                    "token"
+                )
+            } returns defaultSykmeldt()
+            val uuid = UUID.randomUUID()
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-lege")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            response.status shouldBe HttpStatusCode.NotFound
+            val apiError = response.body<ApiError>()
+            apiError.message shouldBe "Oppfolgingsplan not found for uuid: $uuid"
+        }
+    }
+
+    it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with OK and update plan when authorized") {
+        withTestApplication {
+            // Arrange
+            coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
+                active = true,
+                pid = "user",
+                acr = "Level4"
+            )
+            coEvery {
+                texasClientMock.exchangeTokenForDineSykmeldte(any())
+            } returns TexasExchangeResponse("token", 111, "tokenType")
+            coEvery {
+                texasClientMock.exchangeTokenForIsDialogmelding(any())
+            } returns TexasExchangeResponse(
+                "token",
+                111,
+                "tokenType"
+            )
+            coEvery {
+                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                    narmestelederId,
+                    "token"
+                )
+            } returns defaultSykmeldt()
+            coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+            coEvery {
+                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
+                    any(),
+                    any(),
+                    any()
+                )
+            } returns Unit
+            val uuid = testDb.persistOppfolgingsplan(
+                narmesteLederId = narmestelederId,
+                createOppfolgingsplanRequest = defaultOppfolgingsplan()
+            )
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-lege")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            response.status shouldBe HttpStatusCode.OK
+            val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
+            plan.skalDelesMedLege shouldBe true
+            plan.deltMedLegeTidspunkt shouldNotBe null
+        }
+    }
+    it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with NOT FOUND when isDialogmeldingClient throws LegeNotFoundException") {
+        withTestApplication {
+            // Arrange
+            coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
+                active = true,
+                pid = "user",
+                acr = "Level4"
+            )
+            coEvery {
+                texasClientMock.exchangeTokenForDineSykmeldte(any())
+            } returns TexasExchangeResponse("token", 111, "tokenType")
+            coEvery {
+                texasClientMock.exchangeTokenForIsDialogmelding(any())
+            } returns TexasExchangeResponse(
+                "token",
+                111,
+                "tokenType"
+            )
+            coEvery {
+                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                    narmestelederId,
+                    "token"
+                )
+            } returns defaultSykmeldt()
+            coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+            coEvery {
+                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
+                    any(),
+                    any(),
+                    any()
+                )
+            } throws LegeNotFoundException("Lege not found for sykmeldt")
+            val uuid = testDb.persistOppfolgingsplan(
+                narmesteLederId = narmestelederId,
+                createOppfolgingsplanRequest = defaultOppfolgingsplan()
+            )
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-lege")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            response.status shouldBe HttpStatusCode.NotFound
+            val apiError = response.body<ApiError>()
+            apiError.message shouldBe "Lege not found for sykmeldt"
+            apiError.type shouldBe ErrorType.LEGE_NOT_FOUND
+            val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
+            plan.skalDelesMedLege shouldBe true
+            plan.deltMedLegeTidspunkt shouldBe  null
         }
     }
 })

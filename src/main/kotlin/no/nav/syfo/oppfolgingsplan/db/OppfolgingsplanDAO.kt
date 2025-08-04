@@ -7,7 +7,7 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import java.sql.Date
 import java.sql.ResultSet
-import java.sql.Statement
+import java.sql.Timestamp
 import java.sql.Types
 import java.time.Instant
 import java.time.LocalDate
@@ -141,6 +141,46 @@ fun DatabaseInterface.findOppfolgingsplanBy(
                 null
             }
         }
+    }
+}
+
+fun DatabaseInterface.updateSkalDelesMedLege(
+    uuid: UUID,
+    skalDelesMedLege: Boolean,
+) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET skal_deles_med_lege = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setBoolean(1, skalDelesMedLege)
+            preparedStatement.setObject(2, uuid)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
+
+fun DatabaseInterface.setDeltMedLegeTidspunkt(
+    uuid: UUID,
+    deltMedLegeTidspunkt: Instant,
+) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET delt_med_lege_tidspunkt = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setTimestamp(1, Timestamp.from(deltMedLegeTidspunkt))
+            preparedStatement.setObject(2, uuid)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
     }
 }
 

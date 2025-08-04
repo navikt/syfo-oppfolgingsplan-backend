@@ -11,6 +11,7 @@ interface Environment {
     val texas: TexasEnvironment
     val dineSykmeldteBaseUrl: String
     val pdfGenUrl: String
+    val isDialogmeldingBaseUrl: String
     val kafka: KafkaEnv
 }
 
@@ -30,10 +31,12 @@ data class NaisEnvironment(
         tokenIntrospectionEndpoint = getEnvVar("NAIS_TOKEN_INTROSPECTION_ENDPOINT"),
         tokenExchangeEndpoint = getEnvVar("NAIS_TOKEN_EXCHANGE_ENDPOINT"),
         exchangeTargetDineSykmeldte = "${getEnvVar("NAIS_CLUSTER_NAME")}:team-esyfo:dinesykmeldte-backend",
+        exchangeTargetIsDialogmelding = "${getEnvVar("NAIS_CLUSTER_NAME")}:teamsykefravr:isdialogmelding"
     ),
 
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
+    override val isDialogmeldingBaseUrl: String = getEnvVar("ISDIALOGMELDING_BASE_URL"),
     override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars()
 ) : Environment
 
@@ -63,8 +66,10 @@ data class LocalEnvironment(
         tokenIntrospectionEndpoint = "http://localhost:3000/api/v1/introspect",
         tokenExchangeEndpoint = "http://localhost:3000/api/v1/token/exchange",
         exchangeTargetDineSykmeldte = "dev-gcp:team-esyfo:dinesykmeldte-backend",
+        exchangeTargetIsDialogmelding = "dev-gcp:teamsykefravr:isdialogmelding"
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
+    override val isDialogmeldingBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val pdfGenUrl: String = "http://localhost:9091",
     override val kafka: KafkaEnv = KafkaEnv.createForLocal()
 ) : Environment

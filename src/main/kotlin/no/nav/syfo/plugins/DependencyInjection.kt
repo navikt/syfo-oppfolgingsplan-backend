@@ -1,5 +1,6 @@
 package no.nav.syfo.plugins
 
+import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import no.nav.syfo.application.ApplicationState
@@ -14,6 +15,7 @@ import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
@@ -88,6 +90,14 @@ private fun servicesModule() = module {
     }
     single { PdfGenClient(get(), env().pdfGenUrl) }
     single { PdfGenService(get()) }
+    single {
+        IsDialogmeldingService(
+            IsDialogmeldingClient(
+                get(),
+                env().isDialogmeldingBaseUrl
+            )
+        )
+    }
 }
 
 private fun Scope.env() = get<Environment>()

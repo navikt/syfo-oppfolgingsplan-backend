@@ -73,6 +73,8 @@ fun defaultSykmeldt() = Sykmeldt(
     true,
 )
 
+val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)
+
 fun mockHttpResponse(message: String, statusCode: HttpStatusCode): HttpResponse {
     val mockHttpResponse = mockk<HttpResponse>()
     val request = mockk<HttpRequest>()

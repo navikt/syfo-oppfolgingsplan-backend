@@ -2,6 +2,7 @@ package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.path
@@ -11,18 +12,26 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.dinesykmeldte.Sykmeldt
+import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
+import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.util.logger
+import java.time.Instant
 
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
-    oppfolgingsplanService: OppfolgingsplanService
+    oppfolgingsplanService: OppfolgingsplanService,
+    pdfGenService: PdfGenService,
+    isDialogmeldingService: IsDialogmeldingService
 ) {
     val logger = logger()
 
@@ -99,6 +108,42 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             )
 
             call.respond(HttpStatusCode.OK, oppfolgingsplan)
+        }
+
+        post("/{uuid}/del-med-lege") {
+            val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
+
+            if (sykmeldt.aktivSykmelding != true) {
+                throw BadRequestException("Cannot send oppfolgingsplan to general practitioner when there is no active sykmelding")
+            }
+
+            val innloggetBruker = call.principal<BrukerPrincipal>()
+                ?: throw UnauthorizedException("No user principal found in request")
+
+            val uuid = call.parameters.extractAndValidateUUIDParameter()
+
+            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid)
+                ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
+
+            checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
+                oppfolgingsplan.sykmeldtFnr,
+                oppfolgingsplan.orgnummer,
+                sykmeldt
+            )
+
+            oppfolgingsplanService.updateSkalDelesMedLege(uuid, true)
+
+            val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
+                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+
+            val texasResponse = texasHttpClient.exchangeTokenForIsDialogmelding(innloggetBruker.token)
+            isDialogmeldingService.sendOppfolgingsplanToGeneralPractitioner(
+                texasResponse.accessToken,
+                sykmeldt.fnr,
+                pdfByteArray)
+
+            oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, Instant.now())
+            call.respond(HttpStatusCode.OK)
         }
     }
 }
