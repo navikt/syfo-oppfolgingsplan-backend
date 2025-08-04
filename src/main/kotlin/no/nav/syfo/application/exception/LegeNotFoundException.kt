@@ -1,5 +1,5 @@
 package no.nav.syfo.application.exception
 
 class LegeNotFoundException(
-    message: String,
+    message: String = "Unable to determine fastlege",
 ) : RuntimeException(message)
