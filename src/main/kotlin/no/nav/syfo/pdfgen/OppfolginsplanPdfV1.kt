@@ -3,12 +3,18 @@ package no.nav.syfo.pdfgen
 import java.time.LocalDate
 
 data class OppfolginsplanPdfV1(
+    val version: String = "1.0",
     val oppfolgingsplan: Oppfolginsplan
 )
 
 data class Oppfolginsplan(
-    val version: String = "1.0",
-    val sluttDato: LocalDate,
+    val createdDate: LocalDate,
+    val evaluationDate: LocalDate,
+    val sykmeldtName: String,
+    val sykmeldtFnr: String,
+    val orgName: String,
+    val orgnummer: String,
+    val narmesteLederName: String,
     val sections: List<Section>,
 )
 

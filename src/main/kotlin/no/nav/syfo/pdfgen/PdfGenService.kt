@@ -4,6 +4,7 @@ import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.util.logger
+import java.time.ZoneId
 
 class PdfGenService(
     private val pdfGenClient: PdfGenClient
@@ -21,7 +22,14 @@ class PdfGenService(
 
 fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 = OppfolginsplanPdfV1(
     oppfolgingsplan = Oppfolginsplan(
-        sluttDato = this.sluttdato, sections = listOf(
+        createdDate = this.createdAt.atZone(ZoneId.of("Europe/Oslo")).toLocalDate(),
+        evaluationDate = this.sluttdato,
+        sykmeldtName = "Tester Hansen",
+        sykmeldtFnr = this.sykmeldtFnr,
+        orgName = "Eksempel AS",
+        orgnummer = this.orgnummer,
+        narmesteLederName = "Nærmeste Leder",
+        sections = listOf(
             Section(
                 id = "tilpassing",
                 title = "Tilpasning av arbeidsoppgaver",
