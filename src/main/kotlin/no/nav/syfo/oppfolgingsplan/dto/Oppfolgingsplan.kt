@@ -8,9 +8,6 @@ import java.time.LocalDate
 import java.util.UUID
 
 data class CreateOppfolgingsplanRequest (
-    val sykmeldtFnr: String,
-    val narmesteLederFnr: String,
-    val orgnummer: String,
     val content: JsonNode,
     val sluttdato: LocalDate,
     val skalDelesMedLege: Boolean,

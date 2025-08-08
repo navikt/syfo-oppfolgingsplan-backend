@@ -203,13 +203,13 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                     val firstPlanUUID = testDb.persistOppfolgingsplan(
                         narmesteLederId = narmestelederId,
-                        createOppfolgingsplanRequest = oppfolgingsplan.copy(
+                        persistedOppfolgingsplan = oppfolgingsplan.copy(
                             sluttdato = LocalDate.now().minus(45, ChronoUnit.DAYS)
                         )
                     )
                     val latestPlanUUID = testDb.persistOppfolgingsplan(
                         narmesteLederId = narmestelederId,
-                        createOppfolgingsplanRequest = oppfolgingsplan
+                        persistedOppfolgingsplan = oppfolgingsplan
                     )
                     testDb.upsertOppfolgingsplanUtkast(
                         narmesteLederId = narmestelederId,
@@ -280,7 +280,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                     val existingUUID = testDb.persistOppfolgingsplan(
                         narmesteLederId = narmestelederId,
-                        createOppfolgingsplanRequest = oppfolgingsplan
+                        persistedOppfolgingsplan = oppfolgingsplan
                     )
 
                     // Act
@@ -318,7 +318,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                     val existingUUID = testDb.persistOppfolgingsplan(
                         narmesteLederId = narmestelederId,
-                        createOppfolgingsplanRequest = oppfolgingsplan.copy(sykmeldtFnr = "12345678902")
+                        persistedOppfolgingsplan = oppfolgingsplan.copy(sykmeldtFnr = "12345678902")
                     )
 
                     // Act
@@ -384,7 +384,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                     val existingUUID = testDb.persistOppfolgingsplan(
                         narmesteLederId = narmestelederId,
-                        createOppfolgingsplanRequest = oppfolgingsplan
+                        persistedOppfolgingsplan = oppfolgingsplan
                     )
 
                     // Act
@@ -425,7 +425,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                     val existingUUID = testDb.persistOppfolgingsplan(
                         narmesteLederId = narmestelederId,
-                        createOppfolgingsplanRequest = oppfolgingsplan
+                        persistedOppfolgingsplan = oppfolgingsplan
                     )
 
                     // Act

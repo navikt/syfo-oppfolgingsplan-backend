@@ -245,7 +245,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 val existingUUID = testDb.persistOppfolgingsplan(
                     narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                    persistedOppfolgingsplan = defaultOppfolgingsplan()
                 )
 
                 // Act
@@ -286,11 +286,11 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                    persistedOppfolgingsplan = defaultOppfolgingsplan()
                 )
                 val latestPlanUUID = testDb.persistOppfolgingsplan(
                     narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                    persistedOppfolgingsplan = defaultOppfolgingsplan()
                 )
                 val utkastUUID = testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederId = narmestelederId,
@@ -534,7 +534,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             } returns Unit
             val uuid = testDb.persistOppfolgingsplan(
                 narmesteLederId = narmestelederId,
-                createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                persistedOppfolgingsplan = defaultOppfolgingsplan()
             )
             // Act
             val response = client.post {
@@ -582,7 +582,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             } throws LegeNotFoundException("Lege not found for sykmeldt")
             val uuid = testDb.persistOppfolgingsplan(
                 narmesteLederId = narmestelederId,
-                createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                persistedOppfolgingsplan = defaultOppfolgingsplan()
             )
             // Act
             val response = client.post {

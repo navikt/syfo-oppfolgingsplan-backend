@@ -5,9 +5,6 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import java.util.Random
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 import net.datafaker.Faker
 
 fun interface IDineSykmeldteHttpClient {
@@ -44,18 +41,30 @@ class FakeDineSykmeldteHttpClient : IDineSykmeldteHttpClient {
             orgnummer = faker.numerify("#########"),
             fnr = faker.numerify("###########"),
             navn = faker.name().fullName(),
+            sykmeldinger = listOf(
+                DineSykmeldteSykmelding(
+                    arbeidsgiver = faker.company().name()
+                )
+            ),
             aktivSykmelding = true
         )
     }
 }
 
-@OptIn(ExperimentalSerializationApi::class)
-@Serializable
-@JsonIgnoreUnknownKeys
 data class Sykmeldt(
     val narmestelederId: String,
     val orgnummer: String,
     val fnr: String,
     val navn: String?,
+    val sykmeldinger: List<DineSykmeldteSykmelding>?,
     val aktivSykmelding: Boolean?,
 )
+
+data class DineSykmeldteSykmelding(
+    // respons inneholder mer data, men vi trenger kun dette feltet
+    val arbeidsgiver: String,
+)
+
+fun Sykmeldt.getOrganizationName(): String? {
+    return sykmeldinger?.firstOrNull()?.arbeidsgiver
+}

@@ -24,11 +24,11 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 = Oppf
     oppfolgingsplan = Oppfolginsplan(
         createdDate = this.createdAt.atZone(ZoneId.of("Europe/Oslo")).toLocalDate(),
         evaluationDate = this.sluttdato,
-        sykmeldtName = "Tester Hansen",
+        sykmeldtName = this.sykmeldtFullName ?: "Sykmeldt Navn",
         sykmeldtFnr = this.sykmeldtFnr,
-        orgName = "Eksempel AS",
+        orgName = this.orgName ?: "Eksempel AS",
         orgnummer = this.orgnummer,
-        narmesteLederName = "Nærmeste Leder",
+        narmesteLederName = this.narmesteLederFullName ?: "Nærmeste Leder",
         sections = listOf(
             Section(
                 id = "tilpassing",

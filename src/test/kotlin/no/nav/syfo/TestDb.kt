@@ -3,7 +3,7 @@ package no.nav.syfo
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
@@ -99,8 +99,7 @@ class TestDB private constructor() {
 }
 
 fun DatabaseInterface.persistOppfolgingsplan(
-    narmesteLederId: String,
-    createOppfolgingsplanRequest: CreateOppfolgingsplanRequest,
+    persistedOppfolgingsplan: PersistedOppfolgingsplan,
 ): UUID {
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
@@ -119,14 +118,14 @@ fun DatabaseInterface.persistOppfolgingsplan(
 
     connection.use { connection ->
         connection.prepareStatement(insertStatement).use {
-            it.setString(1, createOppfolgingsplanRequest.sykmeldtFnr)
-            it.setString(2, narmesteLederId)
-            it.setString(3, createOppfolgingsplanRequest.narmesteLederFnr)
-            it.setString(4, createOppfolgingsplanRequest.orgnummer)
-            it.setObject(5, createOppfolgingsplanRequest.content.toString(), Types.OTHER)
-            it.setDate(6, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
-            it.setBoolean(7, createOppfolgingsplanRequest.skalDelesMedLege)
-            it.setBoolean(8, createOppfolgingsplanRequest.skalDelesMedVeileder)
+            it.setString(1, persistedOppfolgingsplan.sykmeldtFnr)
+            it.setString(2, persistedOppfolgingsplan.narmesteLederId)
+            it.setString(3, persistedOppfolgingsplan.narmesteLederFnr)
+            it.setString(4, persistedOppfolgingsplan.orgnummer)
+            it.setObject(5, persistedOppfolgingsplan.content.toString(), Types.OTHER)
+            it.setDate(6, Date.valueOf(persistedOppfolgingsplan.sluttdato.toString()))
+            it.setBoolean(7, persistedOppfolgingsplan.skalDelesMedLege)
+            it.setBoolean(8, persistedOppfolgingsplan.skalDelesMedVeileder)
             val resultSet = it.executeQuery()
             connection.commit()
             resultSet.next()

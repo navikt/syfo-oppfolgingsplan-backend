@@ -52,28 +52,24 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
         }
 
         post {
+            val innloggetBruker = call.principal<BrukerPrincipal>()
+                ?: throw UnauthorizedException("No user principal found in request")
+
             val oppfolgingsplan = try {
                 call.receive<CreateOppfolgingsplanRequest>()
             } catch (e: Exception) {
-                call.application.environment.log.error("Failed to parse Oppfolgingsplan from request: ${e.message}", e)
+                logger.warn("Failed to parse Oppfolgingsplan from request: ${e.message}", e)
                 throw BadRequestException("Invalid Oppfolgingsplan format")
             }
 
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
-            checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
-                oppfolgingsplan.sykmeldtFnr,
-                oppfolgingsplan.orgnummer,
-                sykmeldt
+            val uuid = oppfolgingsplanService.createOppfolgingsplan(
+                innloggetBruker.ident,
+                sykmeldt,
+                oppfolgingsplan
             )
 
-            val uuid = oppfolgingsplanService.persistOppfolgingsplan(sykmeldt.narmestelederId, oppfolgingsplan)
-
-            try {
-                oppfolgingsplanService.produceVarsel(oppfolgingsplan)
-            } catch (e: Exception) {
-                logger.error("Error when producing kafka message", e)
-            }
             call.response.headers.append(HttpHeaders.Location, call.request.path() + "/$uuid")
             call.respond(HttpStatusCode.Created)
         }
@@ -140,7 +136,8 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             isDialogmeldingService.sendOppfolgingsplanToGeneralPractitioner(
                 texasResponse.accessToken,
                 sykmeldt.fnr,
-                pdfByteArray)
+                pdfByteArray
+            )
 
             oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, Instant.now())
             call.respond(HttpStatusCode.OK)

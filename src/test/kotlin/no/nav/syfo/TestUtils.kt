@@ -2,13 +2,7 @@ package no.nav.syfo
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import io.ktor.client.call.body
-import io.ktor.client.request.HttpRequest
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.request
-import io.ktor.http.HttpStatusCode
-import io.mockk.coEvery
-import io.mockk.mockk
+import no.nav.syfo.dinesykmeldte.DineSykmeldteSykmelding
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -70,17 +64,8 @@ fun defaultSykmeldt() = Sykmeldt(
     "orgnummer",
     "12345678901",
     "Navn Sykmeldt",
+    sykmeldinger = listOf(DineSykmeldteSykmelding("Test AS")),
     true,
 )
 
 val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)
-
-fun mockHttpResponse(message: String, statusCode: HttpStatusCode): HttpResponse {
-    val mockHttpResponse = mockk<HttpResponse>()
-    val request = mockk<HttpRequest>()
-
-    coEvery { mockHttpResponse.status } returns statusCode
-    coEvery { mockHttpResponse.body<String>() } returns message
-    coEvery { mockHttpResponse.request } returns request
-    return mockHttpResponse
-}

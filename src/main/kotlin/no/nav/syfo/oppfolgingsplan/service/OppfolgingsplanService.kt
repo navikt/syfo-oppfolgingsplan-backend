@@ -2,6 +2,7 @@ package no.nav.syfo.oppfolgingsplan.service
 
 import java.time.LocalDate
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
@@ -18,6 +19,7 @@ import java.util.UUID
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.dto.mapToOppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.mapToUtkastMetadata
+import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
@@ -27,12 +29,22 @@ class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
 ) {
+    private val logger = logger()
 
-    fun persistOppfolgingsplan(
-        narmesteLederId: String,
+    fun createOppfolgingsplan(
+        narmesteLederFnr: String,
+        sykmeldt: Sykmeldt,
         createOppfolgingsplanRequest: CreateOppfolgingsplanRequest
     ): UUID {
-        return database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederId, createOppfolgingsplanRequest)
+        val uuid = database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederFnr, sykmeldt, createOppfolgingsplanRequest)
+
+        try {
+            produceOppfolgingsplanCreatedVarsel(sykmeldt)
+        } catch (e: Exception) {
+            logger.error("Error when producing kafka message", e)
+        }
+
+        return uuid
     }
 
     fun persistOppfolgingsplanUtkast(narmesteLederId: String, utkast: CreateUtkastRequest) {
@@ -84,13 +96,13 @@ class OppfolgingsplanService(
         )
     }
 
-    fun produceVarsel(oppfolgingsplan: CreateOppfolgingsplanRequest) {
+    private fun produceOppfolgingsplanCreatedVarsel(sykmeldt: Sykmeldt) {
         val hendelse = ArbeidstakerHendelse(
             type = HendelseType.SM_OPPFOLGINGSPLAN_OPPRETTET,
             ferdigstill = false,
-            arbeidstakerFnr = oppfolgingsplan.sykmeldtFnr,
+            arbeidstakerFnr = sykmeldt.fnr,
             data = null,
-            orgnummer = oppfolgingsplan.orgnummer,
+            orgnummer = sykmeldt.orgnummer,
         )
         esyfovarselProducer.sendVarselToEsyfovarsel(hendelse)
     }
