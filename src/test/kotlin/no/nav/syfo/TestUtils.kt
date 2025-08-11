@@ -28,9 +28,6 @@ fun defaultUtkast() = CreateUtkastRequest(
 )
 
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
-    sykmeldtFnr = "12345678901",
-    narmesteLederFnr = "10987654321",
-    orgnummer = "orgnummer",
     content = ObjectMapper().readValue(
         """
         {
@@ -44,20 +41,25 @@ fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
     skalDelesMedVeileder = false,
 )
 
-fun CreateOppfolgingsplanRequest.toPersistedOppfolgingsplan(narmesteLederId: String): PersistedOppfolgingsplan {
-    return PersistedOppfolgingsplan(
-        sykmeldtFnr = sykmeldtFnr,
-        narmesteLederFnr = narmesteLederFnr,
-        orgnummer = orgnummer,
-        content = content,
-        skalDelesMedLege = skalDelesMedLege,
-        skalDelesMedVeileder = skalDelesMedLege,
-        uuid = UUID.randomUUID(),
-        narmesteLederId = narmesteLederId,
-        sluttdato = sluttdato,
-        createdAt = Instant.now()
-    )
-}
+fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
+    sykmeldtFnr = "12345678901",
+    narmesteLederFnr = "10987654321",
+    orgnummer = "orgnummer",
+    content = ObjectMapper().readValue(
+        """
+        {
+            "tittel": "Oppfølgingsplan for Navn Sykmeldt",
+            "innhold": "Dette er en testoppfølgingsplan"
+        }
+        """.trimIndent()
+    ),
+    skalDelesMedLege = false,
+    skalDelesMedVeileder = false,
+    uuid = UUID.randomUUID(),
+    narmesteLederId = UUID.randomUUID().toString(),
+    sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
+    createdAt = Instant.now()
+)
 
 fun defaultSykmeldt() = Sykmeldt(
     "123",

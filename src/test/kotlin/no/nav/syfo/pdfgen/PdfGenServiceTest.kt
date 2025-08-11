@@ -13,9 +13,7 @@ import io.ktor.http.fullPath
 import io.ktor.http.headersOf
 import io.ktor.http.isSuccess
 import io.mockk.clearAllMocks
-import java.util.*
-import no.nav.syfo.defaultOppfolgingsplan
-import no.nav.syfo.toPersistedOppfolgingsplan
+import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.util.httpClientDefault
 import org.junit.jupiter.api.assertThrows
 
@@ -48,7 +46,6 @@ class PdfGenServiceTest : DescribeSpec({
 
     describe("PdfGenService") {
         it("generatePdf and outgoing call with client succeeds") {
-            val plan = defaultOppfolgingsplan()
             val client = httpClientDefault(
                 HttpClient(
                     getMockEngine(
@@ -56,7 +53,7 @@ class PdfGenServiceTest : DescribeSpec({
                     )
                 )
             )
-            val persistedPlan = plan.toPersistedOppfolgingsplan(UUID.randomUUID().toString())
+            val persistedPlan = defaultPersistedOppfolgingsplan()
             val myService = PdfGenService(PdfGenClient(client, ""))
             val response = myService.generatePdf(persistedPlan)
             response shouldNotBe null
@@ -74,8 +71,7 @@ class PdfGenServiceTest : DescribeSpec({
                 )
             )
             val myService = PdfGenService(PdfGenClient(client, ""))
-            val plan = defaultOppfolgingsplan()
-            val persistedPlan = plan.toPersistedOppfolgingsplan(UUID.randomUUID().toString())
+            val persistedPlan = defaultPersistedOppfolgingsplan()
             assertThrows<RuntimeException> {
                 myService.generatePdf(persistedPlan)
             }

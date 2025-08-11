@@ -51,7 +51,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             skal_deles_med_lege,
             skal_deles_med_veileder,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         RETURNING uuid
     """.trimIndent()
 
@@ -71,11 +71,11 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.setString(3, sykmeldt.narmestelederId)
             it.setString(4, narmesteLederFnr)
             it.setString(5, sykmeldt.orgnummer)
-            it.setString(5, sykmeldt.getOrganizationName())
-            it.setObject(6, createOppfolgingsplanRequest.content.toString(), Types.OTHER)
-            it.setDate(7, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
-            it.setBoolean(8, createOppfolgingsplanRequest.skalDelesMedLege)
-            it.setBoolean(9, createOppfolgingsplanRequest.skalDelesMedVeileder)
+            it.setString(6, sykmeldt.getOrganizationName())
+            it.setObject(7, createOppfolgingsplanRequest.content.toString(), Types.OTHER)
+            it.setDate(8, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
+            it.setBoolean(9, createOppfolgingsplanRequest.skalDelesMedLege)
+            it.setBoolean(10, createOppfolgingsplanRequest.skalDelesMedVeileder)
             val resultSet = it.executeQuery()
             resultSet.next()
             resultSet.getObject("uuid", UUID::class.java)
