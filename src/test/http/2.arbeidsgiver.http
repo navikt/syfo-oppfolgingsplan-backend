@@ -4,9 +4,6 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "sykmeldtFnr": "{{pid}}",
-  "narmesteLederFnr": "09458722800",
-  "orgnummer": "{{orgnummer}}",
   "sluttdato": "2025-07-30",
   "content": {
     "tittel": "Oppfølgingsplan for Robust klovn",
@@ -14,7 +11,7 @@ Authorization: Bearer {{token}}
   }
 }
 
-### Create/update oppfolgingsplan utkast
+### Get oppfolgingsplan utkast
 GET http://localhost:8080/api/v1/arbeidsgiver/{{narmestelederId}}/oppfolgingsplaner/utkast HTTP/1.1
 Authorization: Bearer {{token}}
 
@@ -24,9 +21,6 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
-  "sykmeldtFnr": "{{pid}}",
-  "narmesteLederFnr": "09458722800",
-  "orgnummer": "{{orgnummer}}",
   "sluttdato": "2025-07-30",
   "skalDelesMedLege": false,
   "skalDelesMedVeileder": false,
