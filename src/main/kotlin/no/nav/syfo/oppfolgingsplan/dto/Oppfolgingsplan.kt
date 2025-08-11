@@ -30,9 +30,6 @@ data class OppfolgingsplanMetadata (
 )
 
 data class CreateUtkastRequest(
-    val sykmeldtFnr: String,
-    val narmesteLederFnr: String,
-    val orgnummer: String,
     val content: JsonNode?,
     val sluttdato: LocalDate?,
 )

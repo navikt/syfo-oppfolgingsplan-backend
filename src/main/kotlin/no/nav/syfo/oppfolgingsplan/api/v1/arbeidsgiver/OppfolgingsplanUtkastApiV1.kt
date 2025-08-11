@@ -1,6 +1,7 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
@@ -9,14 +10,12 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
-import no.nav.syfo.application.exception.ApiError
-import no.nav.syfo.application.exception.ForbiddenException
+import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
-import no.nav.syfo.util.logger
 
 fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
     dineSykmeldteService: DineSykmeldteService,
@@ -30,16 +29,22 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
         }
 
         put {
+            val innloggetBruker = call.principal<BrukerPrincipal>()
+                ?: throw UnauthorizedException("No user principal found in request")
+
             val utkast = try { call.receive<CreateUtkastRequest>() } catch (e: Exception) {
                 throw BadRequestException("Failed to parse OppfolgingsplanUtkast from request", e)
             }
 
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
-            if (utkast.sykmeldtFnr != sykmeldt.fnr) {
-                throw ForbiddenException("Sykmeldt fnr does not match for narmestelederId: ${sykmeldt.narmestelederId}")
-            }
-            oppfolgingsplanService.persistOppfolgingsplanUtkast(sykmeldt.narmestelederId, utkast)
+            oppfolgingsplanService.persistOppfolgingsplanUtkast(
+                sykmeldt.narmestelederId,
+                innloggetBruker.ident,
+                sykmeldt,
+                utkast
+            )
+
             call.respond(HttpStatusCode.OK)
         }
 

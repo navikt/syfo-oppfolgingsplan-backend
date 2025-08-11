@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import java.sql.Date
 import java.sql.ResultSet
@@ -26,6 +27,8 @@ data class PersistedOppfolgingsplanUtkast (
 
 fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     narmesteLederId: String,
+    narmesteLederFnr: String,
+    sykmeldt: Sykmeldt,
     createUtkastRequest: CreateUtkastRequest,
 ): UUID {
     val statement =
@@ -52,10 +55,10 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
 
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setString(1, createUtkastRequest.sykmeldtFnr)
+            preparedStatement.setString(1, sykmeldt.fnr)
             preparedStatement.setString(2, narmesteLederId)
-            preparedStatement.setString(3, createUtkastRequest.narmesteLederFnr)
-            preparedStatement.setString(4, createUtkastRequest.orgnummer)
+            preparedStatement.setString(3, narmesteLederFnr)
+            preparedStatement.setString(4, sykmeldt.orgnummer)
             preparedStatement.setObject(5, createUtkastRequest.content.toString(), Types.OTHER)
             preparedStatement.setDate(6, Date.valueOf(createUtkastRequest.sluttdato.toString()))
             val resultSet = preparedStatement.executeQuery()

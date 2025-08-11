@@ -29,18 +29,18 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.defaultUtkast
+import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.persistOppfolgingsplan
+import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -174,6 +174,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             }
             it("GET /oppfolgingsplaner/oversikt should respond with OK and return overview") {
                 val sykmeldtFnr = "12345678901"
+                val narmestelederFnr = "10987654321"
                 withTestApplication {
                     // Arrange
                     coEvery {
@@ -204,9 +205,13 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         defaultPersistedOppfolgingsplan()
                             .copy(narmesteLederId = narmestelederId)
                     )
-                    testDb.upsertOppfolgingsplanUtkast(
-                        narmesteLederId = narmestelederId,
-                        createUtkastRequest = defaultUtkast()
+                    testDb.persistOppfolgingsplanUtkast(
+                        defaultPersistedOppfolgingsplanUtkast()
+                            .copy(
+                                narmesteLederId = narmestelederId,
+                                narmesteLederFnr = narmestelederFnr,
+                                sykmeldtFnr = sykmeldtFnr,
+                            )
                     )
 
                     // Act

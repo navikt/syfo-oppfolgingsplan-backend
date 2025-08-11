@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
@@ -133,3 +134,39 @@ fun DatabaseInterface.persistOppfolgingsplan(
         }
     }
 }
+
+fun DatabaseInterface.persistOppfolgingsplanUtkast(
+    persistedOppfolgingsplanUtkast: PersistedOppfolgingsplanUtkast
+) {
+    val insertStatement = """
+        INSERT INTO oppfolgingsplan_utkast (
+            sykmeldt_fnr,
+            narmeste_leder_id,
+            narmeste_leder_fnr,
+            orgnummer,
+            content,
+            sluttdato,
+            created_at,
+            updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ON CONFLICT (narmeste_leder_id) DO UPDATE SET
+            sykmeldt_fnr = EXCLUDED.sykmeldt_fnr,
+            narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
+            orgnummer = EXCLUDED.orgnummer,
+            content = EXCLUDED.content,
+            sluttdato = EXCLUDED.sluttdato,
+            updated_at = NOW()
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(insertStatement).use {
+            it.setString(1, persistedOppfolgingsplanUtkast.sykmeldtFnr)
+            it.setString(2, persistedOppfolgingsplanUtkast.narmesteLederId)
+            it.setString(3, persistedOppfolgingsplanUtkast.narmesteLederFnr)
+            it.setString(4, persistedOppfolgingsplanUtkast.orgnummer)
+            it.setObject(5, persistedOppfolgingsplanUtkast.content.toString(), Types.OTHER)
+            it.setDate(6, Date.valueOf(persistedOppfolgingsplanUtkast.sluttdato.toString()))
+            it.executeUpdate()
+        }
+        connection.commit()
+    }}

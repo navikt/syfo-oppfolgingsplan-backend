@@ -9,13 +9,11 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 
 fun defaultUtkast() = CreateUtkastRequest(
-    sykmeldtFnr = "12345678901",
-    narmesteLederFnr = "10987654321",
-    orgnummer = "orgnummer",
     content = ObjectMapper().readValue(
         """
         {
@@ -59,6 +57,25 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     narmesteLederId = UUID.randomUUID().toString(),
     sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
     createdAt = Instant.now()
+)
+
+fun defaultPersistedOppfolgingsplanUtkast() = PersistedOppfolgingsplanUtkast(
+    uuid = UUID.randomUUID(),
+    sykmeldtFnr = "12345678901",
+    narmesteLederId = UUID.randomUUID().toString(),
+    narmesteLederFnr = "10987654321",
+    orgnummer = "orgnummer",
+    content = ObjectMapper().readValue(
+        """
+        {
+            "tittel": "Utkast for Navn Sykmeldt",
+            "innhold": "Dette er et testutkast"
+        }
+        """.trimIndent()
+    ),
+    sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
+    createdAt = Instant.now(),
+    updatedAt = Instant.now(),
 )
 
 fun defaultSykmeldt() = Sykmeldt(

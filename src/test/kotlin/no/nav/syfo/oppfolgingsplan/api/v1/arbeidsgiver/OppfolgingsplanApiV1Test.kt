@@ -275,7 +275,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         any(),
                         any()
                     )
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
 
                 coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                     "token",
@@ -288,7 +288,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         narmestelederId,
                         "token"
                     )
-                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+                } returns sykmeldt
 
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan()
@@ -304,6 +304,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 )
                 val utkastUUID = testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederId = narmestelederId,
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
                     createUtkastRequest = defaultUtkast()
                 )
 
@@ -394,9 +396,12 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns Unit
 
                 testDb.upsertOppfolgingsplanUtkast(
-                    narmestelederId,
-                    defaultUtkast()
+                    narmesteLederId = narmestelederId,
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
+                    createUtkastRequest = defaultUtkast()
                 )
+
                 val oppfolgingsplan = defaultOppfolgingsplan()
 
                 // Act
@@ -444,9 +449,12 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             } throws Exception("exception")
 
             testDb.upsertOppfolgingsplanUtkast(
-                narmestelederId,
-                defaultUtkast()
+                narmesteLederId = narmestelederId,
+                narmesteLederFnr = pidInnlogetBruker,
+                sykmeldt = sykmeldt,
+                createUtkastRequest = defaultUtkast()
             )
+            
             val oppfolgingsplan = defaultOppfolgingsplan()
 
             // Act
