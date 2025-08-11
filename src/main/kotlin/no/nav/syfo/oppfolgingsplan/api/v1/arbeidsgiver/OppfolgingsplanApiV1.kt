@@ -142,5 +142,41 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, Instant.now())
             call.respond(HttpStatusCode.OK)
         }
+
+        post("/{uuid}/del-med-Nav") {
+            val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
+
+            if (sykmeldt.aktivSykmelding != true) {
+                throw BadRequestException("Cannot send oppfolgingsplan to Nav when there is no active sykmelding")
+            }
+
+            val innloggetBruker = call.principal<BrukerPrincipal>()
+                ?: throw UnauthorizedException("No user principal found in request")
+
+            val uuid = call.parameters.extractAndValidateUUIDParameter()
+
+            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid)
+                ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
+
+            checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
+                oppfolgingsplan.sykmeldtFnr,
+                oppfolgingsplan.orgnummer,
+                sykmeldt
+            )
+
+            oppfolgingsplanService.updateSkalDelesMedLege(uuid, true)
+
+            val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
+                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+
+            val texasResponse = texasHttpClient.exchangeTokenForIsDialogmelding(innloggetBruker.token)
+            isDialogmeldingService.sendOppfolgingsplanToGeneralPractitioner(
+                texasResponse.accessToken,
+                sykmeldt.fnr,
+                pdfByteArray)
+
+            oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, Instant.now())
+            call.respond(HttpStatusCode.OK)
+        }
     }
 }
