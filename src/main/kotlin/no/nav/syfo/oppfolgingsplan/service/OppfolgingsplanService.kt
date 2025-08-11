@@ -24,10 +24,14 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
+import no.nav.syfo.modia.FollowUpPlanProducer
+import no.nav.syfo.modia.domain.KFollowUpPlan
+import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
 
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
+    private val followUpPlanProducer: FollowUpPlanProducer,
 ) {
     private val logger = logger()
 
@@ -69,11 +73,25 @@ class OppfolgingsplanService(
         database.updateSkalDelesMedLege(uuid, skalDelesMedLege)
     }
 
+    fun updateSkalDelesMedVeileder(
+        uuid: UUID,
+        skalDelesMedVeilder: Boolean
+    ) {
+        database.updateSkalDelesMedLege(uuid, skalDelesMedVeilder)
+    }
+
     fun setDeltMedLegeTidspunkt(
         uuid: UUID,
         deltMedLegeTidspunkt: Instant
     ) {
         database.setDeltMedLegeTidspunkt(uuid, deltMedLegeTidspunkt)
+    }
+
+    fun setDeltMedVeilederTidspunkt(
+        uuid: UUID,
+        deltMedVeilederTidspunkt: Instant
+    ) {
+        database.setDeltMedVeilderTidspunkt(uuid, deltMedVeilederTidspunkt)
     }
 
     fun getOppfolginsplanOverviewFor(sykmeldtFnr: String, orgnummer: String): OppfolgingsplanOverview {
@@ -108,5 +126,20 @@ class OppfolgingsplanService(
             orgnummer = sykmeldt.orgnummer,
         )
         esyfovarselProducer.sendVarselToEsyfovarsel(hendelse)
+    }
+
+    fun produceFollowUpPlanToModia(
+        oppfolgingsplan: PersistedOppfolgingsplan,
+    ): KFollowUpPlan {
+        val kFollowUpPlan = KFollowUpPlan(
+            uuid = oppfolgingsplan.uuid.toString(),
+            fodselsnummer = oppfolgingsplan.sykmeldtFnr,
+            virksomhetsnummer = oppfolgingsplan.orgnummer,
+            behovForBistandFraNav = false,
+            opprettet = LocalDate.now().toEpochDay().toInt(),
+            opprettetTimestamp = Instant.now(),
+        )
+        followUpPlanProducer.createFollowUpPlanTaskInModia(kFollowUpPlan)
+        return kFollowUpPlan
     }
 }

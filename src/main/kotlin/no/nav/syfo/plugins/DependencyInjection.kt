@@ -16,6 +16,8 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.modia.FollowUpPlanProducer
+import no.nav.syfo.modia.domain.KFollowUpPlan
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
@@ -79,11 +81,18 @@ private fun servicesModule() = module {
         DineSykmeldteService(dineSykmeldteHttpClient)
     }
     single { TexasHttpClient(get(), env().texas) }
-    single { OppfolgingsplanService(get(), get()) }
+    single { OppfolgingsplanService(database = get(), esyfovarselProducer = get(), followUpPlanProducer = get()) }
     single { TexasHttpClient(get(), env().texas) }
     single {
         EsyfovarselProducer(
             KafkaProducer<String, EsyfovarselHendelse>(
+                producerProperties(env().kafka)
+            )
+        )
+    }
+    single {
+        FollowUpPlanProducer(
+            KafkaProducer<String, KFollowUpPlan>(
                 producerProperties(env().kafka)
             )
         )

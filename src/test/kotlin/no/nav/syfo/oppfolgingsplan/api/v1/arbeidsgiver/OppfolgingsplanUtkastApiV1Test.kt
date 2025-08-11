@@ -86,6 +86,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock,
+                            followUpPlanProducer = followUpPlanProducer,
                         ),
                         pdfGenService = PdfGenService(pdfGenClient),
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock)
