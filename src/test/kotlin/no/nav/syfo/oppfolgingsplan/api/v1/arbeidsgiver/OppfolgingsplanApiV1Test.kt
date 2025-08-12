@@ -367,6 +367,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 persisted.first().skalDelesMedVeileder shouldBe oppfolgingsplan.skalDelesMedVeileder
                 persisted.first().deltMedVeilederTidspunkt shouldBe oppfolgingsplan.deltMedVeilederTidspunkt
                 persisted.first().deltMedLegeTidspunkt shouldBe oppfolgingsplan.deltMedLegeTidspunkt
+                persisted.first().sykmeldtFullName shouldBe "Navn Sykmeldt"
+                persisted.first().orgName shouldBe "Test AS"
                 verify(exactly = 1) {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
                         val hendelse = it as ArbeidstakerHendelse
@@ -454,7 +456,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 sykmeldt = sykmeldt,
                 createUtkastRequest = defaultUtkast()
             )
-            
+
             val oppfolgingsplan = defaultOppfolgingsplan()
 
             // Act

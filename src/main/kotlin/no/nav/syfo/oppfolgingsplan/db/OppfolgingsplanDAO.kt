@@ -198,9 +198,12 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
     return PersistedOppfolgingsplan(
         uuid = getObject("uuid") as UUID,
         sykmeldtFnr = this.getString("sykmeldt_fnr"),
+        sykmeldtFullName = this.getString("sykmeldt_full_name"),
         narmesteLederId = this.getString("narmeste_leder_id"),
         narmesteLederFnr = this.getString("narmeste_leder_fnr"),
+        narmesteLederFullName = this.getString("narmeste_leder_full_name"),
         orgnummer = this.getString("orgnummer"),
+        orgName = this.getString("org_name"),
         content = ObjectMapper().readValue(getString("content")),
         sluttdato = LocalDate.parse(this.getString("sluttdato")),
         skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
