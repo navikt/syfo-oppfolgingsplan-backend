@@ -174,7 +174,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             oppfolgingsplanService.updateSkalDelesMedVeileder(uuid, true)
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
-//            val kFollowUpPlan = oppfolgingsplanService.produceFollowUpPlanToModia(oppfolgingsplan)
             dokarkivService.arkiverOppfolginsplan(oppfolgingsplan, pdfByteArray)
             oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
             call.respond(HttpStatusCode.OK)

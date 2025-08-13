@@ -32,6 +32,7 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
@@ -87,7 +88,6 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock,
-                            followUpPlanProducer = followUpPlanProducer,
                         ),
                         pdfGenService = PdfGenService(pdfGenClient),
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),

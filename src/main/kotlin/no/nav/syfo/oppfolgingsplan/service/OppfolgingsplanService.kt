@@ -24,15 +24,12 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
-import no.nav.syfo.modia.FollowUpPlanProducer
-import no.nav.syfo.modia.domain.KFollowUpPlan
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeider
 
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
-    private val followUpPlanProducer: FollowUpPlanProducer,
 ) {
     private val logger = logger()
 
@@ -127,32 +124,5 @@ class OppfolgingsplanService(
             orgnummer = sykmeldt.orgnummer,
         )
         esyfovarselProducer.sendVarselToEsyfovarsel(hendelse)
-    }
-
-    fun arkiverOppfolgingsplan(
-        oppfolgingsplan: PersistedOppfolgingsplan,
-        pdf: ByteArray,
-    ): PersistedOppfolgingsplan {
-        return oppfolgingsplan.copy(
-            deltMedLegeTidspunkt = Instant.now(),
-            deltMedVeilederTidspunkt = Instant.now(),
-        ).also { updatedPlan ->
-            database.setDeltMedLegeTidspunkt(updatedPlan.uuid, updatedPlan.deltMedLegeTidspunkt!!)
-            database.setDeltMedVeilderTidspunkt(updatedPlan.uuid, updatedPlan.deltMedVeilederTidspunkt!!)
-        }
-    }
-    fun produceFollowUpPlanToModia(
-        oppfolgingsplan: PersistedOppfolgingsplan,
-    ): KFollowUpPlan {
-        val kFollowUpPlan = KFollowUpPlan(
-            uuid = oppfolgingsplan.uuid.toString(),
-            fodselsnummer = oppfolgingsplan.sykmeldtFnr,
-            virksomhetsnummer = oppfolgingsplan.orgnummer,
-            behovForBistandFraNav = false,
-            opprettet = LocalDate.now().toEpochDay().toInt(),
-            opprettetTimestamp = Instant.now(),
-        )
-        followUpPlanProducer.createFollowUpPlanTaskInModia(kFollowUpPlan)
-        return kFollowUpPlan
     }
 }

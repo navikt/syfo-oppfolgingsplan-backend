@@ -41,7 +41,6 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
-import no.nav.syfo.modia.FollowUpPlanProducer
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
@@ -63,7 +62,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
-    val followUpPlanProducer = mockk<FollowUpPlanProducer>()
     val testDb = TestDB.database
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
     val pdfGenServiceMock = mockk<PdfGenService>()
@@ -103,7 +101,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock,
-                            followUpPlanProducer = followUpPlanProducer,
                         ),
                         pdfGenService = pdfGenServiceMock,
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
