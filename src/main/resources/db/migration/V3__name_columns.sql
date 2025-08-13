@@ -1,4 +1,11 @@
 ALTER TABLE oppfolgingsplan
-    add COLUMN sykmeldt_full_name VARCHAR(255) NOT NULL,
-    add COLUMN org_name VARCHAR(255),
-    add COLUMN narmeste_leder_full_name VARCHAR(255);
+    ADD COLUMN sykmeldt_full_name VARCHAR(255) NOT NULL,
+    ADD COLUMN organisasjonsnavn VARCHAR(255),
+    ADD COLUMN narmeste_leder_full_name VARCHAR(255);
+
+
+ALTER TABLE oppfolgingsplan
+    RENAME COLUMN orgnummer TO organisasjonsnummer;
+
+ALTER TABLE oppfolgingsplan_utkast
+    RENAME COLUMN orgnummer TO organisasjonsnummer;

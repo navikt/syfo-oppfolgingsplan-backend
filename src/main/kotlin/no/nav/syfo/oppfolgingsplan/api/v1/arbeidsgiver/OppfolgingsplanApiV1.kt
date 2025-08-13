@@ -99,7 +99,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
                 oppfolgingsplan.sykmeldtFnr,
-                oppfolgingsplan.orgnummer,
+                oppfolgingsplan.organisasjonsnummer,
                 sykmeldt
             )
 
@@ -123,7 +123,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
                 oppfolgingsplan.sykmeldtFnr,
-                oppfolgingsplan.orgnummer,
+                oppfolgingsplan.organisasjonsnummer,
                 sykmeldt
             )
 

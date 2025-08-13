@@ -18,7 +18,7 @@ data class PersistedOppfolgingsplanUtkast (
     val sykmeldtFnr: String,
     val narmesteLederId: String,
     val narmesteLederFnr: String,
-    val orgnummer: String,
+    val organisasjonsnummer: String,
     val content: JsonNode?,
     val sluttdato: LocalDate?,
     val createdAt: Instant,
@@ -37,7 +37,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             sykmeldt_fnr,
             narmeste_leder_id,
             narmeste_leder_fnr,
-            orgnummer,
+            organisasjonsnummer,
             content,
             sluttdato,
             created_at,
@@ -46,7 +46,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
         ON CONFLICT (narmeste_leder_id) DO UPDATE SET
             sykmeldt_fnr = EXCLUDED.sykmeldt_fnr,
             narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
-            orgnummer = EXCLUDED.orgnummer,
+            organisasjonsnummer = EXCLUDED.organisasjonsnummer,
             content = EXCLUDED.content,
             sluttdato = EXCLUDED.sluttdato,
             updated_at = NOW()
@@ -71,20 +71,20 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
 
 fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     sykmeldtFnr: String,
-    orgnummer: String
+    organisasjonsnummer: String
 ): PersistedOppfolgingsplanUtkast? {
     val statement =
         """
         SELECT *
         FROM oppfolgingsplan_utkast
         WHERE sykmeldt_fnr = ?
-        AND orgnummer = ?
+        AND organisasjonsnummer = ?
         """.trimIndent()
 
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setString(1, sykmeldtFnr)
-            preparedStatement.setString(2, orgnummer)
+            preparedStatement.setString(2, organisasjonsnummer)
             val resultSet = preparedStatement.executeQuery()
             return if (resultSet.next()) {
                 resultSet.toOppfolgingsplanUtkastDTO()
@@ -101,7 +101,7 @@ fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
         sykmeldtFnr = getString("sykmeldt_fnr"),
         narmesteLederId = getString("narmeste_leder_id"),
         narmesteLederFnr = getString("narmeste_leder_fnr"),
-        orgnummer = getString("orgnummer"),
+        organisasjonsnummer = getString("organisasjonsnummer"),
         content = ObjectMapper().readValue(getString("content")),
         sluttdato = getDate("sluttdato")?.toLocalDate(),
         createdAt = getTimestamp("created_at").toInstant(),

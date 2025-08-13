@@ -105,28 +105,30 @@ fun DatabaseInterface.persistOppfolgingsplan(
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
             sykmeldt_fnr,
+            sykmeldt_full_name,
             narmeste_leder_id,
             narmeste_leder_fnr,
-            orgnummer,
+            organisasjonsnummer,
             content,
             sluttdato,
             skal_deles_med_lege,
             skal_deles_med_veileder,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         RETURNING uuid
     """.trimIndent()
 
     connection.use { connection ->
         connection.prepareStatement(insertStatement).use {
             it.setString(1, persistedOppfolgingsplan.sykmeldtFnr)
-            it.setString(2, persistedOppfolgingsplan.narmesteLederId)
-            it.setString(3, persistedOppfolgingsplan.narmesteLederFnr)
-            it.setString(4, persistedOppfolgingsplan.orgnummer)
-            it.setObject(5, persistedOppfolgingsplan.content.toString(), Types.OTHER)
-            it.setDate(6, Date.valueOf(persistedOppfolgingsplan.sluttdato.toString()))
-            it.setBoolean(7, persistedOppfolgingsplan.skalDelesMedLege)
-            it.setBoolean(8, persistedOppfolgingsplan.skalDelesMedVeileder)
+            it.setString(2, persistedOppfolgingsplan.sykmeldtFullName)
+            it.setString(3, persistedOppfolgingsplan.narmesteLederId)
+            it.setString(4, persistedOppfolgingsplan.narmesteLederFnr)
+            it.setString(5, persistedOppfolgingsplan.organisasjonsnummer)
+            it.setObject(6, persistedOppfolgingsplan.content.toString(), Types.OTHER)
+            it.setDate(7, Date.valueOf(persistedOppfolgingsplan.sluttdato.toString()))
+            it.setBoolean(8, persistedOppfolgingsplan.skalDelesMedLege)
+            it.setBoolean(9, persistedOppfolgingsplan.skalDelesMedVeileder)
             val resultSet = it.executeQuery()
             connection.commit()
             resultSet.next()
@@ -143,7 +145,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             sykmeldt_fnr,
             narmeste_leder_id,
             narmeste_leder_fnr,
-            orgnummer,
+            organisasjonsnummer,
             content,
             sluttdato,
             created_at,
@@ -152,7 +154,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
         ON CONFLICT (narmeste_leder_id) DO UPDATE SET
             sykmeldt_fnr = EXCLUDED.sykmeldt_fnr,
             narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
-            orgnummer = EXCLUDED.orgnummer,
+            organisasjonsnummer = EXCLUDED.organisasjonsnummer,
             content = EXCLUDED.content,
             sluttdato = EXCLUDED.sluttdato,
             updated_at = NOW()
@@ -163,7 +165,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             it.setString(1, persistedOppfolgingsplanUtkast.sykmeldtFnr)
             it.setString(2, persistedOppfolgingsplanUtkast.narmesteLederId)
             it.setString(3, persistedOppfolgingsplanUtkast.narmesteLederFnr)
-            it.setString(4, persistedOppfolgingsplanUtkast.orgnummer)
+            it.setString(4, persistedOppfolgingsplanUtkast.organisasjonsnummer)
             it.setObject(5, persistedOppfolgingsplanUtkast.content.toString(), Types.OTHER)
             it.setDate(6, Date.valueOf(persistedOppfolgingsplanUtkast.sluttdato.toString()))
             it.executeUpdate()

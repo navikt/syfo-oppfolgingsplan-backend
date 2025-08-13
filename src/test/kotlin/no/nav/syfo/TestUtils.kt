@@ -41,8 +41,9 @@ fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
 
 fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     sykmeldtFnr = "12345678901",
+    sykmeldtFullName = "Navn Sykmeldt",
     narmesteLederFnr = "10987654321",
-    orgnummer = "orgnummer",
+    organisasjonsnummer = "orgnummer",
     content = ObjectMapper().readValue(
         """
         {
@@ -64,7 +65,7 @@ fun defaultPersistedOppfolgingsplanUtkast() = PersistedOppfolgingsplanUtkast(
     sykmeldtFnr = "12345678901",
     narmesteLederId = UUID.randomUUID().toString(),
     narmesteLederFnr = "10987654321",
-    orgnummer = "orgnummer",
+    organisasjonsnummer = "orgnummer",
     content = ObjectMapper().readValue(
         """
         {

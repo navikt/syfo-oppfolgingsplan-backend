@@ -131,7 +131,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     it.sykmeldtFnr shouldBe "12345678901"
                     it.narmesteLederId shouldBe narmestelederId
                     it.narmesteLederFnr shouldBe pidInnlogetBruker
-                    it.orgnummer shouldBe "orgnummer"
+                    it.organisasjonsnummer shouldBe "orgnummer"
                     it.content shouldNotBe null
                     it.sluttdato shouldBe utkast.sluttdato
                 }
@@ -196,7 +196,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     it.sykmeldtFnr shouldBe sykmeldt.fnr
                     it.narmesteLederId shouldBe narmestelederId
                     it.narmesteLederFnr shouldBe pidInnlogetBruker
-                    it.orgnummer shouldBe sykmeldt.orgnummer
+                    it.organisasjonsnummer shouldBe sykmeldt.orgnummer
                     it.content?.get("innhold")?.asText() shouldBe "Nytt innhold"
                     it.sluttdato shouldBe LocalDate.parse("2020-01-02")
                 }
@@ -238,7 +238,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 utkast.uuid shouldBe existingUUID
                 utkast.sykmeldtFnr shouldBe sykmeldt.fnr
                 utkast.narmesteLederFnr shouldBe pidInnlogetBruker
-                utkast.orgnummer shouldBe sykmeldt.orgnummer
+                utkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
                 utkast.content?.get("innhold")?.asText() shouldBe "Dette er en testoppfølgingsplan"
                 utkast.sluttdato shouldBe requestUtkast.sluttdato
             }

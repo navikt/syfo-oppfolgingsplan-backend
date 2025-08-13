@@ -12,8 +12,8 @@ data class Oppfolginsplan(
     val evaluationDate: LocalDate,
     val sykmeldtName: String,
     val sykmeldtFnr: String,
-    val orgName: String,
-    val orgnummer: String,
+    val organisasjonsnavn: String,
+    val organisasjonsnummer: String,
     val narmesteLederName: String,
     val sections: List<Section>,
 )

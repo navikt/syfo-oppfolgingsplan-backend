@@ -360,7 +360,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 persisted.first().sykmeldtFnr shouldBe sykmeldt.fnr
                 persisted.first().narmesteLederFnr shouldBe pidInnlogetBruker
                 persisted.first().narmesteLederId shouldBe narmestelederId
-                persisted.first().orgnummer shouldBe sykmeldt.orgnummer
+                persisted.first().organisasjonsnummer shouldBe sykmeldt.orgnummer
                 persisted.first().content.toString() shouldBe oppfolgingsplan.content.toString()
                 persisted.first().sluttdato.toString() shouldBe oppfolgingsplan.sluttdato.toString()
                 persisted.first().skalDelesMedLege shouldBe oppfolgingsplan.skalDelesMedLege
@@ -368,7 +368,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 persisted.first().deltMedVeilederTidspunkt shouldBe oppfolgingsplan.deltMedVeilederTidspunkt
                 persisted.first().deltMedLegeTidspunkt shouldBe oppfolgingsplan.deltMedLegeTidspunkt
                 persisted.first().sykmeldtFullName shouldBe "Navn Sykmeldt"
-                persisted.first().orgName shouldBe "Test AS"
+                persisted.first().organisasjonsnavn shouldBe "Test AS"
                 verify(exactly = 1) {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
                         val hendelse = it as ArbeidstakerHendelse

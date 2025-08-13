@@ -26,8 +26,8 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 = Oppf
         evaluationDate = this.sluttdato,
         sykmeldtName = this.sykmeldtFullName ?: "Sykmeldt Navn",
         sykmeldtFnr = this.sykmeldtFnr,
-        orgName = this.orgName ?: "Eksempel AS",
-        orgnummer = this.orgnummer,
+        organisasjonsnavn = this.organisasjonsnavn ?: "Eksempel AS",
+        organisasjonsnummer = this.organisasjonsnummer,
         narmesteLederName = this.narmesteLederFullName ?: "Nærmeste Leder",
         sections = listOf(
             Section(

@@ -22,8 +22,8 @@ data class PersistedOppfolgingsplan(
     val narmesteLederId: String,
     val narmesteLederFnr: String,
     val narmesteLederFullName: String? = null,
-    val orgnummer: String,
-    val orgName: String? = null,
+    val organisasjonsnummer: String,
+    val organisasjonsnavn: String? = null,
     val content: JsonNode,
     val sluttdato: LocalDate,
     val skalDelesMedLege: Boolean,
@@ -44,8 +44,8 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             sykmeldt_full_name,
             narmeste_leder_id,
             narmeste_leder_fnr,
-            orgnummer,
-            org_name,
+            organisasjonsnummer,
+            organisasjonsnavn,
             content,
             sluttdato,
             skal_deles_med_lege,
@@ -109,20 +109,20 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
     sykmeldtFnr: String,
-    orgnummer: String
+    organisasjonsnummer: String
 ): List<PersistedOppfolgingsplan> {
     val statement = """
         SELECT *
         FROM oppfolgingsplan
         WHERE sykmeldt_fnr = ?
-        AND orgnummer = ?
+        AND organisasjonsnummer = ?
         ORDER BY created_at DESC
     """.trimIndent()
 
     return connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setString(1, sykmeldtFnr)
-            preparedStatement.setString(2, orgnummer)
+            preparedStatement.setString(2, organisasjonsnummer)
             preparedStatement.executeQuery().use { resultSet ->
                 generateSequence { if (resultSet.next()) resultSet else null }
                     .map { it.mapToOppfolgingsplan() }
@@ -202,8 +202,8 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         narmesteLederId = this.getString("narmeste_leder_id"),
         narmesteLederFnr = this.getString("narmeste_leder_fnr"),
         narmesteLederFullName = this.getString("narmeste_leder_full_name"),
-        orgnummer = this.getString("orgnummer"),
-        orgName = this.getString("org_name"),
+        organisasjonsnummer = this.getString("organisasjonsnummer"),
+        organisasjonsnavn = this.getString("organisasjonsnavn"),
         content = ObjectMapper().readValue(getString("content")),
         sluttdato = LocalDate.parse(this.getString("sluttdato")),
         skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
