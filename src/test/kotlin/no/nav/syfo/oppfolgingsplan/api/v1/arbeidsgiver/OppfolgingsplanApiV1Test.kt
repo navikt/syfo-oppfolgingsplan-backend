@@ -32,6 +32,7 @@ import no.nav.syfo.application.exception.ApiError
 import no.nav.syfo.application.exception.ErrorType
 import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.defaultOppfolgingsplan
+import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
@@ -61,9 +62,12 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
-    val narmestelederId = UUID.randomUUID().toString()
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
     val pdfGenServiceMock = mockk<PdfGenService>()
+
+    val narmestelederId = UUID.randomUUID().toString()
+    val pidInnlogetBruker = "10987654321"
+    val sykmeldt = defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
 
     beforeTest {
@@ -244,8 +248,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
                 val existingUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                        )
                 )
 
                 // Act
@@ -269,7 +275,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         any(),
                         any()
                     )
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
 
                 coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
                     "token",
@@ -282,18 +288,23 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         narmestelederId,
                         "token"
                     )
-                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+                } returns sykmeldt
 
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                        )
                 )
                 val latestPlanUUID = testDb.persistOppfolgingsplan(
-                    narmesteLederId = narmestelederId,
-                    createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                        )
                 )
                 val utkastUUID = testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederId = narmestelederId,
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
                     createUtkastRequest = defaultUtkast()
                 )
 
@@ -317,7 +328,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 // Arrange
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
 
                 coEvery {
                     texasClientMock.exchangeTokenForDineSykmeldte(any())
@@ -325,7 +336,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+                } returns sykmeldt
 
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
@@ -345,21 +356,23 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 val persisted = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
                 persisted.size shouldBe 1
-                persisted.first().sykmeldtFnr shouldBe oppfolgingsplan.sykmeldtFnr
-                persisted.first().narmesteLederFnr shouldBe oppfolgingsplan.narmesteLederFnr
+                persisted.first().sykmeldtFnr shouldBe sykmeldt.fnr
+                persisted.first().narmesteLederFnr shouldBe pidInnlogetBruker
                 persisted.first().narmesteLederId shouldBe narmestelederId
-                persisted.first().orgnummer shouldBe oppfolgingsplan.orgnummer
+                persisted.first().organisasjonsnummer shouldBe sykmeldt.orgnummer
                 persisted.first().content.toString() shouldBe oppfolgingsplan.content.toString()
                 persisted.first().sluttdato.toString() shouldBe oppfolgingsplan.sluttdato.toString()
                 persisted.first().skalDelesMedLege shouldBe oppfolgingsplan.skalDelesMedLege
                 persisted.first().skalDelesMedVeileder shouldBe oppfolgingsplan.skalDelesMedVeileder
                 persisted.first().deltMedVeilederTidspunkt shouldBe oppfolgingsplan.deltMedVeilederTidspunkt
                 persisted.first().deltMedLegeTidspunkt shouldBe oppfolgingsplan.deltMedLegeTidspunkt
+                persisted.first().sykmeldtFullName shouldBe "Navn Sykmeldt"
+                persisted.first().organisasjonsnavn shouldBe "Test AS"
                 verify(exactly = 1) {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
                         val hendelse = it as ArbeidstakerHendelse
-                        hendelse.arbeidstakerFnr shouldBe oppfolgingsplan.sykmeldtFnr
-                        hendelse.orgnummer shouldBe oppfolgingsplan.orgnummer
+                        hendelse.arbeidstakerFnr shouldBe sykmeldt.fnr
+                        hendelse.orgnummer shouldBe sykmeldt.orgnummer
                     })
                 }
             }
@@ -369,7 +382,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 // Arrange
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
 
                 coEvery {
                     texasClientMock.exchangeTokenForDineSykmeldte(any())
@@ -377,16 +390,18 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+                } returns sykmeldt
 
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
                 } returns Unit
 
                 testDb.upsertOppfolgingsplanUtkast(
-                    narmestelederId,
-                    defaultUtkast()
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
+                    createUtkastRequest = defaultUtkast()
                 )
+
                 val oppfolgingsplan = defaultOppfolgingsplan()
 
                 // Act
@@ -407,8 +422,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 verify(exactly = 1) {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
                         val hendelse = it as ArbeidstakerHendelse
-                        hendelse.arbeidstakerFnr shouldBe oppfolgingsplan.sykmeldtFnr
-                        hendelse.orgnummer shouldBe oppfolgingsplan.orgnummer
+                        hendelse.arbeidstakerFnr shouldBe sykmeldt.fnr
+                        hendelse.orgnummer shouldBe sykmeldt.orgnummer
                     })
                 }
             }
@@ -419,7 +434,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             // Arrange
             coEvery {
                 texasClientMock.introspectToken(any(), any())
-            } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+            } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
 
             coEvery {
                 texasClientMock.exchangeTokenForDineSykmeldte(any())
@@ -427,16 +442,18 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
             coEvery {
                 dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-            } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+            } returns sykmeldt
 
             coEvery {
                 esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
             } throws Exception("exception")
 
             testDb.upsertOppfolgingsplanUtkast(
-                narmestelederId,
-                defaultUtkast()
+                narmesteLederFnr = pidInnlogetBruker,
+                sykmeldt = sykmeldt,
+                createUtkastRequest = defaultUtkast()
             )
+
             val oppfolgingsplan = defaultOppfolgingsplan()
 
             // Act
@@ -457,8 +474,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             verify(exactly = 1) {
                 esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
                     val hendelse = it as ArbeidstakerHendelse
-                    hendelse.arbeidstakerFnr shouldBe oppfolgingsplan.sykmeldtFnr
-                    hendelse.orgnummer shouldBe oppfolgingsplan.orgnummer
+                    hendelse.arbeidstakerFnr shouldBe sykmeldt.fnr
+                    hendelse.orgnummer shouldBe sykmeldt.orgnummer
                 })
             }
         }
@@ -468,25 +485,24 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             // Arrange
             coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
                 active = true,
-                pid = "user",
+                pid = pidInnlogetBruker,
                 acr = "Level4"
             )
             coEvery {
                 texasClientMock.exchangeTokenForDineSykmeldte(any())
             } returns TexasExchangeResponse("token", 111, "tokenType")
+
             coEvery {
                 texasClientMock.exchangeTokenForIsDialogmelding(any())
-            } returns TexasExchangeResponse(
-                "token",
-                111,
-                "tokenType"
-            )
+            } returns TexasExchangeResponse("token", 111, "tokenType")
+
             coEvery {
                 dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
                     narmestelederId,
                     "token"
                 )
-            } returns defaultSykmeldt()
+            } returns sykmeldt
+
             val uuid = UUID.randomUUID()
             // Act
             val response = client.post {
@@ -505,7 +521,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             // Arrange
             coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
                 active = true,
-                pid = "user",
+                pid = pidInnlogetBruker,
                 acr = "Level4"
             )
             coEvery {
@@ -523,7 +539,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     narmestelederId,
                     "token"
                 )
-            } returns defaultSykmeldt()
+            } returns sykmeldt
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
             coEvery {
                 isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
@@ -533,8 +549,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 )
             } returns Unit
             val uuid = testDb.persistOppfolgingsplan(
-                narmesteLederId = narmestelederId,
-                createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                defaultPersistedOppfolgingsplan()
+                    .copy(narmesteLederId = narmestelederId)
             )
             // Act
             val response = client.post {
@@ -553,7 +569,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             // Arrange
             coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
                 active = true,
-                pid = "user",
+                pid = pidInnlogetBruker,
                 acr = "Level4"
             )
             coEvery {
@@ -571,7 +587,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     narmestelederId,
                     "token"
                 )
-            } returns defaultSykmeldt()
+            } returns sykmeldt
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
             coEvery {
                 isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
@@ -581,8 +597,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 )
             } throws LegeNotFoundException("Lege not found for sykmeldt")
             val uuid = testDb.persistOppfolgingsplan(
-                narmesteLederId = narmestelederId,
-                createOppfolgingsplanRequest = defaultOppfolgingsplan()
+                defaultPersistedOppfolgingsplan()
+                    .copy(narmesteLederId = narmestelederId)
             )
             // Act
             val response = client.post {

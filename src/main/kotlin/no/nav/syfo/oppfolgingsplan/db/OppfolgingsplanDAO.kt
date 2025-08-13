@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.dinesykmeldte.Sykmeldt
+import no.nav.syfo.dinesykmeldte.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import java.sql.Date
 import java.sql.ResultSet
@@ -16,9 +18,12 @@ import java.util.UUID
 data class PersistedOppfolgingsplan(
     val uuid: UUID,
     val sykmeldtFnr: String,
+    val sykmeldtFullName: String,
     val narmesteLederId: String,
     val narmesteLederFnr: String,
-    val orgnummer: String,
+    val narmesteLederFullName: String?,
+    val organisasjonsnummer: String,
+    val organisasjonsnavn: String?,
     val content: JsonNode,
     val sluttdato: LocalDate,
     val skalDelesMedLege: Boolean,
@@ -29,21 +34,24 @@ data class PersistedOppfolgingsplan(
 )
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
-    narmesteLederId: String,
+    narmesteLederFnr: String,
+    sykmeldt: Sykmeldt,
     createOppfolgingsplanRequest: CreateOppfolgingsplanRequest
 ): UUID {
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
             sykmeldt_fnr,
+            sykmeldt_full_name,
             narmeste_leder_id,
             narmeste_leder_fnr,
-            orgnummer,
+            organisasjonsnummer,
+            organisasjonsnavn,
             content,
             sluttdato,
             skal_deles_med_lege,
             skal_deles_med_veileder,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         RETURNING uuid
     """.trimIndent()
 
@@ -54,18 +62,20 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
 
     connection.use { connection ->
         connection.prepareStatement(deleteStatement).use {
-            it.setString(1, narmesteLederId)
+            it.setString(1, sykmeldt.narmestelederId)
             it.executeUpdate()
         }
         val uuid = connection.prepareStatement(insertStatement).use {
-            it.setString(1, createOppfolgingsplanRequest.sykmeldtFnr)
-            it.setString(2, narmesteLederId)
-            it.setString(3, createOppfolgingsplanRequest.narmesteLederFnr)
-            it.setString(4, createOppfolgingsplanRequest.orgnummer)
-            it.setObject(5, createOppfolgingsplanRequest.content.toString(), Types.OTHER)
-            it.setDate(6, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
-            it.setBoolean(7, createOppfolgingsplanRequest.skalDelesMedLege)
-            it.setBoolean(8, createOppfolgingsplanRequest.skalDelesMedVeileder)
+            it.setString(1, sykmeldt.fnr)
+            it.setString(2, sykmeldt.navn)
+            it.setString(3, sykmeldt.narmestelederId)
+            it.setString(4, narmesteLederFnr)
+            it.setString(5, sykmeldt.orgnummer)
+            it.setString(6, sykmeldt.getOrganizationName())
+            it.setObject(7, createOppfolgingsplanRequest.content.toString(), Types.OTHER)
+            it.setDate(8, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
+            it.setBoolean(9, createOppfolgingsplanRequest.skalDelesMedLege)
+            it.setBoolean(10, createOppfolgingsplanRequest.skalDelesMedVeileder)
             val resultSet = it.executeQuery()
             resultSet.next()
             resultSet.getObject("uuid", UUID::class.java)
@@ -99,20 +109,20 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
     sykmeldtFnr: String,
-    orgnummer: String
+    organisasjonsnummer: String
 ): List<PersistedOppfolgingsplan> {
     val statement = """
         SELECT *
         FROM oppfolgingsplan
         WHERE sykmeldt_fnr = ?
-        AND orgnummer = ?
+        AND organisasjonsnummer = ?
         ORDER BY created_at DESC
     """.trimIndent()
 
     return connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setString(1, sykmeldtFnr)
-            preparedStatement.setString(2, orgnummer)
+            preparedStatement.setString(2, organisasjonsnummer)
             preparedStatement.executeQuery().use { resultSet ->
                 generateSequence { if (resultSet.next()) resultSet else null }
                     .map { it.mapToOppfolgingsplan() }
@@ -188,9 +198,12 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
     return PersistedOppfolgingsplan(
         uuid = getObject("uuid") as UUID,
         sykmeldtFnr = this.getString("sykmeldt_fnr"),
+        sykmeldtFullName = this.getString("sykmeldt_full_name"),
         narmesteLederId = this.getString("narmeste_leder_id"),
         narmesteLederFnr = this.getString("narmeste_leder_fnr"),
-        orgnummer = this.getString("orgnummer"),
+        narmesteLederFullName = this.getString("narmeste_leder_full_name"),
+        organisasjonsnummer = this.getString("organisasjonsnummer"),
+        organisasjonsnavn = this.getString("organisasjonsnavn"),
         content = ObjectMapper().readValue(getString("content")),
         sluttdato = LocalDate.parse(this.getString("sluttdato")),
         skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),

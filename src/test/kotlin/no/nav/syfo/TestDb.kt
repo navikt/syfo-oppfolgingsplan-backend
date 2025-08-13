@@ -3,7 +3,8 @@ package no.nav.syfo
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
@@ -99,34 +100,35 @@ class TestDB private constructor() {
 }
 
 fun DatabaseInterface.persistOppfolgingsplan(
-    narmesteLederId: String,
-    createOppfolgingsplanRequest: CreateOppfolgingsplanRequest,
+    persistedOppfolgingsplan: PersistedOppfolgingsplan,
 ): UUID {
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
             sykmeldt_fnr,
+            sykmeldt_full_name,
             narmeste_leder_id,
             narmeste_leder_fnr,
-            orgnummer,
+            organisasjonsnummer,
             content,
             sluttdato,
             skal_deles_med_lege,
             skal_deles_med_veileder,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         RETURNING uuid
     """.trimIndent()
 
     connection.use { connection ->
         connection.prepareStatement(insertStatement).use {
-            it.setString(1, createOppfolgingsplanRequest.sykmeldtFnr)
-            it.setString(2, narmesteLederId)
-            it.setString(3, createOppfolgingsplanRequest.narmesteLederFnr)
-            it.setString(4, createOppfolgingsplanRequest.orgnummer)
-            it.setObject(5, createOppfolgingsplanRequest.content.toString(), Types.OTHER)
-            it.setDate(6, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
-            it.setBoolean(7, createOppfolgingsplanRequest.skalDelesMedLege)
-            it.setBoolean(8, createOppfolgingsplanRequest.skalDelesMedVeileder)
+            it.setString(1, persistedOppfolgingsplan.sykmeldtFnr)
+            it.setString(2, persistedOppfolgingsplan.sykmeldtFullName)
+            it.setString(3, persistedOppfolgingsplan.narmesteLederId)
+            it.setString(4, persistedOppfolgingsplan.narmesteLederFnr)
+            it.setString(5, persistedOppfolgingsplan.organisasjonsnummer)
+            it.setObject(6, persistedOppfolgingsplan.content.toString(), Types.OTHER)
+            it.setDate(7, Date.valueOf(persistedOppfolgingsplan.sluttdato.toString()))
+            it.setBoolean(8, persistedOppfolgingsplan.skalDelesMedLege)
+            it.setBoolean(9, persistedOppfolgingsplan.skalDelesMedVeileder)
             val resultSet = it.executeQuery()
             connection.commit()
             resultSet.next()
@@ -134,3 +136,39 @@ fun DatabaseInterface.persistOppfolgingsplan(
         }
     }
 }
+
+fun DatabaseInterface.persistOppfolgingsplanUtkast(
+    persistedOppfolgingsplanUtkast: PersistedOppfolgingsplanUtkast
+) {
+    val insertStatement = """
+        INSERT INTO oppfolgingsplan_utkast (
+            sykmeldt_fnr,
+            narmeste_leder_id,
+            narmeste_leder_fnr,
+            organisasjonsnummer,
+            content,
+            sluttdato,
+            created_at,
+            updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ON CONFLICT (narmeste_leder_id) DO UPDATE SET
+            sykmeldt_fnr = EXCLUDED.sykmeldt_fnr,
+            narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
+            organisasjonsnummer = EXCLUDED.organisasjonsnummer,
+            content = EXCLUDED.content,
+            sluttdato = EXCLUDED.sluttdato,
+            updated_at = NOW()
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(insertStatement).use {
+            it.setString(1, persistedOppfolgingsplanUtkast.sykmeldtFnr)
+            it.setString(2, persistedOppfolgingsplanUtkast.narmesteLederId)
+            it.setString(3, persistedOppfolgingsplanUtkast.narmesteLederFnr)
+            it.setString(4, persistedOppfolgingsplanUtkast.organisasjonsnummer)
+            it.setObject(5, persistedOppfolgingsplanUtkast.content.toString(), Types.OTHER)
+            it.setDate(6, Date.valueOf(persistedOppfolgingsplanUtkast.sluttdato.toString()))
+            it.executeUpdate()
+        }
+        connection.commit()
+    }}

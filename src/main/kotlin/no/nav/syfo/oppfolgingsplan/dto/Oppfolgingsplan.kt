@@ -8,9 +8,6 @@ import java.time.LocalDate
 import java.util.UUID
 
 data class CreateOppfolgingsplanRequest (
-    val sykmeldtFnr: String,
-    val narmesteLederFnr: String,
-    val orgnummer: String,
     val content: JsonNode,
     val sluttdato: LocalDate,
     val skalDelesMedLege: Boolean,
@@ -23,7 +20,7 @@ data class OppfolgingsplanMetadata (
     val uuid: UUID,
     val sykmeldtFnr: String,
     val narmesteLederFnr: String,
-    val orgnummer: String,
+    val organisasjonsnummer: String,
     val sluttdato: LocalDate,
     val skalDelesMedLege: Boolean,
     val skalDelesMedVeileder: Boolean,
@@ -33,9 +30,6 @@ data class OppfolgingsplanMetadata (
 )
 
 data class CreateUtkastRequest(
-    val sykmeldtFnr: String,
-    val narmesteLederFnr: String,
-    val orgnummer: String,
     val content: JsonNode?,
     val sluttdato: LocalDate?,
 )
@@ -44,7 +38,7 @@ data class UtkastMetadata(
     val uuid: UUID,
     val sykmeldtFnr: String,
     val narmesteLederFnr: String,
-    val orgnummer: String,
+    val organisasjonsnummer: String,
     val sluttdato: LocalDate?,
 )
 
@@ -63,7 +57,7 @@ fun PersistedOppfolgingsplanUtkast.mapToUtkastMetadata(): UtkastMetadata {
         uuid = uuid,
         sykmeldtFnr = sykmeldtFnr,
         narmesteLederFnr = narmesteLederFnr,
-        orgnummer = orgnummer,
+        organisasjonsnummer = organisasjonsnummer,
         sluttdato = sluttdato,
     )
 }
@@ -73,7 +67,7 @@ fun PersistedOppfolgingsplan.mapToOppfolgingsplanMetadata(): OppfolgingsplanMeta
         uuid = uuid,
         sykmeldtFnr = sykmeldtFnr,
         narmesteLederFnr = narmesteLederFnr,
-        orgnummer = orgnummer,
+        organisasjonsnummer = organisasjonsnummer,
         sluttdato = sluttdato,
         skalDelesMedLege = skalDelesMedLege,
         skalDelesMedVeileder = skalDelesMedVeileder,

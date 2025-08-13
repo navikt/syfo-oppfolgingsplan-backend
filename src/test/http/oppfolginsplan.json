@@ -1,7 +1,4 @@
 {
-  "sykmeldtFnr": "{{pid}}",
-  "narmesteLederFnr": "09458722800",
-  "orgnummer": "{{orgnummer}}",
   "sluttdato": "2025-07-30",
   "skalDelesMedLege": false,
   "skalDelesMedVeileder": false,

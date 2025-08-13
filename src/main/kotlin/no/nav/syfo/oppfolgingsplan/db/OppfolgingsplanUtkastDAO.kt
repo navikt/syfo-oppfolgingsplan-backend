@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import java.sql.Date
 import java.sql.ResultSet
@@ -17,7 +18,7 @@ data class PersistedOppfolgingsplanUtkast (
     val sykmeldtFnr: String,
     val narmesteLederId: String,
     val narmesteLederFnr: String,
-    val orgnummer: String,
+    val organisasjonsnummer: String,
     val content: JsonNode?,
     val sluttdato: LocalDate?,
     val createdAt: Instant,
@@ -25,7 +26,8 @@ data class PersistedOppfolgingsplanUtkast (
 )
 
 fun DatabaseInterface.upsertOppfolgingsplanUtkast(
-    narmesteLederId: String,
+    narmesteLederFnr: String,
+    sykmeldt: Sykmeldt,
     createUtkastRequest: CreateUtkastRequest,
 ): UUID {
     val statement =
@@ -34,7 +36,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             sykmeldt_fnr,
             narmeste_leder_id,
             narmeste_leder_fnr,
-            orgnummer,
+            organisasjonsnummer,
             content,
             sluttdato,
             created_at,
@@ -43,7 +45,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
         ON CONFLICT (narmeste_leder_id) DO UPDATE SET
             sykmeldt_fnr = EXCLUDED.sykmeldt_fnr,
             narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
-            orgnummer = EXCLUDED.orgnummer,
+            organisasjonsnummer = EXCLUDED.organisasjonsnummer,
             content = EXCLUDED.content,
             sluttdato = EXCLUDED.sluttdato,
             updated_at = NOW()
@@ -52,10 +54,10 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
 
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setString(1, createUtkastRequest.sykmeldtFnr)
-            preparedStatement.setString(2, narmesteLederId)
-            preparedStatement.setString(3, createUtkastRequest.narmesteLederFnr)
-            preparedStatement.setString(4, createUtkastRequest.orgnummer)
+            preparedStatement.setString(1, sykmeldt.fnr)
+            preparedStatement.setString(2, sykmeldt.narmestelederId)
+            preparedStatement.setString(3, narmesteLederFnr)
+            preparedStatement.setString(4, sykmeldt.orgnummer)
             preparedStatement.setObject(5, createUtkastRequest.content.toString(), Types.OTHER)
             preparedStatement.setDate(6, Date.valueOf(createUtkastRequest.sluttdato.toString()))
             val resultSet = preparedStatement.executeQuery()
@@ -68,20 +70,20 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
 
 fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     sykmeldtFnr: String,
-    orgnummer: String
+    organisasjonsnummer: String
 ): PersistedOppfolgingsplanUtkast? {
     val statement =
         """
         SELECT *
         FROM oppfolgingsplan_utkast
         WHERE sykmeldt_fnr = ?
-        AND orgnummer = ?
+        AND organisasjonsnummer = ?
         """.trimIndent()
 
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setString(1, sykmeldtFnr)
-            preparedStatement.setString(2, orgnummer)
+            preparedStatement.setString(2, organisasjonsnummer)
             val resultSet = preparedStatement.executeQuery()
             return if (resultSet.next()) {
                 resultSet.toOppfolgingsplanUtkastDTO()
@@ -98,7 +100,7 @@ fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
         sykmeldtFnr = getString("sykmeldt_fnr"),
         narmesteLederId = getString("narmeste_leder_id"),
         narmesteLederFnr = getString("narmeste_leder_fnr"),
-        orgnummer = getString("orgnummer"),
+        organisasjonsnummer = getString("organisasjonsnummer"),
         content = ObjectMapper().readValue(getString("content")),
         sluttdato = getDate("sluttdato")?.toLocalDate(),
         createdAt = getTimestamp("created_at").toInstant(),

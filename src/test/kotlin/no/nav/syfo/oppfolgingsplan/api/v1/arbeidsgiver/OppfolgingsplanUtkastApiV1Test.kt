@@ -45,6 +45,7 @@ import java.time.LocalDate
 import no.nav.syfo.pdfgen.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.varsel.EsyfovarselProducer
+import java.util.UUID
 
 class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
@@ -54,6 +55,10 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val pdfGenClient = mockk<PdfGenClient>()
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
+
+    val narmestelederId = UUID.randomUUID().toString()
+    val pidInnlogetBruker = "10987654321"
+    val sykmeldt = defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
     beforeTest {
         clearAllMocks()
@@ -98,20 +103,20 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 // Arrange
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
 
                 coEvery {
                     texasClientMock.exchangeTokenForDineSykmeldte(any())
                 } returns TexasExchangeResponse("token", 111, "tokenType")
 
                 coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
-                } returns defaultSykmeldt()
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+                } returns sykmeldt
 
                 val utkast = defaultUtkast()
 
                 // Act
-                val response = client.put("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
+                val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(utkast)
@@ -124,9 +129,9 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 persisted shouldNotBe null
                 persisted?.let {
                     it.sykmeldtFnr shouldBe "12345678901"
-                    it.narmesteLederId shouldBe "123"
-                    it.narmesteLederFnr shouldBe "10987654321"
-                    it.orgnummer shouldBe "orgnummer"
+                    it.narmesteLederId shouldBe narmestelederId
+                    it.narmesteLederFnr shouldBe pidInnlogetBruker
+                    it.organisasjonsnummer shouldBe "orgnummer"
                     it.content shouldNotBe null
                     it.sluttdato shouldBe utkast.sluttdato
                 }
@@ -138,18 +143,19 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 // Arrange
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
 
                 coEvery {
                     texasClientMock.exchangeTokenForDineSykmeldte(any())
                 } returns TexasExchangeResponse("token", 111, "tokenType")
 
                 coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
-                } returns defaultSykmeldt()
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+                } returns sykmeldt
 
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
-                    "123",
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
                     defaultUtkast()
                         .copy(
                             content = ObjectMapper().readValue(
@@ -163,7 +169,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 )
 
                 // Act
-                val response = client.put("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
+                val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
                     setBody(
@@ -186,10 +192,10 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 persisted shouldNotBe null
                 persisted?.let {
                     it.uuid shouldBe existingUUID
-                    it.sykmeldtFnr shouldBe "12345678901"
-                    it.narmesteLederId shouldBe "123"
-                    it.narmesteLederFnr shouldBe "10987654321"
-                    it.orgnummer shouldBe "orgnummer"
+                    it.sykmeldtFnr shouldBe sykmeldt.fnr
+                    it.narmesteLederId shouldBe narmestelederId
+                    it.narmesteLederFnr shouldBe pidInnlogetBruker
+                    it.organisasjonsnummer shouldBe sykmeldt.orgnummer
                     it.content?.get("innhold")?.asText() shouldBe "Nytt innhold"
                     it.sluttdato shouldBe LocalDate.parse("2020-01-02")
                 }
@@ -201,23 +207,25 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 // Arrange
                 coEvery {
                     texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
 
                 coEvery {
                     texasClientMock.exchangeTokenForDineSykmeldte(any())
                 } returns TexasExchangeResponse("token", 111, "tokenType")
 
                 coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId("123", "token")
-                } returns defaultSykmeldt()
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+                } returns sykmeldt
 
                 val requestUtkast = defaultUtkast()
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
-                    "123", requestUtkast
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
+                    requestUtkast
                 )
 
                 // Act
-                val response = client.get("/api/v1/arbeidsgiver/123/oppfolgingsplaner/utkast") {
+                val response = client.get("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                 }
 
@@ -226,9 +234,9 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 val utkast = response.body<PersistedOppfolgingsplanUtkast>()
                 utkast shouldNotBe null
                 utkast.uuid shouldBe existingUUID
-                utkast.sykmeldtFnr shouldBe "12345678901"
-                utkast.narmesteLederFnr shouldBe "10987654321"
-                utkast.orgnummer shouldBe "orgnummer"
+                utkast.sykmeldtFnr shouldBe sykmeldt.fnr
+                utkast.narmesteLederFnr shouldBe pidInnlogetBruker
+                utkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
                 utkast.content?.get("innhold")?.asText() shouldBe "Dette er en testoppfølgingsplan"
                 utkast.sluttdato shouldBe requestUtkast.sluttdato
             }
