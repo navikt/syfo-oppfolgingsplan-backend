@@ -25,9 +25,12 @@ import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.util.logger
 import java.time.Instant
+import no.nav.syfo.dokarkiv.DokarkivService
 
+@Suppress("LongParameterList", "LongMethod", "ThrowsCount")
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
     dineSykmeldteService: DineSykmeldteService,
+    dokarkivService: DokarkivService,
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService,
     pdfGenService: PdfGenService,
@@ -169,8 +172,11 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             )
 
             oppfolgingsplanService.updateSkalDelesMedVeileder(uuid, true)
-            val kFollowUpPlan = oppfolgingsplanService.produceFollowUpPlanToModia(oppfolgingsplan)
-            oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, kFollowUpPlan.opprettetTimestamp)
+            val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
+                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+//            val kFollowUpPlan = oppfolgingsplanService.produceFollowUpPlanToModia(oppfolgingsplan)
+            dokarkivService.arkiverOppfolginsplan(oppfolgingsplan, pdfByteArray)
+            oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
             call.respond(HttpStatusCode.OK)
         }
     }

@@ -38,6 +38,7 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.modia.FollowUpPlanProducer
@@ -71,6 +72,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val pidInnlogetBruker = "10987654321"
     val sykmeldt = defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
+    val dokarkivServiceMock = mockk<DokarkivService>()
 
     beforeTest {
         clearAllMocks()
@@ -104,7 +106,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                             followUpPlanProducer = followUpPlanProducer,
                         ),
                         pdfGenService = pdfGenServiceMock,
-                        isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock)
+                        isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
+                        dokarkivService = dokarkivServiceMock,
                     )
                 }
             }

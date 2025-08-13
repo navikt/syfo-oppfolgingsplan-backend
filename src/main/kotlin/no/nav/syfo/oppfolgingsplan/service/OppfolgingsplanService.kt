@@ -27,6 +27,7 @@ import java.time.Instant
 import no.nav.syfo.modia.FollowUpPlanProducer
 import no.nav.syfo.modia.domain.KFollowUpPlan
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeider
 
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
@@ -77,7 +78,7 @@ class OppfolgingsplanService(
         uuid: UUID,
         skalDelesMedVeilder: Boolean
     ) {
-        database.updateSkalDelesMedLege(uuid, skalDelesMedVeilder)
+        database.updateSkalDelesMedVeider(uuid, skalDelesMedVeilder)
     }
 
     fun setDeltMedLegeTidspunkt(
@@ -128,6 +129,18 @@ class OppfolgingsplanService(
         esyfovarselProducer.sendVarselToEsyfovarsel(hendelse)
     }
 
+    fun arkiverOppfolgingsplan(
+        oppfolgingsplan: PersistedOppfolgingsplan,
+        pdf: ByteArray,
+    ): PersistedOppfolgingsplan {
+        return oppfolgingsplan.copy(
+            deltMedLegeTidspunkt = Instant.now(),
+            deltMedVeilederTidspunkt = Instant.now(),
+        ).also { updatedPlan ->
+            database.setDeltMedLegeTidspunkt(updatedPlan.uuid, updatedPlan.deltMedLegeTidspunkt!!)
+            database.setDeltMedVeilderTidspunkt(updatedPlan.uuid, updatedPlan.deltMedVeilederTidspunkt!!)
+        }
+    }
     fun produceFollowUpPlanToModia(
         oppfolgingsplan: PersistedOppfolgingsplan,
     ): KFollowUpPlan {

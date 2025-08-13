@@ -19,6 +19,7 @@ import no.nav.syfo.texas.client.TexasHttpClient
 import org.koin.ktor.ext.inject
 import registerPodApi
 import kotlin.getValue
+import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.pdfgen.PdfGenService
 
 fun Application.configureRouting() {
@@ -29,6 +30,7 @@ fun Application.configureRouting() {
     val oppfolgingsplanService by inject<OppfolgingsplanService>()
     val pdfGenService by inject<PdfGenService>()
     val isDialogmeldingService by inject<IsDialogmeldingService>()
+    val dokarkivService by inject<DokarkivService>()
 
     installCallId()
     installContentNegotiation()
@@ -45,7 +47,8 @@ fun Application.configureRouting() {
             texasHttpClient = texasHttpClient,
             oppfolgingsplanService = oppfolgingsplanService,
             pdfGenService = pdfGenService,
-            isDialogmeldingService = isDialogmeldingService
+            isDialogmeldingService = isDialogmeldingService,
+            dokarkivService = dokarkivService,
         )
     }
 }

@@ -53,6 +53,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val pdfGenClient = mockk<PdfGenClient>()
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
+    val dokarkivServiceMock = mockk<DokarkivService>()
 
     val narmestelederId = UUID.randomUUID().toString()
     val pidInnlogetBruker = "10987654321"
@@ -89,7 +90,8 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                             followUpPlanProducer = followUpPlanProducer,
                         ),
                         pdfGenService = PdfGenService(pdfGenClient),
-                        isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock)
+                        isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
+                            dokarkivService = dokarkivServiceMock,
                     )
                 }
             }
