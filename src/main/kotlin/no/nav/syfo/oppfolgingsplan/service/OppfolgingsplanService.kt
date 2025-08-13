@@ -47,9 +47,8 @@ class OppfolgingsplanService(
         return uuid
     }
 
-    fun persistOppfolgingsplanUtkast(narmesteLederId: String, narmesteLederFnr: String, sykmeldt: Sykmeldt, utkast: CreateUtkastRequest) {
+    fun persistOppfolgingsplanUtkast(narmesteLederFnr: String, sykmeldt: Sykmeldt, utkast: CreateUtkastRequest) {
         database.upsertOppfolgingsplanUtkast(
-            narmesteLederId,
             narmesteLederFnr,
             sykmeldt,
             utkast)

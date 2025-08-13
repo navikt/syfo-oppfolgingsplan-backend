@@ -43,7 +43,9 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     sykmeldtFnr = "12345678901",
     sykmeldtFullName = "Navn Sykmeldt",
     narmesteLederFnr = "10987654321",
+    narmesteLederFullName = "Narmesteleder",
     organisasjonsnummer = "orgnummer",
+    organisasjonsnavn = "Test AS",
     content = ObjectMapper().readValue(
         """
         {

@@ -303,7 +303,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         )
                 )
                 val utkastUUID = testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederId = narmestelederId,
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
                     createUtkastRequest = defaultUtkast()
@@ -398,7 +397,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 } returns Unit
 
                 testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederId = narmestelederId,
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
                     createUtkastRequest = defaultUtkast()
@@ -451,7 +449,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             } throws Exception("exception")
 
             testDb.upsertOppfolgingsplanUtkast(
-                narmesteLederId = narmestelederId,
                 narmesteLederFnr = pidInnlogetBruker,
                 sykmeldt = sykmeldt,
                 createUtkastRequest = defaultUtkast()

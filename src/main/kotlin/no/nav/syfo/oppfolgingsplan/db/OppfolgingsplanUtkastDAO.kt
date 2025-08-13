@@ -26,7 +26,6 @@ data class PersistedOppfolgingsplanUtkast (
 )
 
 fun DatabaseInterface.upsertOppfolgingsplanUtkast(
-    narmesteLederId: String,
     narmesteLederFnr: String,
     sykmeldt: Sykmeldt,
     createUtkastRequest: CreateUtkastRequest,
@@ -56,7 +55,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setString(1, sykmeldt.fnr)
-            preparedStatement.setString(2, narmesteLederId)
+            preparedStatement.setString(2, sykmeldt.narmestelederId)
             preparedStatement.setString(3, narmesteLederFnr)
             preparedStatement.setString(4, sykmeldt.orgnummer)
             preparedStatement.setObject(5, createUtkastRequest.content.toString(), Types.OTHER)

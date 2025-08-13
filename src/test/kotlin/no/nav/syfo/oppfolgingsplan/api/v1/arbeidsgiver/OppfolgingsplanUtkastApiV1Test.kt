@@ -154,7 +154,6 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 } returns sykmeldt
 
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederId = narmestelederId,
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
                     defaultUtkast()
@@ -220,7 +219,6 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 val requestUtkast = defaultUtkast()
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederId = narmestelederId,
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
                     requestUtkast

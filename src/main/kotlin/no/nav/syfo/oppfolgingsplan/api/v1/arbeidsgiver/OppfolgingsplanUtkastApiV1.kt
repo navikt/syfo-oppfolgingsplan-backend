@@ -39,7 +39,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             oppfolgingsplanService.persistOppfolgingsplanUtkast(
-                sykmeldt.narmestelederId,
                 innloggetBruker.ident,
                 sykmeldt,
                 utkast
