@@ -12,13 +12,21 @@ import io.ktor.http.HttpStatusCode
 import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.util.logger
 
+interface IIsDialogmeldingClient {
+    suspend fun sendOppfolgingsplanToGeneralPractitioner(
+        token: String,
+        sykmeldtFnr: String,
+        plansAsPdf: ByteArray,
+    )
+}
+
 class IsDialogmeldingClient(
     private val httpClient: HttpClient,
     private val isDialogmeldingBaseUrl: String,
-) {
+) : IIsDialogmeldingClient {
     private val logger = logger()
 
-    suspend fun sendOppfolgingsplanToGeneralPractitioner(
+    override suspend fun sendOppfolgingsplanToGeneralPractitioner(
         token: String,
         sykmeldtFnr: String,
         plansAsPdf: ByteArray,
@@ -42,12 +50,26 @@ class IsDialogmeldingClient(
                         "Unable to determine fastlege, or lacking appropiate 'partnerinformasjon'-data",
                     )
                 }
+
                 else -> {
-                    logger.error("Call to to send oppfolgingsplan to fastlege failed with status: " +
-                            "${clientRequestException.response.status}, response body: ${clientRequestException.response.bodyAsText()}")
-                    throw RuntimeException("Error while sending oppfolgingsplan to general practitioner", clientRequestException)
+                    logger.error(
+                        "Call to to send oppfolgingsplan to fastlege failed with status: " +
+                            "${clientRequestException.response.status}, response body: ${clientRequestException.response.bodyAsText()}"
+                    )
+                    throw RuntimeException(
+                        "Error while sending oppfolgingsplan to general practitioner",
+                        clientRequestException
+                    )
                 }
             }
         }
     }
+}
+
+class FakeIsDialogmeldingClient : IIsDialogmeldingClient {
+    override suspend fun sendOppfolgingsplanToGeneralPractitioner(
+        token: String,
+        sykmeldtFnr: String,
+        plansAsPdf: ByteArray,
+    ) = Unit
 }

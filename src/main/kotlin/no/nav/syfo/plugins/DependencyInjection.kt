@@ -3,6 +3,7 @@ package no.nav.syfo.plugins
 import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import kotlin.math.sin
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.LocalEnvironment
@@ -18,6 +19,7 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivClient
 import no.nav.syfo.dokarkiv.FakeDokarkivClient
 import no.nav.syfo.dokarkiv.DokarkivService
+import no.nav.syfo.isdialogmelding.FakeIsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenClient
@@ -102,13 +104,13 @@ private fun servicesModule() = module {
 
     single { PdfGenService(get()) }
     single {
-        IsDialogmeldingService(
+        if (isLocalEnv()) FakeIsDialogmeldingClient() else
             IsDialogmeldingClient(
                 get(),
                 env().isDialogmeldingBaseUrl
             )
-        )
     }
+    single { IsDialogmeldingService(get()) }
     single { DokarkivService(get()) }
 }
 
