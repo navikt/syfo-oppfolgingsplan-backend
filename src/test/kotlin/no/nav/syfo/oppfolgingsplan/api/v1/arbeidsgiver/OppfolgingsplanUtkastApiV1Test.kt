@@ -1,6 +1,5 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
-import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
@@ -26,26 +25,26 @@ import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
+import java.time.LocalDate
+import java.util.*
 import no.nav.syfo.TestDB
-import no.nav.syfo.defaultUtkast
+import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultSykmeldt
+import no.nav.syfo.defaultUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.plugins.installContentNegotiation
-import no.nav.syfo.texas.client.TexasExchangeResponse
-import no.nav.syfo.texas.client.TexasHttpClient
-import no.nav.syfo.texas.client.TexasIntrospectionResponse
-import java.time.LocalDate
 import no.nav.syfo.pdfgen.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.plugins.installContentNegotiation
+import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
-import java.util.UUID
 
 class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
@@ -101,13 +100,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
         it("PUT /oppfolgingsplaner/utkast creates a new draft if it does not exist") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
-
-                coEvery {
-                    texasClientMock.exchangeTokenForDineSykmeldte(any())
-                } returns TexasExchangeResponse("token", 111, "tokenType")
+                texasClientMock.defaultMocks(pidInnlogetBruker)
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
@@ -141,14 +134,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
         it("PUT /oppfolgingsplaner/utkast overwrite existing draft") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
-
-                coEvery {
-                    texasClientMock.exchangeTokenForDineSykmeldte(any())
-                } returns TexasExchangeResponse("token", 111, "tokenType")
-
+                texasClientMock.defaultMocks(pidInnlogetBruker)
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
                 } returns sykmeldt
@@ -205,13 +191,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/utkast should retrieve the current oppfolgingsplan utkast") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
-
-                coEvery {
-                    texasClientMock.exchangeTokenForDineSykmeldte(any())
-                } returns TexasExchangeResponse("token", 111, "tokenType")
+                texasClientMock.defaultMocks(pidInnlogetBruker)
 
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")

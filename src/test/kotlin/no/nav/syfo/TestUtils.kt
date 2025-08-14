@@ -2,6 +2,7 @@ package no.nav.syfo
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import io.mockk.coEvery
 import no.nav.syfo.dinesykmeldte.DineSykmeldteSykmelding
 import java.time.Instant
 import java.time.LocalDate
@@ -12,6 +13,9 @@ import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.texas.client.TexasExchangeResponse
+import no.nav.syfo.texas.client.TexasHttpClient
+import no.nav.syfo.texas.client.TexasIntrospectionResponse
 
 fun defaultUtkast() = CreateUtkastRequest(
     content = ObjectMapper().readValue(
@@ -90,4 +94,21 @@ fun defaultSykmeldt() = Sykmeldt(
     true,
 )
 
+fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "Level4") {
+    coEvery { introspectToken(any(), any()) } returns TexasIntrospectionResponse(
+        active = true,
+        pid = pid,
+        acr = acr
+    )
+    coEvery {
+        exchangeTokenForDineSykmeldte(any())
+    } returns TexasExchangeResponse("token", 111, "tokenType")
+    coEvery {
+        exchangeTokenForIsDialogmelding(any())
+    } returns TexasExchangeResponse(
+        "token",
+        111,
+        "tokenType"
+    )
+}
 val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)
