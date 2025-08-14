@@ -11,7 +11,7 @@ Content-Type: application/json
 
 {
   "identity_provider": "tokenx",
-  "target": "followupplan-backend",
+  "target": "syfo-oppfolginsplan-backend",
   "user_token": "{{fakedings_token}}"
 }
 

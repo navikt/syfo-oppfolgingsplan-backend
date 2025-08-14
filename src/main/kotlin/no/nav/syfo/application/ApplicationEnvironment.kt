@@ -54,7 +54,7 @@ data class LocalEnvironment(
     override val database: DatabaseEnvironment = DatabaseEnvironment(
         host = "localhost",
         port = "5432",
-        name = "followupplan-backend_dev",
+        name = "syfo-oppfolginsplan-backend_dev",
         username = "username",
         password = "password",
         sslcert = null,

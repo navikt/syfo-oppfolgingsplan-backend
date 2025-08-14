@@ -1,4 +1,4 @@
-# followupplan-backend
+# syfo-oppfolginsplan-backend
 
 ## Local Development
 - Build the project using `./gradlew build` to ensure all dependencies are resolved and the project is compiled.
@@ -70,5 +70,5 @@ There are a few tweaks we need to do to the deployment manifest [nais-dev.yaml](
 Then run the following to create a tunnel from the deployment to your machine on the debug port 5005
 ```bash
 kubectx dev-gcp
-kubectl port-forward deployment/followupplan-backend  -n team-esyfo 5005:5005
+kubectl port-forward deployment/syfo-oppfolginsplan-backend  -n team-esyfo 5005:5005
 ```
