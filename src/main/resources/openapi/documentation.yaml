@@ -6,7 +6,7 @@ info:
 servers:
   - url: http://localhost:8080
     description: Local Server
-  - url: https://syfo-oppfolginsplan-backend.intern.dev.nav.no
+  - url: https://followupplan-backend.intern.dev.nav.no
     description: Dev Server
 paths:
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner:

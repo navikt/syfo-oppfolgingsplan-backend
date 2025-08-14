@@ -1,1 +1,1 @@
-rootProject.name = "syfo-oppfolginsplan-backend"
+rootProject.name = "followupplan-backend"
