@@ -1,6 +1,5 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt
 
-import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -28,11 +27,13 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.*
 import no.nav.syfo.TestDB
+import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.generatedPdfStandin
+import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
@@ -42,7 +43,6 @@ import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.plugins.installContentNegotiation
-import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -121,13 +121,14 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             it("GET /oppfolgingsplaner/oversikt should respond with OK when texas client gives active response") {
                 withTestApplication {
                     // Arrange
-                    coEvery {
-                        texasClientMock.introspectToken(any(), any())
-                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
-
-                    coEvery {
-                        texasClientMock.exchangeTokenForDineSykmeldte(any())
-                    } returns TexasExchangeResponse("token", 111, "tokenType")
+                    texasClientMock.defaultMocks()
+//                    coEvery {
+//                        texasClientMock.introspectToken(any(), any())
+//                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+//
+//                    coEvery {
+//                        texasClientMock.exchangeTokenForDineSykmeldte(any())
+//                    } returns TexasExchangeResponse("token", 111, "tokenType")
 
                     // Act
                     val response = client.get {
@@ -141,9 +142,11 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             it("GET /oppfolgingsplaner/oversikt should respond with Forbidden when texas acr claim is not Level4") {
                 withTestApplication {
                     // Arrange
-                    coEvery {
-                        texasClientMock.introspectToken(any(), any())
-                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
+                    texasClientMock.defaultMocks(acr = "Level3")
+
+//                    coEvery {
+//                        texasClientMock.introspectToken(any(), any())
+//                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
 
                     // Act
                     val response = client.get {
@@ -177,22 +180,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 val narmestelederFnr = "10987654321"
                 withTestApplication {
                     // Arrange
-                    coEvery {
-                        texasClientMock.introspectToken(
-                            any(),
-                            any()
-                        )
-                    } returns TexasIntrospectionResponse(
-                        active = true,
-                        pid = sykmeldtFnr,
-                        acr = "Level4"
-                    )
-
-                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                        "token",
-                        111,
-                        "tokenType"
-                    )
+                    texasClientMock.defaultMocks(pid = sykmeldtFnr)
 
                     val firstPlanUUID = testDb.persistOppfolgingsplan(
                         defaultPersistedOppfolgingsplan()
@@ -232,17 +220,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(
-                        any(),
-                        any()
-                    )
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
-                coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                    "token",
-                    111,
-                    "tokenType"
-                )
+                texasClientMock.defaultMocks()
 
                 // Act
                 val response = client.get {
@@ -259,22 +237,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 withTestApplication {
                     // Arrange
                     val sykmeldtFnr = "12345678901"
-                    coEvery {
-                        texasClientMock.introspectToken(
-                            any(),
-                            any()
-                        )
-                    } returns TexasIntrospectionResponse(
-                        active = true,
-                        pid = sykmeldtFnr,
-                        acr = "Level4"
-                    )
-
-                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                        "token",
-                        111,
-                        "tokenType"
-                    )
+                    texasClientMock.defaultMocks(sykmeldtFnr)
 
                     val existingUUID = testDb.persistOppfolgingsplan(
                         defaultPersistedOppfolgingsplan()
@@ -297,22 +260,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 withTestApplication {
                     // Arrange
                     val sykmeldtFnr = "12345678901"
-                    coEvery {
-                        texasClientMock.introspectToken(
-                            any(),
-                            any()
-                        )
-                    } returns TexasIntrospectionResponse(
-                        active = true,
-                        pid = sykmeldtFnr,
-                        acr = "Level4"
-                    )
 
-                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                        "token",
-                        111,
-                        "tokenType"
-                    )
+                    texasClientMock.defaultMocks(sykmeldtFnr)
 
                     val existingUUID = testDb.persistOppfolgingsplan(
                         defaultPersistedOppfolgingsplan()
@@ -334,17 +283,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             it("GET /oppfolgingsplaner/{uuid}/pdf should respond with NotFound if oppfolgingsplan does not exist") {
                 withTestApplication {
                     // Arrange
-                    coEvery {
-                        texasClientMock.introspectToken(
-                            any(),
-                            any()
-                        )
-                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
-                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                        "token",
-                        111,
-                        "tokenType"
-                    )
+                    texasClientMock.defaultMocks()
 
                     // Act
                     val response = client.get {
@@ -361,22 +300,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 withTestApplication {
                     // Arrange
                     val sykmeldtFnr = "12345678901"
-                    coEvery {
-                        texasClientMock.introspectToken(
-                            any(),
-                            any()
-                        )
-                    } returns TexasIntrospectionResponse(
-                        active = true,
-                        pid = sykmeldtFnr,
-                        acr = "Level4"
-                    )
 
-                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                        "token",
-                        111,
-                        "tokenType"
-                    )
+                    texasClientMock.defaultMocks(sykmeldtFnr)
 
                     coEvery { pdfGenService.generatePdf(any()) } returns generatedPdfStandin
 
@@ -402,22 +327,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 withTestApplication {
                     // Arrange
                     val sykmeldtFnr = "12345678901"
-                    coEvery {
-                        texasClientMock.introspectToken(
-                            any(),
-                            any()
-                        )
-                    } returns TexasIntrospectionResponse(
-                        active = true,
-                        pid = sykmeldtFnr,
-                        acr = "Level4"
-                    )
 
-                    coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                        "token",
-                        111,
-                        "tokenType"
-                    )
+                    texasClientMock.defaultMocks(sykmeldtFnr)
 
                     coEvery { pdfGenService.generatePdf(any()) } throws RuntimeException("Forced")
 
