@@ -1,7 +1,7 @@
 apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
-  name: followupplan-backend
+  name: syfo-oppfolginsplan-backend
   namespace: team-esyfo
   labels:
     team: team-esyfo
@@ -55,11 +55,11 @@ spec:
       - type: POSTGRES_17
         tier: db-custom-1-3840
         databases:
-          - name: followupplan-backend-instance
+          - name: syfo-oppfolginsplan-backend-instance
             envVarPrefix: OPPFOLGINGSPLAN_DB
         diskAutoresize: true
   ingresses:
-    - "https://followupplan-backend.intern.nav.no"
+    - "https://syfo-oppfolginsplan-backend.intern.nav.no"
   tokenx:
     enabled: true
   accessPolicy:
