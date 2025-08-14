@@ -2,16 +2,21 @@ package no.nav.syfo
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import io.mockk.coEvery
 import no.nav.syfo.dinesykmeldte.DineSykmeldteSykmelding
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.*
+import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.texas.client.TexasExchangeResponse
+import no.nav.syfo.texas.client.TexasHttpClient
+import no.nav.syfo.texas.client.TexasIntrospectionResponse
 
 fun defaultUtkast() = CreateUtkastRequest(
     content = ObjectMapper().readValue(
@@ -89,5 +94,32 @@ fun defaultSykmeldt() = Sykmeldt(
     sykmeldinger = listOf(DineSykmeldteSykmelding("Test AS")),
     true,
 )
+
+fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "Level4") {
+    coEvery { introspectToken(any(), any()) } returns TexasIntrospectionResponse(
+        active = true,
+        pid = pid,
+        acr = acr
+    )
+    coEvery {
+        exchangeTokenForDineSykmeldte(any())
+    } returns TexasExchangeResponse("token", 111, "tokenType")
+    coEvery {
+        exchangeTokenForIsDialogmelding(any())
+    } returns TexasExchangeResponse(
+        "token",
+        111,
+        "tokenType"
+    )
+}
+
+fun DineSykmeldteHttpClient.defaultMocks(narmestelederId: String) {
+    coEvery {
+        getSykmeldtForNarmesteLederId(
+            narmestelederId,
+            "token"
+        )
+    } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+}
 
 val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)

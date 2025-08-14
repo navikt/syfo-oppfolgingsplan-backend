@@ -31,6 +31,7 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.application.exception.ApiError
 import no.nav.syfo.application.exception.ErrorType
 import no.nav.syfo.application.exception.LegeNotFoundException
+import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
@@ -50,7 +51,6 @@ import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
-import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -134,14 +134,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/oversikt should respond with OK when texas client gives active response") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
-
-                coEvery {
-                    texasClientMock.exchangeTokenForDineSykmeldte(any())
-                } returns TexasExchangeResponse("token", 111, "tokenType")
-
+                texasClientMock.defaultMocks()
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
                 } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
@@ -159,16 +152,13 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/oversikt should respond with Forbidden when texas acr claim is not Level4") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
+                texasClientMock.defaultMocks(acr = "Level3")
 
                 // Act
                 val response = client.get {
                     url("api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
                     bearerAuth("Bearer token")
                 }
-
                 // Assert
                 response.status shouldBe HttpStatusCode.Forbidden
             }
@@ -193,25 +183,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(
-                        any(),
-                        any()
-                    )
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                texasClientMock.defaultMocks()
 
-                coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                    "token",
-                    111,
-                    "tokenType"
-                )
-
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                        narmestelederId,
-                        "token"
-                    )
-                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 // Act
                 val response = client.get {
@@ -227,25 +201,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/{uuid} should respond with OK and return oppfolgingsplan when found and authorized") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(
-                        any(),
-                        any()
-                    )
-                } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
+                texasClientMock.defaultMocks()
 
-                coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                    "token",
-                    111,
-                    "tokenType"
-                )
-
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                        narmestelederId,
-                        "token"
-                    )
-                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val existingUUID = testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan()
@@ -270,25 +228,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/oversikt should respond with OK and return overview") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(
-                        any(),
-                        any()
-                    )
-                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
+                texasClientMock.defaultMocks()
 
-                coEvery { texasClientMock.exchangeTokenForDineSykmeldte(any()) } returns TexasExchangeResponse(
-                    "token",
-                    111,
-                    "tokenType"
-                )
-
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                        narmestelederId,
-                        "token"
-                    )
-                } returns sykmeldt
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan()
@@ -326,17 +268,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("POST /oppfolgingsplaner should respond with 201 when oppfolgingsplan is created successfully") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
+                texasClientMock.defaultMocks(pidInnlogetBruker)
 
-                coEvery {
-                    texasClientMock.exchangeTokenForDineSykmeldte(any())
-                } returns TexasExchangeResponse("token", 111, "tokenType")
-
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns sykmeldt
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
@@ -380,17 +314,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("POST /oppfolgingsplaner creates new oppfolgingsplan and deletes existing utkast for narmesteLederId") {
             withTestApplication {
                 // Arrange
-                coEvery {
-                    texasClientMock.introspectToken(any(), any())
-                } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
+                texasClientMock.defaultMocks(pidInnlogetBruker)
 
-                coEvery {
-                    texasClientMock.exchangeTokenForDineSykmeldte(any())
-                } returns TexasExchangeResponse("token", 111, "tokenType")
-
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns sykmeldt
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
@@ -432,17 +358,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner still creates new oppfolgingsplan when kafka producer throws exception") {
         withTestApplication {
             // Arrange
-            coEvery {
-                texasClientMock.introspectToken(any(), any())
-            } returns TexasIntrospectionResponse(active = true, pid = pidInnlogetBruker, acr = "Level4")
+            texasClientMock.defaultMocks(pidInnlogetBruker)
 
-            coEvery {
-                texasClientMock.exchangeTokenForDineSykmeldte(any())
-            } returns TexasExchangeResponse("token", 111, "tokenType")
-
-            coEvery {
-                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-            } returns sykmeldt
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
             coEvery {
                 esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
@@ -483,25 +401,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with NotFound if plan does not exist") {
         withTestApplication {
             // Arrange
-            coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
-                active = true,
-                pid = pidInnlogetBruker,
-                acr = "Level4"
-            )
-            coEvery {
-                texasClientMock.exchangeTokenForDineSykmeldte(any())
-            } returns TexasExchangeResponse("token", 111, "tokenType")
+            texasClientMock.defaultMocks(pidInnlogetBruker)
 
-            coEvery {
-                texasClientMock.exchangeTokenForIsDialogmelding(any())
-            } returns TexasExchangeResponse("token", 111, "tokenType")
-
-            coEvery {
-                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                    narmestelederId,
-                    "token"
-                )
-            } returns sykmeldt
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
             val uuid = UUID.randomUUID()
             // Act
@@ -519,28 +421,12 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with OK and update plan when authorized") {
         withTestApplication {
             // Arrange
-            coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
-                active = true,
-                pid = pidInnlogetBruker,
-                acr = "Level4"
-            )
-            coEvery {
-                texasClientMock.exchangeTokenForDineSykmeldte(any())
-            } returns TexasExchangeResponse("token", 111, "tokenType")
-            coEvery {
-                texasClientMock.exchangeTokenForIsDialogmelding(any())
-            } returns TexasExchangeResponse(
-                "token",
-                111,
-                "tokenType"
-            )
-            coEvery {
-                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                    narmestelederId,
-                    "token"
-                )
-            } returns sykmeldt
+            texasClientMock.defaultMocks(pidInnlogetBruker)
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+
             coEvery {
                 isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
                     any(),
@@ -567,28 +453,12 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with NOT FOUND when isDialogmeldingClient throws LegeNotFoundException") {
         withTestApplication {
             // Arrange
-            coEvery { texasClientMock.introspectToken(any(), any()) } returns TexasIntrospectionResponse(
-                active = true,
-                pid = pidInnlogetBruker,
-                acr = "Level4"
-            )
-            coEvery {
-                texasClientMock.exchangeTokenForDineSykmeldte(any())
-            } returns TexasExchangeResponse("token", 111, "tokenType")
-            coEvery {
-                texasClientMock.exchangeTokenForIsDialogmelding(any())
-            } returns TexasExchangeResponse(
-                "token",
-                111,
-                "tokenType"
-            )
-            coEvery {
-                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                    narmestelederId,
-                    "token"
-                )
-            } returns sykmeldt
+            texasClientMock.defaultMocks(pidInnlogetBruker)
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+
             coEvery {
                 isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
                     any(),
