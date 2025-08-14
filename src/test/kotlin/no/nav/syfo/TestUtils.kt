@@ -8,6 +8,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.*
+import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
@@ -111,4 +112,14 @@ fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "
         "tokenType"
     )
 }
+
+fun DineSykmeldteHttpClient.defaultMocks(narmestelederId: String) {
+    coEvery {
+        getSykmeldtForNarmesteLederId(
+            narmestelederId,
+            "token"
+        )
+    } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+}
+
 val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)

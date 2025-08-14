@@ -23,7 +23,6 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
-import io.mockk.coEvery
 import io.mockk.mockk
 import java.time.LocalDate
 import java.util.*
@@ -102,9 +101,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 // Arrange
                 texasClientMock.defaultMocks(pidInnlogetBruker)
 
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns sykmeldt
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val utkast = defaultUtkast()
 
@@ -135,9 +132,8 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 texasClientMock.defaultMocks(pidInnlogetBruker)
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns sykmeldt
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
@@ -193,9 +189,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 // Arrange
                 texasClientMock.defaultMocks(pidInnlogetBruker)
 
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns sykmeldt
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val requestUtkast = defaultUtkast()
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(

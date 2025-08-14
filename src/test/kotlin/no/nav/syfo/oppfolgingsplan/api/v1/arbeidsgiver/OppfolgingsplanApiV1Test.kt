@@ -184,12 +184,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 texasClientMock.defaultMocks()
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                        narmestelederId,
-                        "token"
-                    )
-                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 // Act
                 val response = client.get {
@@ -206,12 +202,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 texasClientMock.defaultMocks()
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                        narmestelederId,
-                        "token"
-                    )
-                } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val existingUUID = testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan()
@@ -238,12 +230,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 // Arrange
                 texasClientMock.defaultMocks()
 
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                        narmestelederId,
-                        "token"
-                    )
-                } returns sykmeldt
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan()
@@ -283,9 +270,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 // Arrange
                 texasClientMock.defaultMocks(pidInnlogetBruker)
 
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns sykmeldt
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
@@ -330,9 +315,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 texasClientMock.defaultMocks(pidInnlogetBruker)
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-                } returns sykmeldt
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 coEvery {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
@@ -375,9 +359,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         withTestApplication {
             // Arrange
             texasClientMock.defaultMocks(pidInnlogetBruker)
-            coEvery {
-                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
-            } returns sykmeldt
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
             coEvery {
                 esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
@@ -420,12 +403,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             // Arrange
             texasClientMock.defaultMocks(pidInnlogetBruker)
 
-            coEvery {
-                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                    narmestelederId,
-                    "token"
-                )
-            } returns sykmeldt
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
             val uuid = UUID.randomUUID()
             // Act
@@ -444,13 +422,11 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         withTestApplication {
             // Arrange
             texasClientMock.defaultMocks(pidInnlogetBruker)
-            coEvery {
-                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                    narmestelederId,
-                    "token"
-                )
-            } returns sykmeldt
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+
             coEvery {
                 isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
                     any(),
@@ -478,13 +454,11 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         withTestApplication {
             // Arrange
             texasClientMock.defaultMocks(pidInnlogetBruker)
-            coEvery {
-                dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                    narmestelederId,
-                    "token"
-                )
-            } returns sykmeldt
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+
             coEvery {
                 isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
                     any(),
