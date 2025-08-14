@@ -11,6 +11,7 @@ enum class ErrorType {
     ILLEGAL_ARGUMENT,
     BAD_REQUEST,
     LEGE_NOT_FOUND,
+    CONFLICT
 }
 open class ApiError(
     val status: HttpStatusCode,
@@ -30,6 +31,9 @@ open class ApiError(
 
     data class BadRequestError(override val message: String, override val path: String?) :
         ApiError(HttpStatusCode.BadRequest, ErrorType.BAD_REQUEST, message, Instant.now())
+
+    data class ConflictRequestError(override val message: String, override val path: String?) :
+        ApiError(HttpStatusCode.Conflict, ErrorType.CONFLICT, message, Instant.now())
 
     data class AuthenticationError(override val message: String,  override val path: String?) :
         ApiError(HttpStatusCode.Unauthorized, ErrorType.AUTHENTICATION_ERROR, message, Instant.now())

@@ -2,6 +2,7 @@ package no.nav.syfo.dokarkiv
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -9,7 +10,9 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.append
+import io.ktor.http.contentType
 import io.ktor.http.headers
+import io.ktor.server.plugins.BadRequestException
 import java.util.Random
 import kotlinx.coroutines.runBlocking
 import net.datafaker.Faker
@@ -49,31 +52,12 @@ class DokarkivClient(
                 }
                 setBody(journalpostRequest)
             }
-        } catch (e: Exception) {
-            log.error("Could not send oppflgingsplan to dokarkiv", e)
+        } catch (e: ClientRequestException) {
+            log.error("Error sending request to Dokarkiv: ${e.response.bodyAsText()}")
             throw e
         }
 
-        val responseBody = when (response.status) {
-            HttpStatusCode.Created -> {
-                runBlocking {
-                    response.body<JournalpostResponse>()
-                }
-            }
-
-            HttpStatusCode.Conflict -> {
-                log.warn("Journalpost for oppfolginsplan plan already created!")
-                runBlocking {
-                    response.body<JournalpostResponse>()
-                }
-            }
-
-            else -> {
-                log.error("Call to Dokarkiv failed with status: ${response.status}, : ${response.bodyAsText()}")
-                throw RuntimeException("Internal server error")
-            }
-        }
-
+        val responseBody = response.body<JournalpostResponse>()
         if (!responseBody.journalpostferdigstilt) {
             log.warn("Journalpost is not ferdigstilt with message " + responseBody.melding)
         }

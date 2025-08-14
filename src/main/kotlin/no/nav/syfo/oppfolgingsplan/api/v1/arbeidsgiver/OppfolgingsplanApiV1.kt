@@ -25,6 +25,7 @@ import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.util.logger
 import java.time.Instant
+import no.nav.syfo.application.exception.ConflictException
 import no.nav.syfo.dokarkiv.DokarkivService
 
 @Suppress("LongParameterList", "LongMethod", "ThrowsCount")
@@ -137,6 +138,9 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 sykmeldt
             )
 
+            if (oppfolgingsplan.deltMedLegeTidspunkt != null) {
+                throw ConflictException("Oppfolgingsplan is already shared with general practitioner")
+            }
             oppfolgingsplanService.updateSkalDelesMedLege(uuid, true)
 
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
@@ -171,12 +175,21 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 sykmeldt
             )
 
+            if (oppfolgingsplan.deltMedVeilederTidspunkt != null) {
+                throw ConflictException("Oppfolgingsplan is already shared with Veileder")
+            }
+
             oppfolgingsplanService.updateSkalDelesMedVeileder(uuid, true)
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
-            dokarkivService.arkiverOppfolginsplan(oppfolgingsplan, pdfByteArray)
-            oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
-            call.respond(HttpStatusCode.OK)
+            try {
+                dokarkivService.arkiverOppfolginsplan(oppfolgingsplan, pdfByteArray)
+                oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
+                call.respond(HttpStatusCode.OK)
+            } catch (e: Exception) {
+                logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)
+                throw InternalServerErrorException("An error occurred while archiving oppfolgingsplan")
+            }
         }
     }
 }
