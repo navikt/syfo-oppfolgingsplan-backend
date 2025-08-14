@@ -16,14 +16,14 @@ class DokarkivService(
         pdf: ByteArray,
     ): String {
         val avsenderMottaker = createAvsenderMottaker(
-            oppfolginsplan.orgnummer,
-            oppfolginsplan.orgnummer
-        ) // TODO: Replace with actual organization name from oppfolginsplan
+            oppfolginsplan.organisasjonsnummer,
+            oppfolginsplan.organisasjonsnavn ?: "Arbeidsgiver"
+        )
 
         val journalpostRequest = createJournalpostRequest(
             fnr = oppfolginsplan.sykmeldtFnr,
             pdf = pdf,
-            arbeidsgiverNavn = "TODO", //followUpPlan.orgName,
+            arbeidsgiverNavn = oppfolginsplan.organisasjonsnavn ?: "Arbeidsgiver",
             avsenderMottaker = avsenderMottaker,
             uuid = oppfolginsplan.uuid.toString(),
         )
