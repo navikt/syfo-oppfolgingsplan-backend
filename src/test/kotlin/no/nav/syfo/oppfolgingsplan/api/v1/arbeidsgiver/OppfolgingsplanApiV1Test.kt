@@ -153,7 +153,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 texasClientMock.defaultMocks(acr = "Level3")
-//
+
                 // Act
                 val response = client.get {
                     url("api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")

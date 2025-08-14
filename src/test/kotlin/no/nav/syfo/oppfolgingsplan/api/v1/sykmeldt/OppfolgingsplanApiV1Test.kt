@@ -122,13 +122,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks()
-//                    coEvery {
-//                        texasClientMock.introspectToken(any(), any())
-//                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level4")
-//
-//                    coEvery {
-//                        texasClientMock.exchangeTokenForDineSykmeldte(any())
-//                    } returns TexasExchangeResponse("token", 111, "tokenType")
 
                     // Act
                     val response = client.get {
@@ -143,10 +136,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(acr = "Level3")
-
-//                    coEvery {
-//                        texasClientMock.introspectToken(any(), any())
-//                    } returns TexasIntrospectionResponse(active = true, pid = "userIdentifier", acr = "Level3")
 
                     // Act
                     val response = client.get {
