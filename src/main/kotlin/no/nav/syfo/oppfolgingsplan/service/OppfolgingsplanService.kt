@@ -25,7 +25,7 @@ import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
-import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeider
+import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
@@ -75,7 +75,7 @@ class OppfolgingsplanService(
         uuid: UUID,
         skalDelesMedVeilder: Boolean
     ) {
-        database.updateSkalDelesMedVeider(uuid, skalDelesMedVeilder)
+        database.updateSkalDelesMedVeileder(uuid, skalDelesMedVeilder)
     }
 
     fun setDeltMedLegeTidspunkt(

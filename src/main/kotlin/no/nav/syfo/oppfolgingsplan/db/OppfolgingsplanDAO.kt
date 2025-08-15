@@ -174,7 +174,7 @@ fun DatabaseInterface.updateSkalDelesMedLege(
     }
 }
 
-fun DatabaseInterface.updateSkalDelesMedVeider(
+fun DatabaseInterface.updateSkalDelesMedVeileder(
     uuid: UUID,
     skalDelesMedVeileder: Boolean,
 ) {
