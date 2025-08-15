@@ -105,10 +105,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         DineSykmeldteService(dineSykmeldteHttpClientMock),
                         texasClientMock,
                         oppfolgingsplanService = oppfolgingsplanService,
-//                        oppfolgingsplanService = OppfolgingsplanService(
-//                            database = testDb,
-//                            esyfovarselProducer = esyfovarselProducerMock,
-//                        ),
                         pdfGenService = pdfGenServiceMock,
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                         dokarkivService = dokarkivServiceMock,
@@ -559,13 +555,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
             coEvery { dokarkivServiceMock.arkiverOppfolginsplan(any(), any()) } returns UUID.randomUUID().toString()
 
-            coEvery {
-                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
-                    any(),
-                    any(),
-                    any()
-                )
-            } returns Unit
             val uuid = testDb.persistOppfolgingsplan(
                 defaultPersistedOppfolgingsplan()
                     .copy(narmesteLederId = narmestelederId)
@@ -597,13 +586,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
             coEvery { dokarkivServiceMock.arkiverOppfolginsplan(any(), any()) } throws Exception("exception")
 
-            coEvery {
-                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
-                    any(),
-                    any(),
-                    any()
-                )
-            } returns Unit
             val uuid = testDb.persistOppfolgingsplan(
                 defaultPersistedOppfolgingsplan()
                     .copy(narmesteLederId = narmestelederId)
