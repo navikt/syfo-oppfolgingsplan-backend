@@ -9,7 +9,7 @@ class PdlService(private val pdlClient: PdlClient) {
 
     suspend fun getNameFor(fnr: String): String? {
         val response = try {
-            pdlClient.getPerson(fnr, "token")
+            pdlClient.getPerson(fnr)
         } catch (e: Exception) {
             logger.error("Could not fetch person from PDL", e)
             return null

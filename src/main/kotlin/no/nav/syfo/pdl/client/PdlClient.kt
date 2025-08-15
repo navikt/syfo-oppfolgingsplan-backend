@@ -9,6 +9,7 @@ import io.ktor.http.HttpHeaders
 import no.nav.syfo.pdl.client.model.GetPersonRequest
 import no.nav.syfo.pdl.client.model.GetPersonResponse
 import no.nav.syfo.pdl.client.model.GetPersonVariables
+import no.nav.syfo.texas.client.TexasHttpClient
 import org.intellij.lang.annotations.Language
 
 private const val BEHANDLINGSNUMMER_DIGITAL_OPPFOLGINGSPLAN = "B275"
@@ -38,8 +39,15 @@ private val getPersonQuery =
 class PdlClient(
     private val httpClient: HttpClient,
     private val pdlBaseUrl: String,
+    private val texasHttpClient: TexasHttpClient,
+    private val scope: String
 ) {
-    suspend fun getPerson(fnr: String, token: String): GetPersonResponse {
+    suspend fun getPerson(fnr: String): GetPersonResponse {
+        val token = texasHttpClient.systemToken(
+            "azuread",
+            TexasHttpClient.getTarget(scope)
+        ).accessToken
+
         val getPersonRequest =
             GetPersonRequest(
                 query = getPersonQuery,

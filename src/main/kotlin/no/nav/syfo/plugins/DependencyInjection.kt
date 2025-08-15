@@ -113,7 +113,7 @@ private fun servicesModule() = module {
     }
     single { IsDialogmeldingService(get()) }
     single { DokarkivService(get()) }
-    single { PdlService(PdlClient(get(), env().pdlBaseUrl)) }
+    single { PdlService(PdlClient(get(), env().pdlBaseUrl, get(), env().pdlScope)) }
 }
 
 private fun Scope.env() = get<Environment>()
