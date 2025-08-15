@@ -44,12 +44,12 @@ class DokarkivClient(
         val requestUrl = dokarkivBaseUrl + JOURNALPOST_API_PATH
         val response = try {
             httpClient.post(requestUrl) {
-                header(HttpHeaders.ContentType, ContentType.Application.Json)
-                header(HttpHeaders.Authorization, "Bearer $token")
-//                headers {
-//                    append(HttpHeaders.ContentType, ContentType.Application.Json)
-//                    append(HttpHeaders.Authorization, "Bearer $token")
-//                }
+//                header(HttpHeaders.ContentType, ContentType.Application.Json)
+//                header(HttpHeaders.Authorization, "Bearer $token")
+                headers {
+                    append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    append(HttpHeaders.Authorization, "Bearer $token")
+                }
                 setBody(journalpostRequest)
             }
         } catch (e: ClientRequestException) {
