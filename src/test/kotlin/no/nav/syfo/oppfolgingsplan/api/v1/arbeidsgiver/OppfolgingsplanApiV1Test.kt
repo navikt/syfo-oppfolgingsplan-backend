@@ -24,6 +24,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.verify
 import java.util.*
@@ -453,6 +454,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             plan.deltMedLegeTidspunkt shouldNotBe null
         }
     }
+
     it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with NOT FOUND when isDialogmeldingClient throws LegeNotFoundException") {
         withTestApplication {
             // Arrange
@@ -477,15 +479,112 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             val response = client.post {
                 url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-lege")
                 bearerAuth("Bearer token")
-            }
-            // Assert
+            } // Assert
             response.status shouldBe HttpStatusCode.NotFound
             val apiError = response.body<ApiError>()
             apiError.message shouldBe "Lege not found for sykmeldt"
             apiError.type shouldBe ErrorType.LEGE_NOT_FOUND
             val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
             plan.skalDelesMedLege shouldBe true
-            plan.deltMedLegeTidspunkt shouldBe  null
+            plan.deltMedLegeTidspunkt shouldBe null
+        }
+    }
+
+    it("POST /oppfolgingsplaner/{uuid}/del-med-Nav should respond with NotFound if plan does not exist") {
+        withTestApplication {
+            // Arrange
+            texasClientMock.defaultMocks(pidInnlogetBruker)
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+            val uuid = UUID.randomUUID()
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-Nav")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            response.status shouldBe HttpStatusCode.NotFound
+            val apiError = response.body<ApiError>()
+            apiError.message shouldBe "Oppfolgingsplan not found for uuid: $uuid"
+            coVerify(exactly = 0) {
+                dokarkivServiceMock.arkiverOppfolginsplan(any(), any())
+            }
+        }
+    }
+    it("POST /oppfolgingsplaner/{uuid}/del-med-Nav should respond with OK and update plan when authorized") {
+        withTestApplication {
+            // Arrange
+            texasClientMock.defaultMocks(pidInnlogetBruker)
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+            coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+
+            coEvery { dokarkivServiceMock.arkiverOppfolginsplan(any(), any()) } returns UUID.randomUUID().toString()
+
+            coEvery {
+                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
+                    any(),
+                    any(),
+                    any()
+                )
+            } returns Unit
+            val uuid = testDb.persistOppfolgingsplan(
+                defaultPersistedOppfolgingsplan()
+                    .copy(narmesteLederId = narmestelederId)
+            )
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-Nav")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            response.status shouldBe HttpStatusCode.OK
+            val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
+            plan.skalDelesMedVeileder shouldBe true
+            plan.deltMedVeilederTidspunkt shouldNotBe null
+            coVerify(exactly = 1) {
+                dokarkivServiceMock.arkiverOppfolginsplan(any(), any())
+            }
+        }
+    }
+
+    it("POST /oppfolgingsplaner/{uuid}/del-med-Nav should respond with 500 when archiving fails") {
+        withTestApplication {
+            // Arrange
+            texasClientMock.defaultMocks(pidInnlogetBruker)
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+            coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+
+            coEvery { dokarkivServiceMock.arkiverOppfolginsplan(any(), any()) } throws Exception("exception")
+
+            coEvery {
+                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(
+                    any(),
+                    any(),
+                    any()
+                )
+            } returns Unit
+            val uuid = testDb.persistOppfolgingsplan(
+                defaultPersistedOppfolgingsplan()
+                    .copy(narmesteLederId = narmestelederId)
+            )
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-Nav")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            response.status shouldBe HttpStatusCode.InternalServerError
+            val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
+            plan.skalDelesMedVeileder shouldBe true
+            plan.deltMedVeilederTidspunkt shouldBe null
+            coVerify(exactly = 1) {
+                dokarkivServiceMock.arkiverOppfolginsplan(any(), any())
+            }
         }
     }
 })
