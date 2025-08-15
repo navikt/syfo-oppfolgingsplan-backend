@@ -7,6 +7,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import no.nav.syfo.pdl.client.PdlClient
 import no.nav.syfo.pdl.client.model.GetPersonResponse
+import no.nav.syfo.pdl.client.model.Navn
 import no.nav.syfo.pdl.client.model.PersonResponse
 import no.nav.syfo.pdl.client.model.ResponseData
 
@@ -26,10 +27,10 @@ class PdlServiceTest : DescribeSpec({
                 data = ResponseData(
                     person = PersonResponse(
                         navn = listOf(
-                            no.nav.syfo.pdl.client.model.Navn(
-                                fornavn = "Kari",
-                                mellomnavn = "Nordmann",
-                                etternavn = "Olsen"
+                            Navn(
+                                fornavn = "For",
+                                mellomnavn = "Mellom",
+                                etternavn = "Etter"
                             )
                         )
                     ),
@@ -42,7 +43,7 @@ class PdlServiceTest : DescribeSpec({
             val result = service.getNameFor("12345678910")
 
             // Assert
-            result shouldBe "Kari Nordmann Olsen"
+            result shouldBe "For Mellom Etter"
         }
 
         it("returns name without middle name when mellomnavn is null") {
@@ -51,10 +52,10 @@ class PdlServiceTest : DescribeSpec({
                 data = ResponseData(
                     person = PersonResponse(
                         navn = listOf(
-                            no.nav.syfo.pdl.client.model.Navn(
-                                fornavn = "Ola",
+                            Navn(
+                                fornavn = "For",
                                 mellomnavn = null,
-                                etternavn = "Nordmann"
+                                etternavn = "Etter"
                             )
                         )
                     ),
@@ -67,7 +68,7 @@ class PdlServiceTest : DescribeSpec({
             val result = service.getNameFor("10987654321")
 
             // Assert
-            result shouldBe "Ola Nordmann"
+            result shouldBe "For Etter"
         }
 
         it("returns null when PDL returns no person") {
