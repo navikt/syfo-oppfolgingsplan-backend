@@ -69,6 +69,8 @@ spec:
           namespace: nais
           cluster: dev-gcp
     outbound:
+      external:
+        - host: pdl-api.dev-fss-pub.nais.io
       rules:
         - application: syfooppdfgen
         - application: dinesykmeldte-backend
@@ -85,3 +87,7 @@ spec:
       value: http://syfooppdfgen
     - name: ISDIALOGMELDING_BASE_URL
       value: http://isdialogmelding.teamsykefravr
+    - name: PDL_BASE_URL
+      value: https://pdl-api.dev-fss-pub.nais.io/graphql
+    - name: PDL_SCOPE
+      value: dev-fss.pdl.pdl-api
