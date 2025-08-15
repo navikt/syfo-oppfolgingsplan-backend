@@ -25,6 +25,7 @@ import no.nav.syfo.application.exception.ApiError.BadRequestError
 import no.nav.syfo.application.exception.ApiError.IllegalArgumentError
 import no.nav.syfo.application.exception.ApiError.InternalServerError
 import no.nav.syfo.application.exception.ApiError.NotFoundError
+import no.nav.syfo.application.exception.ConflictException
 import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.application.exception.LegeNotFoundException
@@ -55,6 +56,7 @@ fun Application.installCallId() {
 private fun determineApiError(cause: Throwable, path: String?): ApiError {
     return when (cause) {
         is BadRequestException -> BadRequestError(cause.message ?: "Bad request", path)
+        is ConflictException -> ApiError.ConflictRequestError(cause.message ?: "Conflict", path)
         is IllegalArgumentException -> IllegalArgumentError(cause.message ?: "Illegal argument", path)
         is NotFoundException -> NotFoundError(cause.message ?: "Not found", path)
         is ForbiddenException -> AuthorizationError(cause.message ?: "Forbidden", path)

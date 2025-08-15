@@ -20,5 +20,5 @@ jobs:
       id-token: write
     secrets: inherit
     with:
-      app: followupplan-backend
+      app: syfo-oppfolgingsplan-backend
       java-version: '21'

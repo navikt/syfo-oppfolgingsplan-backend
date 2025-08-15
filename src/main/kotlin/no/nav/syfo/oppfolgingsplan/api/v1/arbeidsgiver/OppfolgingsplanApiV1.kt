@@ -25,9 +25,13 @@ import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.util.logger
 import java.time.Instant
+import no.nav.syfo.application.exception.ConflictException
+import no.nav.syfo.dokarkiv.DokarkivService
 
+@Suppress("LongParameterList", "LongMethod", "ThrowsCount")
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
     dineSykmeldteService: DineSykmeldteService,
+    dokarkivService: DokarkivService,
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService,
     pdfGenService: PdfGenService,
@@ -46,8 +50,12 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             sykmeldt: Sykmeldt,
         ) {
             if (sykmeldtFnr != sykmeldt.fnr || orgnummer != sykmeldt.orgnummer) {
-                logger.error("Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}")
-                throw NotFoundException("Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}")
+                logger.error(
+                    "Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}"
+                )
+                throw NotFoundException(
+                    "Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}"
+                )
             }
         }
 
@@ -75,7 +83,8 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
         }
 
         /**
-         * Gir et subsett av felter for alle oppfolgingsplaner arbeidsgiver har for sykmeldt identifisert via narmesteLederId.
+         * Gir et subsett av felter for alle oppfolgingsplaner arbeidsgiver har for sykmeldt
+         * identifisert via narmesteLederId.
          * Tiltenkt for oversiktsvisning.
          */
         get("/oversikt") {
@@ -110,7 +119,9 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             if (sykmeldt.aktivSykmelding != true) {
-                throw BadRequestException("Cannot send oppfolgingsplan to general practitioner when there is no active sykmelding")
+                throw BadRequestException(
+                    "Cannot send oppfolgingsplan to general practitioner when there is no active sykmelding"
+                )
             }
 
             val innloggetBruker = call.principal<BrukerPrincipal>()
@@ -127,6 +138,9 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 sykmeldt
             )
 
+            if (oppfolgingsplan.deltMedLegeTidspunkt != null) {
+                throw ConflictException("Oppfolgingsplan is already shared with general practitioner")
+            }
             oppfolgingsplanService.updateSkalDelesMedLege(uuid, true)
 
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
@@ -141,6 +155,41 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, Instant.now())
             call.respond(HttpStatusCode.OK)
+        }
+
+        post("/{uuid}/del-med-Nav") {
+            val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
+
+            if (sykmeldt.aktivSykmelding != true) {
+                throw BadRequestException("Cannot send oppfolgingsplan to Nav when there is no active sykmelding")
+            }
+
+            val uuid = call.parameters.extractAndValidateUUIDParameter()
+
+            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid)
+                ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
+
+            checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
+                oppfolgingsplan.sykmeldtFnr,
+                oppfolgingsplan.organisasjonsnummer,
+                sykmeldt
+            )
+
+            if (oppfolgingsplan.deltMedVeilederTidspunkt != null) {
+                throw ConflictException("Oppfolgingsplan is already shared with Veileder")
+            }
+
+            oppfolgingsplanService.updateSkalDelesMedVeileder(uuid, true)
+            val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
+                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+            try {
+                dokarkivService.arkiverOppfolginsplan(oppfolgingsplan, pdfByteArray)
+                oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
+                call.respond(HttpStatusCode.OK)
+            } catch (e: Exception) {
+                logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)
+                throw InternalServerErrorException("An error occurred while archiving oppfolgingsplan")
+            }
         }
     }
 }

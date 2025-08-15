@@ -1,7 +1,7 @@
 package no.nav.syfo.isdialogmelding
 
 class IsDialogmeldingService(
-    private val client: IsDialogmeldingClient,
+    private val client: IIsDialogmeldingClient,
 ) {
     suspend fun sendOppfolgingsplanToGeneralPractitioner(
         token: String,

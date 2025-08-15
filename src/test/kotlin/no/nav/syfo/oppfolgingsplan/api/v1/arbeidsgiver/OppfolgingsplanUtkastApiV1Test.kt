@@ -32,6 +32,7 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
@@ -55,6 +56,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val pdfGenClient = mockk<PdfGenClient>()
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
+    val dokarkivServiceMock = mockk<DokarkivService>()
     val pdlClientMock = mockk<PdlClient>()
 
     val narmestelederId = UUID.randomUUID().toString()
@@ -97,7 +99,8 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                                 pdlClientMock,
                             )
                         ),
-                        isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock)
+                        isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
+                            dokarkivService = dokarkivServiceMock,
                     )
                 }
             }

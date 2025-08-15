@@ -15,6 +15,10 @@ import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dokarkiv.DokarkivClient
+import no.nav.syfo.dokarkiv.FakeDokarkivClient
+import no.nav.syfo.dokarkiv.DokarkivService
+import no.nav.syfo.isdialogmelding.FakeIsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenClient
@@ -81,8 +85,7 @@ private fun servicesModule() = module {
         DineSykmeldteService(dineSykmeldteHttpClient)
     }
     single { TexasHttpClient(get(), env().texas) }
-    single { OppfolgingsplanService(get(), get()) }
-    single { TexasHttpClient(get(), env().texas) }
+    single { OppfolgingsplanService(database = get(), esyfovarselProducer = get()) }
     single {
         EsyfovarselProducer(
             KafkaProducer<String, EsyfovarselHendelse>(
@@ -91,15 +94,25 @@ private fun servicesModule() = module {
         )
     }
     single { PdfGenClient(get(), env().pdfGenUrl) }
+    single {
+        if (isLocalEnv()) FakeDokarkivClient() else DokarkivClient(
+            dokarkivBaseUrl = env().dokarkivBaseUrl,
+            texasHttpClient = get(),
+            scope = env().dokarkivScope,
+            httpClient = get()
+        )
+    }
+
     single { PdfGenService(get(), get(), get()) }
     single {
-        IsDialogmeldingService(
+        if (isLocalEnv()) FakeIsDialogmeldingClient() else
             IsDialogmeldingClient(
                 get(),
                 env().isDialogmeldingBaseUrl
             )
-        )
     }
+    single { IsDialogmeldingService(get()) }
+    single { DokarkivService(get()) }
     single { PdlService(PdlClient(get(), env().pdlBaseUrl)) }
 }
 

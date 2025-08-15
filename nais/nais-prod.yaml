@@ -1,7 +1,7 @@
 apiVersion: "nais.io/v1alpha1"
 kind: "Application"
 metadata:
-  name: followupplan-backend
+  name: syfo-oppfolgingsplan-backend
   namespace: team-esyfo
   labels:
     team: team-esyfo
@@ -55,22 +55,23 @@ spec:
       - type: POSTGRES_17
         tier: db-custom-1-3840
         databases:
-          - name: followupplan-backend-instance
+          - name: syfo-oppfolgingsplan-backend-instance
             envVarPrefix: OPPFOLGINGSPLAN_DB
         diskAutoresize: true
   ingresses:
-    - "https://followupplan-backend.intern.nav.no"
+    - "https://syfo-oppfolgingsplan-backend.intern.nav.no"
   tokenx:
     enabled: true
   accessPolicy:
     outbound:
-      external:
-        - host: pdl-api.prod-fss-pub.nais.io
       rules:
         - application: syfooppdfgen
         - application: dinesykmeldte-backend
         - application: isdialogmelding
           namespace: teamsykefravr
+      external:
+        - host: dokarkiv.prod-fss-pub.nais.io
+        - host: pdl-api.prod-fss-pub.nais.io
   kafka:
     pool: nav-prod
   env:
@@ -82,6 +83,10 @@ spec:
       value: http://syfooppdfgen
     - name: ISDIALOGMELDING_BASE_URL
       value: http://isdialogmelding.teamsykefravr
+    - name: DOKARKIV_URL
+      value: https://dokarkiv.prod-fss-pub.nais.io
+    - name: DOKARKIV_SCOPE
+      value: prod-fss.teamdokumenthandtering.dokarkiv
     - name: PDL_BASE_URL
       value: https://pdl-api.prod-fss-pub.nais.io/graphql
     - name: PDL_SCOPE

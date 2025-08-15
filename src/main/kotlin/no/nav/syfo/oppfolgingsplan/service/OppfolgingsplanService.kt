@@ -24,6 +24,8 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
+import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeider
 
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
@@ -69,11 +71,25 @@ class OppfolgingsplanService(
         database.updateSkalDelesMedLege(uuid, skalDelesMedLege)
     }
 
+    fun updateSkalDelesMedVeileder(
+        uuid: UUID,
+        skalDelesMedVeilder: Boolean
+    ) {
+        database.updateSkalDelesMedVeider(uuid, skalDelesMedVeilder)
+    }
+
     fun setDeltMedLegeTidspunkt(
         uuid: UUID,
         deltMedLegeTidspunkt: Instant
     ) {
         database.setDeltMedLegeTidspunkt(uuid, deltMedLegeTidspunkt)
+    }
+
+    fun setDeltMedVeilederTidspunkt(
+        uuid: UUID,
+        deltMedVeilederTidspunkt: Instant
+    ) {
+        database.setDeltMedVeilderTidspunkt(uuid, deltMedVeilederTidspunkt)
     }
 
     fun getOppfolginsplanOverviewFor(sykmeldtFnr: String, orgnummer: String): OppfolgingsplanOverview {
