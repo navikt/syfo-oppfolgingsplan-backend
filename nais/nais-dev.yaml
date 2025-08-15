@@ -76,6 +76,7 @@ spec:
           namespace: teamsykefravr
       external:
         - host: dokarkiv.dev-fss-pub.nais.io
+        - host: pdl-api.dev-fss-pub.nais.io
   kafka:
     pool: nav-dev
   env:
@@ -91,3 +92,7 @@ spec:
       value: https://dokarkiv-q2.dev-fss-pub.nais.io
     - name: DOKARKIV_SCOPE
       value: dev-fss.teamdokumenthandtering.dokarkiv
+    - name: PDL_BASE_URL
+      value: https://pdl-api.dev-fss-pub.nais.io/graphql
+    - name: PDL_SCOPE
+      value: dev-fss.pdl.pdl-api
