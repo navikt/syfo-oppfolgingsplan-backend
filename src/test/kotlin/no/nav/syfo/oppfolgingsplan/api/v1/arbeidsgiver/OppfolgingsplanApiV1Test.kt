@@ -27,6 +27,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.verify
+import java.time.Instant
 import java.util.*
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.exception.ApiError
@@ -77,6 +78,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         clearAllMocks()
         TestDB.clearAllData()
     }
+    val oppfolgingsplanService = OppfolgingsplanService(
+        database = testDb,
+        esyfovarselProducer = esyfovarselProducerMock,
+    )
 
     fun withTestApplication(
         fn: suspend ApplicationTestBuilder.() -> Unit
@@ -99,10 +104,11 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     registerApiV1(
                         DineSykmeldteService(dineSykmeldteHttpClientMock),
                         texasClientMock,
-                        oppfolgingsplanService = OppfolgingsplanService(
-                            database = testDb,
-                            esyfovarselProducer = esyfovarselProducerMock,
-                        ),
+                        oppfolgingsplanService = oppfolgingsplanService,
+//                        oppfolgingsplanService = OppfolgingsplanService(
+//                            database = testDb,
+//                            esyfovarselProducer = esyfovarselProducerMock,
+//                        ),
                         pdfGenService = pdfGenServiceMock,
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                         dokarkivService = dokarkivServiceMock,
@@ -512,6 +518,36 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             }
         }
     }
+
+    it("POST /oppfolgingsplaner/{uuid}/del-med-Nav should respond with Conflict if plan is already shared with Nav") {
+        withTestApplication {
+            // Arrange
+            texasClientMock.defaultMocks(pidInnlogetBruker)
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+            val uuid = testDb.persistOppfolgingsplan(
+                defaultPersistedOppfolgingsplan()
+                    .copy(narmesteLederId = narmestelederId,
+                        skalDelesMedVeileder = true,
+                    )
+            )
+            oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-Nav")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            response.status shouldBe HttpStatusCode.Conflict
+            val apiError = response.body<ApiError>()
+            apiError.message shouldBe "Oppfolgingsplan is already shared with Veileder"
+            coVerify(exactly = 0) {
+                dokarkivServiceMock.arkiverOppfolginsplan(any(), any())
+            }
+        }
+    }
+
     it("POST /oppfolgingsplaner/{uuid}/del-med-Nav should respond with OK and update plan when authorized") {
         withTestApplication {
             // Arrange
