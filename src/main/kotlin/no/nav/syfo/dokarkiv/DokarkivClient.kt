@@ -3,15 +3,12 @@ package no.nav.syfo.dokarkiv
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
-import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
-import io.ktor.http.append
-import io.ktor.http.headers
 import java.util.*
 import net.datafaker.Faker
 import no.nav.syfo.dokarkiv.domain.JournalpostRequest
@@ -44,8 +41,6 @@ class DokarkivClient(
         val requestUrl = dokarkivBaseUrl + JOURNALPOST_API_PATH
         val response = try {
             httpClient.post(requestUrl) {
-//                header(HttpHeaders.ContentType, ContentType.Application.Json)
-//                header(HttpHeaders.Authorization, "Bearer $token")
                 headers {
                     append(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                     append(HttpHeaders.Authorization, "Bearer $token")
