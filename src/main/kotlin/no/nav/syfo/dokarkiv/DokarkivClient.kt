@@ -3,18 +3,16 @@ package no.nav.syfo.dokarkiv
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.request.header
+import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
 import io.ktor.http.append
-import io.ktor.http.contentType
 import io.ktor.http.headers
-import io.ktor.server.plugins.BadRequestException
-import java.util.Random
-import kotlinx.coroutines.runBlocking
+import java.util.*
 import net.datafaker.Faker
 import no.nav.syfo.dokarkiv.domain.JournalpostRequest
 import no.nav.syfo.dokarkiv.domain.JournalpostResponse
@@ -46,10 +44,12 @@ class DokarkivClient(
         val requestUrl = dokarkivBaseUrl + JOURNALPOST_API_PATH
         val response = try {
             httpClient.post(requestUrl) {
-                headers {
-                    append(HttpHeaders.ContentType, ContentType.Application.Json)
-                    append(HttpHeaders.Authorization, "Bearer $token")
-                }
+                header(HttpHeaders.ContentType, ContentType.Application.Json)
+                header(HttpHeaders.Authorization, "Bearer $token")
+//                headers {
+//                    append(HttpHeaders.ContentType, ContentType.Application.Json)
+//                    append(HttpHeaders.Authorization, "Bearer $token")
+//                }
                 setBody(journalpostRequest)
             }
         } catch (e: ClientRequestException) {
