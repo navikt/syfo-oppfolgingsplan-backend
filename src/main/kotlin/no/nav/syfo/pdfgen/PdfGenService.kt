@@ -50,6 +50,8 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 = Oppf
         evaluationDate = this.sluttdato,
         sykmeldtName = this.sykmeldtFullName,
         sykmeldtFnr = this.sykmeldtFnr,
+        // organisasjonsnavn should always be set, but it is nullable in the response we get from dine-sykmeldte-backend
+        // even though all rows in the database currently have a value
         organisasjonsnavn = this.organisasjonsnavn ?: throw RuntimeException("Organisasjonsnavn is null"),
         organisasjonsnummer = this.organisasjonsnummer,
         narmesteLederName = this.narmesteLederFullName ?: throw RuntimeException("NarmesteLederName is null"),
