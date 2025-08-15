@@ -74,6 +74,8 @@ spec:
         - application: dinesykmeldte-backend
         - application: isdialogmelding
           namespace: teamsykefravr
+      external:
+        - host: dokarkiv.dev-fss-pub.nais.io
   kafka:
     pool: nav-dev
   env:
@@ -85,3 +87,7 @@ spec:
       value: http://syfooppdfgen
     - name: ISDIALOGMELDING_BASE_URL
       value: http://isdialogmelding.teamsykefravr
+    - name: DOKARKIV_URL
+      value: https://dokarkiv-q2.dev-fss-pub.nais.io
+    - name: DOKARKIV_SCOPE
+      value: dev-fss.teamdokumenthandtering.dokarkiv

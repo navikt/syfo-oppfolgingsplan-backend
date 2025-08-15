@@ -174,6 +174,26 @@ fun DatabaseInterface.updateSkalDelesMedLege(
     }
 }
 
+fun DatabaseInterface.updateSkalDelesMedVeider(
+    uuid: UUID,
+    skalDelesMedVeileder: Boolean,
+) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET skal_deles_med_veileder = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setBoolean(1, skalDelesMedVeileder)
+            preparedStatement.setObject(2, uuid)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
+
 fun DatabaseInterface.setDeltMedLegeTidspunkt(
     uuid: UUID,
     deltMedLegeTidspunkt: Instant,
@@ -193,6 +213,28 @@ fun DatabaseInterface.setDeltMedLegeTidspunkt(
         connection.commit()
     }
 }
+
+fun DatabaseInterface.setDeltMedVeilderTidspunkt(
+    uuid: UUID,
+    deltMedVeilederTidspunkt: Instant,
+) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET delt_med_veileder_tidspunkt = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setTimestamp(1, Timestamp.from(deltMedVeilederTidspunkt))
+            preparedStatement.setObject(2, uuid)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
+
+
 
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
     return PersistedOppfolgingsplan(

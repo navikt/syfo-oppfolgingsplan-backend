@@ -14,9 +14,9 @@ import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
-import no.nav.syfo.texas.client.TexasExchangeResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
+import no.nav.syfo.texas.client.TexasResponse
 
 fun defaultUtkast() = CreateUtkastRequest(
     content = ObjectMapper().readValue(
@@ -103,10 +103,10 @@ fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "
     )
     coEvery {
         exchangeTokenForDineSykmeldte(any())
-    } returns TexasExchangeResponse("token", 111, "tokenType")
+    } returns TexasResponse("token", 111, "tokenType")
     coEvery {
         exchangeTokenForIsDialogmelding(any())
-    } returns TexasExchangeResponse(
+    } returns TexasResponse(
         "token",
         111,
         "tokenType"
