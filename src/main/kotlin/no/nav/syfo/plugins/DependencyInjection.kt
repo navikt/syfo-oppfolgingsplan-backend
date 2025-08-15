@@ -19,6 +19,8 @@ import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.pdl.PdlService
+import no.nav.syfo.pdl.client.PdlClient
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.httpClientDefault
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -89,7 +91,7 @@ private fun servicesModule() = module {
         )
     }
     single { PdfGenClient(get(), env().pdfGenUrl) }
-    single { PdfGenService(get()) }
+    single { PdfGenService(get(), get(), get()) }
     single {
         IsDialogmeldingService(
             IsDialogmeldingClient(
@@ -98,6 +100,7 @@ private fun servicesModule() = module {
             )
         )
     }
+    single { PdlService(PdlClient(get(), env().pdlBaseUrl)) }
 }
 
 private fun Scope.env() = get<Environment>()

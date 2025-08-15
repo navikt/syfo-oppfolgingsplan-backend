@@ -12,6 +12,7 @@ interface Environment {
     val dineSykmeldteBaseUrl: String
     val pdfGenUrl: String
     val isDialogmeldingBaseUrl: String
+    val pdlBaseUrl: String
     val kafka: KafkaEnv
 }
 
@@ -37,6 +38,7 @@ data class NaisEnvironment(
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
     override val isDialogmeldingBaseUrl: String = getEnvVar("ISDIALOGMELDING_BASE_URL"),
+    override val pdlBaseUrl: String = getEnvVar("PDL_BASE_URL"),
     override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars()
 ) : Environment
 
@@ -71,5 +73,6 @@ data class LocalEnvironment(
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val isDialogmeldingBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val pdfGenUrl: String = "http://localhost:9091",
+    override val pdlBaseUrl: String = "https://pdl-api.dev.intern.nav.no",
     override val kafka: KafkaEnv = KafkaEnv.createForLocal()
 ) : Environment

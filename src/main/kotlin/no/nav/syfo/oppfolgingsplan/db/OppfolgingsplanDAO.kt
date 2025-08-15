@@ -194,6 +194,26 @@ fun DatabaseInterface.setDeltMedLegeTidspunkt(
     }
 }
 
+fun DatabaseInterface.setNarmesteLederFullName(
+    oppfolgingsplanUUID: UUID,
+    narmesteLederFullName: String,
+) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET narmeste_leder_full_name = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, narmesteLederFullName)
+            preparedStatement.setString(2, oppfolgingsplanUUID.toString())
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
+
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
     return PersistedOppfolgingsplan(
         uuid = getObject("uuid") as UUID,
