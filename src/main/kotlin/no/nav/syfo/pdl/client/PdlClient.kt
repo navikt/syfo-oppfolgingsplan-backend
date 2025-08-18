@@ -6,9 +6,16 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
+import java.util.Random
+import net.datafaker.Faker
 import no.nav.syfo.pdl.client.model.GetPersonRequest
 import no.nav.syfo.pdl.client.model.GetPersonResponse
 import no.nav.syfo.pdl.client.model.GetPersonVariables
+import no.nav.syfo.pdl.client.model.Ident
+import no.nav.syfo.pdl.client.model.IdentResponse
+import no.nav.syfo.pdl.client.model.Navn
+import no.nav.syfo.pdl.client.model.PersonResponse
+import no.nav.syfo.pdl.client.model.ResponseData
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.intellij.lang.annotations.Language
 
@@ -36,13 +43,16 @@ private val getPersonQuery =
 """
         .trimIndent()
 
+interface IPdlClient {
+    suspend fun getPerson(fnr: String): GetPersonResponse
+}
 class PdlClient(
     private val httpClient: HttpClient,
     private val pdlBaseUrl: String,
     private val texasHttpClient: TexasHttpClient,
     private val scope: String
-) {
-    suspend fun getPerson(fnr: String): GetPersonResponse {
+): IPdlClient {
+    override suspend fun getPerson(fnr: String): GetPersonResponse {
         val token = texasHttpClient.systemToken(
             "azuread",
             TexasHttpClient.getTarget(scope)
@@ -62,5 +72,31 @@ class PdlClient(
                 header(HttpHeaders.ContentType, "application/json")
             }
             .body()
+    }
+}
+
+class FakePdlClient : IPdlClient {
+    override suspend fun getPerson(fnr: String): GetPersonResponse {
+        val faker = Faker(Random(fnr.toLong()))
+        val navn = faker.name()
+        return GetPersonResponse(
+            data = ResponseData(
+                person = PersonResponse(
+                    navn = listOf(
+                        Navn(
+                            fornavn = navn.firstName(),
+                            mellomnavn = faker.name().firstName(),
+                            etternavn = navn.lastName(),
+                        ),
+                    ),
+                ),
+                identer = IdentResponse(
+                    identer = listOf(
+                        Ident(ident = fnr, gruppe = "FOLKEREGISTERIDENT"),
+                    ),
+                ),
+            ),
+            errors = null,
+        )
     }
 }

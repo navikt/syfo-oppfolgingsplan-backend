@@ -24,6 +24,7 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
+import no.nav.syfo.pdl.client.FakePdlClient
 import no.nav.syfo.pdl.client.PdlClient
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.httpClientDefault
@@ -102,6 +103,14 @@ private fun servicesModule() = module {
             httpClient = get()
         )
     }
+    single {
+        if (isLocalEnv()) FakePdlClient() else PdlClient(
+            httpClient = get(),
+            pdlBaseUrl = env().pdlBaseUrl,
+            texasHttpClient = get(),
+            scope = env().pdlScope
+        )
+    }
 
     single { PdfGenService(get(), get(), get()) }
     single {
@@ -113,7 +122,7 @@ private fun servicesModule() = module {
     }
     single { IsDialogmeldingService(get()) }
     single { DokarkivService(get()) }
-    single { PdlService(PdlClient(get(), env().pdlBaseUrl, get(), env().pdlScope)) }
+    single { PdlService(get()) }
 }
 
 private fun Scope.env() = get<Environment>()

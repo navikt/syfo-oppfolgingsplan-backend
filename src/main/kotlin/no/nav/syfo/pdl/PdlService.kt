@@ -1,9 +1,9 @@
 package no.nav.syfo.pdl
 
-import no.nav.syfo.pdl.client.PdlClient
+import no.nav.syfo.pdl.client.IPdlClient
 import no.nav.syfo.util.logger
 
-class PdlService(private val pdlClient: PdlClient) {
+class PdlService(private val pdlClient: IPdlClient) {
 
     private val logger = logger()
 
