@@ -20,10 +20,10 @@ private val getPersonQuery =
     """
     query(${'$'}ident: ID!){
       person: hentPerson(ident: ${'$'}ident) {
-      	navn(historikk: false) {
-      	  fornavn
-      	  mellomnavn
-      	  etternavn
+        navn(historikk: false) {
+          fornavn
+          mellomnavn
+          etternavn
         }
       }
       identer: hentIdenter(ident: ${'$'}ident, historikk: false) {
