@@ -249,7 +249,7 @@ fun DatabaseInterface.setNarmesteLederFullName(
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setString(1, narmesteLederFullName)
-            preparedStatement.setString(2, oppfolgingsplanUUID.toString())
+            preparedStatement.setObject(2, oppfolgingsplanUUID)
             preparedStatement.executeUpdate()
         }
         connection.commit()
