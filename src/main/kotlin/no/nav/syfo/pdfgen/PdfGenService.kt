@@ -5,6 +5,11 @@ import io.ktor.client.plugins.ServerResponseException
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.pdfgen.client.Oppfolginsplan
+import no.nav.syfo.pdfgen.client.OppfolginsplanPdfV1
+import no.nav.syfo.pdfgen.client.PdfGenClient
+import no.nav.syfo.pdfgen.client.Section
+import no.nav.syfo.pdfgen.client.TextInputField
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import java.time.ZoneId

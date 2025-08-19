@@ -1,3 +1,3 @@
-package no.nav.syfo.pdl.client.model
+package no.nav.syfo.pdl.client
 
 data class GetPersonVariables(val ident: String)

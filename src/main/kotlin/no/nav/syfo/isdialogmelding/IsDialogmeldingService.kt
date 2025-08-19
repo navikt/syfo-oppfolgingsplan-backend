@@ -1,5 +1,7 @@
 package no.nav.syfo.isdialogmelding
 
+import no.nav.syfo.isdialogmelding.client.IIsDialogmeldingClient
+
 class IsDialogmeldingService(
     private val client: IIsDialogmeldingClient,
 ) {

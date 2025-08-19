@@ -1,6 +1,6 @@
 package no.nav.syfo.plugins
 
-import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
+import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import no.nav.syfo.application.ApplicationState
@@ -12,16 +12,16 @@ import no.nav.syfo.application.database.DatabaseConfig
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.kafka.producerProperties
-import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
-import no.nav.syfo.dinesykmeldte.FakeDineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivClient
 import no.nav.syfo.dokarkiv.FakeDokarkivClient
 import no.nav.syfo.dokarkiv.DokarkivService
-import no.nav.syfo.isdialogmelding.FakeIsDialogmeldingClient
+import no.nav.syfo.isdialogmelding.client.FakeIsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.pdfgen.PdfGenClient
+import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.pdl.client.FakePdlClient

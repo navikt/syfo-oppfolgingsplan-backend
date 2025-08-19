@@ -3,6 +3,8 @@ package no.nav.syfo.dinesykmeldte
 
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.http.HttpStatusCode
+import no.nav.syfo.dinesykmeldte.client.IDineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.util.logger
 
 

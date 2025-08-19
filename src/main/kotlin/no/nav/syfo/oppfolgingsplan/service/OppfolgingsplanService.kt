@@ -2,7 +2,7 @@ package no.nav.syfo.oppfolgingsplan.service
 
 import java.time.LocalDate
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.dinesykmeldte.Sykmeldt
+import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy

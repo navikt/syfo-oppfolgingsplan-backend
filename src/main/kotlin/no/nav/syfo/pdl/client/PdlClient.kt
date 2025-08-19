@@ -8,14 +8,6 @@ import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
 import java.util.Random
 import net.datafaker.Faker
-import no.nav.syfo.pdl.client.model.GetPersonRequest
-import no.nav.syfo.pdl.client.model.GetPersonResponse
-import no.nav.syfo.pdl.client.model.GetPersonVariables
-import no.nav.syfo.pdl.client.model.Ident
-import no.nav.syfo.pdl.client.model.IdentResponse
-import no.nav.syfo.pdl.client.model.Navn
-import no.nav.syfo.pdl.client.model.PersonResponse
-import no.nav.syfo.pdl.client.model.ResponseData
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.intellij.lang.annotations.Language
 

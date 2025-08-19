@@ -1,4 +1,4 @@
-package no.nav.syfo.dinesykmeldte
+package no.nav.syfo.dinesykmeldte.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body

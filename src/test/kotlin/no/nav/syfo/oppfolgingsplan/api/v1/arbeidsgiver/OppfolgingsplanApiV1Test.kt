@@ -1,6 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
-import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
+import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -38,7 +38,7 @@ import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
-import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.generatedPdfStandin

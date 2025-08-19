@@ -16,6 +16,7 @@ import io.mockk.clearAllMocks
 import io.mockk.mockk
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
+import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.util.httpClientDefault
 import org.junit.jupiter.api.assertThrows
 

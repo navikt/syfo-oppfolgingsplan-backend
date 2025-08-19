@@ -6,10 +6,10 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.mockk
 import no.nav.syfo.pdl.client.PdlClient
-import no.nav.syfo.pdl.client.model.GetPersonResponse
-import no.nav.syfo.pdl.client.model.Navn
-import no.nav.syfo.pdl.client.model.PersonResponse
-import no.nav.syfo.pdl.client.model.ResponseData
+import no.nav.syfo.pdl.client.GetPersonResponse
+import no.nav.syfo.pdl.client.Navn
+import no.nav.syfo.pdl.client.PersonResponse
+import no.nav.syfo.pdl.client.ResponseData
 
 class PdlServiceTest : DescribeSpec({
 
