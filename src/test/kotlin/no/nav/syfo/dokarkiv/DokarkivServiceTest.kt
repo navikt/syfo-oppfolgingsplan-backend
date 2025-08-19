@@ -25,6 +25,7 @@ class DokarkivServiceTest : DescribeSpec({
             val pdf = ByteArray(0) // Mock PDF content
             val expectedJournalpostId = UUID.randomUUID().toString()
             coEvery { dokarkivClient.sendJournalpostRequestToDokarkiv(any()) } returns expectedJournalpostId
+
             // Act
             val journalpostId = dokarkivService.arkiverOppfolginsplan(oppfolginsplan, pdf)
 
