@@ -15,8 +15,8 @@ import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.dokarkiv.DokarkivClient
-import no.nav.syfo.dokarkiv.FakeDokarkivClient
+import no.nav.syfo.dokarkiv.client.DokarkivClient
+import no.nav.syfo.dokarkiv.client.FakeDokarkivClient
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.client.FakeIsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService

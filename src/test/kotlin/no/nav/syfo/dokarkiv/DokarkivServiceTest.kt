@@ -8,6 +8,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import java.util.UUID
 import no.nav.syfo.defaultPersistedOppfolgingsplan
+import no.nav.syfo.dokarkiv.client.DokarkivClient
 
 class DokarkivServiceTest : DescribeSpec({
     val dokarkivClient = mockk<DokarkivClient>()

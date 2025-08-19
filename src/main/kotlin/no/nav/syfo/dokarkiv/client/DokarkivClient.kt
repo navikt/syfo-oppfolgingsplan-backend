@@ -1,4 +1,4 @@
-package no.nav.syfo.dokarkiv
+package no.nav.syfo.dokarkiv.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
@@ -11,8 +11,6 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import java.util.*
 import net.datafaker.Faker
-import no.nav.syfo.dokarkiv.domain.JournalpostRequest
-import no.nav.syfo.dokarkiv.domain.JournalpostResponse
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.slf4j.LoggerFactory
 

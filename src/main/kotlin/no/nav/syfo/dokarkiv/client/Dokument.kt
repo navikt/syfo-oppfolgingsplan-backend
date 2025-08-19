@@ -1,4 +1,4 @@
-package no.nav.syfo.dokarkiv.domain
+package no.nav.syfo.dokarkiv.client
 
 data class Dokument(
     val brevkode: String,
