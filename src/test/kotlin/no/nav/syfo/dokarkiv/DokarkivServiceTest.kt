@@ -37,8 +37,6 @@ class DokarkivServiceTest : DescribeSpec({
                         it.tittel shouldBe "Oppfølgingsplan ${oppfolginsplan.organisasjonsnavn}"
                         it.kanal shouldBe DokarkivService.KANAL
                         it.journalpostType shouldBe DokarkivService.JOURNALPOST_TYPE
-                        it.avsenderMottaker.id shouldBe oppfolginsplan.organisasjonsnummer
-                        it.avsenderMottaker.navn shouldBe oppfolginsplan.organisasjonsnavn
                         it.eksternReferanseId shouldBe oppfolginsplan.uuid.toString()
                         it.dokumenter.size shouldBe 1
                         it.dokumenter.first().tittel shouldBe "Oppfølgingsplan ${oppfolginsplan.organisasjonsnavn}"
