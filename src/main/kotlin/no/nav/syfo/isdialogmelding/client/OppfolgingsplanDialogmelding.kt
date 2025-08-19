@@ -1,4 +1,4 @@
-package no.nav.syfo.isdialogmelding
+package no.nav.syfo.isdialogmelding.client
 
 data class OppfolgingsplanDialogmelding(
     val sykmeldtFnr: String,

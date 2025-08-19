@@ -3,13 +3,13 @@ package no.nav.syfo
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import io.mockk.coEvery
-import no.nav.syfo.dinesykmeldte.DineSykmeldteSykmelding
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.*
-import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
-import no.nav.syfo.dinesykmeldte.Sykmeldt
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest

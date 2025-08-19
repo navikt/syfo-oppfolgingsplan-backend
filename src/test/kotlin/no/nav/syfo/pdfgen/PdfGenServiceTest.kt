@@ -13,11 +13,16 @@ import io.ktor.http.fullPath
 import io.ktor.http.headersOf
 import io.ktor.http.isSuccess
 import io.mockk.clearAllMocks
+import io.mockk.mockk
+import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
+import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.util.httpClientDefault
 import org.junit.jupiter.api.assertThrows
 
 class PdfGenServiceTest : DescribeSpec({
+    val testDb = TestDB.database
+
     fun getMockEngine(status: HttpStatusCode, headers: Headers, content: String) = MockEngine { request ->
         when (request.url.fullPath) {
             "/api/v1/genpdf/oppfolgingsplan/oppfolgingsplan_v1" -> {
@@ -42,6 +47,7 @@ class PdfGenServiceTest : DescribeSpec({
 
     beforeTest {
         clearAllMocks()
+        TestDB.clearAllData()
     }
 
     describe("PdfGenService") {
@@ -54,7 +60,11 @@ class PdfGenServiceTest : DescribeSpec({
                 )
             )
             val persistedPlan = defaultPersistedOppfolgingsplan()
-            val myService = PdfGenService(PdfGenClient(client, ""))
+            val myService = PdfGenService(
+                PdfGenClient(client, ""),
+                testDb,
+                mockk(relaxed = true) // Mock PdlService, as it's not the focus
+            )
             val response = myService.generatePdf(persistedPlan)
             response shouldNotBe null
             response?.toString(Charsets.UTF_8) shouldBe "whatever"
@@ -70,7 +80,11 @@ class PdfGenServiceTest : DescribeSpec({
                     )
                 )
             )
-            val myService = PdfGenService(PdfGenClient(client, ""))
+            val myService = PdfGenService(
+                PdfGenClient(client, ""),
+                testDb,
+                mockk(relaxed = true) // Mock PdlService, as it's not the focus
+            )
             val persistedPlan = defaultPersistedOppfolgingsplan()
             assertThrows<RuntimeException> {
                 myService.generatePdf(persistedPlan)

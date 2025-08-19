@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.dinesykmeldte.Sykmeldt
-import no.nav.syfo.dinesykmeldte.getOrganizationName
+import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import java.sql.Date
 import java.sql.ResultSet
@@ -174,7 +174,7 @@ fun DatabaseInterface.updateSkalDelesMedLege(
     }
 }
 
-fun DatabaseInterface.updateSkalDelesMedVeider(
+fun DatabaseInterface.updateSkalDelesMedVeileder(
     uuid: UUID,
     skalDelesMedVeileder: Boolean,
 ) {
@@ -235,6 +235,26 @@ fun DatabaseInterface.setDeltMedVeilderTidspunkt(
 }
 
 
+
+fun DatabaseInterface.setNarmesteLederFullName(
+    oppfolgingsplanUUID: UUID,
+    narmesteLederFullName: String,
+) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET narmeste_leder_full_name = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, narmesteLederFullName)
+            preparedStatement.setObject(2, oppfolgingsplanUUID)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
 
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
     return PersistedOppfolgingsplan(

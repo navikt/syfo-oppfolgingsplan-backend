@@ -30,18 +30,20 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
-import no.nav.syfo.dinesykmeldte.DineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
-import no.nav.syfo.isdialogmelding.IsDialogmeldingClient
+import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.pdfgen.PdfGenClient
+import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.pdl.PdlService
+import no.nav.syfo.pdl.client.PdlClient
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -50,11 +52,12 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
-    val testDb = TestDB.Companion.database
+    val testDb = TestDB.database
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val pdfGenClient = mockk<PdfGenClient>()
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
     val dokarkivServiceMock = mockk<DokarkivService>()
+    val pdlClientMock = mockk<PdlClient>()
 
     val narmestelederId = UUID.randomUUID().toString()
     val pidInnlogetBruker = "10987654321"
@@ -62,7 +65,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
     beforeTest {
         clearAllMocks()
-        TestDB.Companion.clearAllData()
+        TestDB.clearAllData()
     }
 
     fun withTestApplication(
@@ -89,7 +92,13 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock,
                         ),
-                        pdfGenService = PdfGenService(pdfGenClient),
+                        pdfGenService = PdfGenService(
+                            pdfGenClient,
+                            testDb,
+                            PdlService(
+                                pdlClientMock,
+                            )
+                        ),
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                             dokarkivService = dokarkivServiceMock,
                     )

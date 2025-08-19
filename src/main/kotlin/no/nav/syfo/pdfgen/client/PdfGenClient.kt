@@ -1,4 +1,4 @@
-package no.nav.syfo.pdfgen
+package no.nav.syfo.pdfgen.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body

@@ -8,7 +8,7 @@ import io.ktor.util.AttributeKey
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.dinesykmeldte.Sykmeldt
+import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.texas.client.TexasHttpClient
 
 class AuthorizeLeaderAccessToSykmeldtConfiguration(

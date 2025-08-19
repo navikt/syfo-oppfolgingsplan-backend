@@ -1,4 +1,4 @@
-package no.nav.syfo.isdialogmelding
+package no.nav.syfo.isdialogmelding.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.ClientRequestException
