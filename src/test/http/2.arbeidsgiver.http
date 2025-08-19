@@ -38,8 +38,8 @@ Authorization: Bearer {{token}}
     client.global.set("oppflgingsplanUuid", response.body.oppfolgingsplan.uuid);
 %}
 
-### Del med Nav
-POST http://localhost:8080/api/v1/arbeidsgiver/{{narmestelederId}}/oppfolgingsplaner/{{oppflgingsplanUuid}}/del-med-Nav HTTP/1.1
+### Del med veilder
+POST http://localhost:8080/api/v1/arbeidsgiver/{{narmestelederId}}/oppfolgingsplaner/{{oppflgingsplanUuid}}/del-med-veileder HTTP/1.1
 Authorization: Bearer {{token}}
 
 ### Del med Lege
