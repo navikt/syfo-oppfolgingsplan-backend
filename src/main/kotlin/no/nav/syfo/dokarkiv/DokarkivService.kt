@@ -1,11 +1,12 @@
 package no.nav.syfo.dokarkiv
 
-import no.nav.syfo.dokarkiv.domain.AvsenderMottaker
-import no.nav.syfo.dokarkiv.domain.Bruker
-import no.nav.syfo.dokarkiv.domain.Dokument
-import no.nav.syfo.dokarkiv.domain.Dokumentvariant
-import no.nav.syfo.dokarkiv.domain.JournalpostRequest
-import no.nav.syfo.dokarkiv.domain.Sak
+import no.nav.syfo.dokarkiv.client.IDokarkivClient
+import no.nav.syfo.dokarkiv.client.AvsenderMottaker
+import no.nav.syfo.dokarkiv.client.Bruker
+import no.nav.syfo.dokarkiv.client.Dokument
+import no.nav.syfo.dokarkiv.client.Dokumentvariant
+import no.nav.syfo.dokarkiv.client.JournalpostRequest
+import no.nav.syfo.dokarkiv.client.Sak
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 
 class DokarkivService(

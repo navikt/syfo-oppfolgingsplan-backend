@@ -492,7 +492,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         }
     }
 
-    it("POST /oppfolgingsplaner/{uuid}/del-med-Nav should respond with NotFound if plan does not exist") {
+    it("POST /oppfolgingsplaner/{uuid}/del-med-veileder should respond with NotFound if plan does not exist") {
         withTestApplication {
             // Arrange
             texasClientMock.defaultMocks(pidInnlogetBruker)
@@ -502,7 +502,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             val uuid = UUID.randomUUID()
             // Act
             val response = client.post {
-                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-Nav")
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-veileder")
                 bearerAuth("Bearer token")
             }
             // Assert
@@ -515,7 +515,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         }
     }
 
-    it("POST /oppfolgingsplaner/{uuid}/del-med-Nav should respond with Conflict if plan is already shared with Nav") {
+    it("POST /oppfolgingsplaner/{uuid}/del-med-veileder should respond with Conflict if plan is already shared with Nav") {
         withTestApplication {
             // Arrange
             texasClientMock.defaultMocks(pidInnlogetBruker)
@@ -531,7 +531,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
             // Act
             val response = client.post {
-                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-Nav")
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-veileder")
                 bearerAuth("Bearer token")
             }
             // Assert
@@ -544,7 +544,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         }
     }
 
-    it("POST /oppfolgingsplaner/{uuid}/del-med-Nav should respond with OK and update plan when authorized") {
+    it("POST /oppfolgingsplaner/{uuid}/del-med-veileder should respond with OK and update plan when authorized") {
         withTestApplication {
             // Arrange
             texasClientMock.defaultMocks(pidInnlogetBruker)
@@ -561,7 +561,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             )
             // Act
             val response = client.post {
-                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-Nav")
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-veileder")
                 bearerAuth("Bearer token")
             }
             // Assert
@@ -575,7 +575,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         }
     }
 
-    it("POST /oppfolgingsplaner/{uuid}/del-med-Nav should respond with 500 when archiving fails") {
+    it("POST /oppfolgingsplaner/{uuid}/del-med-veileder should respond with 500 when archiving fails") {
         withTestApplication {
             // Arrange
             texasClientMock.defaultMocks(pidInnlogetBruker)
@@ -592,7 +592,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             )
             // Act
             val response = client.post {
-                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-Nav")
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-veileder")
                 bearerAuth("Bearer token")
             }
             // Assert

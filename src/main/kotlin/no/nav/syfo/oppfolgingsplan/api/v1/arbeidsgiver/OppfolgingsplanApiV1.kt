@@ -157,7 +157,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             call.respond(HttpStatusCode.OK)
         }
 
-        post("/{uuid}/del-med-Nav") {
+        post("/{uuid}/del-med-veileder") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             if (sykmeldt.aktivSykmelding != true) {
