@@ -16,10 +16,7 @@ class PdlService(private val pdlClient: IPdlClient) {
         }
         val navn = response.data.person?.navn?.firstOrNull()
 
-        val (fornavn, mellomnavn, etternavn) = navn
-            ?: return null
-
-        return listOfNotNull(fornavn, mellomnavn, etternavn)
+        return listOfNotNull(navn?.fornavn, navn?.mellomnavn, navn?.etternavn)
             .joinToString(" ")
             .ifBlank { null }
     }
