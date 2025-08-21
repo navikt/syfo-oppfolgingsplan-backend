@@ -1,6 +1,5 @@
 package no.nav.syfo.oppfolgingsplan.dto
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import java.io.Serializable
 
