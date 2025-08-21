@@ -53,18 +53,7 @@ data class FormSnapshot(
     val fieldSnapshots: List<FieldSnapshot>,
 
     val sections: List<FormSection>? = null
-) {
-    @get:JsonIgnore
-    val fieldValues: Map<String, Any>
-        get() = fieldSnapshots.associate { fieldSnapshot ->
-            fieldSnapshot.fieldId to when (fieldSnapshot) {
-                is TextFieldSnapshot -> fieldSnapshot.value
-                is CheckboxFieldSnapshot -> fieldSnapshot.options.filter { it.wasSelected }
-                is RadioGroupFieldSnapshot -> fieldSnapshot.selectedOptionId
-                else -> throw IllegalArgumentException("Unknown field type: ${fieldSnapshot.fieldType}")
-            }
-        }
-}
+)
 
 abstract class FieldSnapshot(
     open val fieldId: String,
