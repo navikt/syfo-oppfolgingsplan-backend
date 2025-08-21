@@ -1,6 +1,5 @@
 package no.nav.syfo
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import no.nav.syfo.application.database.DatabaseInterface
@@ -127,7 +126,7 @@ fun DatabaseInterface.persistOppfolgingsplan(
             it.setString(3, persistedOppfolgingsplan.narmesteLederId)
             it.setString(4, persistedOppfolgingsplan.narmesteLederFnr)
             it.setString(5, persistedOppfolgingsplan.organisasjonsnummer)
-            it.setObject(6, jacksonObjectMapper().writeValueAsString(persistedOppfolgingsplan.content), Types.OTHER)
+            it.setObject(6, persistedOppfolgingsplan.content.toJsonString(), Types.OTHER)
             it.setDate(7, Date.valueOf(persistedOppfolgingsplan.sluttdato.toString()))
             it.setBoolean(8, persistedOppfolgingsplan.skalDelesMedLege)
             it.setBoolean(9, persistedOppfolgingsplan.skalDelesMedVeileder)
