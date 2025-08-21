@@ -86,7 +86,6 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 = Oppf
                         )
                     }
             )
-        } ?: emptyList(
-        )
+        } ?: throw IllegalStateException("Missing sections in content")
     )
 )
