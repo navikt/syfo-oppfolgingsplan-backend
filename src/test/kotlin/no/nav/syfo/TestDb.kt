@@ -1,10 +1,12 @@
 package no.nav.syfo
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.toJsonString
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer
@@ -125,7 +127,7 @@ fun DatabaseInterface.persistOppfolgingsplan(
             it.setString(3, persistedOppfolgingsplan.narmesteLederId)
             it.setString(4, persistedOppfolgingsplan.narmesteLederFnr)
             it.setString(5, persistedOppfolgingsplan.organisasjonsnummer)
-            it.setObject(6, persistedOppfolgingsplan.content.toString(), Types.OTHER)
+            it.setObject(6, jacksonObjectMapper().writeValueAsString(persistedOppfolgingsplan.content), Types.OTHER)
             it.setDate(7, Date.valueOf(persistedOppfolgingsplan.sluttdato.toString()))
             it.setBoolean(8, persistedOppfolgingsplan.skalDelesMedLege)
             it.setBoolean(9, persistedOppfolgingsplan.skalDelesMedVeileder)
@@ -166,7 +168,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             it.setString(2, persistedOppfolgingsplanUtkast.narmesteLederId)
             it.setString(3, persistedOppfolgingsplanUtkast.narmesteLederFnr)
             it.setString(4, persistedOppfolgingsplanUtkast.organisasjonsnummer)
-            it.setObject(5, persistedOppfolgingsplanUtkast.content.toString(), Types.OTHER)
+            it.setObject(5, persistedOppfolgingsplanUtkast.content?.toJsonString(), Types.OTHER)
             it.setDate(6, Date.valueOf(persistedOppfolgingsplanUtkast.sluttdato.toString()))
             it.executeUpdate()
         }

@@ -1,12 +1,12 @@
 package no.nav.syfo.oppfolgingsplan.db
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
+import no.nav.syfo.oppfolgingsplan.dto.FormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.toFormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.toJsonString
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Timestamp
@@ -24,7 +24,7 @@ data class PersistedOppfolgingsplan(
     val narmesteLederFullName: String?,
     val organisasjonsnummer: String,
     val organisasjonsnavn: String?,
-    val content: JsonNode,
+    val content: FormSnapshot,
     val sluttdato: LocalDate,
     val skalDelesMedLege: Boolean,
     val skalDelesMedVeileder: Boolean,
@@ -72,7 +72,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.setString(4, narmesteLederFnr)
             it.setString(5, sykmeldt.orgnummer)
             it.setString(6, sykmeldt.getOrganizationName())
-            it.setObject(7, createOppfolgingsplanRequest.content.toString(), Types.OTHER)
+            it.setObject(7, createOppfolgingsplanRequest.content.toJsonString(), Types.OTHER)
             it.setDate(8, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
             it.setBoolean(9, createOppfolgingsplanRequest.skalDelesMedLege)
             it.setBoolean(10, createOppfolgingsplanRequest.skalDelesMedVeileder)
@@ -266,7 +266,7 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         narmesteLederFullName = this.getString("narmeste_leder_full_name"),
         organisasjonsnummer = this.getString("organisasjonsnummer"),
         organisasjonsnavn = this.getString("organisasjonsnavn"),
-        content = ObjectMapper().readValue(getString("content")),
+        content = getString("content").toFormSnapshot(),
         sluttdato = LocalDate.parse(this.getString("sluttdato")),
         skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
         skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),

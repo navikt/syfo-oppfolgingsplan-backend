@@ -10,7 +10,7 @@ import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
 
-internal val logger = logger("no.nav.syfo.texas.TexasAuthPlugin")
+private val logger = logger("no.nav.syfo.texas.TexasAuthPlugin")
 
 class TexasAuthPluginConfiguration(
     var client: TexasHttpClient? = null,

@@ -1,6 +1,5 @@
 package no.nav.syfo.oppfolgingsplan.dto
 
-import com.fasterxml.jackson.databind.JsonNode
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import java.time.Instant
@@ -8,7 +7,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 data class CreateOppfolgingsplanRequest (
-    val content: JsonNode,
+    val content: FormSnapshot,
     val sluttdato: LocalDate,
     val skalDelesMedLege: Boolean,
     val skalDelesMedVeileder: Boolean,
@@ -30,7 +29,7 @@ data class OppfolgingsplanMetadata (
 )
 
 data class CreateUtkastRequest(
-    val content: JsonNode?,
+    val content: FormSnapshot?,
     val sluttdato: LocalDate?,
 )
 
