@@ -36,6 +36,8 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
                 throw BadRequestException("Failed to parse OppfolgingsplanUtkast from request", e)
             }
 
+            utkast.content?.validateFields()
+
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             oppfolgingsplanService.persistOppfolgingsplanUtkast(

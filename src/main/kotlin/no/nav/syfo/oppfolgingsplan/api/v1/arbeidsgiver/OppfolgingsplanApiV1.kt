@@ -70,6 +70,8 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 throw BadRequestException("Invalid Oppfolgingsplan format")
             }
 
+            oppfolgingsplan.content.validateFields()
+
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             val uuid = oppfolgingsplanService.createOppfolgingsplan(
