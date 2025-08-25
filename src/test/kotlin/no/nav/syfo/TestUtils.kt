@@ -93,11 +93,11 @@ fun defaultFormSnapshot() = FormSnapshot(
             description = "Beskriv en vanlig arbeidsdag og hvilke oppgaver arbeidstaker gjør på jobben"
         ),
         TextFieldSnapshot(
-            fieldId = "vanligArbeidsdag",
+            fieldId = "ordinæreArbeidsoppgaver",
             sectionId = "arbeidsoppgaver",
-            value = "Jeg skriver litt om min vanlige arbeidsdag her",
-            label = "Hvordan ser en vanlig arbeidsdag ut?",
-            description = "Beskriv en vanlig arbeidsdag og hvilke oppgaver arbeidstaker gjør på jobben"
+            value = "Jeg skriver litt om mine ordinære arbeidsoppgaver her",
+            label = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?",
+            description = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?"
         ),
         RadioGroupFieldSnapshot(
             fieldId = "arbeidsgiver",
