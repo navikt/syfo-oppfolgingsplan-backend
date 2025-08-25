@@ -123,6 +123,14 @@ data class TextFieldSnapshot(
     val wasRequired: Boolean? = true,
 ) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.TEXT, label, description, sectionId)
 
+data class SingleCheckboxFieldSnapshot(
+    override val fieldId: String,
+    override val label: String,
+    override val description: String? = null,
+    override val sectionId: String? = null,
+    val value: Boolean,
+) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.CHECKBOX_SINGLE, label, description)
+
 data class CheckboxFieldSnapshot(
     override val fieldId: String,
     override val label: String,
@@ -149,6 +157,7 @@ data class FormSnapshotFieldOption(
 
 enum class FormSnapshotFieldType(val type: String) {
     TEXT("text"),
+    CHECKBOX_SINGLE("checkboxSingle"),
     CHECKBOX("checkbox"),
     RADIO_GROUP("radioGroup")
 }

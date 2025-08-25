@@ -9,6 +9,7 @@ import no.nav.syfo.oppfolgingsplan.dto.CheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.FormSection
 import no.nav.syfo.oppfolgingsplan.dto.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.FormSnapshotFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.SingleCheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.TextFieldSnapshot
 import no.nav.syfo.pdfgen.toOppfolginsplanPdfV1
 import java.time.Instant
@@ -119,6 +120,35 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             val plan = defaultPersistedOppfolgingsplan().copy(narmesteLederFullName = null)
             val ex = shouldThrow<RuntimeException> { plan.toOppfolginsplanPdfV1() }
             ex.message shouldBe "NarmesteLederName is null"
+        }
+
+        it("should map SingleCheckboxFieldSnapshot value correctly") {
+            val formSnapshot = FormSnapshot(
+                formIdentifier = "oppfolgingsplan",
+                formSemanticVersion = "1.0.0",
+                formSnapshotVersion = "2.0.0",
+                sections = listOf(
+                    FormSection("singlecb", "Single Checkbox Section")
+                ),
+                fieldSnapshots = listOf(
+                    SingleCheckboxFieldSnapshot(
+                        fieldId = "singlecb1",
+                        label = "Single Checkbox field",
+                        description = "desc",
+                        sectionId = "singlecb",
+                        value = true
+                    )
+                )
+            )
+            val plan = defaultPersistedOppfolgingsplan().copy(content = formSnapshot)
+
+            val pdf = plan.toOppfolginsplanPdfV1()
+            val fields = pdf.oppfolgingsplan.sections[0].inputFields
+            fields.shouldHaveSize(1)
+            fields[0].id shouldBe "singlecb1"
+            fields[0].title shouldBe "Single Checkbox field"
+            fields[0].description shouldBe "desc"
+            fields[0].value shouldBe "Ja"
         }
     }
 })

@@ -7,6 +7,7 @@ import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.dto.CheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.RadioGroupFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.SingleCheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.TextFieldSnapshot
 import no.nav.syfo.pdfgen.client.Oppfolginsplan
 import no.nav.syfo.pdfgen.client.OppfolginsplanPdfV1
@@ -77,6 +78,7 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 = Oppf
                             value = when (fieldSnapshot) {
                                 is TextFieldSnapshot -> fieldSnapshot.value
                                 is RadioGroupFieldSnapshot -> fieldSnapshot.options.first { it.wasSelected }.optionLabel
+                                is SingleCheckboxFieldSnapshot -> if (fieldSnapshot.value) "Ja" else "Nei"
                                 is CheckboxFieldSnapshot -> fieldSnapshot.options
                                     .filter { it.wasSelected }
                                     .joinToString("\n") { it.optionLabel }

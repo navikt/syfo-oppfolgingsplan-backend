@@ -29,6 +29,11 @@ class FieldSnapshotDeserializer : JsonDeserializer<FieldSnapshot>() {
                 RadioGroupFieldSnapshot::class.java
             )
 
+            FormSnapshotFieldType.CHECKBOX_SINGLE.name -> ctxt.readTreeAsValue(
+                node,
+                SingleCheckboxFieldSnapshot::class.java
+            )
+
             else -> throw IllegalArgumentException("Unknown field type: $fieldType")
         }
     }
