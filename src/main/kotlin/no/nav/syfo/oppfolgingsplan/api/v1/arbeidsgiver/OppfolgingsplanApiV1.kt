@@ -64,13 +64,13 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 ?: throw UnauthorizedException("No user principal found in request")
 
             val oppfolgingsplan = try {
-                call.receive<CreateOppfolgingsplanRequest>()
+                val plan = call.receive<CreateOppfolgingsplanRequest>()
+                plan.content.validateFields()
+                plan
             } catch (e: Exception) {
-                logger.warn("Failed to parse Oppfolgingsplan from request: ${e.message}", e)
-                throw BadRequestException("Invalid Oppfolgingsplan format")
+                logger.warn("Failed to parse Oppfolgingsplan from request", e)
+                throw BadRequestException("Invalid Oppfolgingsplan in request: ${e.message}", e)
             }
-
-            oppfolgingsplan.content.validateFields()
 
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
