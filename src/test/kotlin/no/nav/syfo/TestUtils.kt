@@ -103,8 +103,6 @@ fun defaultFormSnapshot() = FormSnapshot(
             sectionId = "tilpassninger",
             label = "Dette er tittelen på en radio gruppe",
             description = "Dette er en beskrivelse av radio gruppen",
-            selectedOptionId = "asd",
-            selectedOptionLabel = "asd",
             options = emptyList(),
             wasRequired = true
         )

@@ -76,7 +76,7 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 = Oppf
                             description = fieldSnapshot.description,
                             value = when (fieldSnapshot) {
                                 is TextFieldSnapshot -> fieldSnapshot.value
-                                is RadioGroupFieldSnapshot -> fieldSnapshot.selectedOptionLabel
+                                is RadioGroupFieldSnapshot -> fieldSnapshot.options.first { it.wasSelected }.optionLabel
                                 is CheckboxFieldSnapshot -> fieldSnapshot.options
                                     .filter { it.wasSelected }
                                     .joinToString("\n") { it.optionLabel }

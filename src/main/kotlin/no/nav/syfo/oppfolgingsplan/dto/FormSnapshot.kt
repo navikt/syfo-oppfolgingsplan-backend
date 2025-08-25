@@ -92,8 +92,6 @@ data class RadioGroupFieldSnapshot(
     override val label: String,
     override val description: String? = null,
     override val sectionId: String? = null,
-    val selectedOptionId: String,
-    val selectedOptionLabel: String,
     val options: List<FormSnapshotFieldOption>,
     val wasRequired: Boolean? = true,
 ) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.RADIO_GROUP, label, description, sectionId)
