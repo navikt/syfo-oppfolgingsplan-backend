@@ -14,6 +14,7 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.FormSection
 import no.nav.syfo.oppfolgingsplan.dto.FormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.FormSnapshotFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.RadioGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.TextFieldSnapshot
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -103,7 +104,23 @@ fun defaultFormSnapshot() = FormSnapshot(
             sectionId = "tilpassninger",
             label = "Dette er tittelen på en radio gruppe",
             description = "Dette er en beskrivelse av radio gruppen",
-            options = emptyList(),
+            options = listOf(
+                FormSnapshotFieldOption(
+                    optionId = "option1",
+                    optionLabel = "Dette er option 1",
+                    wasSelected = false
+                ),
+                FormSnapshotFieldOption(
+                    optionId = "option2",
+                    optionLabel = "Dette er option 2",
+                    wasSelected = true
+                ),
+                FormSnapshotFieldOption(
+                    optionId = "option3",
+                    optionLabel = "Dette er option 3",
+                    wasSelected = false
+                ),
+            ),
             wasRequired = true
         )
     )
