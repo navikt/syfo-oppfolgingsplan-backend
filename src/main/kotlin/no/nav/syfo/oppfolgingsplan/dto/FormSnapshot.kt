@@ -52,7 +52,10 @@ data class FormSnapshot(
     val fieldSnapshots: List<FieldSnapshot>,
 
     val sections: List<FormSection>? = null
-)
+
+) {
+    companion object
+}
 
 abstract class FieldSnapshot(
     open val fieldId: String,

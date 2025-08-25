@@ -6,7 +6,9 @@ import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import no.nav.syfo.util.logger
 
+private val logger = logger("no.nav.syfo.oppfolgingsplan.dto.FormSnapshotJSONConversion")
 
 class FieldSnapshotDeserializer : JsonDeserializer<FieldSnapshot>() {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): FieldSnapshot {
@@ -36,10 +38,11 @@ fun FormSnapshot.toJsonString(): String {
     return jacksonObjectMapper().writeValueAsString(this)
 }
 
-fun String.toFormSnapshot(): FormSnapshot {
+fun FormSnapshot.Companion.jsonToFormSnapshot(json: String): FormSnapshot {
     return try {
-        jacksonObjectMapper().readValue(this)
+        jacksonObjectMapper().readValue(json)
     } catch (e: Exception) {
-        error("Failed to parse FormSnapshot JSON: ${e.message}")
+        logger.error("Failed to parse FormSnapshot JSON", e)
+        throw e
     }
 }

@@ -5,7 +5,7 @@ import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.FormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.toFormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.jsonToFormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.toJsonString
 import java.sql.Date
 import java.sql.ResultSet
@@ -266,7 +266,7 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         narmesteLederFullName = this.getString("narmeste_leder_full_name"),
         organisasjonsnummer = this.getString("organisasjonsnummer"),
         organisasjonsnavn = this.getString("organisasjonsnavn"),
-        content = getString("content").toFormSnapshot(),
+        content = FormSnapshot.jsonToFormSnapshot(getString("content")),
         sluttdato = LocalDate.parse(this.getString("sluttdato")),
         skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
         skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),

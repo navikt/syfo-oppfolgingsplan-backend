@@ -4,7 +4,7 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.FormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.toFormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.jsonToFormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.toJsonString
 import java.sql.Date
 import java.sql.ResultSet
@@ -101,7 +101,7 @@ fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
         narmesteLederId = getString("narmeste_leder_id"),
         narmesteLederFnr = getString("narmeste_leder_fnr"),
         organisasjonsnummer = getString("organisasjonsnummer"),
-        content = getString("content").toFormSnapshot(),
+        content = FormSnapshot.jsonToFormSnapshot(getString("content")),
         sluttdato = getDate("sluttdato")?.toLocalDate(),
         createdAt = getTimestamp("created_at").toInstant(),
         updatedAt = getTimestamp("updated_at").toInstant()
