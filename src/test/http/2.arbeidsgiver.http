@@ -6,8 +6,24 @@ Authorization: Bearer {{token}}
 {
   "sluttdato": "2025-07-30",
   "content": {
-    "tittel": "Oppfølgingsplan for Robust klovn",
-    "innhold": "Dette er andre testoppfolgingsplan"
+    "formIdentifier": "syfo-oppfolgingsplan",
+    "formSemanticVersion": "1.0.0",
+    "formSnapshotVersion": "2.0.0",
+    "sections": [
+      {
+        "sectionId": "arbeidsdag",
+        "sectionTitle": "Arbeidsdag"
+      }
+    ],
+    "fieldSnapshots": [
+        {
+            "fieldId": "arbeidsdag_1",
+            "fieldType": "TEXT",
+            "label": "Beskriv en vanlig arbeidsdag",
+            "value": "Her beskrives en vanlig arbeidsdag for den sykmeldte.",
+            "sectionId": "arbeidsdag"
+        }
+    ]
   }
 }
 
@@ -25,8 +41,48 @@ Authorization: Bearer {{token}}
   "skalDelesMedLege": false,
   "skalDelesMedVeileder": false,
   "content": {
-    "tittel": "Oppfølgingsplan for Robust klovn",
-    "innhold": "Dette er andre testoppfolgingsplan"
+    "formIdentifier": "syfo-oppfolgingsplan",
+    "formSemanticVersion": "1.0.0",
+    "formSnapshotVersion": "2.0.0",
+    "sections": [
+      {
+        "sectionId": "arbeidsoppgaver",
+        "sectionTitle": "Arbeidsoppgaver"
+      },
+      {
+        "sectionId": "oppfolging",
+        "sectionTitle": "Oppfølging og medvirkning"
+      }
+    ],
+    "fieldSnapshots": [
+      {
+        "fieldId": "arbeidsoppgaver_1",
+        "fieldType": "TEXT",
+        "label": "Hvordan ser en vanlig arbeidsdag ut?",
+        "description": "Beskriv en vanlig arbeidsdag og hvilke oppgaver arbeidstaker gjør på jobben.",
+        "value": "Jeg beskriver en vanlig arbeidsdag for den sykmeldte.",
+        "sectionId": "arbeidsoppgaver"
+      },
+      {
+        "fieldId": "harAnsattDeltatt",
+        "fieldType": "RADIO_GROUP",
+        "label": "Har den ansatte deltatt i utarbeidelsen av planen?",
+        "description": "Hvis du svarer nei blir du bedt om en begrunnelse.",
+        "sectionId": "oppfolging",
+        "options": [
+          {
+            "optionId": "deltattJa",
+            "optionLabel": "Ja",
+            "wasSelected": "true"
+          },
+          {
+            "optionId": "deltattNei",
+            "optionLabel": "Nei",
+            "wasSelected": "false"
+          }
+        ]
+      }
+    ]
   }
 }
 
