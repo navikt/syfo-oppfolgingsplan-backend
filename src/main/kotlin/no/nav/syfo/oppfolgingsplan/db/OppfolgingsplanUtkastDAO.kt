@@ -1,11 +1,11 @@
 package no.nav.syfo.oppfolgingsplan.db
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Types
@@ -19,7 +19,7 @@ data class PersistedOppfolgingsplanUtkast (
     val narmesteLederId: String,
     val narmesteLederFnr: String,
     val organisasjonsnummer: String,
-    val content: JsonNode?,
+    val content: FormSnapshot?,
     val sluttdato: LocalDate?,
     val createdAt: Instant,
     val updatedAt: Instant,
@@ -58,7 +58,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             preparedStatement.setString(2, sykmeldt.narmestelederId)
             preparedStatement.setString(3, narmesteLederFnr)
             preparedStatement.setString(4, sykmeldt.orgnummer)
-            preparedStatement.setObject(5, createUtkastRequest.content.toString(), Types.OTHER)
+            preparedStatement.setObject(5, createUtkastRequest.content?.toJsonString(), Types.OTHER)
             preparedStatement.setDate(6, Date.valueOf(createUtkastRequest.sluttdato.toString()))
             val resultSet = preparedStatement.executeQuery()
             connection.commit()
@@ -101,7 +101,7 @@ fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
         narmesteLederId = getString("narmeste_leder_id"),
         narmesteLederFnr = getString("narmeste_leder_fnr"),
         organisasjonsnummer = getString("organisasjonsnummer"),
-        content = ObjectMapper().readValue(getString("content")),
+        content = FormSnapshot.jsonToFormSnapshot(getString("content")),
         sluttdato = getDate("sluttdato")?.toLocalDate(),
         createdAt = getTimestamp("created_at").toInstant(),
         updatedAt = getTimestamp("updated_at").toInstant()

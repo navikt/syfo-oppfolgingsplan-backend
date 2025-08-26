@@ -5,11 +5,15 @@ import io.ktor.client.plugins.ServerResponseException
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.pdfgen.client.Oppfolginsplan
 import no.nav.syfo.pdfgen.client.OppfolginsplanPdfV1
 import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdfgen.client.Section
-import no.nav.syfo.pdfgen.client.TextInputField
+import no.nav.syfo.pdfgen.client.InputField
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import java.time.ZoneId
@@ -60,25 +64,30 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 = Oppf
         organisasjonsnavn = this.organisasjonsnavn ?: throw RuntimeException("Organisasjonsnavn is null"),
         organisasjonsnummer = this.organisasjonsnummer,
         narmesteLederName = this.narmesteLederFullName ?: throw RuntimeException("NarmesteLederName is null"),
-        sections = listOf(
+        sections = content.sections?.map { section ->
             Section(
-                id = "tilpassing",
-                title = "Tilpasning av arbeidsoppgaver",
-                description = "I denne delen av planen er det fint å kartlegge hvilke tilpasninger som er muligheter å gjøre i arbeidsoppgaver.",
-                textInputFields = listOf(
-                    TextInputField(
-                        id = "forsøktHittil",
-                        title = "Hva har dere forsøkt så langt i sykefraværet?",
-                        description = "Beskriv hva dere har forsøkt av tilrettelegging så langt i sykefraværet. Hva har fungert, og hva har ikke fungert?",
-                        value = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut nec leo porta, rhoncus sem vel, molestie odio. Nunc dictum maximus diam, eu commodo elit ullamcorper eu. Nam hendrerit scelerisque hendrerit. Integer neque orci, finibus id elementum iaculis, posuere ut neque. Ut tristique eros ac mollis vestibulum. Mauris bibendum, neque et posuere blandit, velit urna dapibus ex, sed sagittis nunc lorem in felis. Donec sit amet mattis nunc, non venenatis arcu. Integer odio purus, gravida facilisis nibh ac, gravida porta dui. Curabitur a leo erat. Sed leo metus, interdum et nisi eu, rhoncus finibus mi. Vestibulum porttitor luctus congue. Pellentesque mollis consectetur neque, vel ultricies felis hendrerit vel. Ut aliquam fringilla ex, id hendrerit est ullamcorper id"
-                    ), TextInputField(
-                        id = "hvordanTilrettelegge",
-                        title = "Hvordan skal dere tilrettelegge arbeidshverdagen fremover?",
-                        description = "Beskriv hva dere skal gjøre for at arbeidstakeren kan være i noe jobb",
-                        value = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut nec leo porta, rhoncus sem vel, molestie odio. Nunc dictum maximus diam, eu commodo elit ullamcorper eu. Nam hendrerit scelerisque hendrerit. Integer neque orci, finibus id elementum iaculis, posuere ut neque. Ut tristique eros ac mollis vestibulum. Mauris bibendum, neque et posuere blandit, velit urna dapibus ex, sed sagittis nunc lorem in felis. Donec sit amet mattis nunc, non venenatis arcu. Integer odio purus, gravida facilisis nibh ac, gravida porta dui. Curabitur a leo erat. Sed leo metus, interdum et nisi eu, rhoncus finibus mi. Vestibulum porttitor luctus congue. Pellentesque mollis consectetur neque, vel ultricies felis hendrerit vel. Ut aliquam fringilla ex, id hendrerit est ullamcorper id"
-                    )
-                )
+                id = section.sectionId,
+                title = section.sectionTitle,
+                inputFields = content.fieldSnapshots
+                    .filter { it.sectionId == section.sectionId }
+                    .map { fieldSnapshot ->
+                        InputField(
+                            id = fieldSnapshot.fieldId,
+                            title = fieldSnapshot.label,
+                            description = fieldSnapshot.description,
+                            value = when (fieldSnapshot) {
+                                is TextFieldSnapshot -> fieldSnapshot.value
+                                is RadioGroupFieldSnapshot -> fieldSnapshot.options.first { it.wasSelected }.optionLabel
+                                is SingleCheckboxFieldSnapshot -> if (fieldSnapshot.value) "Ja" else "Nei"
+                                is CheckboxFieldSnapshot -> fieldSnapshot.options
+                                    .filter { it.wasSelected }
+                                    .joinToString("\n") { it.optionLabel }
+
+                                else -> throw IllegalArgumentException("Unknown field type: ${fieldSnapshot.fieldType}")
+                            }
+                        )
+                    }
             )
-        )
+        } ?: throw IllegalStateException("Missing sections in content")
     )
 )

@@ -1,7 +1,5 @@
 package no.nav.syfo
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import io.mockk.coEvery
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
 import java.time.Instant
@@ -14,31 +12,22 @@ import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshotFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.texas.client.TexasResponse
 
 fun defaultUtkast() = CreateUtkastRequest(
-    content = ObjectMapper().readValue(
-        """
-        {
-            "tittel": "Oppfølgingsplan for Navn Sykmeldt",
-            "innhold": "Dette er en testoppfølgingsplan"
-        }
-    """.trimIndent()
-    ),
+    content = defaultFormSnapshot(),
     sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
 )
 
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
-    content = ObjectMapper().readValue(
-        """
-        {
-            "tittel": "Oppfølgingsplan for Navn Sykmeldt",
-            "innhold": "Dette er en testoppfølgingsplan"
-        }
-        """.trimIndent()
-    ),
+    content = defaultFormSnapshot(),
     sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
     skalDelesMedLege = false,
     skalDelesMedVeileder = false,
@@ -51,14 +40,7 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     narmesteLederFullName = "Narmesteleder",
     organisasjonsnummer = "orgnummer",
     organisasjonsnavn = "Test AS",
-    content = ObjectMapper().readValue(
-        """
-        {
-            "tittel": "Oppfølgingsplan for Navn Sykmeldt",
-            "innhold": "Dette er en testoppfølgingsplan"
-        }
-        """.trimIndent()
-    ),
+    content = defaultFormSnapshot(),
     skalDelesMedLege = false,
     skalDelesMedVeileder = false,
     uuid = UUID.randomUUID(),
@@ -73,14 +55,7 @@ fun defaultPersistedOppfolgingsplanUtkast() = PersistedOppfolgingsplanUtkast(
     narmesteLederId = UUID.randomUUID().toString(),
     narmesteLederFnr = "10987654321",
     organisasjonsnummer = "orgnummer",
-    content = ObjectMapper().readValue(
-        """
-        {
-            "tittel": "Utkast for Navn Sykmeldt",
-            "innhold": "Dette er et testutkast"
-        }
-        """.trimIndent()
-    ),
+    content = defaultFormSnapshot(),
     sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
     createdAt = Instant.now(),
     updatedAt = Instant.now(),
@@ -93,6 +68,62 @@ fun defaultSykmeldt() = Sykmeldt(
     "Navn Sykmeldt",
     sykmeldinger = listOf(DineSykmeldteSykmelding("Test AS")),
     true,
+)
+
+fun defaultFormSnapshot() = FormSnapshot(
+    formIdentifier = "oppfolgingsplan",
+    formSemanticVersion = "1.0.0",
+    formSnapshotVersion = "2.0.0",
+    sections = listOf(
+        FormSection(
+            sectionId = "arbeidsoppgaver",
+            sectionTitle = "Arbeidsoppgaver",
+        ),
+        FormSection(
+            sectionId = "tilpassninger",
+            sectionTitle = "Tilpassninger",
+        ),
+    ),
+    fieldSnapshots = listOf(
+        TextFieldSnapshot(
+            fieldId = "vanligArbeidsdag",
+            sectionId = "arbeidsoppgaver",
+            value = "Jeg skriver litt om min vanlige arbeidsdag her",
+            label = "Hvordan ser en vanlig arbeidsdag ut?",
+            description = "Beskriv en vanlig arbeidsdag og hvilke oppgaver arbeidstaker gjør på jobben"
+        ),
+        TextFieldSnapshot(
+            fieldId = "ordinæreArbeidsoppgaver",
+            sectionId = "arbeidsoppgaver",
+            value = "Jeg skriver litt om mine ordinære arbeidsoppgaver her",
+            label = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?",
+            description = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?"
+        ),
+        RadioGroupFieldSnapshot(
+            fieldId = "arbeidsgiver",
+            sectionId = "tilpassninger",
+            label = "Dette er tittelen på en radio gruppe",
+            description = "Dette er en beskrivelse av radio gruppen",
+            options = listOf(
+                FormSnapshotFieldOption(
+                    optionId = "option1",
+                    optionLabel = "Dette er option 1",
+                    wasSelected = false
+                ),
+                FormSnapshotFieldOption(
+                    optionId = "option2",
+                    optionLabel = "Dette er option 2",
+                    wasSelected = true
+                ),
+                FormSnapshotFieldOption(
+                    optionId = "option3",
+                    optionLabel = "Dette er option 3",
+                    wasSelected = false
+                ),
+            ),
+            wasRequired = true
+        )
+    )
 )
 
 fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "Level4") {

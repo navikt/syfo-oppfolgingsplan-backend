@@ -32,8 +32,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
             val innloggetBruker = call.principal<BrukerPrincipal>()
                 ?: throw UnauthorizedException("No user principal found in request")
 
-            val utkast = try { call.receive<CreateUtkastRequest>() } catch (e: Exception) {
-                throw BadRequestException("Failed to parse OppfolgingsplanUtkast from request", e)
+            val utkast = try {
+                call.receive<CreateUtkastRequest>()
+            } catch (e: Exception) {
+                throw BadRequestException("Invalid Oppfolgingsplan in request: ${e.message}", e)
             }
 
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]

@@ -1,10 +1,8 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
 import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.readValue
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -27,6 +25,7 @@ import io.mockk.mockk
 import java.time.LocalDate
 import java.util.*
 import no.nav.syfo.TestDB
+import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
@@ -152,13 +151,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     sykmeldt = sykmeldt,
                     defaultUtkast()
                         .copy(
-                            content = ObjectMapper().readValue(
-                                """
-                            {
-                                "innhold": "Dette er en testoppfølgingsplan"
-                            }
-                            """.trimIndent()
-                            ), sluttdato = LocalDate.parse("2020-01-01")
+                            sluttdato = LocalDate.parse("2020-01-01")
                         )
                 )
 
@@ -168,13 +161,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     contentType(ContentType.Application.Json)
                     setBody(
                         defaultUtkast().copy(
-                            content = ObjectMapper().readValue(
-                                """
-                            {
-                                "innhold": "Nytt innhold"
-                            }
-                            """.trimIndent()
-                            ), sluttdato = LocalDate.parse("2020-01-02")
+                            sluttdato = LocalDate.parse("2020-01-02")
                         )
                     )
                 }
@@ -190,7 +177,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     it.narmesteLederId shouldBe narmestelederId
                     it.narmesteLederFnr shouldBe pidInnlogetBruker
                     it.organisasjonsnummer shouldBe sykmeldt.orgnummer
-                    it.content?.get("innhold")?.asText() shouldBe "Nytt innhold"
+                    it.content shouldBe defaultFormSnapshot()
                     it.sluttdato shouldBe LocalDate.parse("2020-01-02")
                 }
             }
@@ -223,7 +210,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 utkast.sykmeldtFnr shouldBe sykmeldt.fnr
                 utkast.narmesteLederFnr shouldBe pidInnlogetBruker
                 utkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
-                utkast.content?.get("innhold")?.asText() shouldBe "Dette er en testoppfølgingsplan"
+                utkast.content shouldBe defaultFormSnapshot()
                 utkast.sluttdato shouldBe requestUtkast.sluttdato
             }
         }

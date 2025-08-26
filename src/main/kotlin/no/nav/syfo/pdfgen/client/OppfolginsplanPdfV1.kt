@@ -21,13 +21,13 @@ data class Oppfolginsplan(
 data class Section(
     val id: String,
     val title: String,
-    val description: String,
-    val textInputFields: List<TextInputField>,
+    val description: String? = null,
+    val inputFields: List<InputField>,
 )
 
-data class TextInputField(
+data class InputField(
     val id: String,
     val title: String,
-    val description: String,
+    val description: String?,
     val value: String,
 )
