@@ -29,8 +29,8 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
 
             // Top level mapping
             pdf.version shouldBe "1.0"
-            pdf.oppfolgingsplan.createdDate shouldBe LocalDate.parse("2024-06-02")
-            pdf.oppfolgingsplan.evaluationDate shouldBe sluttdato
+            pdf.oppfolgingsplan.createdDate shouldBe "02.06.2024"
+            pdf.oppfolgingsplan.evaluationDate shouldBe "15.08.2024"
             pdf.oppfolgingsplan.sykmeldtName shouldBe plan.sykmeldtFullName
             pdf.oppfolgingsplan.sykmeldtFnr shouldBe plan.sykmeldtFnr
             pdf.oppfolgingsplan.organisasjonsnavn shouldBe plan.organisasjonsnavn
