@@ -4,9 +4,9 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
-import no.nav.syfo.oppfolgingsplan.dto.FormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.jsonToFormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.toJsonString
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Timestamp

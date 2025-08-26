@@ -16,15 +16,12 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
-import no.nav.syfo.util.logger
 
 fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService
 ) {
-    val logger = logger()
-
     route("/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/utkast") {
         install(AuthorizeLeaderAccessToSykmeldtPlugin) {
             this.texasHttpClient = texasHttpClient
@@ -36,11 +33,8 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
                 ?: throw UnauthorizedException("No user principal found in request")
 
             val utkast = try {
-                val plan = call.receive<CreateUtkastRequest>()
-                plan.content?.validateFields()
-                plan
+                call.receive<CreateUtkastRequest>()
             } catch (e: Exception) {
-                logger.warn("Failed to parse Oppfolgingsplan from request", e)
                 throw BadRequestException("Invalid Oppfolgingsplan in request: ${e.message}", e)
             }
 

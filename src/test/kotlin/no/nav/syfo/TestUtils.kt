@@ -12,11 +12,11 @@ import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
-import no.nav.syfo.oppfolgingsplan.dto.FormSection
-import no.nav.syfo.oppfolgingsplan.dto.FormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.FormSnapshotFieldOption
-import no.nav.syfo.oppfolgingsplan.dto.RadioGroupFieldSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.TextFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshotFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.texas.client.TexasResponse

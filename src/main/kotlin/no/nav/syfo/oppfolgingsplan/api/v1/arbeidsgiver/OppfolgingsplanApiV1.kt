@@ -27,6 +27,7 @@ import no.nav.syfo.util.logger
 import java.time.Instant
 import no.nav.syfo.application.exception.ConflictException
 import no.nav.syfo.dokarkiv.DokarkivService
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.validateFields
 
 @Suppress("LongParameterList", "LongMethod", "ThrowsCount")
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
@@ -68,7 +69,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 plan.content.validateFields()
                 plan
             } catch (e: Exception) {
-                logger.warn("Failed to parse Oppfolgingsplan from request", e)
                 throw BadRequestException("Invalid Oppfolgingsplan in request: ${e.message}", e)
             }
 

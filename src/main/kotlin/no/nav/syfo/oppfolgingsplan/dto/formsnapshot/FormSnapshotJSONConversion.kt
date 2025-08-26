@@ -1,4 +1,4 @@
-package no.nav.syfo.oppfolgingsplan.dto
+package no.nav.syfo.oppfolgingsplan.dto.formsnapshot
 
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationContext

@@ -5,7 +5,7 @@ import com.zaxxer.hikari.HikariDataSource
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.toJsonString
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
 import org.testcontainers.containers.PostgreSQLContainer

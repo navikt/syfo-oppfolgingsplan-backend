@@ -4,6 +4,13 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshotFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.validateFields
 
 class FormSnapshotValidateFieldsTest : DescribeSpec({
     describe("FormSnapshot.validateFields - sections") {
