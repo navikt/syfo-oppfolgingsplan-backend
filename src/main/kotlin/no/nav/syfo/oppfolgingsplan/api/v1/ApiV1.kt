@@ -8,6 +8,7 @@ import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanUtkastApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.registerSykmeldtOppfolgingsplanApiV1
+import no.nav.syfo.oppfolgingsplan.api.v1.veilder.registerVeilderOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.TexasAuthPlugin
@@ -40,6 +41,11 @@ fun Route.registerApiV1(
             oppfolgingsplanService
         )
         registerSykmeldtOppfolgingsplanApiV1(
+            texasHttpClient,
+            oppfolgingsplanService,
+            pdfGenService
+        )
+        registerVeilderOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
             pdfGenService
