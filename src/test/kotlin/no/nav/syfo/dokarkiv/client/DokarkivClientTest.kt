@@ -96,7 +96,7 @@ class DokarkivClientTest : DescribeSpec({
         }
     }
 
-    it("should throw exception when archiving failes") {
+    it("should throw exception when archiving fails") {
         // Arrange
         val mockEngine = getMockEngine(
             HttpStatusCode.BadRequest,
@@ -115,6 +115,4 @@ class DokarkivClientTest : DescribeSpec({
             client.sendJournalpostRequestToDokarkiv(getJournalpostRequest())
         }
     }
-
-
 })
