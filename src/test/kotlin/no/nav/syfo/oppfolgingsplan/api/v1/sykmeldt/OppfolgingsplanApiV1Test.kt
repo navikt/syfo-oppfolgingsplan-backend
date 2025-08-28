@@ -124,7 +124,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             it("GET /oppfolgingsplaner/oversikt should respond with OK when texas client gives active response") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks()
+                    val sykmeldtFnr = "12345678901"
+                    texasClientMock.defaultMocks(pid = sykmeldtFnr)
 
                     // Act
                     val response = client.get {
@@ -212,7 +213,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks()
+                val sykmeldtFnr = "12345678901"
+                texasClientMock.defaultMocks(pid = sykmeldtFnr)
 
                 // Act
                 val response = client.get {
@@ -275,7 +277,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             it("GET /oppfolgingsplaner/{uuid}/pdf should respond with NotFound if oppfolgingsplan does not exist") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks()
+                    val sykmeldtFnr = "12345678901"
+                    texasClientMock.defaultMocks(pid = sykmeldtFnr)
 
                     // Act
                     val response = client.get {
