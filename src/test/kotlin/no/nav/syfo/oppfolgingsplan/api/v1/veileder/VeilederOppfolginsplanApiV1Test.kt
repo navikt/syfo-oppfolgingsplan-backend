@@ -12,7 +12,9 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.url
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import io.ktor.serialization.jackson.jackson
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
@@ -203,5 +205,121 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             }
 
         }
+    }
+
+    describe("PDF for uuid") {
+        it("GET /veilder/oppfolgingsplaner/<uuid> should respond with Not Found when there is no oppfolginsplan delt with nav for the uuid") {
+            withTestApplication {
+                // Arrange
+                val pdfContent = "ThisIsPdfContent"
+                texasClientMock.defaultMocks(pid = "some-veileder-token")
+                coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
+                coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
+                val firstPlanUUID = testDb.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                            sykmeldtFnr = sykmeldtFnr,
+                        )
+                )
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/veileder/oppfolgingsplaner/${firstPlanUUID}")
+                    bearerAuth(token = "Bearer token")
+                    header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.NotFound
+                coVerify(exactly = 0) {
+                    isTilgangskontrollClientMock.harTilgangTilSykmeldt(
+                        sykmeldtFnr = eq(Fodselsnummer(sykmeldtFnr)), token = any()
+                    )
+                }
+            }
+        }
+        it("GET /veilder/oppfolgingsplaner/<uuid> should respond with forbidden when Tilgangskontroll rejects access to sykemeldt") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks(pid = "some-veileder-token")
+                coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns false
+                val firstPlanUUID = testDb.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                            sykmeldtFnr = sykmeldtFnr,
+                        )
+                )
+                testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
+                testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
+                testDb.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                            sykmeldtFnr = sykmeldtFnr,
+                        )
+                )
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/veileder/oppfolgingsplaner/${firstPlanUUID}")
+                    bearerAuth(token = "Bearer token")
+                    header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.Forbidden
+                coVerify(exactly = 1) {
+                    isTilgangskontrollClientMock.harTilgangTilSykmeldt(
+                        sykmeldtFnr = eq(Fodselsnummer(sykmeldtFnr)), token = any()
+                    )
+                }
+            }
+        }
+
+        it("GET /veilder/oppfolgingsplaner/<uuid> should respond with OK and pdf as ByteArray") {
+            withTestApplication {
+                // Arrange
+                val pdfContent = "ThisIsPdfContent"
+                texasClientMock.defaultMocks(pid = "some-veileder-token")
+                coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
+                coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
+                val firstPlanUUID = testDb.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                            sykmeldtFnr = sykmeldtFnr,
+                        )
+                )
+                testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
+                testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
+                testDb.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                            sykmeldtFnr = sykmeldtFnr,
+                        )
+                )
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/veileder/oppfolgingsplaner/${firstPlanUUID}")
+                    bearerAuth(token = "Bearer token")
+                    header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.OK
+                response.contentType() shouldBe ContentType.Application.Pdf
+                response.body<ByteArray>() shouldBe pdfContent.toByteArray(Charsets.UTF_8)
+                coVerify(exactly = 1) {
+                    isTilgangskontrollClientMock.harTilgangTilSykmeldt(
+                        sykmeldtFnr = eq(Fodselsnummer(sykmeldtFnr)), token = any()
+                    )
+                }
+            }
+        }
+
     }
 })
