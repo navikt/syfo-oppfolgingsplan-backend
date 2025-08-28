@@ -42,7 +42,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
         }
     }
 
-    route("/sykmeldt/oppfolgingsplaner") {
+    route("/oppfolgingsplaner") {
         install(AddSykmeldtBrukerFnrAttributePlugin) {
             this.texasHttpClient = texasHttpClient
         }

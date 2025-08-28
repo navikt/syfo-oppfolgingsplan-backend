@@ -12,7 +12,8 @@ import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.registerSykmeldtOppfolgingspl
 import no.nav.syfo.oppfolgingsplan.api.v1.veilder.registerVeilderOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
-import no.nav.syfo.texas.TexasAuthPlugin
+import no.nav.syfo.texas.TexasAzureADAuthPlugin
+import no.nav.syfo.texas.TexasTokenXAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
 
 @Suppress("LongParameterList")
@@ -25,8 +26,8 @@ fun Route.registerApiV1(
     isTilgangskontrollService: IsTilgangskontrollService,
     dokarkivService: DokarkivService,
 ) {
-    route("/api/v1") {
-        install(TexasAuthPlugin) {
+    route("/api/v1/arbeidsgiver") {
+        install(TexasTokenXAuthPlugin) {
             client = texasHttpClient
         }
         registerArbeidsgiverOppfolgingsplanApiV1(
@@ -42,11 +43,21 @@ fun Route.registerApiV1(
             texasHttpClient,
             oppfolgingsplanService
         )
+    }
+    route("/api/v1/sykmeldt") {
+        install(TexasTokenXAuthPlugin) {
+            client = texasHttpClient
+        }
         registerSykmeldtOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
             pdfGenService
         )
+    }
+    route("/api/v1/veileder") {
+        install(TexasAzureADAuthPlugin) {
+            client = texasHttpClient
+        }
         registerVeilderOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
