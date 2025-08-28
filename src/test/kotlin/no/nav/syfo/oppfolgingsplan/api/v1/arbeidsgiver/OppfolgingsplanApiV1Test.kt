@@ -43,6 +43,9 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
+import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
+import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
@@ -66,6 +69,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
+    val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
     val pdfGenServiceMock = mockk<PdfGenService>()
 
     val narmestelederId = UUID.randomUUID().toString()
@@ -73,6 +77,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val sykmeldt = defaultSykmeldt().copy(narmestelederId = narmestelederId)
 
     val dokarkivServiceMock = mockk<DokarkivService>()
+    val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
 
     beforeTest {
         clearAllMocks()
@@ -108,6 +113,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         pdfGenService = pdfGenServiceMock,
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                         dokarkivService = dokarkivServiceMock,
+                        isTilgangskontrollService = isTilgangskontrollServiceMock,
                     )
                 }
             }
