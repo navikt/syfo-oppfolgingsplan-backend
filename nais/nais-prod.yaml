@@ -63,6 +63,9 @@ spec:
   tokenx:
     enabled: true
   accessPolicy:
+    inbound:
+      rules:
+        - application: syfo-oppfolgingsplan-frontend
     outbound:
       rules:
         - application: syfooppdfgen
