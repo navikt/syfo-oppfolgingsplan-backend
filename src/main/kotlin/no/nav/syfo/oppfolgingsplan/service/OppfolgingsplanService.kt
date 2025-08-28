@@ -136,11 +136,13 @@ fun List<OppfolgingsplanMetadata>.toSykmeldtOppfolgingsplanOverview(): SykmeldtO
 }
 
 fun List<OppfolgingsplanMetadata>.toListOppfolginsplanVeiler(): List<OppfolgingsplanVeilder> =
-    this.map {
-        OppfolgingsplanVeilder(
-            uuid = it.uuid,
-            fnr = it.sykmeldtFnr,
-            virksomhetsnummer = it.organisasjonsnummer,
-            opprettet = it.createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime(),
-        )
-    }
+    this.filter { it.deltMedVeilederTidspunkt != null }
+        .sortedByDescending { it.createdAt }
+        .map {
+            OppfolgingsplanVeilder(
+                uuid = it.uuid,
+                fnr = it.sykmeldtFnr,
+                virksomhetsnummer = it.organisasjonsnummer,
+                opprettet = it.createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime(),
+            )
+        }

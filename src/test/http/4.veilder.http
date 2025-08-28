@@ -1,4 +1,4 @@
-### GET sykmeldt overview
+### GET veiløder overview
 
 GET http://localhost:8080/api/v1/veileder/oppfolgingsplaner HTTP/1.1
 Authorization: Bearer {{aad_token}}
@@ -8,6 +8,6 @@ nav-personident: {{pid}}
     client.global.set("oppflgingsplanUuid", response.body[0].uuid);
 %}
 
-### GET oppfolginsplan pdf
+### GET veilder oppfolginsplan pdf
 GET http://localhost:8080/api/v1/veileder/oppfolgingsplaner/{{oppflgingsplanUuid}} HTTP/1.1
 Authorization: Bearer {{aad_token}}
