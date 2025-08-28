@@ -2,7 +2,8 @@ package no.nav.syfo.istilgangskontroll.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.ResponseException
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.accept
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -34,15 +35,20 @@ class IsTilgangskontrollClient(
                 header(NAV_PERSONIDENT_HEADER, sykmeldtFnr.value)
                 accept(ContentType.Application.Json)
             }
+            COUNT_CALL_TILGANGSKONTROLL_PERSON_SUCCESS.increment()
             tilgang.body<Tilgang>().erGodkjent
-        } catch (e: ResponseException) {
+        } catch (e: ClientRequestException) {
             if (e.response.status == HttpStatusCode.Forbidden) {
-                logger.warn("Access denied")
+                COUNT_CALL_TILGANGSKONTROLL_PERSON_FORBIDDEN.increment()
             } else {
                 handleUnexpectedResponseException(e.response)
             }
             false
+        } catch (e: ServerResponseException) {
+            handleUnexpectedResponseException(e.response)
+            false
         }
+
     }
 
     private fun handleUnexpectedResponseException(
@@ -52,6 +58,7 @@ class IsTilgangskontrollClient(
             "Error while requesting access to person from istilgangskontroll with {}",
             StructuredArguments.keyValue("statusCode", response.status.value.toString()),
         )
+        COUNT_CALL_TILGANGSKONTROLL_PERSON_FAIL.increment()
     }
 }
 
