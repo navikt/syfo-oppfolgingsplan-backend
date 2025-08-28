@@ -65,6 +65,7 @@ spec:
   accessPolicy:
     inbound:
       rules:
+        - application: syfo-oppfolgingsplan-frontend
         - application: tokenx-token-generator
           namespace: nais
           cluster: dev-gcp
