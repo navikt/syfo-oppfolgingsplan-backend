@@ -20,6 +20,9 @@ import no.nav.syfo.dokarkiv.client.FakeDokarkivClient
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.client.FakeIsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
+import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
+import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
@@ -121,6 +124,14 @@ private fun servicesModule() = module {
             )
     }
     single { IsDialogmeldingService(get()) }
+    single {
+        if (isLocalEnv()) FakeIsTilgangskontrollClient() else
+            IsTilgangskontrollClient(
+                get(),
+                env().isDialogmeldingBaseUrl
+            )
+    }
+    single { IsTilgangskontrollService(get()) }
     single { DokarkivService(get()) }
     single { PdlService(get()) }
 }

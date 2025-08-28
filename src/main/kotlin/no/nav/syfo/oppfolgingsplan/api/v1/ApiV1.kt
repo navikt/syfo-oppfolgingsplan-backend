@@ -5,6 +5,7 @@ import io.ktor.server.routing.route
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanUtkastApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.registerSykmeldtOppfolgingsplanApiV1
@@ -21,6 +22,7 @@ fun Route.registerApiV1(
     oppfolgingsplanService: OppfolgingsplanService,
     pdfGenService: PdfGenService,
     isDialogmeldingService: IsDialogmeldingService,
+    isTilgangskontrollService: IsTilgangskontrollService,
     dokarkivService: DokarkivService,
 ) {
     route("/api/v1") {
@@ -48,6 +50,7 @@ fun Route.registerApiV1(
         registerVeilderOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
+            isTilgangskontrollService,
             pdfGenService
         )
     }
