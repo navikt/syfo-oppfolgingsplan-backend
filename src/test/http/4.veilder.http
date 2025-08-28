@@ -1,7 +1,7 @@
 ### GET sykmeldt overview
 
-GET http://localhost:8080/api/v1/internad/veileder/oppfolgingsplaner HTTP/1.1
-Authorization: Bearer {{token}}
+GET http://localhost:8080/api/v1/veileder/oppfolgingsplaner HTTP/1.1
+Authorization: Bearer {{aad_token}}
 nav-personident: {{pid}}
 
 > {%
@@ -9,5 +9,5 @@ nav-personident: {{pid}}
 %}
 
 ### GET oppfolginsplan pdf
-GET http://localhost:8080/api/v1/internad/veileder/oppfolgingsplaner/{{oppflgingsplanUuid}} HTTP/1.1
-Authorization: Bearer {{token}}
+GET http://localhost:8080/api/v1/veileder/oppfolgingsplaner/{{oppflgingsplanUuid}} HTTP/1.1
+Authorization: Bearer {{aad_token}}

@@ -27,7 +27,7 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
     isTilgangskontrollService: IsTilgangskontrollService,
     pdfGenService: PdfGenService,
 ) {
-    route("/internad/veileder/oppfolgingsplaner") {
+    route("/oppfolgingsplaner") {
         install(AuthorizeVeilederAccessToSykmeldtPlugin) {
         }
         fun tryToGetOppfolgingsplanByUuid(
@@ -39,11 +39,11 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
 
         suspend fun validateTilgangToSykmeldt(
             sykmeldtFnr: Fodselsnummer,
-            principal: BrukerPrincipal
+            token: String
         ) {
             val tilgang = isTilgangskontrollService.harTilgangTilSykmeldt(
                 sykmeldtFnr,
-                texasHttpClient.exchangeTokenForIsTilgangskontroll(principal.token).accessToken
+                texasHttpClient.exchangeTokenForIsTilgangskontroll(token).accessToken
             )
             if (!tilgang) {
                 throw ForbiddenException("Veileder does not have access to sykmeldt")
@@ -53,7 +53,10 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
         get {
             val sykmeldtFnr = call.request.headers[NAV_PERSONIDENT_HEADER]
                 ?: throw BadRequestException("Missing $NAV_PERSONIDENT_HEADER header")
-            validateTilgangToSykmeldt(Fodselsnummer(sykmeldtFnr), call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL])
+            validateTilgangToSykmeldt(
+                sykmeldtFnr = Fodselsnummer(value = sykmeldtFnr),
+                token = call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL].token
+            )
             val oppfolgingsplaner =
                 oppfolgingsplanService.getOppfolginsplanOverviewFor(sykmeldtFnr).toListOppfolginsplanVeiler()
 
@@ -64,7 +67,10 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
             val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
-            validateTilgangToSykmeldt(Fodselsnummer(oppfolgingsplan.sykmeldtFnr), call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL])
+            validateTilgangToSykmeldt(
+                sykmeldtFnr = Fodselsnummer(value = oppfolgingsplan.sykmeldtFnr),
+                token = call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL].token
+            )
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
 
