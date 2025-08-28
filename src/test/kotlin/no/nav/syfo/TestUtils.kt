@@ -130,13 +130,21 @@ fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "
     coEvery { introspectToken(any(), any()) } returns TexasIntrospectionResponse(
         active = true,
         pid = pid,
-        acr = acr
+        acr = acr,
+        sub = UUID.randomUUID().toString(),
     )
     coEvery {
         exchangeTokenForDineSykmeldte(any())
     } returns TexasResponse("token", 111, "tokenType")
     coEvery {
         exchangeTokenForIsDialogmelding(any())
+    } returns TexasResponse(
+        "token",
+        111,
+        "tokenType"
+    )
+    coEvery {
+        exchangeTokenForIsTilgangskontroll(any())
     } returns TexasResponse(
         "token",
         111,
