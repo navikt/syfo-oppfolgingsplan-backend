@@ -41,46 +41,46 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
                 }
             }
 
-                suspend fun validateTilgangToSykmeldt(
-                    sykmeldtFnr: Fodselsnummer,
-                    token: String
-                ) {
-                    val tilgang = isTilgangskontrollService.harTilgangTilSykmeldt(
-                        sykmeldtFnr,
-                        texasHttpClient.exchangeTokenForIsTilgangskontroll(token).accessToken
-                    )
-                    if (!tilgang) {
-                        throw ForbiddenException("Veileder does not have access to sykmeldt")
-                    }
-                }
-
-                get {
-                    val sykmeldtFnr = call.request.headers[NAV_PERSONIDENT_HEADER]
-                        ?: throw BadRequestException("Missing $NAV_PERSONIDENT_HEADER header")
-                    validateTilgangToSykmeldt(
-                        sykmeldtFnr = Fodselsnummer(value = sykmeldtFnr),
-                        token = call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL].token,
-                    )
-                    val oppfolgingsplaner =
-                        oppfolgingsplanService.getOppfolginsplanOverviewFor(sykmeldtFnr).toListOppfolginsplanVeiler()
-
-                    call.respond(HttpStatusCode.OK, oppfolgingsplaner)
-                }
-
-                get("/{uuid}") {
-                    val uuid = call.parameters.extractAndValidateUUIDParameter()
-
-                    val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
-                    validateTilgangToSykmeldt(
-                        sykmeldtFnr = Fodselsnummer(value = oppfolgingsplan.sykmeldtFnr),
-                        token = call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL].token,
-                    )
-                    val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
-                        ?: throw InternalServerErrorException("An error occurred while generating pdf")
-
-                    call.response.status(HttpStatusCode.OK)
-                    call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
-                    call.respond<ByteArray>(pdfByteArray)
-                }
+        suspend fun validateTilgangToSykmeldt(
+            sykmeldtFnr: Fodselsnummer,
+            token: String
+        ) {
+            val tilgang = isTilgangskontrollService.harTilgangTilSykmeldt(
+                sykmeldtFnr,
+                texasHttpClient.exchangeTokenForIsTilgangskontroll(token).accessToken
+            )
+            if (!tilgang) {
+                throw ForbiddenException("Veileder does not have access to sykmeldt")
             }
+        }
+
+        get {
+            val sykmeldtFnr = call.request.headers[NAV_PERSONIDENT_HEADER]
+                ?: throw BadRequestException("Missing $NAV_PERSONIDENT_HEADER header")
+            validateTilgangToSykmeldt(
+                sykmeldtFnr = Fodselsnummer(value = sykmeldtFnr),
+                token = call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL].token,
+            )
+            val oppfolgingsplaner =
+                oppfolgingsplanService.getOppfolginsplanOverviewFor(sykmeldtFnr).toListOppfolginsplanVeiler()
+
+            call.respond(HttpStatusCode.OK, oppfolgingsplaner)
+        }
+
+        get("/{uuid}") {
+            val uuid = call.parameters.extractAndValidateUUIDParameter()
+
+            val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
+            validateTilgangToSykmeldt(
+                sykmeldtFnr = Fodselsnummer(value = oppfolgingsplan.sykmeldtFnr),
+                token = call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL].token,
+            )
+            val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
+                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+
+            call.response.status(HttpStatusCode.OK)
+            call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
+            call.respond<ByteArray>(pdfByteArray)
+        }
     }
+}
