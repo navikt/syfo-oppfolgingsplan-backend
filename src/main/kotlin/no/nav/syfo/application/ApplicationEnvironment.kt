@@ -14,6 +14,7 @@ interface Environment {
     val dokarkivScope: String
     val pdfGenUrl: String
     val isDialogmeldingBaseUrl: String
+    val isTilgangskontrollBaseUrl: String
     val pdlBaseUrl: String
     val pdlScope: String
     val kafka: KafkaEnv
@@ -36,7 +37,8 @@ data class NaisEnvironment(
         tokenExchangeEndpoint = getEnvVar("NAIS_TOKEN_EXCHANGE_ENDPOINT"),
         tokenEndpoint = getEnvVar("NAIS_TOKEN_ENDPOINT"),
         exchangeTargetDineSykmeldte = "${getEnvVar("NAIS_CLUSTER_NAME")}:team-esyfo:dinesykmeldte-backend",
-        exchangeTargetIsDialogmelding = "${getEnvVar("NAIS_CLUSTER_NAME")}:teamsykefravr:isdialogmelding"
+        exchangeTargetIsDialogmelding = "${getEnvVar("NAIS_CLUSTER_NAME")}:teamsykefravr:isdialogmelding",
+        exchangeTargetIsTilgangskontroll = "${getEnvVar("NAIS_CLUSTER_NAME")}:teamsykefravr:istilgangskontroll",
     ),
 
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
@@ -44,6 +46,7 @@ data class NaisEnvironment(
     override val dokarkivBaseUrl: String = getEnvVar("DOKARKIV_URL"),
     override val dokarkivScope: String = getEnvVar("DOKARKIV_SCOPE"),
     override val isDialogmeldingBaseUrl: String = getEnvVar("ISDIALOGMELDING_BASE_URL"),
+    override val isTilgangskontrollBaseUrl: String = getEnvVar("ISTILGANGSKONTROLL_URL"),
     override val pdlBaseUrl: String = getEnvVar("PDL_BASE_URL"),
     override val pdlScope: String = getEnvVar("PDL_SCOPE"),
     override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars()
@@ -76,12 +79,14 @@ data class LocalEnvironment(
         tokenExchangeEndpoint = "http://localhost:3000/api/v1/token/exchange",
         tokenEndpoint = "http://localhost:3000/api/v1/token",
         exchangeTargetDineSykmeldte = "dev-gcp:team-esyfo:dinesykmeldte-backend",
-        exchangeTargetIsDialogmelding = "dev-gcp:teamsykefravr:isdialogmelding"
+        exchangeTargetIsDialogmelding = "dev-gcp:teamsykefravr:isdialogmelding",
+        exchangeTargetIsTilgangskontroll = "dev-gcp:teamsykefravr:istilgangskontroll",
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val isDialogmeldingBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
+    override val isTilgangskontrollBaseUrl: String = "https://istilgangskontroll.intern.dev.nav.no",
     override val pdfGenUrl: String = "http://localhost:9091",
     override val pdlBaseUrl: String = "https://pdl-api.dev.intern.nav.no",
     override val pdlScope: String = "pdl",

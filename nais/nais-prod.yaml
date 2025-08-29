@@ -86,6 +86,8 @@ spec:
       value: http://syfooppdfgen
     - name: ISDIALOGMELDING_BASE_URL
       value: http://isdialogmelding.teamsykefravr
+    - name: ISTILGANGSKONTROLL_URL
+      value: http://istilgangskontroll.teamsykefravr
     - name: DOKARKIV_URL
       value: https://dokarkiv.prod-fss-pub.nais.io
     - name: DOKARKIV_SCOPE

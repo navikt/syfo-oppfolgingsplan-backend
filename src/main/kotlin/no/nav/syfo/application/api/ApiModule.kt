@@ -20,6 +20,7 @@ import org.koin.ktor.ext.inject
 import registerPodApi
 import kotlin.getValue
 import no.nav.syfo.dokarkiv.DokarkivService
+import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.pdfgen.PdfGenService
 
 fun Application.configureRouting() {
@@ -30,6 +31,7 @@ fun Application.configureRouting() {
     val oppfolgingsplanService by inject<OppfolgingsplanService>()
     val pdfGenService by inject<PdfGenService>()
     val isDialogmeldingService by inject<IsDialogmeldingService>()
+    val isTilgangskontrollService by inject<IsTilgangskontrollService>()
     val dokarkivService by inject<DokarkivService>()
 
     installCallId()
@@ -48,6 +50,7 @@ fun Application.configureRouting() {
             oppfolgingsplanService = oppfolgingsplanService,
             pdfGenService = pdfGenService,
             isDialogmeldingService = isDialogmeldingService,
+            isTilgangskontrollService = isTilgangskontrollService,
             dokarkivService = dokarkivService,
         )
     }

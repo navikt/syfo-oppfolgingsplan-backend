@@ -1,23 +1,16 @@
 package no.nav.syfo.texas
 
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.authentication
-import io.ktor.server.request.authorization
 import io.ktor.server.response.respondNullable
 import no.nav.syfo.application.auth.BrukerPrincipal
-import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
 
-private val logger = logger("no.nav.syfo.texas.TexasAuthPlugin")
+private val logger = logger("no.nav.syfo.texas.TexasTokenXAuthPlugin")
 
-class TexasAuthPluginConfiguration(
-    var client: TexasHttpClient? = null,
-)
-
-val TexasAuthPlugin = createRouteScopedPlugin(
-    name = "TexasAuthPlugin",
+val TexasTokenXAuthPlugin = createRouteScopedPlugin(
+    name = "TexasTokenXAuthPlugin",
     createConfiguration = ::TexasAuthPluginConfiguration,
 ) {
     pluginConfig.apply {
@@ -31,7 +24,7 @@ val TexasAuthPlugin = createRouteScopedPlugin(
 
             val introspectionResponse = try {
                 client?.introspectToken("tokenx", bearerToken)
-                    ?: throw IllegalStateException("TexasHttpClient is not configured")
+                    ?: error("TexasHttpClient is not configured")
             } catch (e: Exception) {
                 call.application.environment.log.error("Failed to introspect token: ${e.message}", e)
                 call.respondNullable(HttpStatusCode.Unauthorized)
@@ -39,7 +32,10 @@ val TexasAuthPlugin = createRouteScopedPlugin(
             }
 
             if (!introspectionResponse.active) {
-                call.application.environment.log.warn("Token is not active: ${introspectionResponse.error ?: "No error message"}")
+                call.application.environment.log.warn(
+                    "" +
+                        "Token is not active: ${introspectionResponse.error ?: "No error message"}"
+                )
                 call.respondNullable(HttpStatusCode.Unauthorized)
                 return@onCall
             }
@@ -57,12 +53,5 @@ val TexasAuthPlugin = createRouteScopedPlugin(
             call.authentication.principal(BrukerPrincipal(introspectionResponse.pid, bearerToken))
         }
     }
-    logger.info("TexasAuthPlugin installed")
+    logger.info("TexasTokenXAuthPlugin installed")
 }
-
-fun ApplicationCall.bearerToken(): String? =
-    request
-        .authorization()
-        ?.takeIf { it.startsWith("Bearer ", ignoreCase = true) }
-        ?.removePrefix("Bearer ")
-        ?.removePrefix("bearer ")
