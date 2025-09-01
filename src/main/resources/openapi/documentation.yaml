@@ -347,7 +347,7 @@ components:
           type: "string"
         content:
           $ref: "#/components/schemas/JsonNode"
-        sluttdato:
+        evalueringsdato:
           type: "string"
           format: "date"
         skalDelesMedLege:
@@ -365,7 +365,7 @@ components:
         - "narmesteLederFnr"
         - "orgnummer"
         - "content"
-        - "sluttdato"
+        - "evalueringsdato"
         - "skalDelesMedLege"
         - "skalDelesMedVeileder"
     PersistedOppfolgingsplan:
@@ -384,7 +384,7 @@ components:
           type: "string"
         content:
           $ref: "#/components/schemas/JsonNode"
-        sluttdato:
+        evalueringsdato:
           type: "string"
           format: "date"
         skalDelesMedLege:
@@ -406,7 +406,7 @@ components:
         - "narmesteLederFnr"
         - "orgnummer"
         - "content"
-        - "sluttdato"
+        - "evalueringsdato"
         - "skalDelesMedLege"
         - "skalDelesMedVeileder"
         - "createdAt"
@@ -422,7 +422,7 @@ components:
           type: "string"
         orgnummer:
           type: "string"
-        sluttdato:
+        evalueringsdato:
           type: "string"
           format: "date"
           nullable: true
@@ -443,7 +443,7 @@ components:
           type: "string"
         orgnummer:
           type: "string"
-        sluttdato:
+        evalueringsdato:
           type: "string"
           format: "date"
         skalDelesMedLege:
@@ -463,7 +463,7 @@ components:
         - "sykmeldtFnr"
         - "narmesteLederFnr"
         - "orgnummer"
-        - "sluttdato"
+        - "evalueringsdato"
         - "skalDelesMedLege"
         - "skalDelesMedVeileder"
         - "createdAt"
@@ -499,7 +499,7 @@ components:
         content:
           nullable: true
           $ref: "#/components/schemas/JsonNode"
-        sluttdato:
+        evalueringsdato:
           type: "string"
           format: "date"
           nullable: true
@@ -527,7 +527,7 @@ components:
         content:
           nullable: true
           $ref: "#/components/schemas/JsonNode"
-        sluttdato:
+        evalueringsdato:
           type: "string"
           format: "date"
           nullable: true
