@@ -108,7 +108,7 @@ class OppfolgingsplanService(
     fun getOppfolginsplanOverviewFor(sykmeldtFnr: String): SykmeldtOppfolgingsplanOverview {
         val oppfolgingsplaner = database.findAllOppfolgingsplanerBy(sykmeldtFnr)
             .map { it.mapToOppfolgingsplanMetadata() }
-        val (current, previous) = oppfolgingsplaner.partition { it.sluttdato >= LocalDate.now() }
+        val (current, previous) = oppfolgingsplaner.partition { it.evalueringsdato >= LocalDate.now() }
         return SykmeldtOppfolgingsplanOverview(
             oppfolgingsplaner = current,
             previousOppfolgingsplaner = previous,

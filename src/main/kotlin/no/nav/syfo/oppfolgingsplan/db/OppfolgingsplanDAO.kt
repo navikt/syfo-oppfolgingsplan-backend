@@ -25,7 +25,7 @@ data class PersistedOppfolgingsplan(
     val organisasjonsnummer: String,
     val organisasjonsnavn: String?,
     val content: FormSnapshot,
-    val sluttdato: LocalDate,
+    val evalueringsdato: LocalDate,
     val skalDelesMedLege: Boolean,
     val skalDelesMedVeileder: Boolean,
     val deltMedLegeTidspunkt: Instant? = null,
@@ -47,7 +47,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             organisasjonsnummer,
             organisasjonsnavn,
             content,
-            sluttdato,
+            evalueringsdato,
             skal_deles_med_lege,
             skal_deles_med_veileder,
             created_at
@@ -73,7 +73,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.setString(5, sykmeldt.orgnummer)
             it.setString(6, sykmeldt.getOrganizationName())
             it.setObject(7, createOppfolgingsplanRequest.content.toJsonString(), Types.OTHER)
-            it.setDate(8, Date.valueOf(createOppfolgingsplanRequest.sluttdato.toString()))
+            it.setDate(8, Date.valueOf(createOppfolgingsplanRequest.evalueringsdato.toString()))
             it.setBoolean(9, createOppfolgingsplanRequest.skalDelesMedLege)
             it.setBoolean(10, createOppfolgingsplanRequest.skalDelesMedVeileder)
             val resultSet = it.executeQuery()
@@ -267,7 +267,7 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         organisasjonsnummer = this.getString("organisasjonsnummer"),
         organisasjonsnavn = this.getString("organisasjonsnavn"),
         content = FormSnapshot.jsonToFormSnapshot(getString("content")),
-        sluttdato = LocalDate.parse(this.getString("sluttdato")),
+        evalueringsdato = LocalDate.parse(this.getString("evalueringsdato")),
         skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
         skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),
         deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),

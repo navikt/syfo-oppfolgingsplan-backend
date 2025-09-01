@@ -111,7 +111,7 @@ fun DatabaseInterface.persistOppfolgingsplan(
             narmeste_leder_fnr,
             organisasjonsnummer,
             content,
-            sluttdato,
+            evalueringsdato,
             skal_deles_med_lege,
             skal_deles_med_veileder,
             created_at
@@ -127,7 +127,7 @@ fun DatabaseInterface.persistOppfolgingsplan(
             it.setString(4, persistedOppfolgingsplan.narmesteLederFnr)
             it.setString(5, persistedOppfolgingsplan.organisasjonsnummer)
             it.setObject(6, persistedOppfolgingsplan.content.toJsonString(), Types.OTHER)
-            it.setDate(7, Date.valueOf(persistedOppfolgingsplan.sluttdato.toString()))
+            it.setDate(7, Date.valueOf(persistedOppfolgingsplan.evalueringsdato.toString()))
             it.setBoolean(8, persistedOppfolgingsplan.skalDelesMedLege)
             it.setBoolean(9, persistedOppfolgingsplan.skalDelesMedVeileder)
             val resultSet = it.executeQuery()
@@ -148,7 +148,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             narmeste_leder_fnr,
             organisasjonsnummer,
             content,
-            sluttdato,
+            evalueringsdato,
             created_at,
             updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
@@ -157,7 +157,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
             organisasjonsnummer = EXCLUDED.organisasjonsnummer,
             content = EXCLUDED.content,
-            sluttdato = EXCLUDED.sluttdato,
+            evalueringsdato = EXCLUDED.evalueringsdato,
             updated_at = NOW()
     """.trimIndent()
 
@@ -168,7 +168,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             it.setString(3, persistedOppfolgingsplanUtkast.narmesteLederFnr)
             it.setString(4, persistedOppfolgingsplanUtkast.organisasjonsnummer)
             it.setObject(5, persistedOppfolgingsplanUtkast.content?.toJsonString(), Types.OTHER)
-            it.setDate(6, Date.valueOf(persistedOppfolgingsplanUtkast.sluttdato.toString()))
+            it.setDate(6, Date.valueOf(persistedOppfolgingsplanUtkast.evalueringsdato.toString()))
             it.executeUpdate()
         }
         connection.commit()

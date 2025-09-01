@@ -23,12 +23,12 @@ import no.nav.syfo.texas.client.TexasResponse
 
 fun defaultUtkast() = CreateUtkastRequest(
     content = defaultFormSnapshot(),
-    sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
+    evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
 )
 
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
     content = defaultFormSnapshot(),
-    sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
+    evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
     skalDelesMedLege = false,
     skalDelesMedVeileder = false,
 )
@@ -45,7 +45,7 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     skalDelesMedVeileder = false,
     uuid = UUID.randomUUID(),
     narmesteLederId = UUID.randomUUID().toString(),
-    sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
+    evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
     createdAt = Instant.now()
 )
 
@@ -56,7 +56,7 @@ fun defaultPersistedOppfolgingsplanUtkast() = PersistedOppfolgingsplanUtkast(
     narmesteLederFnr = "10987654321",
     organisasjonsnummer = "orgnummer",
     content = defaultFormSnapshot(),
-    sluttdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
+    evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
     createdAt = Instant.now(),
     updatedAt = Instant.now(),
 )

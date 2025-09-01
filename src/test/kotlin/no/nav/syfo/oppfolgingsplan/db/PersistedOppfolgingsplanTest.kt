@@ -19,10 +19,10 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
     describe("PersistedOppfolgingsplan -> toOppfolginsplanPdfV1") {
         it("should map all fields and sections including radio group and duplicate text fields") {
             val createdAt = Instant.parse("2024-06-01T22:30:00Z") // converts to 2024-06-02 Europe/Oslo (CEST +02)
-            val sluttdato = LocalDate.parse("2024-08-15")
+            val evalueringsdato = LocalDate.parse("2024-08-15")
             val plan = defaultPersistedOppfolgingsplan().copy(
                 createdAt = createdAt,
-                sluttdato = sluttdato
+                evalueringsdato = evalueringsdato
             )
 
             val pdf = plan.toOppfolginsplanPdfV1()

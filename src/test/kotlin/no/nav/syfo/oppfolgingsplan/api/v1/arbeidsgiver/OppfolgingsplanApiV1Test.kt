@@ -301,7 +301,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 persisted.first().narmesteLederId shouldBe narmestelederId
                 persisted.first().organisasjonsnummer shouldBe sykmeldt.orgnummer
                 persisted.first().content.toString() shouldBe oppfolgingsplan.content.toString()
-                persisted.first().sluttdato.toString() shouldBe oppfolgingsplan.sluttdato.toString()
+                persisted.first().evalueringsdato.toString() shouldBe oppfolgingsplan.evalueringsdato.toString()
                 persisted.first().skalDelesMedLege shouldBe oppfolgingsplan.skalDelesMedLege
                 persisted.first().skalDelesMedVeileder shouldBe oppfolgingsplan.skalDelesMedVeileder
                 persisted.first().deltMedVeilederTidspunkt shouldBe oppfolgingsplan.deltMedVeilederTidspunkt

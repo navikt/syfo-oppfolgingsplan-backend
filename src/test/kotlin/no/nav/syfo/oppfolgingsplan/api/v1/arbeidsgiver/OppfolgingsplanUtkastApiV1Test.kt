@@ -134,7 +134,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     it.narmesteLederFnr shouldBe pidInnlogetBruker
                     it.organisasjonsnummer shouldBe "orgnummer"
                     it.content shouldNotBe null
-                    it.sluttdato shouldBe utkast.sluttdato
+                    it.evalueringsdato shouldBe utkast.evalueringsdato
                 }
             }
         }
@@ -151,7 +151,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     sykmeldt = sykmeldt,
                     defaultUtkast()
                         .copy(
-                            sluttdato = LocalDate.parse("2020-01-01")
+                            evalueringsdato = LocalDate.parse("2020-01-01")
                         )
                 )
 
@@ -161,7 +161,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     contentType(ContentType.Application.Json)
                     setBody(
                         defaultUtkast().copy(
-                            sluttdato = LocalDate.parse("2020-01-02")
+                            evalueringsdato = LocalDate.parse("2020-01-02")
                         )
                     )
                 }
@@ -178,7 +178,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     it.narmesteLederFnr shouldBe pidInnlogetBruker
                     it.organisasjonsnummer shouldBe sykmeldt.orgnummer
                     it.content shouldBe defaultFormSnapshot()
-                    it.sluttdato shouldBe LocalDate.parse("2020-01-02")
+                    it.evalueringsdato shouldBe LocalDate.parse("2020-01-02")
                 }
             }
         }
@@ -211,7 +211,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 utkast.narmesteLederFnr shouldBe pidInnlogetBruker
                 utkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
                 utkast.content shouldBe defaultFormSnapshot()
-                utkast.sluttdato shouldBe requestUtkast.sluttdato
+                utkast.evalueringsdato shouldBe requestUtkast.evalueringsdato
             }
         }
     }

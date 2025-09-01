@@ -62,7 +62,7 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 {
                 .atZone(ZoneId.of("Europe/Oslo"))
                 .toLocalDate()
                 .format(formatter),
-            evaluationDate = this.sluttdato.format(formatter),
+            evaluationDate = this.evalueringsdato.format(formatter),
             sykmeldtName = this.sykmeldtFullName,
             sykmeldtFnr = this.sykmeldtFnr,
             // organisasjonsnavn should always be set, but it is nullable in the response we get from dine-sykmeldte-backend
