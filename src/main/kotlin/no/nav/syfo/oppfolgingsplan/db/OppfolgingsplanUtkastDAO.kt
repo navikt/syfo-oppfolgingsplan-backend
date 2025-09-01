@@ -20,7 +20,7 @@ data class PersistedOppfolgingsplanUtkast (
     val narmesteLederFnr: String,
     val organisasjonsnummer: String,
     val content: FormSnapshot?,
-    val sluttdato: LocalDate?,
+    val evalueringsdato: LocalDate?,
     val createdAt: Instant,
     val updatedAt: Instant,
 )
@@ -38,7 +38,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             narmeste_leder_fnr,
             organisasjonsnummer,
             content,
-            sluttdato,
+            evalueringsdato,
             created_at,
             updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
@@ -47,7 +47,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
             organisasjonsnummer = EXCLUDED.organisasjonsnummer,
             content = EXCLUDED.content,
-            sluttdato = EXCLUDED.sluttdato,
+            evalueringsdato = EXCLUDED.evalueringsdato,
             updated_at = NOW()
         RETURNING uuid
         """.trimIndent()
@@ -59,7 +59,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             preparedStatement.setString(3, narmesteLederFnr)
             preparedStatement.setString(4, sykmeldt.orgnummer)
             preparedStatement.setObject(5, createUtkastRequest.content?.toJsonString(), Types.OTHER)
-            preparedStatement.setDate(6, Date.valueOf(createUtkastRequest.sluttdato.toString()))
+            preparedStatement.setDate(6, Date.valueOf(createUtkastRequest.evalueringsdato.toString()))
             val resultSet = preparedStatement.executeQuery()
             connection.commit()
             resultSet.next()
@@ -102,7 +102,7 @@ fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
         narmesteLederFnr = getString("narmeste_leder_fnr"),
         organisasjonsnummer = getString("organisasjonsnummer"),
         content = FormSnapshot.jsonToFormSnapshot(getString("content")),
-        sluttdato = getDate("sluttdato")?.toLocalDate(),
+        evalueringsdato = getDate("evalueringsdato")?.toLocalDate(),
         createdAt = getTimestamp("created_at").toInstant(),
         updatedAt = getTimestamp("updated_at").toInstant()
     )

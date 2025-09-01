@@ -178,7 +178,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         defaultPersistedOppfolgingsplan()
                             .copy(
                                 narmesteLederId = narmestelederId,
-                                sluttdato = LocalDate.now().minus(45, ChronoUnit.DAYS)
+                                evalueringsdato = LocalDate.now().minus(45, ChronoUnit.DAYS)
                             )
                     )
                     val latestPlanUUID = testDb.persistOppfolgingsplan(

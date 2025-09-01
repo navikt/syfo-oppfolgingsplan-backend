@@ -9,7 +9,7 @@ import java.util.UUID
 
 data class CreateOppfolgingsplanRequest (
     val content: FormSnapshot,
-    val sluttdato: LocalDate,
+    val evalueringsdato: LocalDate,
     val skalDelesMedLege: Boolean,
     val skalDelesMedVeileder: Boolean,
     val deltMedLegeTidspunkt: Instant? = null,
@@ -21,7 +21,7 @@ data class OppfolgingsplanMetadata (
     val sykmeldtFnr: String,
     val narmesteLederFnr: String,
     val organisasjonsnummer: String,
-    val sluttdato: LocalDate,
+    val evalueringsdato: LocalDate,
     val skalDelesMedLege: Boolean,
     val skalDelesMedVeileder: Boolean,
     val deltMedLegeTidspunkt: Instant? = null,
@@ -31,7 +31,7 @@ data class OppfolgingsplanMetadata (
 
 data class CreateUtkastRequest(
     val content: FormSnapshot?,
-    val sluttdato: LocalDate?,
+    val evalueringsdato: LocalDate?,
 )
 
 data class UtkastMetadata(
@@ -39,7 +39,7 @@ data class UtkastMetadata(
     val sykmeldtFnr: String,
     val narmesteLederFnr: String,
     val organisasjonsnummer: String,
-    val sluttdato: LocalDate?,
+    val evalueringsdato: LocalDate?,
 )
 
 data class OppfolgingsplanOverview(
@@ -58,7 +58,7 @@ fun PersistedOppfolgingsplanUtkast.mapToUtkastMetadata(): UtkastMetadata {
         sykmeldtFnr = sykmeldtFnr,
         narmesteLederFnr = narmesteLederFnr,
         organisasjonsnummer = organisasjonsnummer,
-        sluttdato = sluttdato,
+        evalueringsdato = evalueringsdato,
     )
 }
 
@@ -68,7 +68,7 @@ fun PersistedOppfolgingsplan.mapToOppfolgingsplanMetadata(): OppfolgingsplanMeta
         sykmeldtFnr = sykmeldtFnr,
         narmesteLederFnr = narmesteLederFnr,
         organisasjonsnummer = organisasjonsnummer,
-        sluttdato = sluttdato,
+        evalueringsdato = evalueringsdato,
         skalDelesMedLege = skalDelesMedLege,
         skalDelesMedVeileder = skalDelesMedVeileder,
         deltMedLegeTidspunkt = deltMedLegeTidspunkt,
