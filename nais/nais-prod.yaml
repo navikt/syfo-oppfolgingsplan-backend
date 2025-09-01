@@ -72,6 +72,8 @@ spec:
         - application: dinesykmeldte-backend
         - application: isdialogmelding
           namespace: teamsykefravr
+        - application: istilgangskontroll
+          namespace: teamsykefravr
       external:
         - host: dokarkiv.prod-fss-pub.nais.io
         - host: pdl-api.prod-fss-pub.nais.io
