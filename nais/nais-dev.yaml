@@ -46,10 +46,10 @@ spec:
     application:
       allowAllUsers: true
       enabled: true
-#      tenant: trygdeetaten.no
-#      claims:
-#        extra:
-#          - "NAVident"
+      tenant: trygdeetaten.no
+      claims:
+        extra:
+          - "NAVident"
   gcp:
     sqlInstances:
       - type: POSTGRES_17
