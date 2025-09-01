@@ -69,6 +69,9 @@ spec:
         - application: tokenx-token-generator
           namespace: nais
           cluster: dev-gcp
+        - application: azure-token-generator
+          namespace: nais
+          cluster: dev-gcp
     outbound:
       rules:
         - application: syfooppdfgen
