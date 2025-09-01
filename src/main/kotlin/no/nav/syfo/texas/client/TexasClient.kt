@@ -34,7 +34,11 @@ class TexasHttpClient(
     }
 
     suspend fun exchangeTokenForIsTilgangskontroll(token: String): TexasResponse {
-        return exchangeToken(IDENTITY_PROVIDER_AZUREAD, environment.exchangeTargetIsTilgangskontroll, token)
+        return exchangeToken(
+            IDENTITY_PROVIDER_AZUREAD,
+            TexasHttpClient.getTarget(environment.exchangeTargetIsTilgangskontroll),
+            token
+        )
     }
 
     suspend fun systemToken(identityProvider: String, target: String): TexasResponse {
