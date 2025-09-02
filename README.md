@@ -72,3 +72,12 @@ Then run the following to create a tunnel from the deployment to your machine on
 kubectx dev-gcp
 kubectl port-forward deployment/syfo-oppfolgingsplan-backend  -n team-esyfo 5005:5005
 ```
+
+
+## Authentication for dev
+In order to get a token for sykmeldt or nærmeste leder you can use the following url:
+https://tokenx-token-generator.intern.dev.nav.no/api/obo?aud=dev-gcp:team-esyfo:syfo-oppfolgingsplan-backend
+
+In order to get a token for veilder, use the following url:
+https://azure-token-generator.intern.dev.nav.no/api/obo?aud=dev-gcp:team-esyfo:syfo-oppfolgingsplan-backend
+You will need to provide the credential for a user from Ida with veileder role.
