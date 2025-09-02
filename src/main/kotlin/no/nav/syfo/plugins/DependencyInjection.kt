@@ -128,7 +128,7 @@ private fun servicesModule() = module {
         if (isLocalEnv()) FakeIsTilgangskontrollClient() else
             IsTilgangskontrollClient(
                 get(),
-                env().isDialogmeldingBaseUrl
+                env().isTilgangskontrollBaseUrl
             )
     }
     single { IsTilgangskontrollService(get()) }
