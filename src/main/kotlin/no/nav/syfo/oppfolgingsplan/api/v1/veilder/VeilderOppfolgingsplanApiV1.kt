@@ -2,12 +2,17 @@ package no.nav.syfo.oppfolgingsplan.api.v1.veilder
 
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
+import io.ktor.server.request.receive
+import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.intercept
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import java.util.*
 import no.nav.syfo.application.auth.BrukerPrincipal
@@ -52,11 +57,14 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
             }
         }
 
-        get {
+        post("/query") {
             val innloggetBruker = call.principal<BrukerPrincipal>()
                 ?: throw UnauthorizedException("No user principal found in request")
-            val sykmeldtFnr = call.request.headers[NAV_PERSONIDENT_HEADER]
-                ?: throw BadRequestException("Missing $NAV_PERSONIDENT_HEADER header")
+            val sykmeldtFnr = try {
+                call.receive<OppfolginsplanerReadRequest>().sykmeldtFnr
+            } catch (e: Exception) {
+                throw BadRequestException("Request is missing sykmeldtFnr: ${e.message}", e)
+            }
             validateTilgangToSykmeldt(
                 sykmeldtFnr = Fodselsnummer(value = sykmeldtFnr),
                 token = innloggetBruker.token,

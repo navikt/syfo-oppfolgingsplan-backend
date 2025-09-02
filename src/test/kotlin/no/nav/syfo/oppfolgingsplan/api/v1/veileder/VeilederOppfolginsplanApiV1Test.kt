@@ -11,6 +11,8 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -38,6 +40,7 @@ import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.veilder.NAV_PERSONIDENT_HEADER
 import no.nav.syfo.oppfolgingsplan.api.v1.veilder.OppfolgingsplanVeilder
+import no.nav.syfo.oppfolgingsplan.api.v1.veilder.OppfolginsplanerReadRequest
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
@@ -105,26 +108,26 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
 
     describe("Veilder Oppfolgingsplan API") {
         describe("List") {
-            it("GET /veilder/oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
+            it("POST /veilder/oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
                 withTestApplication {
                     // Arrange
                     // Act
-                    val response = client.get("/api/v1/veileder/oppfolgingsplaner")
+                    val response = client.post("/api/v1/veileder/oppfolgingsplaner/query")
 
                     // Assert
                     response.status shouldBe HttpStatusCode.Unauthorized
                 }
             }
 
-            it("GET /veilder/oppfolgingsplaner should respond with Unauthorized if token is lacking NAVident") {
+            it("POST /veilder/oppfolgingsplaner should respond with Unauthorized if token is lacking NAVident") {
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(pid = "some-veileder-token")
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
 
                     // Act
-                    val response = client.get {
-                        url("/api/v1/veileder/oppfolgingsplaner")
+                    val response = client.post {
+                        url("/api/v1/veileder/oppfolgingsplaner/query")
                         bearerAuth(token = "Bearer token")
                     }
 
@@ -138,15 +141,15 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("GET /veilder/oppfolgingsplaner should respond with Bad Request if sykmeldt fnr is not provided in header") {
+            it("POST /veilder/oppfolgingsplaner should respond with Bad Request if sykmeldt fnr is not provided in body") {
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
 
                     // Act
-                    val response = client.get {
-                        url("/api/v1/veileder/oppfolgingsplaner")
+                    val response = client.post {
+                        url("/api/v1/veileder/oppfolgingsplaner/query")
                         bearerAuth(token = "Bearer token")
                     }
 
@@ -160,17 +163,18 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("GET /veilder/oppfolgingsplaner should respond with Forbidden when Tilgangskontroll rejects access to sykemeldt") {
+            it("POST /veilder/oppfolgingsplaner should respond with Forbidden when Tilgangskontroll rejects access to sykemeldt") {
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns false
 
                     // Act
-                    val response = client.get {
-                        url("/api/v1/veileder/oppfolgingsplaner")
+                    val response = client.post {
+                        url("/api/v1/veileder/oppfolgingsplaner/query")
                         bearerAuth(token = "Bearer token")
-                        header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
+                        contentType(ContentType.Application.Json)
+                        setBody(OppfolginsplanerReadRequest(sykmeldtFnr))
                     }
 
                     // Assert
@@ -183,7 +187,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("GET /veilder/oppfolgingsplaner should respond with OK when correct authentication is provided") {
+            it("POST /veilder/oppfolgingsplaner should respond with OK when correct authentication is provided") {
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
@@ -205,10 +209,12 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                     )
 
                     // Act
-                    val response = client.get {
-                        url("/api/v1/veileder/oppfolgingsplaner")
+                    val response = client.post {
+                        url("/api/v1/veileder/oppfolgingsplaner/query")
                         bearerAuth(token = "Bearer token")
                         header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
+                        contentType(ContentType.Application.Json)
+                        setBody(OppfolginsplanerReadRequest(sykmeldtFnr))
                     }
 
                     // Assert
