@@ -6,7 +6,8 @@ import java.util.UUID
 class OppfolgingsplanVeilder(
     val uuid: UUID,
     val fnr: String,
+    val deltMedNavTidspunkt: LocalDateTime,
     val virksomhetsnummer: String,
     val opprettet: LocalDateTime,
-    val deltMedNavTidspunkt: LocalDateTime
+    val sistEndret: LocalDateTime,
 )

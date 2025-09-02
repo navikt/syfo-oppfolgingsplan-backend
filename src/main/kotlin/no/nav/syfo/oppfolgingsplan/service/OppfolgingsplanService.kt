@@ -24,6 +24,7 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import no.nav.syfo.oppfolgingsplan.api.v1.veilder.OppfolgingsplanVeilder
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
@@ -139,14 +140,25 @@ fun List<OppfolgingsplanMetadata>.toListOppfolginsplanVeiler(): List<Oppfolgings
     this.filter { it.deltMedVeilederTidspunkt != null }
         .sortedByDescending { it.createdAt }
         .map {
-            require(it.deltMedVeilederTidspunkt != null) {
-                "Oppfolgingsplan ${it.uuid} has null deltMedVeilederTidspunkt"
+            with(it) {
+                require(deltMedVeilederTidspunkt != null) {
+                    "Oppfolgingsplan ${uuid} is not shared with veilderdelt"
+                }
+                val sisteEndre = listOfNotNull(
+                    createdAt,
+                    deltMedVeilederTidspunkt,
+                    deltMedLegeTidspunkt
+                ).max()
+                OppfolgingsplanVeilder(
+                    uuid = it.uuid,
+                    fnr = it.sykmeldtFnr,
+                    virksomhetsnummer = organisasjonsnummer,
+                    opprettet = createdAt.toLocalDateTime(),
+                    deltMedNavTidspunkt = deltMedVeilederTidspunkt.toLocalDateTime(),
+                    sistEndret = sisteEndre.toLocalDateTime()
+                )
             }
-            OppfolgingsplanVeilder(
-                uuid = it.uuid,
-                fnr = it.sykmeldtFnr,
-                virksomhetsnummer = it.organisasjonsnummer,
-                opprettet = it.createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime(),
-                deltMedNavTidspunkt = it.deltMedVeilederTidspunkt.atZone(ZoneId.systemDefault()).toLocalDateTime()
-            )
         }
+
+fun Instant.toLocalDateTime(): LocalDateTime =
+    this.atZone(ZoneId.systemDefault()).toLocalDateTime()
