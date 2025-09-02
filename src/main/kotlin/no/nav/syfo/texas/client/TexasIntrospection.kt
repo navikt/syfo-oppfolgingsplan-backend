@@ -9,6 +9,7 @@ data class TexasIntrospectionRequest(
     val token: String,
 )
 
+@Suppress("ConstructorParameterNaming")
 data class TexasIntrospectionResponse(
     val active: Boolean,
     val error: String? = null,
@@ -23,4 +24,5 @@ data class TexasIntrospectionResponse(
     val nbf: Long? = null,
     val sub: String? = null,
     val tid: String? = null,
+    val NAVident: String? = null,
 )

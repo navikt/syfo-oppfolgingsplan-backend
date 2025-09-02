@@ -24,8 +24,12 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import no.nav.syfo.oppfolgingsplan.api.v1.veilder.OppfolgingsplanVeilder
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
@@ -38,7 +42,8 @@ class OppfolgingsplanService(
         sykmeldt: Sykmeldt,
         createOppfolgingsplanRequest: CreateOppfolgingsplanRequest
     ): UUID {
-        val uuid = database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederFnr, sykmeldt, createOppfolgingsplanRequest)
+        val uuid =
+            database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederFnr, sykmeldt, createOppfolgingsplanRequest)
 
         try {
             produceOppfolgingsplanCreatedVarsel(sykmeldt)
@@ -53,7 +58,8 @@ class OppfolgingsplanService(
         database.upsertOppfolgingsplanUtkast(
             narmesteLederFnr,
             sykmeldt,
-            utkast)
+            utkast
+        )
     }
 
     fun getOppfolgingsplanUtkast(sykmeldtFnr: String, orgnummer: String): PersistedOppfolgingsplanUtkast? {
@@ -105,15 +111,10 @@ class OppfolgingsplanService(
         )
     }
 
-    fun getOppfolginsplanOverviewFor(sykmeldtFnr: String): SykmeldtOppfolgingsplanOverview {
-        val oppfolgingsplaner = database.findAllOppfolgingsplanerBy(sykmeldtFnr)
+    fun getOppfolginsplanOverviewFor(sykmeldtFnr: String): List<OppfolgingsplanMetadata> =
+        database.findAllOppfolgingsplanerBy(sykmeldtFnr)
             .map { it.mapToOppfolgingsplanMetadata() }
-        val (current, previous) = oppfolgingsplaner.partition { it.evalueringsdato >= LocalDate.now() }
-        return SykmeldtOppfolgingsplanOverview(
-            oppfolgingsplaner = current,
-            previousOppfolgingsplaner = previous,
-        )
-    }
+
 
     private fun produceOppfolgingsplanCreatedVarsel(sykmeldt: Sykmeldt) {
         val hendelse = ArbeidstakerHendelse(
@@ -126,3 +127,38 @@ class OppfolgingsplanService(
         esyfovarselProducer.sendVarselToEsyfovarsel(hendelse)
     }
 }
+
+fun List<OppfolgingsplanMetadata>.toSykmeldtOppfolgingsplanOverview(): SykmeldtOppfolgingsplanOverview {
+    val (current, previous) = this.partition { it.evalueringsdato >= LocalDate.now() }
+    return SykmeldtOppfolgingsplanOverview(
+        oppfolgingsplaner = current,
+        previousOppfolgingsplaner = previous,
+    )
+}
+
+fun List<OppfolgingsplanMetadata>.toListOppfolginsplanVeiler(): List<OppfolgingsplanVeilder> =
+    this.filter { it.deltMedVeilederTidspunkt != null }
+        .sortedByDescending { it.createdAt }
+        .map {
+            with(it) {
+                require(deltMedVeilederTidspunkt != null) {
+                    "Oppfolgingsplan ${uuid} is not shared with veilderdelt"
+                }
+                val sisteEndre = listOfNotNull(
+                    createdAt,
+                    deltMedVeilederTidspunkt,
+                    deltMedLegeTidspunkt
+                ).max()
+                OppfolgingsplanVeilder(
+                    uuid = it.uuid,
+                    fnr = it.sykmeldtFnr,
+                    virksomhetsnummer = organisasjonsnummer,
+                    opprettet = createdAt.toLocalDateTime(),
+                    deltMedNavTidspunkt = deltMedVeilederTidspunkt.toLocalDateTime(),
+                    sistEndret = sisteEndre.toLocalDateTime()
+                )
+            }
+        }
+
+fun Instant.toLocalDateTime(): LocalDateTime =
+    this.atZone(ZoneId.systemDefault()).toLocalDateTime()

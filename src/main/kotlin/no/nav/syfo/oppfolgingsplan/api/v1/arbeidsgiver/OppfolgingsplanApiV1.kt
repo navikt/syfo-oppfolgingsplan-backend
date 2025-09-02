@@ -40,7 +40,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 ) {
     val logger = logger()
 
-    route("/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner") {
+    route("/{narmesteLederId}/oppfolgingsplaner") {
         install(AuthorizeLeaderAccessToSykmeldtPlugin) {
             this.texasHttpClient = texasHttpClient
             this.dineSykmeldteService = dineSykmeldteService
