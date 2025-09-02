@@ -66,6 +66,8 @@ spec:
     inbound:
       rules:
         - application: syfo-oppfolgingsplan-frontend
+        - application: syfomodiaperson
+          namespace: teamsykefravr
     outbound:
       rules:
         - application: syfooppdfgen

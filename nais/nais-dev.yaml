@@ -68,10 +68,10 @@ spec:
         - application: syfo-oppfolgingsplan-frontend
         - application: tokenx-token-generator
           namespace: nais
-          cluster: dev-gcp
         - application: azure-token-generator
           namespace: nais
-          cluster: dev-gcp
+        - application: syfomodiaperson
+          namespace: teamsykefravr
     outbound:
       rules:
         - application: syfooppdfgen
