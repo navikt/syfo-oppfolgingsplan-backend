@@ -20,7 +20,7 @@ Content-Type: application/json
 %}
 
 ### GET azuread token from fakedings
-GET https://fakedings.intern.dev.nav.no/fake/aad?pid={{veilderId}} HTTP/1.1
+GET https://fakedings.intern.dev.nav.no/fake/aad?NAVident={{veilderId}} HTTP/1.1
 
 > {%
     client.global.set("fakedings_aad_token", response.body);

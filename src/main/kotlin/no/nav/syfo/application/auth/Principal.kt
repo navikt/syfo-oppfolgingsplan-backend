@@ -4,8 +4,3 @@ data class BrukerPrincipal(
     val ident: String,
     val token: String,
 )
-
-data class VeilderPrincipal(
-    val ident: String,
-    val token: String,
-)

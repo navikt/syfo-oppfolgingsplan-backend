@@ -4,7 +4,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.authentication
 import io.ktor.server.response.respondNullable
-import no.nav.syfo.application.auth.VeilderPrincipal
+import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.util.logger
 
 private val logger = logger("no.nav.syfo.texas.TexasAzureAdAuthPlugin")
@@ -38,12 +38,12 @@ val TexasAzureADAuthPlugin = createRouteScopedPlugin(
                 call.respondNullable(HttpStatusCode.Unauthorized)
                 return@onCall
             }
-            if (introspectionResponse.sub == null) {
-                call.application.environment.log.warn("No sub in token claims")
+            if (introspectionResponse.NAVident == null) {
+                call.application.environment.log.warn("No NAVident in token claims")
                 call.respondNullable(HttpStatusCode.Unauthorized)
                 return@onCall
             }
-            call.authentication.principal(VeilderPrincipal(introspectionResponse.sub, bearerToken))
+            call.authentication.principal(BrukerPrincipal(introspectionResponse.NAVident, bearerToken))
         }
     }
     logger.info("TexasAzureAdAuthPlugin installed")

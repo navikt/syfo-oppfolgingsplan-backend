@@ -116,10 +116,32 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("GET /veilder/oppfolgingsplaner should respond with Bad Request if sykmeldt fns is not provuided in header") {
+            it("GET /veilder/oppfolgingsplaner should respond with Unauthorized if token is lacking NAVident") {
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(pid = "some-veileder-token")
+                    coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
+
+                    // Act
+                    val response = client.get {
+                        url("/api/v1/veileder/oppfolgingsplaner")
+                        bearerAuth(token = "Bearer token")
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.Unauthorized
+                    coVerify(exactly = 0) {
+                        isTilgangskontrollClientMock.harTilgangTilSykmeldt(
+                            sykmeldtFnr = any(), token = any()
+                        )
+                    }
+                }
+            }
+
+            it("GET /veilder/oppfolgingsplaner should respond with Bad Request if sykmeldt fnr is not provided in header") {
+                withTestApplication {
+                    // Arrange
+                    texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
 
                     // Act
@@ -141,7 +163,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             it("GET /veilder/oppfolgingsplaner should respond with Forbidden when Tilgangskontroll rejects access to sykemeldt") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks(pid = "some-veileder-token")
+                    texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns false
 
                     // Act
@@ -164,12 +186,11 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             it("GET /veilder/oppfolgingsplaner should respond with OK when correct authentication is provided") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks(pid = "some-veileder-token")
+                    texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
 
                     val firstPlanUUID = testDb.persistOppfolgingsplan(
-                        defaultPersistedOppfolgingsplan()
-                            .copy(
+                        defaultPersistedOppfolgingsplan().copy(
                                 narmesteLederId = narmestelederId,
                                 sykmeldtFnr = sykmeldtFnr,
                             )
@@ -177,8 +198,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                     testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
                     testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
                     testDb.persistOppfolgingsplan(
-                        defaultPersistedOppfolgingsplan()
-                            .copy(
+                        defaultPersistedOppfolgingsplan().copy(
                                 narmesteLederId = narmestelederId,
                                 sykmeldtFnr = sykmeldtFnr,
                             )
@@ -212,12 +232,11 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 val pdfContent = "ThisIsPdfContent"
-                texasClientMock.defaultMocks(pid = "some-veileder-token")
+                texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
                 coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
-                    defaultPersistedOppfolgingsplan()
-                        .copy(
+                    defaultPersistedOppfolgingsplan().copy(
                             narmesteLederId = narmestelederId,
                             sykmeldtFnr = sykmeldtFnr,
                         )
@@ -242,11 +261,10 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
         it("GET /veilder/oppfolgingsplaner/<uuid> should respond with forbidden when Tilgangskontroll rejects access to sykemeldt") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pid = "some-veileder-token")
+                texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns false
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
-                    defaultPersistedOppfolgingsplan()
-                        .copy(
+                    defaultPersistedOppfolgingsplan().copy(
                             narmesteLederId = narmestelederId,
                             sykmeldtFnr = sykmeldtFnr,
                         )
@@ -254,8 +272,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
                 testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
                 testDb.persistOppfolgingsplan(
-                    defaultPersistedOppfolgingsplan()
-                        .copy(
+                    defaultPersistedOppfolgingsplan().copy(
                             narmesteLederId = narmestelederId,
                             sykmeldtFnr = sykmeldtFnr,
                         )
@@ -282,12 +299,11 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 val pdfContent = "ThisIsPdfContent"
-                texasClientMock.defaultMocks(pid = "some-veileder-token")
+                texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
                 coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
-                    defaultPersistedOppfolgingsplan()
-                        .copy(
+                    defaultPersistedOppfolgingsplan().copy(
                             narmesteLederId = narmestelederId,
                             sykmeldtFnr = sykmeldtFnr,
                         )
@@ -295,8 +311,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
                 testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
                 testDb.persistOppfolgingsplan(
-                    defaultPersistedOppfolgingsplan()
-                        .copy(
+                    defaultPersistedOppfolgingsplan().copy(
                             narmesteLederId = narmestelederId,
                             sykmeldtFnr = sykmeldtFnr,
                         )
@@ -320,6 +335,5 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
         }
-
     }
 })

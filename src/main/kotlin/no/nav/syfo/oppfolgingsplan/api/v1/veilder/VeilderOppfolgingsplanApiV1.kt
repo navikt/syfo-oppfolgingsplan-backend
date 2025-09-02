@@ -2,6 +2,7 @@ package no.nav.syfo.oppfolgingsplan.api.v1.veilder
 
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.response.respond
@@ -12,6 +13,7 @@ import java.util.*
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
@@ -21,6 +23,7 @@ import no.nav.syfo.oppfolgingsplan.service.toListOppfolginsplanVeiler
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 
+@Suppress("ThrowsCount")
 fun Route.registerVeilderOppfolgingsplanApiV1(
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService,
@@ -28,26 +31,21 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
     pdfGenService: PdfGenService,
 ) {
     route("/oppfolgingsplaner") {
-        install(AuthorizeVeilederAccessToSykmeldtPlugin) {
-        }
         fun tryToGetOppfolgingsplanByUuid(
             uuid: UUID,
-        ): PersistedOppfolgingsplan =
-            oppfolgingsplanService.getOppfolgingsplanByUuid(uuid).let {
-                if (it == null || it.deltMedVeilederTidspunkt == null) {
-                    throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
-                } else {
-                    it
-                }
+        ): PersistedOppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid).let {
+            if (it == null || it.deltMedVeilederTidspunkt == null) {
+                throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
+            } else {
+                it
             }
+        }
 
         suspend fun validateTilgangToSykmeldt(
-            sykmeldtFnr: Fodselsnummer,
-            token: String
+            sykmeldtFnr: Fodselsnummer, token: String
         ) {
             val tilgang = isTilgangskontrollService.harTilgangTilSykmeldt(
-                sykmeldtFnr,
-                texasHttpClient.exchangeTokenForIsTilgangskontroll(token).accessToken
+                sykmeldtFnr, texasHttpClient.exchangeTokenForIsTilgangskontroll(token).accessToken
             )
             if (!tilgang) {
                 throw ForbiddenException("Veileder does not have access to sykmeldt")
@@ -55,11 +53,13 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
         }
 
         get {
+            val innloggetBruker = call.principal<BrukerPrincipal>()
+                ?: throw UnauthorizedException("No user principal found in request")
             val sykmeldtFnr = call.request.headers[NAV_PERSONIDENT_HEADER]
                 ?: throw BadRequestException("Missing $NAV_PERSONIDENT_HEADER header")
             validateTilgangToSykmeldt(
                 sykmeldtFnr = Fodselsnummer(value = sykmeldtFnr),
-                token = call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL].token,
+                token = innloggetBruker.token,
             )
             val oppfolgingsplaner =
                 oppfolgingsplanService.getOppfolginsplanOverviewFor(sykmeldtFnr).toListOppfolginsplanVeiler()
@@ -69,11 +69,13 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
 
         get("/{uuid}") {
             val uuid = call.parameters.extractAndValidateUUIDParameter()
+            val innloggetBruker = call.principal<BrukerPrincipal>()
+                ?: throw UnauthorizedException("No user principal found in request")
 
             val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
             validateTilgangToSykmeldt(
                 sykmeldtFnr = Fodselsnummer(value = oppfolgingsplan.sykmeldtFnr),
-                token = call.attributes[CALL_ATTRIBUTE_VEILEDER_PRINCIPAL].token,
+                token = innloggetBruker.token,
             )
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
@@ -84,3 +86,4 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
         }
     }
 }
+const val NAV_PERSONIDENT_HEADER = "nav-personident"

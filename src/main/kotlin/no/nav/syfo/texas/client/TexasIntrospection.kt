@@ -23,4 +23,5 @@ data class TexasIntrospectionResponse(
     val nbf: Long? = null,
     val sub: String? = null,
     val tid: String? = null,
+    val NAVident: String? = null,
 )

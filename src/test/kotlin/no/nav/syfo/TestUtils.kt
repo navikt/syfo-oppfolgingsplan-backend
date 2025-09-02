@@ -126,12 +126,13 @@ fun defaultFormSnapshot() = FormSnapshot(
     )
 )
 
-fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "Level4") {
+fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "Level4", navident: String? = null) {
     coEvery { introspectToken(any(), any()) } returns TexasIntrospectionResponse(
         active = true,
         pid = pid,
         acr = acr,
         sub = UUID.randomUUID().toString(),
+        NAVident = navident
     )
     coEvery {
         exchangeTokenForDineSykmeldte(any())
