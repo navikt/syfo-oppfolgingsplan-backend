@@ -139,10 +139,14 @@ fun List<OppfolgingsplanMetadata>.toListOppfolginsplanVeiler(): List<Oppfolgings
     this.filter { it.deltMedVeilederTidspunkt != null }
         .sortedByDescending { it.createdAt }
         .map {
+            require(it.deltMedVeilederTidspunkt != null) {
+                "Oppfolgingsplan ${it.uuid} has null deltMedVeilederTidspunkt"
+            }
             OppfolgingsplanVeilder(
                 uuid = it.uuid,
                 fnr = it.sykmeldtFnr,
                 virksomhetsnummer = it.organisasjonsnummer,
                 opprettet = it.createdAt.atZone(ZoneId.systemDefault()).toLocalDateTime(),
+                deltMedNavTidspunkt = it.deltMedVeilederTidspunkt.atZone(ZoneId.systemDefault()).toLocalDateTime()
             )
         }

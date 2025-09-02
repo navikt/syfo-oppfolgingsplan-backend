@@ -8,4 +8,5 @@ class OppfolgingsplanVeilder(
     val fnr: String,
     val virksomhetsnummer: String,
     val opprettet: LocalDateTime,
+    val deltMedNavTidspunkt: LocalDateTime
 )
