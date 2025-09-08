@@ -1,8 +1,11 @@
 package no.nav.syfo.oppfolgingsplan.service
 
+import java.time.Instant
 import java.time.LocalDate
+import java.util.*
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.oppfolgingsplan.api.v1.veilder.OppfolgingsplanVeilder
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
@@ -10,12 +13,14 @@ import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
+import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
-import java.util.UUID
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.dto.mapToOppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.mapToUtkastMetadata
@@ -23,13 +28,6 @@ import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import no.nav.syfo.oppfolgingsplan.api.v1.veilder.OppfolgingsplanVeilder
-import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
-import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
@@ -140,25 +138,5 @@ fun List<OppfolgingsplanMetadata>.toListOppfolginsplanVeiler(): List<Oppfolgings
     this.filter { it.deltMedVeilederTidspunkt != null }
         .sortedByDescending { it.createdAt }
         .map {
-            with(it) {
-                require(deltMedVeilederTidspunkt != null) {
-                    "Oppfolgingsplan ${uuid} is not shared with veilderdelt"
-                }
-                val sisteEndre = listOfNotNull(
-                    createdAt,
-                    deltMedVeilederTidspunkt,
-                    deltMedLegeTidspunkt
-                ).max()
-                OppfolgingsplanVeilder(
-                    uuid = it.uuid,
-                    fnr = it.sykmeldtFnr,
-                    virksomhetsnummer = organisasjonsnummer,
-                    opprettet = createdAt.toLocalDateTime(),
-                    deltMedNavTidspunkt = deltMedVeilederTidspunkt.toLocalDateTime(),
-                    sistEndret = sisteEndre.toLocalDateTime()
-                )
-            }
+            OppfolgingsplanVeilder.from(it)
         }
-
-fun Instant.toLocalDateTime(): LocalDateTime =
-    this.atZone(ZoneId.systemDefault()).toLocalDateTime()
