@@ -219,6 +219,8 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
 
                     // Assert
                     response.status shouldBe HttpStatusCode.OK
+                    val responseBody = response.body<List<OppfolgingsplanVeilder>>()
+                    responseBody.size shouldBe 1
                     coVerify(exactly = 1) {
                         isTilgangskontrollClientMock.harTilgangTilSykmeldt(
                             sykmeldtFnr = eq(Fodselsnummer(sykmeldtFnr)), token = any()
