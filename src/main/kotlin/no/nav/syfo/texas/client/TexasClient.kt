@@ -26,11 +26,19 @@ class TexasHttpClient(
     }
 
     suspend fun exchangeTokenForDineSykmeldte(token: String): TexasResponse {
-        return exchangeToken(environment.exchangeTargetDineSykmeldte, token)
+        return exchangeToken(IDENTITY_PROVIDER_TOKENX, environment.exchangeTargetDineSykmeldte, token)
     }
 
     suspend fun exchangeTokenForIsDialogmelding(token: String): TexasResponse {
-        return exchangeToken(environment.exchangeTargetIsDialogmelding, token)
+        return exchangeToken(IDENTITY_PROVIDER_TOKENX, environment.exchangeTargetIsDialogmelding, token)
+    }
+
+    suspend fun exchangeTokenForIsTilgangskontroll(token: String): TexasResponse {
+        return exchangeToken(
+            IDENTITY_PROVIDER_AZUREAD,
+            TexasHttpClient.getTarget(environment.exchangeTargetIsTilgangskontroll),
+            token
+        )
     }
 
     suspend fun systemToken(identityProvider: String, target: String): TexasResponse {
@@ -45,12 +53,12 @@ class TexasHttpClient(
         }.body<TexasResponse>()
     }
 
-    private suspend fun exchangeToken(target: String, token: String): TexasResponse {
+    private suspend fun exchangeToken(identityProvider: String, target: String, token: String): TexasResponse {
         return client.post(environment.tokenExchangeEndpoint) {
             contentType(ContentType.Application.Json)
             setBody(
                 TexasExchangeRequest(
-                    identityProvider = "tokenx",
+                    identityProvider = identityProvider,
                     target = target,
                     userToken = token
                 )
@@ -60,5 +68,7 @@ class TexasHttpClient(
 
     companion object {
         fun getTarget(scope: String) = "api://$scope/.default"
+        const val IDENTITY_PROVIDER_TOKENX = "tokenx"
+        const val IDENTITY_PROVIDER_AZUREAD = "azuread"
     }
 }

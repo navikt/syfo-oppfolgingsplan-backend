@@ -22,7 +22,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService
 ) {
-    route("/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/utkast") {
+    route("/{narmesteLederId}/oppfolgingsplaner/utkast") {
         install(AuthorizeLeaderAccessToSykmeldtPlugin) {
             this.texasHttpClient = texasHttpClient
             this.dineSykmeldteService = dineSykmeldteService

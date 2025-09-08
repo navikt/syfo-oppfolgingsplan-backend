@@ -13,6 +13,7 @@ import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.toSykmeldtOppfolgingsplanOverview
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
@@ -41,7 +42,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
         }
     }
 
-    route("/sykmeldt/oppfolgingsplaner") {
+    route("/oppfolgingsplaner") {
         install(AddSykmeldtBrukerFnrAttributePlugin) {
             this.texasHttpClient = texasHttpClient
         }
@@ -52,7 +53,10 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
          */
         get("/oversikt") {
             val brukerFnr = call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
-            val oppfolgingsplaner = oppfolgingsplanService.getOppfolginsplanOverviewFor(brukerFnr.value)
+            val oppfolgingsplaner =
+                oppfolgingsplanService
+                    .getOppfolginsplanOverviewFor(brukerFnr.value)
+                    .toSykmeldtOppfolgingsplanOverview()
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }

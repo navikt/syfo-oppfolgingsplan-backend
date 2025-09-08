@@ -36,6 +36,8 @@ import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
+import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
@@ -44,6 +46,7 @@ import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.plugins.installContentNegotiation
+import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -58,6 +61,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val pdfGenService = mockk<PdfGenService>()
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
     val dokarkivServiceMock = mockk<DokarkivService>()
+    val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
+    val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
 
     beforeTest {
         clearAllMocks()
@@ -80,6 +85,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             }
             application {
                 installContentNegotiation()
+                installStatusPages()
                 routing {
                     registerApiV1(
                         DineSykmeldteService(dineSykmeldteHttpClientMock),
@@ -91,6 +97,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         pdfGenService = pdfGenService,
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                         dokarkivService = dokarkivServiceMock,
+                        isTilgangskontrollService = isTilgangskontrollServiceMock,
                     )
                 }
             }
@@ -124,7 +131,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             it("GET /oppfolgingsplaner/oversikt should respond with OK when texas client gives active response") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks()
+                    val sykmeldtFnr = "12345678901"
+                    texasClientMock.defaultMocks(pid = sykmeldtFnr)
 
                     // Act
                     val response = client.get {
@@ -212,7 +220,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks()
+                val sykmeldtFnr = "12345678901"
+                texasClientMock.defaultMocks(pid = sykmeldtFnr)
 
                 // Act
                 val response = client.get {
@@ -275,7 +284,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             it("GET /oppfolgingsplaner/{uuid}/pdf should respond with NotFound if oppfolgingsplan does not exist") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks()
+                    val sykmeldtFnr = "12345678901"
+                    texasClientMock.defaultMocks(pid = sykmeldtFnr)
 
                     // Act
                     val response = client.get {
