@@ -25,6 +25,7 @@ import io.mockk.mockk
 import java.time.LocalDate
 import java.util.*
 import no.nav.syfo.TestDB
+import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultSykmeldt
@@ -54,6 +55,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
+    val valkeyCacheMock = mockk<ValkeyCache>()
     val testDb = TestDB.database
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val pdfGenClient = mockk<PdfGenClient>()
@@ -91,7 +93,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 installStatusPages()
                 routing {
                     registerApiV1(
-                        DineSykmeldteService(dineSykmeldteHttpClientMock),
+                        DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
                         texasClientMock,
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,

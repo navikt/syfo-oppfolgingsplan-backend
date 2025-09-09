@@ -27,6 +27,7 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.*
 import no.nav.syfo.TestDB
+import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
@@ -55,6 +56,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
+    val valkeyCacheMock = mockk<ValkeyCache>()
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
     val narmestelederId = UUID.randomUUID().toString()
@@ -88,7 +90,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 installStatusPages()
                 routing {
                     registerApiV1(
-                        DineSykmeldteService(dineSykmeldteHttpClientMock),
+                        DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
                         texasClientMock,
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,

@@ -12,6 +12,7 @@ import no.nav.syfo.application.database.DatabaseConfig
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.kafka.producerProperties
+import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -48,6 +49,7 @@ fun Application.configureDependencies() {
             environmentModule(isLocalEnv()),
             httpClient(),
             databaseModule(),
+            valkeyModule(),
             servicesModule(),
         )
     }
@@ -80,13 +82,19 @@ private fun databaseModule() = module {
     }
 }
 
+private fun valkeyModule() = module {
+    single {
+        ValkeyCache(env().valkeyEnvironment)
+    }
+}
+
 private fun servicesModule() = module {
     single {
         val dineSykmeldteHttpClient =
             if (isLocalEnv()) FakeDineSykmeldteHttpClient() else DineSykmeldteHttpClient(
                 httpClient = get(), dineSykmeldteBaseUrl = env().dineSykmeldteBaseUrl
             )
-        DineSykmeldteService(dineSykmeldteHttpClient)
+        DineSykmeldteService(dineSykmeldteHttpClient, get())
     }
     single { TexasHttpClient(get(), env().texas) }
     single { OppfolgingsplanService(database = get(), esyfovarselProducer = get()) }

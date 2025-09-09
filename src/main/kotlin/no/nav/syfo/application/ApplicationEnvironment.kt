@@ -2,6 +2,7 @@ package no.nav.syfo.application
 
 import no.nav.syfo.application.database.DatabaseEnvironment
 import no.nav.syfo.application.kafka.KafkaEnv
+import no.nav.syfo.application.valkey.ValkeyEnvironment
 import no.nav.syfo.texas.TexasEnvironment
 
 const val NAIS_DATABASE_ENV_PREFIX = "OPPFOLGINGSPLAN_DB"
@@ -9,6 +10,7 @@ const val NAIS_DATABASE_ENV_PREFIX = "OPPFOLGINGSPLAN_DB"
 interface Environment {
     val database: DatabaseEnvironment
     val texas: TexasEnvironment
+    val valkeyEnvironment: ValkeyEnvironment
     val dineSykmeldteBaseUrl: String
     val dokarkivBaseUrl: String
     val dokarkivScope: String
@@ -40,7 +42,12 @@ data class NaisEnvironment(
         exchangeTargetIsDialogmelding = "${getEnvVar("NAIS_CLUSTER_NAME")}:teamsykefravr:isdialogmelding",
         exchangeTargetIsTilgangskontroll = "${getEnvVar("NAIS_CLUSTER_NAME")}.teamsykefravr.istilgangskontroll",
     ),
-
+    override val valkeyEnvironment: ValkeyEnvironment = ValkeyEnvironment(
+        valkeyHost = getEnvVar("VALKEY_HOST_<ValkeyInstanceName>"),
+        valkeyPort = getEnvVar("VALKEY_PORT_<ValkeyInstanceName>").toInt(),
+        username = getEnvVar("VALKEY_USERNAME_<ValkeyInstanceName>"),
+        password = getEnvVar("VALKEY_PASSWORD_<ValkeyInstanceName>")
+    ),
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
     override val dokarkivBaseUrl: String = getEnvVar("DOKARKIV_URL"),
@@ -82,6 +89,12 @@ data class LocalEnvironment(
         exchangeTargetIsDialogmelding = "dev-gcp:teamsykefravr:isdialogmelding",
         exchangeTargetIsTilgangskontroll = "dev-gcp:teamsykefravr:istilgangskontroll",
     ),
+    override val valkeyEnvironment: ValkeyEnvironment = ValkeyEnvironment(
+        valkeyHost = "http://localhost",
+        valkeyPort = 6379,
+        username = "test",
+        password = "test"
+    ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
@@ -90,5 +103,5 @@ data class LocalEnvironment(
     override val pdfGenUrl: String = "http://localhost:9091",
     override val pdlBaseUrl: String = "https://pdl-api.dev.intern.nav.no",
     override val pdlScope: String = "pdl",
-    override val kafka: KafkaEnv = KafkaEnv.createForLocal()
+    override val kafka: KafkaEnv = KafkaEnv.createForLocal(),
 ) : Environment

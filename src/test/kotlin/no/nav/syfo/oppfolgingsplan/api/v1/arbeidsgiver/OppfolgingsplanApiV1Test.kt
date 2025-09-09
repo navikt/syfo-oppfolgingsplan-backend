@@ -33,6 +33,7 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.application.exception.ApiError
 import no.nav.syfo.application.exception.ErrorType
 import no.nav.syfo.application.exception.LegeNotFoundException
+import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
@@ -45,7 +46,6 @@ import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
-import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
@@ -66,6 +66,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
+    val valkeyCacheMock = mockk<ValkeyCache>(relaxed = true)
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
@@ -107,7 +108,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 installStatusPages()
                 routing {
                     registerApiV1(
-                        DineSykmeldteService(dineSykmeldteHttpClientMock),
+                        DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
                         texasClientMock,
                         oppfolgingsplanService = oppfolgingsplanService,
                         pdfGenService = pdfGenServiceMock,

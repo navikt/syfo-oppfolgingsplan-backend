@@ -70,6 +70,9 @@ dependencies {
     implementation("com.zaxxer:HikariCP:$hikari_version")
     implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
 
+    // Caching
+    implementation("redis.clients:jedis:6.2.0")
+
     // Faker
     implementation("net.datafaker:datafaker:$dataFakerVersion")
 
