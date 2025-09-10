@@ -15,7 +15,7 @@ val postgres_version: String by project
 val testcontainersVersion: String by project
 
 plugins {
-    kotlin("jvm") version "2.2.10"
+    kotlin("jvm") version "2.2.20"
     id("io.ktor.plugin") version "3.2.3"
     id("com.gradleup.shadow") version "8.3.9"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.10"
