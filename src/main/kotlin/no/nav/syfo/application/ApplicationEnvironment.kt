@@ -43,10 +43,10 @@ data class NaisEnvironment(
         exchangeTargetIsTilgangskontroll = "${getEnvVar("NAIS_CLUSTER_NAME")}.teamsykefravr.istilgangskontroll",
     ),
     override val valkeyEnvironment: ValkeyEnvironment = ValkeyEnvironment(
-        host = getEnvVar("VALKEY_HOST_syfo-oppfolgingsplan-backend"),
-        port = getEnvVar("VALKEY_PORT_syfo-oppfolgingsplan-backend").toInt(),
-        username = getEnvVar("VALKEY_USERNAME_syfo-oppfolgingsplan-backend"),
-        password = getEnvVar("VALKEY_PASSWORD_syfo-oppfolgingsplan-backend")
+        host = getEnvVar("VALKEY_HOST_SYFO-OPPFOLGINGSPLAN-BACKEND"),
+        port = getEnvVar("VALKEY_PORT_SYFO-OPPFOLGINGSPLAN-BACKEND").toInt(),
+        username = getEnvVar("VALKEY_USERNAME_SYFO-OPPFOLGINGSPLAN-BACKEND"),
+        password = getEnvVar("VALKEY_PASSWORD_SYFO-OPPFOLGINGSPLAN-BACKEND")
     ),
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
