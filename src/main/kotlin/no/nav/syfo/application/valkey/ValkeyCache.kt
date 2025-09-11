@@ -28,10 +28,8 @@ class ValkeyCache(
         try {
             val jedis = jedisPool.resource
             val json = jedis.get(key)
-            return if (json.isNullOrBlank()) {
-                jacksonObjectMapper().readValue(json, type)
-            } else {
-                null
+            return json?.let {
+                jacksonObjectMapper().readValue(it, type)
             }
         } catch (e: Exception) {
             logger.error("put: Could not get resource from jedis pool", e)
