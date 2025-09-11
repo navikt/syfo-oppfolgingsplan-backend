@@ -3,24 +3,30 @@ package no.nav.syfo.dinesykmeldte
 
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.http.HttpStatusCode
+import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.dinesykmeldte.client.IDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.util.logger
 
 
 class DineSykmeldteService(
-    private val dineSykmeldteHttpClient: IDineSykmeldteHttpClient
+    private val dineSykmeldteHttpClient: IDineSykmeldteHttpClient,
+    private val valkeyCache: ValkeyCache
 ) {
     private val logger = logger()
 
     suspend fun getSykmeldtForNarmesteleder(
         narmestelederId: String,
+        lederFnr: String,
         accessToken: String
     ): Sykmeldt? {
-        // TODO: Use Valkey cache to avoid multiple calls to dinesykmeldte-backend.
-        // Should probably not be cached for more than an hour. Cache key should be a compound of fnr in accessToken and narmestelederId.
+        valkeyCache.getSykmeldt(lederFnr, narmestelederId)?.let { cachedSykmeldt ->
+            return cachedSykmeldt
+        }
         return try {
-            dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, accessToken)
+            val sykmeldt = dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, accessToken)
+            valkeyCache.putSykmeldt(lederFnr, narmestelederId, sykmeldt)
+            return sykmeldt
         } catch (clientRequestException: ClientRequestException) {
             when (clientRequestException.response.status) {
                 HttpStatusCode.NotFound -> {

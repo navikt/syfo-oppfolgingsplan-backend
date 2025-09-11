@@ -42,7 +42,11 @@ val AuthorizeLeaderAccessToSykmeldtPlugin = createRouteScopedPlugin(
 
             val texasResponse = texasHttpClient.exchangeTokenForDineSykmeldte(innloggetBruker.token)
 
-            val sykmeldt = dineSykmeldteService.getSykmeldtForNarmesteleder(narmesteLederId, texasResponse.accessToken)
+            val sykmeldt = dineSykmeldteService.getSykmeldtForNarmesteleder(
+                narmesteLederId,
+                innloggetBruker.ident,
+                texasResponse.accessToken
+            )
                 ?: throw NotFoundException("Sykmeldt not found for narmestelederId: $narmesteLederId")
 
             call.attributes[CALL_ATTRIBUTE_SYKMELDT] = sykmeldt

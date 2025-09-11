@@ -24,10 +24,12 @@ import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import java.time.Instant
 import java.util.*
 import no.nav.syfo.TestDB
+import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -55,6 +57,7 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 class VeilederOppfolginsplanApiV1Test : DescribeSpec({
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
+    val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
     val sykmeldtFnr = "12345678910"
@@ -68,6 +71,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
     beforeTest {
         clearAllMocks()
         TestDB.clearAllData()
+        every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
     }
 
     fun withTestApplication(
@@ -89,7 +93,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 installStatusPages()
                 routing {
                     registerApiV1(
-                        DineSykmeldteService(dineSykmeldteHttpClientMock),
+                        DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
                         texasClientMock,
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
