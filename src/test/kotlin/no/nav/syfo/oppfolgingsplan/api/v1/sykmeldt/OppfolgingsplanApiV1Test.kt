@@ -70,7 +70,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     beforeTest {
         clearAllMocks()
         TestDB.clearAllData()
-        every { valkeyCacheMock.getSykmeldt(any()) } returns null
+        every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
     }
 
     fun withTestApplication(

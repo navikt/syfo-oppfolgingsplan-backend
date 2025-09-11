@@ -17,14 +17,15 @@ class DineSykmeldteService(
 
     suspend fun getSykmeldtForNarmesteleder(
         narmestelederId: String,
+        lederFnr: String,
         accessToken: String
     ): Sykmeldt? {
-        valkeyCache.getSykmeldt(narmestelederId)?.let { cachedSykmeldt ->
+        valkeyCache.getSykmeldt(lederFnr, narmestelederId)?.let { cachedSykmeldt ->
             return cachedSykmeldt
         }
         return try {
             val sykmeldt = dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, accessToken)
-            valkeyCache.putSykmeldt(narmestelederId, sykmeldt)
+            valkeyCache.putSykmeldt(lederFnr, narmestelederId, sykmeldt)
             return sykmeldt
         } catch (clientRequestException: ClientRequestException) {
             when (clientRequestException.response.status) {

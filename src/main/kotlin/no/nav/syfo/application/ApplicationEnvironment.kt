@@ -90,9 +90,9 @@ data class LocalEnvironment(
         exchangeTargetIsTilgangskontroll = "dev-gcp:teamsykefravr:istilgangskontroll",
     ),
     override val valkeyEnvironment: ValkeyEnvironment = ValkeyEnvironment(
-        host = "http://localhost",
+        host = "localhost",
         port = 6379,
-        username = "test",
+        username = "default",
         password = "test",
         ssl = false
     ),

@@ -53,12 +53,16 @@ class ValkeyCache(
         }
     }
 
-    fun getSykmeldt(narmestelederId: String): Sykmeldt? {
-        return get("$DINE_SYKMELDTE_CACHE_KEY_PREFIX-$narmestelederId", Sykmeldt::class.java)
+    fun getSykmeldt(lederFnr: String, narmestelederId: String): Sykmeldt? {
+        val sykmeldt = get("$DINE_SYKMELDTE_CACHE_KEY_PREFIX-$lederFnr-$narmestelederId", Sykmeldt::class.java)
+        if (sykmeldt != null) {
+            COUNT_CACHE_HIT_DINE_SYKMELDTE.increment()
+        }
+        return sykmeldt
     }
 
-    fun putSykmeldt(narmestelederId: String, sykmeldt: Sykmeldt) {
-        put("$DINE_SYKMELDTE_CACHE_KEY_PREFIX-$narmestelederId", sykmeldt)
+    fun putSykmeldt(lederFnr: String, narmestelederId: String, sykmeldt: Sykmeldt) {
+        put("$DINE_SYKMELDTE_CACHE_KEY_PREFIX-$lederFnr-$narmestelederId", sykmeldt)
     }
 
     companion object {

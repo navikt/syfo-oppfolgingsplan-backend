@@ -11,15 +11,14 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
   valkey:
-    image: valkey/valkey:latest # Or specify a specific version like valkey/valkey:7.2.5
+    image: valkey/valkey:latest
     container_name: valkey-server
     ports:
-      - "6379:6379" # Map host port 6379 to container port 6379
+      - "6379:6379"
     volumes:
-      - valkey_data:/data # Persist data in a named volume
+      - valkey_data:/data
     environment:
-      - ALLOW_EMPTY_PASSWORD=yes # For development/testing, consider setting a password in production
-
+      - VALKEY_PASSWORD=test
   authserver:
     image: ghcr.io/navikt/mock-oauth2-server:2.2.1
     environment:
