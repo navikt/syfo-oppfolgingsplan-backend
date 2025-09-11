@@ -13,6 +13,7 @@ val micrometer_version: String by project
 val mockkVersion: String by project
 val postgres_version: String by project
 val testcontainersVersion: String by project
+val valkey_version: String by project
 
 plugins {
     kotlin("jvm") version "2.2.10"
@@ -71,7 +72,7 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
 
     // Caching
-    implementation("io.valkey:valkey-java:5.3.0")
+    implementation("io.valkey:valkey-java:$valkey_version")
 
     // Faker
     implementation("net.datafaker:datafaker:$dataFakerVersion")

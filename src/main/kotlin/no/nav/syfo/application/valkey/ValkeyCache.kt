@@ -32,7 +32,7 @@ class ValkeyCache(
                 jacksonObjectMapper().readValue(it, type)
             }
         } catch (e: Exception) {
-            logger.error("put: Could not get resource from jedis pool", e)
+            logger.error("Failed to get from cache", e)
             return null
         } finally {
             jedisPool.resource.close()
@@ -45,7 +45,7 @@ class ValkeyCache(
             val json = jacksonObjectMapper().writeValueAsString(value)
             jedis.setex(key, ttlSeconds, json)
         } catch (e: Exception) {
-            logger.error("put: Could not get resource from jedis pool", e)
+            logger.error("Failed to put in cache", e)
         } finally {
             jedisPool.resource.close()
         }
