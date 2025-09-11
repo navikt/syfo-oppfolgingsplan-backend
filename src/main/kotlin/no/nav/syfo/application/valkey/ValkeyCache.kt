@@ -1,34 +1,68 @@
 package no.nav.syfo.application.valkey
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import redis.clients.jedis.DefaultJedisClientConfig
-import redis.clients.jedis.Jedis
+import io.valkey.DefaultJedisClientConfig
+import io.valkey.HostAndPort
+import io.valkey.JedisPool
+import io.valkey.JedisPoolConfig
+import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.util.logger
 
 class ValkeyCache(
     valkeyEnvironment: ValkeyEnvironment,
 ) {
 
-    private val jedis = Jedis(
-        valkeyEnvironment.valkeyHost,
-        valkeyEnvironment.valkeyPort,
-        DefaultJedisClientConfig
-            .builder()
+    private val logger = logger()
+
+    private val jedisPool = JedisPool(
+        JedisPoolConfig(),
+        HostAndPort(valkeyEnvironment.host, valkeyEnvironment.port),
+        DefaultJedisClientConfig.builder()
+            .ssl(valkeyEnvironment.ssl)
             .user(valkeyEnvironment.username)
             .password(valkeyEnvironment.password)
             .build()
     )
 
-    fun <T> get(key: String, type: Class<T>): T? {
-        val json = jedis.get(key)
-        return if (json != null) {
-            jacksonObjectMapper().readValue(json, type)
-        } else {
-            null
+    private fun <T> get(key: String, type: Class<T>): T? {
+        try {
+            val jedis = jedisPool.resource
+            val json = jedis.get(key)
+            return if (json.isNullOrBlank()) {
+                jacksonObjectMapper().readValue(json, type)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            logger.error("put: Could not get resource from jedis pool", e)
+            return null
+        } finally {
+            jedisPool.resource.close()
         }
     }
 
-    fun <T> put(key: String, value: T, ttlSeconds: Long = 3600) {
-        val json = jacksonObjectMapper().writeValueAsString(value)
-        jedis.setex(key, ttlSeconds, json)
+    private fun <T> put(key: String, value: T, ttlSeconds: Long = CACHE_TTL_SECONDS) {
+        try {
+            val jedis = jedisPool.resource
+            val json = jacksonObjectMapper().writeValueAsString(value)
+            jedis.setex(key, ttlSeconds, json)
+        } catch (e: Exception) {
+            logger.error("put: Could not get resource from jedis pool", e)
+        } finally {
+            jedisPool.resource.close()
+        }
+    }
+
+    fun getSykmeldt(narmestelederId: String): Sykmeldt? {
+        return get("$DINE_SYKMELDTE_CACHE_KEY_PREFIX-$narmestelederId", Sykmeldt::class.java)
+    }
+
+    fun putSykmeldt(narmestelederId: String, sykmeldt: Sykmeldt) {
+        put("$DINE_SYKMELDTE_CACHE_KEY_PREFIX-$narmestelederId", sykmeldt)
+    }
+
+    companion object {
+        const val CACHE_TTL_SECONDS = 3600L
+        const val DINE_SYKMELDTE_CACHE_KEY_PREFIX = "dinesykmeldte"
     }
 }

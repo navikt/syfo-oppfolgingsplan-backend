@@ -19,13 +19,12 @@ class DineSykmeldteService(
         narmestelederId: String,
         accessToken: String
     ): Sykmeldt? {
-        val cacheKey = getCacheKey(narmestelederId)
-        valkeyCache.get(cacheKey, Sykmeldt::class.java)?.let { cachedValue ->
-            return cachedValue
+        valkeyCache.getSykmeldt(narmestelederId)?.let { cachedSykmeldt ->
+            return cachedSykmeldt
         }
         return try {
             val sykmeldt = dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, accessToken)
-            valkeyCache.put(cacheKey, sykmeldt)
+            valkeyCache.putSykmeldt(narmestelederId, sykmeldt)
             return sykmeldt
         } catch (clientRequestException: ClientRequestException) {
             when (clientRequestException.response.status) {
@@ -36,9 +35,5 @@ class DineSykmeldteService(
                 else -> throw RuntimeException("Error while fetching sykmeldt", clientRequestException)
             }
         }
-    }
-
-    private fun getCacheKey(narmestelederId: String): String {
-        return "dinesykmeldte-$narmestelederId"
     }
 }

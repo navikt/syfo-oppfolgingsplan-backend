@@ -21,6 +21,7 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
+import io.mockk.every
 import io.mockk.mockk
 import java.time.LocalDate
 import java.util.*
@@ -55,7 +56,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
-    val valkeyCacheMock = mockk<ValkeyCache>()
+    val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
     val testDb = TestDB.database
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val pdfGenClient = mockk<PdfGenClient>()
@@ -72,6 +73,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
     beforeTest {
         clearAllMocks()
         TestDB.clearAllData()
+        every { valkeyCacheMock.getSykmeldt(any()) } returns null
     }
 
     fun withTestApplication(

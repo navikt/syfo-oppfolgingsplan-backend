@@ -43,10 +43,10 @@ data class NaisEnvironment(
         exchangeTargetIsTilgangskontroll = "${getEnvVar("NAIS_CLUSTER_NAME")}.teamsykefravr.istilgangskontroll",
     ),
     override val valkeyEnvironment: ValkeyEnvironment = ValkeyEnvironment(
-        valkeyHost = getEnvVar("VALKEY_HOST_<ValkeyInstanceName>"),
-        valkeyPort = getEnvVar("VALKEY_PORT_<ValkeyInstanceName>").toInt(),
-        username = getEnvVar("VALKEY_USERNAME_<ValkeyInstanceName>"),
-        password = getEnvVar("VALKEY_PASSWORD_<ValkeyInstanceName>")
+        host = getEnvVar("VALKEY_HOST_syfo-oppfolgingsplan-backend"),
+        port = getEnvVar("VALKEY_PORT_syfo-oppfolgingsplan-backend").toInt(),
+        username = getEnvVar("VALKEY_USERNAME_syfo-oppfolgingsplan-backend"),
+        password = getEnvVar("VALKEY_PASSWORD_syfo-oppfolgingsplan-backend")
     ),
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
@@ -90,10 +90,11 @@ data class LocalEnvironment(
         exchangeTargetIsTilgangskontroll = "dev-gcp:teamsykefravr:istilgangskontroll",
     ),
     override val valkeyEnvironment: ValkeyEnvironment = ValkeyEnvironment(
-        valkeyHost = "http://localhost",
-        valkeyPort = 6379,
+        host = "http://localhost",
+        port = 6379,
         username = "test",
-        password = "test"
+        password = "test",
+        ssl = false
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",

@@ -71,7 +71,7 @@ dependencies {
     implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
 
     // Caching
-    implementation("redis.clients:jedis:6.2.0")
+    implementation("io.valkey:valkey-java:5.3.0")
 
     // Faker
     implementation("net.datafaker:datafaker:$dataFakerVersion")

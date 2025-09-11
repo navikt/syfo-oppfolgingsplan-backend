@@ -85,6 +85,9 @@ spec:
         - host: pdl-api.dev-fss-pub.nais.io
   kafka:
     pool: nav-dev
+  valkey:
+    - instance: syfo-oppfolgingsplan-backend
+      access: readwrite
   env:
     - name: KTOR_ENV
       value: production

@@ -24,6 +24,7 @@ import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import java.time.Instant
 import java.util.*
@@ -56,7 +57,7 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 class VeilederOppfolginsplanApiV1Test : DescribeSpec({
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
-    val valkeyCacheMock = mockk<ValkeyCache>()
+    val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
     val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
     val testDb = TestDB.database
     val sykmeldtFnr = "12345678910"
@@ -70,6 +71,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
     beforeTest {
         clearAllMocks()
         TestDB.clearAllData()
+        every { valkeyCacheMock.getSykmeldt(any()) } returns null
     }
 
     fun withTestApplication(
