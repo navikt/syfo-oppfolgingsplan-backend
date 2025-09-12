@@ -3,7 +3,7 @@ val dataFakerVersion: String by project
 val flyway_version: String by project
 val hikari_version: String by project
 val kafka_version: String by project
-val koin_version: String by project
+val koinVersion = "4.1.0"
 val kotestExtensionsVersion: String by project
 val kotestVersion: String by project
 val ktor_version: String by project
@@ -47,8 +47,8 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-apache-jvm")
     implementation("io.ktor:ktor-serialization-jackson")
-    implementation("io.insert-koin:koin-ktor:$koin_version")
-    implementation("io.insert-koin:koin-logger-slf4j:$koin_version")
+    implementation("io.insert-koin:koin-ktor:$koinVersion")
+    implementation("io.insert-koin:koin-logger-slf4j:$koinVersion")
     implementation("io.ktor:ktor-server-netty")
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("net.logstash.logback:logstash-logback-encoder:$logstashEncoderVersion")
@@ -83,7 +83,7 @@ dependencies {
     testImplementation("io.kotest:kotest-property:${kotestVersion}")
     testImplementation("io.kotest.extensions:kotest-assertions-ktor:$kotestExtensionsVersion")
     testImplementation("io.mockk:mockk:$mockkVersion")
-    testImplementation("io.insert-koin:koin-test:${koin_version}")
+    testImplementation("io.insert-koin:koin-test:${koinVersion}")
     testImplementation("io.ktor:ktor-client-mock:${ktor_version}")
     testImplementation("io.kotest.extensions:kotest-extensions-koin:1.3.0")
     testImplementation("org.testcontainers:testcontainers:${testcontainersVersion}")
