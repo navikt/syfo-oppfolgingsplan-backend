@@ -13,7 +13,7 @@ val micrometerVersion="1.14.5"
 val mockkVersion="1.14.2"
 val postgresVersion="42.7.5"
 val testcontainersVersion="1.21.3"
-val valkeyVersion="5.3.0"
+val valkeyVersion="5.4.0"
 
 plugins {
     kotlin("jvm") version "2.2.20"
