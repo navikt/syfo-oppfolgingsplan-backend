@@ -3,7 +3,7 @@ val dataFakerVersion: String by project
 val flyway_version: String by project
 val hikari_version: String by project
 val kafka_version: String by project
-val koinVersion = "4.1.0"
+val koinVersion = "4.1.1"
 val kotestExtensionsVersion: String by project
 val kotestVersion: String by project
 val ktor_version: String by project
