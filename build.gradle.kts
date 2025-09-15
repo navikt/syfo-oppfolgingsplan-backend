@@ -1,19 +1,19 @@
 
-val dataFakerVersion: String by project
-val flyway_version: String by project
-val hikari_version: String by project
-val kafka_version: String by project
+val dataFakerVersion="2.4.4"
+val flyway_version="11.6.0"
+val hikari_version="6.3.0"
+val kafka_version="3.9.1"
 val koinVersion = "4.1.1"
-val kotestExtensionsVersion: String by project
-val kotestVersion: String by project
-val ktor_version: String by project
-val logback_version: String by project
-val logstashEncoderVersion: String by project
-val micrometer_version: String by project
-val mockkVersion: String by project
-val postgres_version: String by project
-val testcontainersVersion: String by project
-val valkey_version: String by project
+val kotestExtensionsVersion="2.0.0"
+val kotestVersion="5.9.1"
+val ktor_version="3.1.1"
+val logback_version="1.4.14"
+val logstashEncoderVersion="8.1"
+val micrometer_version="1.14.5"
+val mockkVersion="1.14.2"
+val postgres_version="42.7.5"
+val testcontainersVersion="1.21.3"
+val valkey_version="5.3.0"
 
 plugins {
     kotlin("jvm") version "2.2.20"
