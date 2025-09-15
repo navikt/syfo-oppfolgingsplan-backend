@@ -1,19 +1,19 @@
 
 val dataFakerVersion="2.4.4"
-val flyway_version="11.6.0"
-val hikari_version="6.3.0"
-val kafka_version="3.9.1"
+val flywayVersion="11.6.0"
+val hikariVersion="6.3.0"
+val kafkaVersion="3.9.1"
 val koinVersion = "4.1.1"
 val kotestExtensionsVersion="2.0.0"
 val kotestVersion="5.9.1"
-val ktor_version="3.1.1"
-val logback_version="1.4.14"
+val ktorVersion="3.1.1"
+val logbackVersion="1.4.14"
 val logstashEncoderVersion="8.1"
-val micrometer_version="1.14.5"
+val micrometerVersion="1.14.5"
 val mockkVersion="1.14.2"
-val postgres_version="42.7.5"
+val postgresVersion="42.7.5"
 val testcontainersVersion="1.21.3"
-val valkey_version="5.3.0"
+val valkeyVersion="5.3.0"
 
 plugins {
     kotlin("jvm") version "2.2.20"
@@ -50,29 +50,29 @@ dependencies {
     implementation("io.insert-koin:koin-ktor:$koinVersion")
     implementation("io.insert-koin:koin-logger-slf4j:$koinVersion")
     implementation("io.ktor:ktor-server-netty")
-    implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("ch.qos.logback:logback-classic:$logbackVersion")
     implementation("net.logstash.logback:logstash-logback-encoder:$logstashEncoderVersion")
     implementation("io.ktor:ktor-server-swagger")
     implementation("io.ktor:ktor-server-openapi")
     implementation("io.ktor:ktor-server-config-yaml")
-    implementation("org.apache.kafka:kafka-clients:$kafka_version")
-    implementation("org.apache.kafka:kafka_2.13:$kafka_version") {
+    implementation("org.apache.kafka:kafka-clients:$kafkaVersion")
+    implementation("org.apache.kafka:kafka_2.13:$kafkaVersion") {
         exclude(group = "log4j")
     }
 
     testImplementation("io.ktor:ktor-server-test-host")
 
     // Metrics and Prometheus
-    implementation("io.ktor:ktor-server-metrics-micrometer:$ktor_version")
-    implementation("io.micrometer:micrometer-registry-prometheus:$micrometer_version")
+    implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
+    implementation("io.micrometer:micrometer-registry-prometheus:$micrometerVersion")
 
     // Database
-    implementation("org.postgresql:postgresql:$postgres_version")
-    implementation("com.zaxxer:HikariCP:$hikari_version")
-    implementation("org.flywaydb:flyway-database-postgresql:$flyway_version")
+    implementation("org.postgresql:postgresql:$postgresVersion")
+    implementation("com.zaxxer:HikariCP:$hikariVersion")
+    implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
 
     // Caching
-    implementation("io.valkey:valkey-java:$valkey_version")
+    implementation("io.valkey:valkey-java:$valkeyVersion")
 
     // Faker
     implementation("net.datafaker:datafaker:$dataFakerVersion")
@@ -84,7 +84,7 @@ dependencies {
     testImplementation("io.kotest.extensions:kotest-assertions-ktor:$kotestExtensionsVersion")
     testImplementation("io.mockk:mockk:$mockkVersion")
     testImplementation("io.insert-koin:koin-test:${koinVersion}")
-    testImplementation("io.ktor:ktor-client-mock:${ktor_version}")
+    testImplementation("io.ktor:ktor-client-mock:${ktorVersion}")
     testImplementation("io.kotest.extensions:kotest-extensions-koin:1.3.0")
     testImplementation("org.testcontainers:testcontainers:${testcontainersVersion}")
     testImplementation("org.testcontainers:postgresql:${testcontainersVersion}")
