@@ -11,7 +11,7 @@ on:
 
 jobs:
   jar-app:
-    uses: navikt/teamesyfo-github-actions-workflows/.github/workflows/jar-app.yaml@fix/analyze-oom
+    uses: navikt/teamesyfo-github-actions-workflows/.github/workflows/jar-app.yaml@main
     permissions:
       actions: read
       contents: write
