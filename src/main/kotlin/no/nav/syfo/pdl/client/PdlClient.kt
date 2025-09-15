@@ -11,7 +11,7 @@ import net.datafaker.Faker
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.intellij.lang.annotations.Language
 
-private const val BEHANDLINGSNUMMER_DIGITAL_OPPFOLGINGSPLAN = "B275"
+private const val BEHANDLINGSNUMMER_DIGITAL_OPPFOLGINGSPLAN = "B426"
 private const val PDL_BEHANDLINGSNUMMER_HEADER = "behandlingsnummer"
 
 @Language("GraphQL")
