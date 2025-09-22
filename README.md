@@ -57,6 +57,7 @@ There are a few tweaks we need to do to the deployment manifest [nais-dev.yaml](
     - name: JAVA_TOOL_OPTIONS
       value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
 ```
+
 2. Tweak the liveness probe to be more forgiving before forcibly restarting the pod. Change ```periodSeconds``` and/or ```failureThreshold``` to give yourself enough time to debug. E.g.
 ```yaml
   liveness:
