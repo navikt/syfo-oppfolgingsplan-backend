@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/java21-debian12@sha256:c23123156441cff6195c85cd28fce8f3395ba927536c928a54cfc380130229a4
+FROM gcr.io/distroless/java21-debian12@sha256:6e6a038d8763238480f7f7d50c55577fc9b6120a83ea11697b6e91159ad7ecba
 WORKDIR /app
 COPY build/libs/app.jar app.jar
 ENV JDK_JAVA_OPTIONS="-XX:MaxRAMPercentage=75 -Dlogback.configurationFile=logback.xml"
