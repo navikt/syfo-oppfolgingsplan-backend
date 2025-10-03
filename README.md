@@ -81,3 +81,18 @@ https://tokenx-token-generator.intern.dev.nav.no/api/obo?aud=dev-gcp:team-esyfo:
 In order to get a token for veileder, use the following url:
 https://azure-token-generator.intern.dev.nav.no/api/obo?aud=dev-gcp:team-esyfo:syfo-oppfolgingsplan-backend
 You will need to provide the credential for a user from Ida with veileder role.
+
+## Troubleshooting (Colima)
+
+If you see the error **Could not find a valid Docker environment** when running `./gradlew build` or `./gradlew test`, it may be related to how Colima manages the Docker socket.  
+A common cause is that `/var/run/docker.sock` points to the wrong socket (e.g. Rancher Desktop or Docker Desktop instead of Colima).
+
+You can check the current target with:
+```bash
+ls -l /var/run/docker.sock
+```
+
+If it points to the wrong location, update the symlink to the correct socket (replace <your-username> with your actual username):
+```bash
+sudo ln -sf /Users/<your-username>/.colima/default/docker.sock /var/run/docker.sock
+```
