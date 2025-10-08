@@ -44,6 +44,8 @@ class Database(
             config.username,
             config.password,
         )
+            .locations("classpath:db/migration")
+            .failOnMissingLocations(false)
         load().migrate().migrationsExecuted
     }
 }
