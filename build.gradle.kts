@@ -1,6 +1,6 @@
 
 val dataFakerVersion="2.5.1"
-val flywayVersion="11.6.0"
+val flywayVersion="11.13.3"
 val hikariVersion="6.3.0"
 val kafkaVersion="3.9.1"
 val koinVersion = "4.1.1"
@@ -14,7 +14,7 @@ val mockkVersion="1.14.6"
 val postgresVersion="42.7.8"
 val testcontainersVersion="1.21.3"
 val valkeyVersion="5.4.0"
-
+val jacksonDatatypeJsr = "2.20.0"
 plugins {
     kotlin("jvm") version "2.2.20"
     id("io.ktor.plugin") version "3.3.1"
@@ -59,6 +59,7 @@ dependencies {
     implementation("org.apache.kafka:kafka_2.13:$kafkaVersion") {
         exclude(group = "log4j")
     }
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonDatatypeJsr")
 
     testImplementation("io.ktor:ktor-server-test-host")
 
