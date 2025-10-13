@@ -1,5 +1,5 @@
 
-val dataFakerVersion="2.5.1"
+val dataFakerVersion="2.5.2"
 val flywayVersion="11.14.0"
 val hikariVersion="6.3.0"
 val kafkaVersion="3.9.1"
