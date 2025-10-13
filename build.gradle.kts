@@ -1,6 +1,6 @@
 
 val dataFakerVersion="2.5.1"
-val flywayVersion="11.6.0"
+val flywayVersion="11.14.0"
 val hikariVersion="6.3.0"
 val kafkaVersion="3.9.1"
 val koinVersion = "4.1.1"
@@ -47,6 +47,7 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-apache-jvm")
     implementation("io.ktor:ktor-serialization-jackson")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.20.0")
     implementation("io.insert-koin:koin-ktor:$koinVersion")
     implementation("io.insert-koin:koin-logger-slf4j:$koinVersion")
     implementation("io.ktor:ktor-server-netty")
@@ -103,13 +104,16 @@ tasks {
         manifest.attributes["Main-Class"] = "no.nav.syfo.AppKt"
     }
 
-    create("printVersion") {
+    register("printVersion") {
         doLast {
             println(project.version)
         }
     }
 
     shadowJar {
+        filesMatching("META-INF/services/**") {
+            duplicatesStrategy = DuplicatesStrategy.WARN
+        }
         mergeServiceFiles()
         archiveFileName.set("app.jar")
         archiveClassifier.set("")
