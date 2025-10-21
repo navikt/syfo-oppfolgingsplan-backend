@@ -106,7 +106,7 @@ spec:
     - name: DOKARKIV_SCOPE
       value: dev-fss.teamdokumenthandtering.dokarkiv
     - name: ARKIVPORTEN_URL
-      value: https://arkivporten
+      value: http://arkivporten
     - name: ARKIVPORTEN_SCOPE
       value: dev-gcp.team-esyfo.arkivporten
     - name: PDL_BASE_URL
