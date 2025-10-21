@@ -62,6 +62,7 @@ spec:
     - "https://syfo-oppfolgingsplan-backend.intern.dev.nav.no"
   tokenx:
     enabled: true
+  leaderElection: true
   accessPolicy:
     inbound:
       rules:
