@@ -74,6 +74,7 @@ spec:
           namespace: teamsykefravr
     outbound:
       rules:
+        - application: arkivporten
         - application: syfooppdfgen
         - application: dinesykmeldte-backend
         - application: isdialogmelding
