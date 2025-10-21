@@ -50,8 +50,7 @@ class SendOppfolginsplanTask(
                     }
                 }
                 // Sleep for a while before checking again
-//                delay(5 * 60 * 1000) // 5 minutes
-                delay(5 * 1000) // 5 minutes
+                delay(5 * 60 * 1000) // 5 minutes
             }
         } catch (ex: CancellationException) {
             logger.info("cancelled delete data job", ex)

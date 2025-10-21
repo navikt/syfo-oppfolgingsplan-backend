@@ -8,6 +8,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
 import org.slf4j.LoggerFactory
@@ -31,12 +32,19 @@ class ArkivportenClient(
     private val scope: String,
     private val httpClient: HttpClient,
 ) : IArkivportenClient {
-    private val log = LoggerFactory.getLogger(ArkivportenClient::class.qualifiedName)
+    private val logger = LoggerFactory.getLogger(ArkivportenClient::class.qualifiedName)
 
     @Suppress("ThrowsCount")
     override suspend fun publishOppfolginsplan(document: Document) {
-        val token = texasHttpClient.systemToken(IDENTITY_PROVIDER, TexasHttpClient.getTarget(scope)).accessToken
+        logger.info("Publishing document to Arkivporten: ${document.documentId}, ${document.dialogTitle}")
+        val token = try {
+            texasHttpClient.systemToken(IDENTITY_PROVIDER, TexasHttpClient.getTarget(scope)).accessToken
+        } catch (e: ClientRequestException) {
+            logger.error("Error while requesting systemToken", e)
+            throw InternalServerErrorException("Error while requesting systemToken")
+        }
         val requestUrl = arkivportenBaseUrl + ARKIVPORTEN_DOCUMENT_PATH
+        logger.info("Sending document to Arkivporten at $requestUrl")
         try {
             httpClient.post(requestUrl) {
                 headers {
@@ -46,7 +54,7 @@ class ArkivportenClient(
                 setBody(document)
             }
         } catch (e: ClientRequestException) {
-            log.error("Error sending request to Dokarkiv: ${e.response.bodyAsText()}")
+            logger.error("Error sending request to Arkivporten: ${e.response.bodyAsText()}")
             throw e
         }
     }

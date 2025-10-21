@@ -105,7 +105,7 @@ data class LocalEnvironment(
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
-    override val arkivportenBaseUrl: String = "https://localhost:8090",
+    override val arkivportenBaseUrl: String = "http://localhost:8090",
     override val arkiportenScope: String = "arkivporten",
     override val isDialogmeldingBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val isTilgangskontrollBaseUrl: String = "https://istilgangskontroll.intern.dev.nav.no",
