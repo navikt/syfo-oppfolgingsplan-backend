@@ -17,6 +17,7 @@ import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.arkivporten.client.ArkivportenClient
 import no.nav.syfo.arkivporten.client.FakeArkivportenClient
+import no.nav.syfo.arkivporten.client.IArkivportenClient
 import no.nav.syfo.arkivporten.client.SendOppfolginsplanTask
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
@@ -154,7 +155,7 @@ private fun servicesModule() = module {
             texasHttpClient = get(),
             scope = env().arkiportenScope,
             httpClient = get()
-        )
+        ) as IArkivportenClient
     }
     single { DokarkivService(get()) }
     single { LeaderElection(get(), env().electorPath) }
