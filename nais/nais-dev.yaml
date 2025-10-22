@@ -66,8 +66,6 @@ spec:
   accessPolicy:
     inbound:
       rules:
-        - application: tester-non-existent-app
-          namespace: team-esyfo
         - application: syfo-oppfolgingsplan-frontend
         - application: tokenx-token-generator
           namespace: nais
