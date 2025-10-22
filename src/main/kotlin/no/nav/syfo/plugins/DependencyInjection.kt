@@ -11,14 +11,14 @@ import no.nav.syfo.application.database.Database
 import no.nav.syfo.application.database.DatabaseConfig
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
-import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.valkey.ValkeyCache
+import no.nav.syfo.arkivporten.ArkivportenService
+import no.nav.syfo.arkivporten.SendOppfolginsplanTask
 import no.nav.syfo.arkivporten.client.ArkivportenClient
 import no.nav.syfo.arkivporten.client.FakeArkivportenClient
 import no.nav.syfo.arkivporten.client.IArkivportenClient
-import no.nav.syfo.arkivporten.client.SendOppfolginsplanTask
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -159,7 +159,8 @@ private fun servicesModule() = module {
     }
     single { DokarkivService(get()) }
     single { LeaderElection(get(), env().electorPath) }
-    single { SendOppfolginsplanTask(get(), get(), get(), get()) }
+    single { ArkivportenService(get(), get(), get()) }
+    single { SendOppfolginsplanTask(get(), get()) }
 }
 
 private fun Scope.env() = get<Environment>()

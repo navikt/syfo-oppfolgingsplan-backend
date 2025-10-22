@@ -3,7 +3,7 @@ package no.nav.syfo.plugins
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopping
 import kotlinx.coroutines.launch
-import no.nav.syfo.arkivporten.client.SendOppfolginsplanTask
+import no.nav.syfo.arkivporten.SendOppfolginsplanTask
 import org.koin.ktor.ext.inject
 
 fun Application.configureBackgroundTasks() {
