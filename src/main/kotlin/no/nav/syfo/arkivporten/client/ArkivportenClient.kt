@@ -34,7 +34,6 @@ class ArkivportenClient(
 ) : IArkivportenClient {
     private val logger = LoggerFactory.getLogger(ArkivportenClient::class.qualifiedName)
 
-    @Suppress("ThrowsCount")
     override suspend fun publishOppfolginsplan(document: Document) {
         logger.info("Publishing document to Arkivporten: ${document.documentId}, ${document.dialogTitle}")
         val token = try {
