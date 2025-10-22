@@ -6,9 +6,12 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.arkivporten.client.Document
+import no.nav.syfo.arkivporten.client.DocumentType
 import no.nav.syfo.arkivporten.client.IArkivportenClient
+import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForArkivportenPublisering
-import no.nav.syfo.oppfolgingsplan.db.setPublisertTilArkivportenTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.setSendtTilArkivportenTidspunkt
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.util.logger
 
@@ -23,7 +26,7 @@ class ArkivportenService(
         .withZone(ZoneId.of("Europe/Oslo"))
 
     private val logger = logger()
-    suspend fun finddAndPublishOppfolgingsplaner() {
+    suspend fun findAndSendOppfolgingsplaner() {
         try {
             logger.info("Starting task for send documents to dialogporten")
             val planer = database.findOppfolgingsplanserForArkivportenPublisering()
@@ -34,10 +37,20 @@ class ArkivportenService(
                 arkivportenClient.publishOppfolginsplan(
                     oppfolgingsplan.toArkivportenDocument(pdfByteArray, dateFormatter),
                 )
-                database.setPublisertTilArkivportenTidspunkt(oppfolgingsplan.uuid, Instant.now())
+                database.setSendtTilArkivportenTidspunkt(oppfolgingsplan.uuid, Instant.now())
             }
         } catch (ex: Exception) {
             logger.error("Could not send dialogs to dialogporten", ex)
         }
     }
 }
+fun PersistedOppfolgingsplan.toArkivportenDocument(content: ByteArray, dateFormatter: DateTimeFormatter) = Document(
+    documentId = this.uuid,
+    orgnumber = this.organisasjonsnummer,
+    content = content,
+    contentType = "application/pdf",
+    type = DocumentType.OPPFOLGINGSPLAN,
+    dialogTitle = "Oppfølgingsplan for ${this.sykmeldtFullName}",
+    dialogSummary = "Oppfølgingsplan opprettet den ${dateFormatter.format(this.createdAt)} " +
+        "av ${this.narmesteLederFullName}",
+)

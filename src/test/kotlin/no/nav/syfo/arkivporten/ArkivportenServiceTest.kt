@@ -39,7 +39,7 @@ class ArkivportenServiceTest : DescribeSpec({
             )
             // Act
             val unsendtPlans = testDb.findOppfolgingsplanserForArkivportenPublisering()
-            service.finddAndPublishOppfolgingsplaner()
+            service.findAndSendOppfolgingsplaner()
 
             // Assert
             coVerify(exactly = 2) {

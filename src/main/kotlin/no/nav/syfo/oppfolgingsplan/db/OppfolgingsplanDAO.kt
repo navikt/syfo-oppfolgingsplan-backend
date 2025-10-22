@@ -31,7 +31,7 @@ data class PersistedOppfolgingsplan(
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
     val createdAt: Instant,
-    val publisertTilArkivportenTidspunkt: Instant? = null,
+    val sendtTilArkivportenTidspunkt: Instant? = null,
 )
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
@@ -263,7 +263,7 @@ fun DatabaseInterface.findOppfolgingsplanserForArkivportenPublisering(
         FROM
             oppfolgingsplan
         WHERE
-            publisert_til_arkivporten_tidspunkt IS NULL
+            sendt_til_arkivporten_tidspunkt IS NULL
         LIMIT 100
     """.trimIndent()
 
@@ -278,13 +278,13 @@ fun DatabaseInterface.findOppfolgingsplanserForArkivportenPublisering(
     }
 }
 
-fun DatabaseInterface.setPublisertTilArkivportenTidspunkt(
+fun DatabaseInterface.setSendtTilArkivportenTidspunkt(
     uuid: UUID,
     publisertTilArkivportenTidspunkt: Instant,
 ) {
     val statement = """
         UPDATE oppfolgingsplan
-        SET publisert_til_arkivporten_tidspunkt = ?
+        SET sendt_til_arkivporten_tidspunkt = ?
         WHERE uuid = ?
     """.trimIndent()
 
@@ -315,6 +315,6 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),
         deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
         createdAt = getTimestamp("created_at").toInstant(),
-        publisertTilArkivportenTidspunkt = this.getTimestamp("publisert_til_arkivporten_tidspunkt")?.toInstant()
+        sendtTilArkivportenTidspunkt = this.getTimestamp("sendt_til_arkivporten_tidspunkt")?.toInstant()
     )
 }
