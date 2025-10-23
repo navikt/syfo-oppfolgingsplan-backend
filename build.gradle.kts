@@ -16,7 +16,7 @@ val testcontainersVersion="1.21.3"
 val valkeyVersion="5.5.0"
 
 plugins {
-    kotlin("jvm") version "2.2.20"
+    kotlin("jvm") version "2.2.21"
     id("io.ktor.plugin") version "3.3.1"
     id("com.gradleup.shadow") version "8.3.9"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20"
