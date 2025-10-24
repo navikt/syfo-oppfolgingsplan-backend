@@ -14,12 +14,15 @@ interface Environment {
     val dineSykmeldteBaseUrl: String
     val dokarkivBaseUrl: String
     val dokarkivScope: String
+    val arkivportenBaseUrl: String
+    val arkivportenScope: String
     val pdfGenUrl: String
     val isDialogmeldingBaseUrl: String
     val isTilgangskontrollBaseUrl: String
     val pdlBaseUrl: String
     val pdlScope: String
     val kafka: KafkaEnv
+    val electorPath: String
 }
 
 data class NaisEnvironment(
@@ -52,11 +55,14 @@ data class NaisEnvironment(
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
     override val dokarkivBaseUrl: String = getEnvVar("DOKARKIV_URL"),
     override val dokarkivScope: String = getEnvVar("DOKARKIV_SCOPE"),
+    override val arkivportenBaseUrl: String = getEnvVar("ARKIVPORTEN_URL"),
+    override val arkivportenScope: String = getEnvVar("ARKIVPORTEN_SCOPE"),
     override val isDialogmeldingBaseUrl: String = getEnvVar("ISDIALOGMELDING_BASE_URL"),
     override val isTilgangskontrollBaseUrl: String = getEnvVar("ISTILGANGSKONTROLL_URL"),
     override val pdlBaseUrl: String = getEnvVar("PDL_BASE_URL"),
     override val pdlScope: String = getEnvVar("PDL_SCOPE"),
-    override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars()
+    override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars(),
+    override val electorPath: String = getEnvVar("ELECTOR_PATH"),
 ) : Environment
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =
@@ -99,10 +105,13 @@ data class LocalEnvironment(
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
+    override val arkivportenBaseUrl: String = "http://localhost:8090",
+    override val arkivportenScope: String = "arkivporten",
     override val isDialogmeldingBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val isTilgangskontrollBaseUrl: String = "https://istilgangskontroll.intern.dev.nav.no",
     override val pdfGenUrl: String = "http://localhost:9091",
     override val pdlBaseUrl: String = "https://pdl-api.dev.intern.nav.no",
     override val pdlScope: String = "pdl",
     override val kafka: KafkaEnv = KafkaEnv.createForLocal(),
+    override val electorPath: String = "/elector",
 ) : Environment

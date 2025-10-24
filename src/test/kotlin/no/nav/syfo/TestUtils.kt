@@ -1,5 +1,11 @@
 package no.nav.syfo
 
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.http.Headers
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.fullPath
+import io.ktor.http.isSuccess
 import io.mockk.coEvery
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
 import java.time.Instant
@@ -163,3 +169,26 @@ fun DineSykmeldteHttpClient.defaultMocks(narmestelederId: String) {
 }
 
 val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)
+
+fun getMockEngine(path: String = "", status: HttpStatusCode, headers: Headers, content: String) =
+    MockEngine.Companion { request ->
+        when (request.url.fullPath) {
+            path -> {
+                if (status.isSuccess()) {
+                    respond(
+                        status = status,
+                        headers = headers,
+                        content = content.toByteArray(Charsets.UTF_8),
+                    )
+                } else {
+                    respond(
+                        status = status,
+                        headers = headers,
+                        content = content,
+                    )
+                }
+            }
+
+            else -> error("Unhandled request ${request.url.fullPath}")
+        }
+    }

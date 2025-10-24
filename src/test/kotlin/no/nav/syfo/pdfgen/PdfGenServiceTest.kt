@@ -21,7 +21,6 @@ import no.nav.syfo.util.httpClientDefault
 import org.junit.jupiter.api.assertThrows
 
 class PdfGenServiceTest : DescribeSpec({
-    val testDb = TestDB.database
 
     fun getMockEngine(status: HttpStatusCode, headers: Headers, content: String) = MockEngine { request ->
         when (request.url.fullPath) {
@@ -62,8 +61,7 @@ class PdfGenServiceTest : DescribeSpec({
             val persistedPlan = defaultPersistedOppfolgingsplan()
             val myService = PdfGenService(
                 PdfGenClient(client, ""),
-                testDb,
-                mockk(relaxed = true) // Mock PdlService, as it's not the focus
+                mockk(relaxed = true) // Mock OppfolginsplanService, as it's not the focus
             )
             val response = myService.generatePdf(persistedPlan)
             response shouldNotBe null
@@ -82,8 +80,7 @@ class PdfGenServiceTest : DescribeSpec({
             )
             val myService = PdfGenService(
                 PdfGenClient(client, ""),
-                testDb,
-                mockk(relaxed = true) // Mock PdlService, as it's not the focus
+                mockk(relaxed = true) // Mock OppfolginsplanService, as it's not the focus
             )
             val persistedPlan = defaultPersistedOppfolgingsplan()
             assertThrows<RuntimeException> {

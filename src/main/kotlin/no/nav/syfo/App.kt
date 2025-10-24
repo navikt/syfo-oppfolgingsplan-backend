@@ -9,6 +9,7 @@ import no.nav.syfo.plugins.configureDependencies
 import no.nav.syfo.plugins.configureLifecycleHooks
 import org.koin.ktor.ext.get
 import java.util.concurrent.TimeUnit
+import no.nav.syfo.plugins.configureBackgroundTasks
 
 fun main() {
     val server = embeddedServer(
@@ -35,6 +36,7 @@ fun main() {
 
 fun Application.module() {
     configureDependencies()
+    configureBackgroundTasks()
     configureRouting()
     configureLifecycleHooks(get())
 }

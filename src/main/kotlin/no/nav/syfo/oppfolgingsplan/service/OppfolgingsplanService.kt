@@ -14,6 +14,7 @@ import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
@@ -24,6 +25,7 @@ import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.dto.mapToOppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.mapToUtkastMetadata
+import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
@@ -32,6 +34,7 @@ import no.nav.syfo.varsel.domain.HendelseType
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
+    private val pdlService: PdlService,
 ) {
     private val logger = logger()
 
@@ -113,6 +116,21 @@ class OppfolgingsplanService(
         database.findAllOppfolgingsplanerBy(sykmeldtFnr)
             .map { it.mapToOppfolgingsplanMetadata() }
 
+    suspend fun getAndSetNarmestelederFullname(
+        persistedOppfolgingsplan: PersistedOppfolgingsplan
+    ): PersistedOppfolgingsplan {
+        return if (persistedOppfolgingsplan.narmesteLederFullName.isNullOrEmpty()) {
+            pdlService.getNameFor(
+                persistedOppfolgingsplan.narmesteLederFnr
+            )?.let { narmesteLederName ->
+                database.setNarmesteLederFullName(
+                    persistedOppfolgingsplan.uuid,
+                    narmesteLederName
+                )
+                persistedOppfolgingsplan.copy(narmesteLederFullName = narmesteLederName)
+            } ?: persistedOppfolgingsplan
+        } else persistedOppfolgingsplan
+    }
 
     private fun produceOppfolgingsplanCreatedVarsel(sykmeldt: Sykmeldt) {
         val hendelse = ArbeidstakerHendelse(

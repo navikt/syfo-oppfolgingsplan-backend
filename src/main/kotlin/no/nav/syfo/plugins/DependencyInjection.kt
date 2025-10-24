@@ -12,7 +12,13 @@ import no.nav.syfo.application.database.DatabaseConfig
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.kafka.producerProperties
+import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.valkey.ValkeyCache
+import no.nav.syfo.arkivporten.ArkivportenService
+import no.nav.syfo.arkivporten.SendOppfolginsplanTask
+import no.nav.syfo.arkivporten.client.ArkivportenClient
+import no.nav.syfo.arkivporten.client.FakeArkivportenClient
+import no.nav.syfo.arkivporten.client.IArkivportenClient
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -47,10 +53,11 @@ fun Application.configureDependencies() {
         modules(
             applicationStateModule(),
             environmentModule(isLocalEnv()),
-            httpClient(),
+            clientsModule(),
             databaseModule(),
             valkeyModule(),
             servicesModule(),
+            kafkeProducerModule(),
         )
     }
 }
@@ -64,9 +71,53 @@ private fun environmentModule(isLocalEnv: Boolean) = module {
     }
 }
 
-private fun httpClient() = module {
+private fun clientsModule() = module {
+    single { httpClientDefault() }
+    single { PdfGenClient(get(), env().pdfGenUrl) }
+    single { TexasHttpClient(get(), env().texas) }
     single {
-        httpClientDefault()
+        if (isLocalEnv()) FakeDokarkivClient() else DokarkivClient(
+            dokarkivBaseUrl = env().dokarkivBaseUrl,
+            texasHttpClient = get(),
+            scope = env().dokarkivScope,
+            httpClient = get()
+        )
+    }
+    single {
+        if (isLocalEnv()) FakePdlClient() else PdlClient(
+            httpClient = get(),
+            pdlBaseUrl = env().pdlBaseUrl,
+            texasHttpClient = get(),
+            scope = env().pdlScope
+        )
+    }
+    single {
+        if (isLocalEnv()) FakeIsDialogmeldingClient() else
+            IsDialogmeldingClient(
+                get(),
+                env().isDialogmeldingBaseUrl
+            )
+    }
+    single {
+        if (isLocalEnv()) FakeDineSykmeldteHttpClient() else DineSykmeldteHttpClient(
+            httpClient = get(),
+            dineSykmeldteBaseUrl = env().dineSykmeldteBaseUrl
+        )
+    }
+    single {
+        if (isLocalEnv()) FakeArkivportenClient() else ArkivportenClient(
+            arkivportenBaseUrl = env().arkivportenBaseUrl,
+            texasHttpClient = get(),
+            scope = env().arkivportenScope,
+            httpClient = get()
+        ) as IArkivportenClient
+    }
+    single {
+        if (isLocalEnv()) FakeIsTilgangskontrollClient() else
+            IsTilgangskontrollClient(
+                get(),
+                env().isTilgangskontrollBaseUrl
+            )
     }
 }
 
@@ -88,16 +139,7 @@ private fun valkeyModule() = module {
     }
 }
 
-private fun servicesModule() = module {
-    single {
-        val dineSykmeldteHttpClient =
-            if (isLocalEnv()) FakeDineSykmeldteHttpClient() else DineSykmeldteHttpClient(
-                httpClient = get(), dineSykmeldteBaseUrl = env().dineSykmeldteBaseUrl
-            )
-        DineSykmeldteService(dineSykmeldteHttpClient, get())
-    }
-    single { TexasHttpClient(get(), env().texas) }
-    single { OppfolgingsplanService(database = get(), esyfovarselProducer = get()) }
+private fun kafkeProducerModule() = module {
     single {
         EsyfovarselProducer(
             KafkaProducer<String, EsyfovarselHendelse>(
@@ -105,43 +147,19 @@ private fun servicesModule() = module {
             )
         )
     }
-    single { PdfGenClient(get(), env().pdfGenUrl) }
-    single {
-        if (isLocalEnv()) FakeDokarkivClient() else DokarkivClient(
-            dokarkivBaseUrl = env().dokarkivBaseUrl,
-            texasHttpClient = get(),
-            scope = env().dokarkivScope,
-            httpClient = get()
-        )
-    }
-    single {
-        if (isLocalEnv()) FakePdlClient() else PdlClient(
-            httpClient = get(),
-            pdlBaseUrl = env().pdlBaseUrl,
-            texasHttpClient = get(),
-            scope = env().pdlScope
-        )
-    }
+}
 
-    single { PdfGenService(get(), get(), get()) }
-    single {
-        if (isLocalEnv()) FakeIsDialogmeldingClient() else
-            IsDialogmeldingClient(
-                get(),
-                env().isDialogmeldingBaseUrl
-            )
-    }
-    single { IsDialogmeldingService(get()) }
-    single {
-        if (isLocalEnv()) FakeIsTilgangskontrollClient() else
-            IsTilgangskontrollClient(
-                get(),
-                env().isTilgangskontrollBaseUrl
-            )
-    }
-    single { IsTilgangskontrollService(get()) }
+private fun servicesModule() = module {
+    single { ArkivportenService(get(), get(), get(), get()) }
+    single { DineSykmeldteService(get(), get()) }
     single { DokarkivService(get()) }
+    single { IsDialogmeldingService(get()) }
+    single { IsTilgangskontrollService(get()) }
+    single { LeaderElection(get(), env().electorPath) }
     single { PdlService(get()) }
+    single { OppfolgingsplanService(database = get(), esyfovarselProducer = get(), get()) }
+    single { PdfGenService(get(), get()) }
+    single { SendOppfolginsplanTask(get(), get()) }
 }
 
 private fun Scope.env() = get<Environment>()

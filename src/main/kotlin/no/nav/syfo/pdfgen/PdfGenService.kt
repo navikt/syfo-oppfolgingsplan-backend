@@ -18,33 +18,17 @@ import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 
 class PdfGenService(
     private val pdfGenClient: PdfGenClient,
-    private val database: DatabaseInterface,
-    private val pdlService: PdlService
+    private val oppfolgingsplanService: OppfolgingsplanService,
 ) {
     val logger = logger()
     suspend fun generatePdf(persistedOppfolgingsplan: PersistedOppfolgingsplan): ByteArray? {
         return try {
-            if (persistedOppfolgingsplan.narmesteLederFullName.isNullOrEmpty()) {
-                val narmesteLederFullName = pdlService.getNameFor(
-                    persistedOppfolgingsplan.narmesteLederFnr
-                )
-                return narmesteLederFullName?.let { narmesteLederName ->
-                    database.setNarmesteLederFullName(
-                        persistedOppfolgingsplan.uuid,
-                        narmesteLederName
-                    )
-                    val planIncludingName = persistedOppfolgingsplan.copy(narmesteLederFullName = narmesteLederName)
-                    pdfGenClient.generatePdf(planIncludingName.toOppfolginsplanPdfV1())
-                } ?: run {
-                    logger.error("NarmesteLederFullName is null for id ${persistedOppfolgingsplan.uuid}")
-                    return null
-                }
-            } else {
-                pdfGenClient.generatePdf(persistedOppfolgingsplan.toOppfolginsplanPdfV1())
-            }
+            val planIncludingName = oppfolgingsplanService.getAndSetNarmestelederFullname(persistedOppfolgingsplan)
+            pdfGenClient.generatePdf(planIncludingName.toOppfolginsplanPdfV1())
         } catch (clientRequestException: ClientRequestException) {
             logger.error("Could not generate pdf for id ${persistedOppfolgingsplan.uuid}")
             throw RuntimeException("Error while generating pdf", clientRequestException)
@@ -65,8 +49,8 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 {
             evaluationDate = this.evalueringsdato.format(formatter),
             sykmeldtName = this.sykmeldtFullName,
             sykmeldtFnr = this.sykmeldtFnr,
-            // organisasjonsnavn should always be set, but it is nullable in the response we get from dine-sykmeldte-backend
-            // even though all rows in the database currently have a value
+            // organisasjonsnavn should always be set, but it is nullable in the response we get from
+            // dine-sykmeldte-backend even though all rows in the database currently have a value
             organisasjonsnavn = this.organisasjonsnavn ?: throw RuntimeException("Organisasjonsnavn is null"),
             organisasjonsnummer = this.organisasjonsnummer,
             narmesteLederName = this.narmesteLederFullName ?: throw RuntimeException("NarmesteLederName is null"),

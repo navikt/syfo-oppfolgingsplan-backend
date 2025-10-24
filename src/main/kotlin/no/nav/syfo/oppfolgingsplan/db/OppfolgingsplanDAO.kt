@@ -30,7 +30,8 @@ data class PersistedOppfolgingsplan(
     val skalDelesMedVeileder: Boolean,
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
-    val createdAt: Instant
+    val createdAt: Instant,
+    val sendtTilArkivportenTidspunkt: Instant? = null,
 )
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
@@ -235,7 +236,6 @@ fun DatabaseInterface.setDeltMedVeilderTidspunkt(
 }
 
 
-
 fun DatabaseInterface.setNarmesteLederFullName(
     oppfolgingsplanUUID: UUID,
     narmesteLederFullName: String,
@@ -250,6 +250,48 @@ fun DatabaseInterface.setNarmesteLederFullName(
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setString(1, narmesteLederFullName)
             preparedStatement.setObject(2, oppfolgingsplanUUID)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
+
+fun DatabaseInterface.findOppfolgingsplanserForArkivportenPublisering(
+): List<PersistedOppfolgingsplan> {
+    val statement = """
+        SELECT *
+        FROM
+            oppfolgingsplan
+        WHERE
+            sendt_til_arkivporten_tidspunkt IS NULL
+        LIMIT 100
+    """.trimIndent()
+
+    return connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.executeQuery().use { resultSet ->
+                generateSequence { if (resultSet.next()) resultSet else null }
+                    .map { it.mapToOppfolgingsplan() }
+                    .toList()
+            }
+        }
+    }
+}
+
+fun DatabaseInterface.setSendtTilArkivportenTidspunkt(
+    uuid: UUID,
+    publisertTilArkivportenTidspunkt: Instant,
+) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET sendt_til_arkivporten_tidspunkt = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setTimestamp(1, Timestamp.from(publisertTilArkivportenTidspunkt))
+            preparedStatement.setObject(2, uuid)
             preparedStatement.executeUpdate()
         }
         connection.commit()
@@ -273,5 +315,6 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),
         deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
         createdAt = getTimestamp("created_at").toInstant(),
+        sendtTilArkivportenTidspunkt = this.getTimestamp("sendt_til_arkivporten_tidspunkt")?.toInstant()
     )
 }

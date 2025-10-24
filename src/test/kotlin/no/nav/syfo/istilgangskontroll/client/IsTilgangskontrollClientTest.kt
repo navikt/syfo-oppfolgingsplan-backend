@@ -9,7 +9,6 @@ import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.fullPath
 import io.ktor.http.isSuccess
-import no.nav.syfo.dokarkiv.client.DokarkivClient
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.util.httpClientDefault
 
