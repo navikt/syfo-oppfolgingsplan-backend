@@ -15,7 +15,7 @@ interface Environment {
     val dokarkivBaseUrl: String
     val dokarkivScope: String
     val arkivportenBaseUrl: String
-    val arkiportenScope: String
+    val arkivportenScope: String
     val pdfGenUrl: String
     val isDialogmeldingBaseUrl: String
     val isTilgangskontrollBaseUrl: String
@@ -56,7 +56,7 @@ data class NaisEnvironment(
     override val dokarkivBaseUrl: String = getEnvVar("DOKARKIV_URL"),
     override val dokarkivScope: String = getEnvVar("DOKARKIV_SCOPE"),
     override val arkivportenBaseUrl: String = getEnvVar("ARKIVPORTEN_URL"),
-    override val arkiportenScope: String = getEnvVar("ARKIVPORTEN_SCOPE"),
+    override val arkivportenScope: String = getEnvVar("ARKIVPORTEN_SCOPE"),
     override val isDialogmeldingBaseUrl: String = getEnvVar("ISDIALOGMELDING_BASE_URL"),
     override val isTilgangskontrollBaseUrl: String = getEnvVar("ISTILGANGSKONTROLL_URL"),
     override val pdlBaseUrl: String = getEnvVar("PDL_BASE_URL"),
@@ -106,7 +106,7 @@ data class LocalEnvironment(
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val arkivportenBaseUrl: String = "http://localhost:8090",
-    override val arkiportenScope: String = "arkivporten",
+    override val arkivportenScope: String = "arkivporten",
     override val isDialogmeldingBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val isTilgangskontrollBaseUrl: String = "https://istilgangskontroll.intern.dev.nav.no",
     override val pdfGenUrl: String = "http://localhost:9091",

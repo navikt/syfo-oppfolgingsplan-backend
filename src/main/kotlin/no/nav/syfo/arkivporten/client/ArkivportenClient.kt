@@ -35,7 +35,7 @@ class ArkivportenClient(
     private val logger = LoggerFactory.getLogger(ArkivportenClient::class.qualifiedName)
 
     override suspend fun publishOppfolginsplan(document: Document) {
-        logger.info("Publishing document to Arkivporten: ${document.documentId}, ${document.dialogTitle}")
+        logger.info("Publishing document to Arkivporten: ${document.documentId}")
         val token = try {
             texasHttpClient.systemToken(IDENTITY_PROVIDER, TexasHttpClient.getTarget(scope)).accessToken
         } catch (e: ClientRequestException) {

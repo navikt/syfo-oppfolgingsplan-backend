@@ -28,7 +28,7 @@ class ArkivportenService(
     private val logger = logger()
     suspend fun findAndSendOppfolgingsplaner() {
         try {
-            logger.info("Starting task for send documents to dialogporten")
+            logger.info("Starting task for send documents to arkivporten")
             val planer = database.findOppfolgingsplanserForArkivportenPublisering()
             logger.info("Found ${planer.size} documents to send to arkivporten")
             planer.forEach { oppfolgingsplan ->
@@ -40,7 +40,7 @@ class ArkivportenService(
                 database.setSendtTilArkivportenTidspunkt(oppfolgingsplan.uuid, Instant.now())
             }
         } catch (ex: Exception) {
-            logger.error("Could not send dialogs to dialogporten", ex)
+            logger.error("Could not send document to arkivporten", ex)
         }
     }
 }

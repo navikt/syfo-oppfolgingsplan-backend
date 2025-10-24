@@ -51,7 +51,7 @@ spec:
         extra:
           - "NAVident"
   gcp:
-    sqlInstances:
+    saqlInstances:
       - type: POSTGRES_17
         tier: db-f1-micro
         databases:
