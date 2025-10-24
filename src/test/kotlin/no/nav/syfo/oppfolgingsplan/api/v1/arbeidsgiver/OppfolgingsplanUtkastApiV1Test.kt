@@ -65,7 +65,12 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
     val dokarkivServiceMock = mockk<DokarkivService>()
     val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
     val pdlClientMock = mockk<PdlClient>()
-
+    val pdlService = PdlService(pdlClientMock)
+    val oppfolgingsplanService = OppfolgingsplanService(
+        database = testDb,
+        esyfovarselProducer = esyfovarselProducerMock,
+        pdlService = pdlService,
+    )
     val narmestelederId = UUID.randomUUID().toString()
     val pidInnlogetBruker = "10987654321"
     val sykmeldt = defaultSykmeldt().copy(narmestelederId = narmestelederId)
@@ -97,17 +102,8 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     registerApiV1(
                         DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
                         texasClientMock,
-                        oppfolgingsplanService = OppfolgingsplanService(
-                            database = testDb,
-                            esyfovarselProducer = esyfovarselProducerMock,
-                        ),
-                        pdfGenService = PdfGenService(
-                            pdfGenClient,
-                            testDb,
-                            PdlService(
-                                pdlClientMock,
-                            )
-                        ),
+                        oppfolgingsplanService = oppfolgingsplanService,
+                        pdfGenService = PdfGenService(pdfGenClient, oppfolgingsplanService),
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                         dokarkivService = dokarkivServiceMock,
                         isTilgangskontrollService = isTilgangskontrollServiceMock,

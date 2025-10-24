@@ -150,15 +150,15 @@ private fun kafkeProducerModule() = module {
 }
 
 private fun servicesModule() = module {
-    single { ArkivportenService(get(), get(), get()) }
+    single { ArkivportenService(get(), get(), get(), get()) }
     single { DineSykmeldteService(get(), get()) }
     single { DokarkivService(get()) }
     single { IsDialogmeldingService(get()) }
     single { IsTilgangskontrollService(get()) }
     single { LeaderElection(get(), env().electorPath) }
-    single { OppfolgingsplanService(database = get(), esyfovarselProducer = get()) }
-    single { PdfGenService(get(), get(), get()) }
     single { PdlService(get()) }
+    single { OppfolgingsplanService(database = get(), esyfovarselProducer = get(), get()) }
+    single { PdfGenService(get(), get()) }
     single { SendOppfolginsplanTask(get(), get()) }
 }
 

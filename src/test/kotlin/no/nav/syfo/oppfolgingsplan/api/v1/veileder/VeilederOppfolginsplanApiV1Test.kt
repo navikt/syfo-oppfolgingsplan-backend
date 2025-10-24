@@ -98,6 +98,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock,
+                            pdlService = mockk(relaxed = true),
                         ),
                         pdfGenService = pdfGenService,
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),

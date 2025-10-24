@@ -45,6 +45,7 @@ import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.plugins.installContentNegotiation
@@ -66,6 +67,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val dokarkivServiceMock = mockk<DokarkivService>()
     val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
     val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
+    val pdlServiceMock = mockk<PdlService>(relaxed = true)
 
     beforeTest {
         clearAllMocks()
@@ -97,6 +99,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                         oppfolgingsplanService = OppfolgingsplanService(
                             database = testDb,
                             esyfovarselProducer = esyfovarselProducerMock,
+                            pdlService = pdlServiceMock
                         ),
                         pdfGenService = pdfGenService,
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),

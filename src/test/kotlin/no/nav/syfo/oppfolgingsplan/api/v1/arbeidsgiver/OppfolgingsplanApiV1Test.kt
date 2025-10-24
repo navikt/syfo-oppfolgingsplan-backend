@@ -55,6 +55,7 @@ import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
@@ -73,6 +74,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
     val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
     val pdfGenServiceMock = mockk<PdfGenService>()
+    val pdlServiceMock = mockk<PdlService>(relaxed = true)
 
     val narmestelederId = UUID.randomUUID().toString()
     val pidInnlogetBruker = "10987654321"
@@ -89,6 +91,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     val oppfolgingsplanService = OppfolgingsplanService(
         database = testDb,
         esyfovarselProducer = esyfovarselProducerMock,
+        pdlService = pdlServiceMock,
     )
 
     fun withTestApplication(
