@@ -62,6 +62,7 @@ spec:
     - "https://syfo-oppfolgingsplan-backend.intern.nav.no"
   tokenx:
     enabled: true
+  leaderElection: true
   accessPolicy:
     inbound:
       rules:
@@ -102,6 +103,8 @@ spec:
       value: prod-fss.teamdokumenthandtering.dokarkiv
     - name: ARKIVPORTEN_URL
       value: http://arkivporten
+    - name: ARKIVPORTEN_SCOPE
+      value: dev-gcp.team-esyfo.arkivporten
     - name: PDL_BASE_URL
       value: https://pdl-api.prod-fss-pub.nais.io/graphql
     - name: PDL_SCOPE
