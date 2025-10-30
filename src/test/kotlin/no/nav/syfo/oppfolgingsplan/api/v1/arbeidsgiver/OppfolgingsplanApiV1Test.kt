@@ -346,6 +346,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     createUtkastRequest = defaultUtkast()
                 )
 
+                val existingUtkast = testDb.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
+
                 val oppfolgingsplan = defaultOppfolgingsplan()
 
                 // Act
@@ -360,8 +362,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 response.status shouldBe HttpStatusCode.Created
                 val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
                 persistedOppfolgingsplaner.size shouldBe 1
+                persistedOppfolgingsplaner.first().utkastCreatedAt shouldBe existingUtkast?.createdAt
 
-                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
+                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
                 persistedUtkast shouldBe null
                 verify(exactly = 1) {
                     esyfovarselProducerMock.sendVarselToEsyfovarsel(withArg {
