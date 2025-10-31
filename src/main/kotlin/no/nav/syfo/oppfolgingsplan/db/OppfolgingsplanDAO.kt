@@ -30,6 +30,7 @@ data class PersistedOppfolgingsplan(
     val skalDelesMedVeileder: Boolean,
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
+    val utkastCreatedAt : Instant? = null,
     val createdAt: Instant,
     val sendtTilArkivportenTidspunkt: Instant? = null,
 )
@@ -51,21 +52,29 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             evalueringsdato,
             skal_deles_med_lege,
             skal_deles_med_veileder,
+            utkast_created_at,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         RETURNING uuid
     """.trimIndent()
 
     val deleteStatement = """
         DELETE FROM oppfolgingsplan_utkast
         WHERE narmeste_leder_id = ?
+        RETURNING created_at
     """.trimIndent()
 
     connection.use { connection ->
-        connection.prepareStatement(deleteStatement).use {
+        val utkastCreatedAt = connection.prepareStatement(deleteStatement).use {
             it.setString(1, sykmeldt.narmestelederId)
-            it.executeUpdate()
+            val resultSet = it.executeQuery()
+            if (resultSet.next()) {
+                resultSet.getTimestamp("created_at").toInstant()
+            } else {
+                null
+            }
         }
+
         val uuid = connection.prepareStatement(insertStatement).use {
             it.setString(1, sykmeldt.fnr)
             it.setString(2, sykmeldt.navn)
@@ -77,6 +86,11 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.setDate(8, Date.valueOf(createOppfolgingsplanRequest.evalueringsdato.toString()))
             it.setBoolean(9, createOppfolgingsplanRequest.skalDelesMedLege)
             it.setBoolean(10, createOppfolgingsplanRequest.skalDelesMedVeileder)
+            if (utkastCreatedAt != null) {
+                it.setTimestamp(11, Timestamp.from(utkastCreatedAt))
+            } else {
+                it.setNull(11, Types.TIMESTAMP)
+            }
             val resultSet = it.executeQuery()
             resultSet.next()
             resultSet.getObject("uuid", UUID::class.java)
@@ -314,6 +328,7 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),
         deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),
         deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
+        utkastCreatedAt = this.getTimestamp("utkast_created_at")?.toInstant(),
         createdAt = getTimestamp("created_at").toInstant(),
         sendtTilArkivportenTidspunkt = this.getTimestamp("sendt_til_arkivporten_tidspunkt")?.toInstant()
     )
