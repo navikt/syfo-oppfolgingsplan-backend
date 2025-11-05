@@ -3,6 +3,7 @@ package no.nav.syfo.oppfolgingsplan.api.v1.veilder
 import java.util.UUID
 import java.time.Instant
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
+import java.time.LocalDate
 
 data class OppfolgingsplanVeilder(
     val uuid: UUID,
@@ -10,7 +11,8 @@ data class OppfolgingsplanVeilder(
     val deltMedNavTidspunkt: Instant,
     val virksomhetsnummer: String,
     val opprettet: Instant,
-    val sistEndret: Instant
+    val sistEndret: Instant,
+    val evalueringsdato: LocalDate,
 ) {
     companion object {
         fun from(item: OppfolgingsplanMetadata): OppfolgingsplanVeilder {
@@ -29,7 +31,8 @@ data class OppfolgingsplanVeilder(
                     virksomhetsnummer = organisasjonsnummer,
                     opprettet = createdAt,
                     deltMedNavTidspunkt = deltMedVeilederTidspunkt,
-                    sistEndret = sisteEndre
+                    sistEndret = sisteEndre,
+                    evalueringsdato = evalueringsdato,
                 )
             }
         }
