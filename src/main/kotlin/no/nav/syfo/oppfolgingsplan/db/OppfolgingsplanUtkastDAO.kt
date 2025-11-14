@@ -2,6 +2,7 @@ package no.nav.syfo.oppfolgingsplan.db
 
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
@@ -9,21 +10,7 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Types
-import java.time.Instant
-import java.time.LocalDate
-import java.util.UUID
-
-data class PersistedOppfolgingsplanUtkast (
-    val uuid: UUID,
-    val sykmeldtFnr: String,
-    val narmesteLederId: String,
-    val narmesteLederFnr: String,
-    val organisasjonsnummer: String,
-    val content: FormSnapshot?,
-    val evalueringsdato: LocalDate?,
-    val createdAt: Instant,
-    val updatedAt: Instant,
-)
+import java.util.*
 
 fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     narmesteLederFnr: String,
@@ -59,7 +46,11 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             preparedStatement.setString(3, narmesteLederFnr)
             preparedStatement.setString(4, sykmeldt.orgnummer)
             preparedStatement.setObject(5, createUtkastRequest.content?.toJsonString(), Types.OTHER)
-            preparedStatement.setDate(6, Date.valueOf(createUtkastRequest.evalueringsdato.toString()))
+            if (createUtkastRequest.evalueringsdato != null) {
+                preparedStatement.setDate(6, Date.valueOf(createUtkastRequest.evalueringsdato))
+            } else {
+                preparedStatement.setNull(6, Types.DATE)
+            }
             val resultSet = preparedStatement.executeQuery()
             connection.commit()
             resultSet.next()

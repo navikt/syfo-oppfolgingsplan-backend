@@ -26,8 +26,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import java.time.Instant
-import java.util.*
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
@@ -40,9 +38,6 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
-import no.nav.syfo.oppfolgingsplan.api.v1.veilder.NAV_PERSONIDENT_HEADER
-import no.nav.syfo.oppfolgingsplan.api.v1.veilder.OppfolgingsplanVeilder
-import no.nav.syfo.oppfolgingsplan.api.v1.veilder.OppfolginsplanerReadRequest
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
@@ -53,6 +48,8 @@ import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
+import java.time.Instant
+import java.util.*
 
 class VeilederOppfolginsplanApiV1Test : DescribeSpec({
     val texasClientMock = mockk<TexasHttpClient>()
@@ -200,17 +197,17 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
 
                     val firstPlanUUID = testDb.persistOppfolgingsplan(
                         defaultPersistedOppfolgingsplan().copy(
-                                narmesteLederId = narmestelederId,
-                                sykmeldtFnr = sykmeldtFnr,
-                            )
+                            narmesteLederId = narmestelederId,
+                            sykmeldtFnr = sykmeldtFnr,
+                        )
                     )
                     testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
                     testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
                     testDb.persistOppfolgingsplan(
                         defaultPersistedOppfolgingsplan().copy(
-                                narmesteLederId = narmestelederId,
-                                sykmeldtFnr = sykmeldtFnr,
-                            )
+                            narmesteLederId = narmestelederId,
+                            sykmeldtFnr = sykmeldtFnr,
+                        )
                     )
 
                     // Act
@@ -224,14 +221,14 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
 
                     // Assert
                     response.status shouldBe HttpStatusCode.OK
-                    val responseBody = response.body<List<OppfolgingsplanVeilder>>()
+                    val responseBody = response.body<List<OppfolgingsplanVeileder>>()
                     responseBody.size shouldBe 1
                     coVerify(exactly = 1) {
                         isTilgangskontrollClientMock.harTilgangTilSykmeldt(
                             sykmeldtFnr = eq(Fodselsnummer(sykmeldtFnr)), token = any()
                         )
                     }
-                    val responseList = response.body<List<OppfolgingsplanVeilder>>()
+                    val responseList = response.body<List<OppfolgingsplanVeileder>>()
                     responseList.size shouldBe 1
                     responseList.first().uuid shouldBe firstPlanUUID
                 }
@@ -250,9 +247,9 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
-                            narmesteLederId = narmestelederId,
-                            sykmeldtFnr = sykmeldtFnr,
-                        )
+                        narmesteLederId = narmestelederId,
+                        sykmeldtFnr = sykmeldtFnr,
+                    )
                 )
 
                 // Act
@@ -278,17 +275,17 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns false
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
-                            narmesteLederId = narmestelederId,
-                            sykmeldtFnr = sykmeldtFnr,
-                        )
+                        narmesteLederId = narmestelederId,
+                        sykmeldtFnr = sykmeldtFnr,
+                    )
                 )
                 testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
                 testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
                 testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
-                            narmesteLederId = narmestelederId,
-                            sykmeldtFnr = sykmeldtFnr,
-                        )
+                        narmesteLederId = narmestelederId,
+                        sykmeldtFnr = sykmeldtFnr,
+                    )
                 )
 
                 // Act
@@ -317,17 +314,17 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
-                            narmesteLederId = narmestelederId,
-                            sykmeldtFnr = sykmeldtFnr,
-                        )
+                        narmesteLederId = narmestelederId,
+                        sykmeldtFnr = sykmeldtFnr,
+                    )
                 )
                 testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
                 testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
                 testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
-                            narmesteLederId = narmestelederId,
-                            sykmeldtFnr = sykmeldtFnr,
-                        )
+                        narmesteLederId = narmestelederId,
+                        sykmeldtFnr = sykmeldtFnr,
+                    )
                 )
 
                 // Act

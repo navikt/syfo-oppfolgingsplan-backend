@@ -11,7 +11,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import net.logstash.logback.argument.StructuredArguments
-import no.nav.syfo.oppfolgingsplan.api.v1.veilder.NAV_PERSONIDENT_HEADER
+import no.nav.syfo.oppfolgingsplan.api.v1.veileder.NAV_PERSONIDENT_HEADER
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.util.logger
 

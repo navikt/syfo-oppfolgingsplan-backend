@@ -3,6 +3,7 @@ package no.nav.syfo.oppfolgingsplan.db
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
@@ -13,27 +14,7 @@ import java.sql.Timestamp
 import java.sql.Types
 import java.time.Instant
 import java.time.LocalDate
-import java.util.UUID
-
-data class PersistedOppfolgingsplan(
-    val uuid: UUID,
-    val sykmeldtFnr: String,
-    val sykmeldtFullName: String,
-    val narmesteLederId: String,
-    val narmesteLederFnr: String,
-    val narmesteLederFullName: String?,
-    val organisasjonsnummer: String,
-    val organisasjonsnavn: String?,
-    val content: FormSnapshot,
-    val evalueringsdato: LocalDate,
-    val skalDelesMedLege: Boolean,
-    val skalDelesMedVeileder: Boolean,
-    val deltMedLegeTidspunkt: Instant? = null,
-    val deltMedVeilederTidspunkt: Instant? = null,
-    val utkastCreatedAt : Instant? = null,
-    val createdAt: Instant,
-    val sendtTilArkivportenTidspunkt: Instant? = null,
-)
+import java.util.*
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr: String,

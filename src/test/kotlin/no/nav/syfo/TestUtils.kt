@@ -7,15 +7,11 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.fullPath
 import io.ktor.http.isSuccess
 import io.mockk.coEvery
-import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
-import java.time.Instant
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
-import java.util.*
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
@@ -26,6 +22,10 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.texas.client.TexasResponse
+import java.time.Instant
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.util.*
 
 fun defaultUtkast() = CreateUtkastRequest(
     content = defaultFormSnapshot(),

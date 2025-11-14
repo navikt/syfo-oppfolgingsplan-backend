@@ -2,23 +2,20 @@ package no.nav.syfo.pdfgen
 
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
-import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.pdfgen.client.InputField
 import no.nav.syfo.pdfgen.client.Oppfolginsplan
 import no.nav.syfo.pdfgen.client.OppfolginsplanPdfV1
 import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdfgen.client.Section
-import no.nav.syfo.pdfgen.client.InputField
-import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 
 class PdfGenService(
     private val pdfGenClient: PdfGenClient,

@@ -10,7 +10,7 @@ import io.mockk.spyk
 import no.nav.syfo.TestDB
 import no.nav.syfo.arkivporten.client.FakeArkivportenClient
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForArkivportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
