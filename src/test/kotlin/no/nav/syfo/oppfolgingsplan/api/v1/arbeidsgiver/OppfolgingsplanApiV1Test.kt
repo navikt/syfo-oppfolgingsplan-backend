@@ -239,7 +239,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
                 response.body<OppfolgingsplanResponse>()
-                // plan.uuid shouldBe existingUUID TODO er vi sikre på at plan ikke skal ha uuid?
             }
         }
 
