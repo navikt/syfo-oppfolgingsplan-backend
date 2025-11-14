@@ -37,9 +37,9 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
-import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkastResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdfgen.client.PdfGenClient
@@ -198,7 +198,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val requestUtkast = defaultUtkast()
-                val existingUUID = testDb.upsertOppfolgingsplanUtkast(
+                testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
                     requestUtkast
@@ -211,9 +211,8 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                val utkast = response.body<PersistedOppfolgingsplanUtkast>()
+                val utkast = response.body<OppfolgingsplanUtkastResponse>()
                 utkast shouldNotBe null
-                utkast.uuid shouldBe existingUUID
                 utkast.sykmeldtFnr shouldBe sykmeldt.fnr
                 utkast.narmesteLederFnr shouldBe pidInnlogetBruker
                 utkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
