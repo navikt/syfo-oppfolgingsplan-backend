@@ -1,5 +1,7 @@
 package no.nav.syfo.oppfolgingsplan.db.domain
 
+import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
+import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
@@ -30,12 +32,7 @@ data class PersistedOppfolgingsplan(
 fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadata {
     return OppfolgingsplanMetadata(
         uuid = uuid,
-        sykmeldtFnr = sykmeldtFnr,
-        narmesteLederFnr = narmesteLederFnr,
-        organisasjonsnummer = organisasjonsnummer,
         evalueringsdato = evalueringsdato,
-        skalDelesMedLege = skalDelesMedLege,
-        skalDelesMedVeileder = skalDelesMedVeileder,
         deltMedLegeTidspunkt = deltMedLegeTidspunkt,
         deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
         createdAt = createdAt,
@@ -44,23 +41,19 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadat
 
 fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanResponse {
     return OppfolgingsplanResponse(
-        canEditPlan = canEditPlan,
-        uuid = uuid,
-        sykmeldtFnr = sykmeldtFnr,
-        narmesteLederFnr = narmesteLederFnr,
-        organisasjonsnummer = organisasjonsnummer,
+        userHasEditAccess = canEditPlan,
+        organization = OrganizationDetails(
+            orgNumber = organisasjonsnummer,
+            orgName = organisasjonsnavn,
+        ),
+        employee = EmployeeDetails(
+            fnr = sykmeldtFnr,
+            name = sykmeldtFullName,
+        ),
         evalueringsdato = evalueringsdato,
-        skalDelesMedLege = skalDelesMedLege,
-        skalDelesMedVeileder = skalDelesMedVeileder,
         deltMedLegeTidspunkt = deltMedLegeTidspunkt,
         deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
-        createdAt = createdAt,
-        sykmeldtFullName = sykmeldtFullName,
-        narmesteLederId = narmesteLederId,
-        narmesteLederFullName = narmesteLederFullName,
-        organisasjonsnavn = organisasjonsnavn,
         content = content,
-        utkastCreatedAt = utkastCreatedAt,
-        sendtTilArkivportenTidspunkt = sendtTilArkivportenTidspunkt,
+        ferdistiltTidspunkt = createdAt,
     )
 }

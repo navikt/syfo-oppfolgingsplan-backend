@@ -8,7 +8,6 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -19,18 +18,18 @@ class OppfolginsplanServiceTest : DescribeSpec({
     describe("Extension function tests") {
         it("toListOppfolginsplanVeiler should filter out items not delt with veileder") {
             // Arrange
-            val deltMedVeilder = defaultPersistedOppfolgingsplan().toOppfolgingsplanMetadata().copy(
+            val deltMedVeilder = defaultPersistedOppfolgingsplan().copy(
                 deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
                 skalDelesMedVeileder = true
             )
-            val ikkeDeltMedVeilder = defaultPersistedOppfolgingsplan().toOppfolgingsplanMetadata().copy(
+            val ikkeDeltMedVeilder = defaultPersistedOppfolgingsplan().copy(
                 deltMedVeilederTidspunkt = null,
                 skalDelesMedVeileder = false
             )
             val oppfolgingsplaner = listOf(ikkeDeltMedVeilder, deltMedVeilder)
 
             // Act
-            val filtered = oppfolgingsplaner.toListOppfolginsplanVeiler()
+            val filtered = oppfolgingsplaner.toListOppfolgingsplanVeileder()
             // Assert
 
             filtered.size shouldBe 1

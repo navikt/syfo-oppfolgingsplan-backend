@@ -58,7 +58,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
             if (persistedOppfolgingsplanUtkast != null) {
                 call.respond(
                     HttpStatusCode.OK,
-                    persistedOppfolgingsplanUtkast.toResponse(sykmeldt.aktivSykmelding == true)
+                    persistedOppfolgingsplanUtkast.toResponse(sykmeldt)
                 )
                 return@get
             }

@@ -18,6 +18,8 @@ import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
+import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
@@ -110,10 +112,15 @@ class OppfolgingsplanService(
             .map { it.toOppfolgingsplanMetadata() }
 
         return OppfolgingsplanOverviewResponse(
-            canEditPlan = sykmeldt.aktivSykmelding ?: false,
-            organisasjonsnavn = sykmeldt.getOrganizationName() ?: "Ukjent",
-            sykmeldtNavn = sykmeldt.navn,
-            sykmeldtFnr = sykmeldt.fnr,
+            userHasEditAccess = sykmeldt.aktivSykmelding == true,
+            organization = OrganizationDetails(
+                orgNumber = sykmeldt.orgnummer,
+                orgName = sykmeldt.getOrganizationName(),
+            ),
+            employee = EmployeeDetails(
+                fnr = sykmeldt.fnr,
+                name = sykmeldt.navn,
+            ),
             utkast = utkast,
             oppfolgingsplan = oppfolgingsplaner.firstOrNull(),
             previousOppfolgingsplaner = oppfolgingsplaner.drop(1),
@@ -123,6 +130,9 @@ class OppfolgingsplanService(
     fun getOppfolgingsplanOverviewFor(sykmeldtFnr: String): List<OppfolgingsplanMetadata> =
         database.findAllOppfolgingsplanerBy(sykmeldtFnr)
             .map { it.toOppfolgingsplanMetadata() }
+
+    fun getPersistedOppfolgingsplanListBy(sykmeldtFnr: String): List<PersistedOppfolgingsplan> =
+        database.findAllOppfolgingsplanerBy(sykmeldtFnr)
 
     suspend fun getAndSetNarmestelederFullname(
         persistedOppfolgingsplan: PersistedOppfolgingsplan
@@ -160,7 +170,7 @@ fun List<OppfolgingsplanMetadata>.toSykmeldtOppfolgingsplanOverview(): SykmeldtO
     )
 }
 
-fun List<OppfolgingsplanMetadata>.toListOppfolginsplanVeiler(): List<OppfolgingsplanVeileder> =
+fun List<PersistedOppfolgingsplan>.toListOppfolgingsplanVeileder(): List<OppfolgingsplanVeileder> =
     this.filter { it.deltMedVeilederTidspunkt != null }
         .sortedByDescending { it.createdAt }
         .map {

@@ -1,15 +1,15 @@
 package no.nav.syfo.oppfolgingsplan.dto
 
+import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
+import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
 import java.time.LocalDate
 
 data class OppfolgingsplanUtkastResponse(
-    val canEditPlan: Boolean,
-    val sykmeldtFnr: String,
-    val narmesteLederId: String,
-    val narmesteLederFnr: String,
-    val organisasjonsnummer: String,
+    val userHasEditAccess: Boolean,
+    val organization: OrganizationDetails,
+    val employee: EmployeeDetails,
     val content: FormSnapshot?,
     val evalueringsdato: LocalDate?,
     val createdAt: Instant,

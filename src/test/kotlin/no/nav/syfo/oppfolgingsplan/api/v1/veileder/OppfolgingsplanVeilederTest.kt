@@ -3,20 +3,19 @@ package no.nav.syfo.oppfolgingsplan.api.v1.veileder
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class OppfolgingsplanVeilderTest : DescribeSpec({
+class OppfolgingsplanVeilederTest : DescribeSpec({
     describe("Extension function tests") {
         it("from with OppfolgingsplanMetadata should pick sistEndret based in provided date") {
             // Arrange
-            val deltMedVeilederLast = defaultPersistedOppfolgingsplan().toOppfolgingsplanMetadata().copy(
+            val deltMedVeilederLast = defaultPersistedOppfolgingsplan().copy(
                 deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
                 skalDelesMedVeileder = true,
                 deltMedLegeTidspunkt = Instant.now().plus(5, ChronoUnit.MINUTES),
             )
-            val deletMedLegeLast = defaultPersistedOppfolgingsplan().toOppfolgingsplanMetadata().copy(
+            val deletMedLegeLast = defaultPersistedOppfolgingsplan().copy(
                 deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
                 skalDelesMedVeileder = true,
                 deltMedLegeTidspunkt = Instant.now().plus(15, ChronoUnit.MINUTES),

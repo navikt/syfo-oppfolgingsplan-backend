@@ -213,9 +213,6 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 response.status shouldBe HttpStatusCode.OK
                 val utkast = response.body<OppfolgingsplanUtkastResponse>()
                 utkast shouldNotBe null
-                utkast.sykmeldtFnr shouldBe sykmeldt.fnr
-                utkast.narmesteLederFnr shouldBe pidInnlogetBruker
-                utkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
                 utkast.content shouldBe defaultFormSnapshot()
                 utkast.evalueringsdato shouldBe requestUtkast.evalueringsdato
             }

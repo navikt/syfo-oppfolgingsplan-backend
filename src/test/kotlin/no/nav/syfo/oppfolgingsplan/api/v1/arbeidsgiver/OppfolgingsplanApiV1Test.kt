@@ -238,8 +238,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                val plan = response.body<OppfolgingsplanResponse>()
-                plan.uuid shouldBe existingUUID
+                response.body<OppfolgingsplanResponse>()
+                // plan.uuid shouldBe existingUUID TODO er vi sikre på at plan ikke skal ha uuid?
             }
         }
 
@@ -313,10 +313,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 persisted.first().organisasjonsnummer shouldBe sykmeldt.orgnummer
                 persisted.first().content.toString() shouldBe oppfolgingsplan.content.toString()
                 persisted.first().evalueringsdato.toString() shouldBe oppfolgingsplan.evalueringsdato.toString()
-                persisted.first().skalDelesMedLege shouldBe oppfolgingsplan.skalDelesMedLege
-                persisted.first().skalDelesMedVeileder shouldBe oppfolgingsplan.skalDelesMedVeileder
-                persisted.first().deltMedVeilederTidspunkt shouldBe oppfolgingsplan.deltMedVeilederTidspunkt
-                persisted.first().deltMedLegeTidspunkt shouldBe oppfolgingsplan.deltMedLegeTidspunkt
                 persisted.first().sykmeldtFullName shouldBe "Navn Sykmeldt"
                 persisted.first().organisasjonsnavn shouldBe "Test AS"
                 verify(exactly = 1) {

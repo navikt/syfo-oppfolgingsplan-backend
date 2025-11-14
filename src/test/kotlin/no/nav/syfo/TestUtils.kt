@@ -35,8 +35,6 @@ fun defaultUtkast() = CreateUtkastRequest(
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
     content = defaultFormSnapshot(),
     evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
-    skalDelesMedLege = false,
-    skalDelesMedVeileder = false,
 )
 
 fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(

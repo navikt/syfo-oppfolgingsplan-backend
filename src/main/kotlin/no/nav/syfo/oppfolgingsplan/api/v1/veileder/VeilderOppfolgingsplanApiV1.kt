@@ -20,7 +20,7 @@ import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.oppfolgingsplan.service.toListOppfolginsplanVeiler
+import no.nav.syfo.oppfolgingsplan.service.toListOppfolgingsplanVeileder
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import java.util.*
@@ -67,7 +67,7 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
                 token = innloggetBruker.token,
             )
             val oppfolgingsplaner =
-                oppfolgingsplanService.getOppfolgingsplanOverviewFor(sykmeldtFnr).toListOppfolginsplanVeiler()
+                oppfolgingsplanService.getPersistedOppfolgingsplanListBy(sykmeldtFnr).toListOppfolgingsplanVeileder()
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }

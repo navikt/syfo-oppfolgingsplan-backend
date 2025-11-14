@@ -1,6 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.veileder
 
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import java.time.Instant
 import java.time.LocalDate
 import java.util.*
@@ -15,7 +15,7 @@ data class OppfolgingsplanVeileder(
     val evalueringsdato: LocalDate,
 ) {
     companion object {
-        fun from(item: OppfolgingsplanMetadata): OppfolgingsplanVeileder {
+        fun from(item: PersistedOppfolgingsplan): OppfolgingsplanVeileder {
             with(item) {
                 require(deltMedVeilederTidspunkt != null) {
                     "Oppfolgingsplan ${uuid} is not shared with veileder"

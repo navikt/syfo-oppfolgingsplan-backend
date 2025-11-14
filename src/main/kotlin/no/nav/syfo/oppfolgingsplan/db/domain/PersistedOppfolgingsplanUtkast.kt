@@ -1,5 +1,9 @@
 package no.nav.syfo.oppfolgingsplan.db.domain
 
+import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.dinesykmeldte.client.getOrganizationName
+import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
+import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.UtkastMetadata
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
@@ -21,21 +25,21 @@ data class PersistedOppfolgingsplanUtkast(
 
 fun PersistedOppfolgingsplanUtkast.toUtkastMetadata(): UtkastMetadata {
     return UtkastMetadata(
-        sykmeldtFnr = sykmeldtFnr,
-        narmesteLederFnr = narmesteLederFnr,
-        organisasjonsnummer = organisasjonsnummer,
-        evalueringsdato = evalueringsdato,
-        sistLagret = updatedAt
+        updatedAt = updatedAt
     )
 }
 
-fun PersistedOppfolgingsplanUtkast.toResponse(canEdit: Boolean): OppfolgingsplanUtkastResponse {
+fun PersistedOppfolgingsplanUtkast.toResponse(sykmeldt: Sykmeldt): OppfolgingsplanUtkastResponse {
     return OppfolgingsplanUtkastResponse(
-        canEditPlan = canEdit,
-        sykmeldtFnr = sykmeldtFnr,
-        narmesteLederId = narmesteLederId,
-        narmesteLederFnr = narmesteLederFnr,
-        organisasjonsnummer = organisasjonsnummer,
+        userHasEditAccess = sykmeldt.aktivSykmelding == true,
+        organization = OrganizationDetails(
+            orgNumber = organisasjonsnummer,
+            orgName = sykmeldt.getOrganizationName(),
+        ),
+        employee = EmployeeDetails(
+            fnr = sykmeldtFnr,
+            name = sykmeldt.navn,
+        ),
         content = content,
         evalueringsdato = evalueringsdato,
         createdAt = createdAt,

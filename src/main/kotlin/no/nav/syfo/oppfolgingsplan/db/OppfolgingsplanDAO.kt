@@ -65,8 +65,8 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.setString(6, sykmeldt.getOrganizationName())
             it.setObject(7, createOppfolgingsplanRequest.content.toJsonString(), Types.OTHER)
             it.setDate(8, Date.valueOf(createOppfolgingsplanRequest.evalueringsdato.toString()))
-            it.setBoolean(9, createOppfolgingsplanRequest.skalDelesMedLege)
-            it.setBoolean(10, createOppfolgingsplanRequest.skalDelesMedVeileder)
+            it.setBoolean(9, false)
+            it.setBoolean(10, false)
             if (utkastCreatedAt != null) {
                 it.setTimestamp(11, Timestamp.from(utkastCreatedAt))
             } else {
