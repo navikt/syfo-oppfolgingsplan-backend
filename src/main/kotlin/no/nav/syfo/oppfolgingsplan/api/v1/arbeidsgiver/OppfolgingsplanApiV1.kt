@@ -21,7 +21,6 @@ import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
-import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.validateFields
@@ -222,7 +221,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val persistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
                 ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
-            call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 persistedOppfolgingsplan.sykmeldtFnr,
                 persistedOppfolgingsplan.organisasjonsnummer,
