@@ -218,9 +218,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     // Assert
                     response.status shouldBe HttpStatusCode.OK
                     val overview = response.body<SykmeldtOppfolgingsplanOverview>()
-                    overview.oppfolgingsplaner.firstOrNull()?.uuid shouldBe latestPlanUUID
-                    overview.previousOppfolgingsplaner.size shouldBe 1
-                    overview.previousOppfolgingsplaner.first().uuid shouldBe firstPlanUUID
+                    overview.aktiveOppfolgingsplaner.firstOrNull()?.id shouldBe latestPlanUUID
+                    overview.tidligerePlaner.size shouldBe 1
+                    overview.tidligerePlaner.first().id shouldBe firstPlanUUID
                 }
             }
         }

@@ -5,8 +5,10 @@ import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
 import java.time.LocalDate
+import java.util.*
 
 data class OppfolgingsplanResponse(
+    val id: UUID,
     val userHasEditAccess: Boolean,
     val organization: OrganizationDetails,
     val employee: EmployeeDetails,

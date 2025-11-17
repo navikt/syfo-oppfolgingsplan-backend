@@ -31,7 +31,7 @@ data class PersistedOppfolgingsplan(
 
 fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadata {
     return OppfolgingsplanMetadata(
-        uuid = uuid,
+        id = uuid,
         evalueringsdato = evalueringsdato,
         deltMedLegeTidspunkt = deltMedLegeTidspunkt,
         deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
@@ -41,6 +41,7 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadat
 
 fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanResponse {
     return OppfolgingsplanResponse(
+        id = uuid,
         userHasEditAccess = canEditPlan,
         organization = OrganizationDetails(
             orgNumber = organisasjonsnummer,

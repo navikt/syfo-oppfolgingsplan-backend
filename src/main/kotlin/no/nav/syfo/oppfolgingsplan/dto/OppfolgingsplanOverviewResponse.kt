@@ -12,7 +12,7 @@ data class UtkastMetadata(
 )
 
 data class OppfolgingsplanMetadata(
-    val uuid: UUID,
+    val id: UUID,
     val evalueringsdato: LocalDate,
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
@@ -24,11 +24,11 @@ data class OppfolgingsplanOverviewResponse(
     val organization: OrganizationDetails,
     val employee: EmployeeDetails,
     val utkast: UtkastMetadata?,
-    val oppfolgingsplan: OppfolgingsplanMetadata?,
-    val previousOppfolgingsplaner: List<OppfolgingsplanMetadata>,
+    val aktivOppfolgingsplan: OppfolgingsplanMetadata?,
+    val tidligerePlaner: List<OppfolgingsplanMetadata>,
 )
 
 data class SykmeldtOppfolgingsplanOverview(
-    val oppfolgingsplaner: List<OppfolgingsplanMetadata>,
-    val previousOppfolgingsplaner: List<OppfolgingsplanMetadata>,
+    val aktiveOppfolgingsplaner: List<OppfolgingsplanMetadata>,
+    val tidligerePlaner: List<OppfolgingsplanMetadata>,
 )

@@ -105,6 +105,11 @@ class OppfolgingsplanService(
         database.setDeltMedVeilderTidspunkt(uuid, deltMedVeilederTidspunkt)
     }
 
+    fun getAktivplanForSykmeldt(sykmeldt: Sykmeldt): PersistedOppfolgingsplan? {
+        return database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+            .firstOrNull()
+    }
+
     fun getOppfolgingsplanOverviewFor(sykmeldt: Sykmeldt): OppfolgingsplanOverviewResponse {
         val utkast = database.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
             ?.toUtkastMetadata()
@@ -122,8 +127,8 @@ class OppfolgingsplanService(
                 name = sykmeldt.navn,
             ),
             utkast = utkast,
-            oppfolgingsplan = oppfolgingsplaner.firstOrNull(),
-            previousOppfolgingsplaner = oppfolgingsplaner.drop(1),
+            aktivOppfolgingsplan = oppfolgingsplaner.firstOrNull(),
+            tidligerePlaner = oppfolgingsplaner.drop(1),
         )
     }
 
@@ -165,8 +170,8 @@ class OppfolgingsplanService(
 fun List<OppfolgingsplanMetadata>.toSykmeldtOppfolgingsplanOverview(): SykmeldtOppfolgingsplanOverview {
     val (current, previous) = this.partition { it.evalueringsdato >= LocalDate.now() }
     return SykmeldtOppfolgingsplanOverview(
-        oppfolgingsplaner = current,
-        previousOppfolgingsplaner = previous,
+        aktiveOppfolgingsplaner = current,
+        tidligerePlaner = previous,
     )
 }
 

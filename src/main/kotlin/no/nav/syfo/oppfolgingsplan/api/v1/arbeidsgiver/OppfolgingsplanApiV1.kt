@@ -21,6 +21,7 @@ import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
+import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.validateFields
@@ -96,6 +97,25 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 oppfolgingsplanService.getOppfolgingsplanOverviewFor(sykmeldt)
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
+        }
+
+        /**
+         * Gir en komplett aktiv oppfolginsplan.
+         */
+        get("/aktiv-plan") {
+            val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
+
+            val aktivPlan =
+                oppfolgingsplanService.getAktivplanForSykmeldt(sykmeldt)
+                    ?: throw NotFoundException("Aktiv plan not found")
+
+            checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
+                aktivPlan.sykmeldtFnr,
+                aktivPlan.organisasjonsnummer,
+                sykmeldt
+            )
+
+            call.respond(HttpStatusCode.OK, aktivPlan.toResponse(sykmeldt.aktivSykmelding == true))
         }
 
         /**
@@ -193,6 +213,28 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)
                 throw InternalServerErrorException("An error occurred while archiving oppfolgingsplan")
             }
+        }
+
+        get("/{uuid}/pdf") {
+            val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
+            val uuid = call.parameters.extractAndValidateUUIDParameter()
+
+            val persistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
+                ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
+
+            call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
+            checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
+                persistedOppfolgingsplan.sykmeldtFnr,
+                persistedOppfolgingsplan.organisasjonsnummer,
+                sykmeldt
+            )
+
+            val pdfByteArray = pdfGenService.generatePdf(persistedOppfolgingsplan)
+                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+
+            call.response.status(HttpStatusCode.OK)
+            call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
+            call.respond<ByteArray>(pdfByteArray)
         }
     }
 }

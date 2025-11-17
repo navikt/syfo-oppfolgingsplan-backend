@@ -276,9 +276,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
                 val overview = response.body<OppfolgingsplanOverviewResponse>()
-                overview.oppfolgingsplan?.uuid shouldBe latestPlanUUID
-                overview.previousOppfolgingsplaner.size shouldBe 1
-                overview.previousOppfolgingsplaner.first().uuid shouldBe firstPlanUUID
+                overview.aktivOppfolgingsplan?.id shouldBe latestPlanUUID
+                overview.tidligerePlaner.size shouldBe 1
+                overview.tidligerePlaner.first().id shouldBe firstPlanUUID
             }
         }
         it("POST /oppfolgingsplaner should respond with 201 when oppfolgingsplan is created successfully") {
