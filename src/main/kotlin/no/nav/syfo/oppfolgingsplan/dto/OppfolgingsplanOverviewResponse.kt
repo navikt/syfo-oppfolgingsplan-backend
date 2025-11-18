@@ -11,6 +11,12 @@ data class UtkastMetadata(
     val updatedAt: Instant,
 )
 
+data class OversiktResponseData(
+    val utkast: UtkastMetadata?,
+    val aktivPlan: OppfolgingsplanMetadata?,
+    val tidligerePlaner: List<OppfolgingsplanMetadata>,
+)
+
 data class OppfolgingsplanMetadata(
     val id: UUID,
     val evalueringsdato: LocalDate,
@@ -23,9 +29,7 @@ data class OppfolgingsplanOverviewResponse(
     val userHasEditAccess: Boolean,
     val organization: OrganizationDetails,
     val employee: EmployeeDetails,
-    val utkast: UtkastMetadata?,
-    val aktivOppfolgingsplan: OppfolgingsplanMetadata?,
-    val tidligerePlaner: List<OppfolgingsplanMetadata>,
+    val oversikt: OversiktResponseData
 )
 
 data class SykmeldtOppfolgingsplanOverview(

@@ -6,6 +6,7 @@ import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.UtkastMetadata
+import no.nav.syfo.oppfolgingsplan.dto.UtkastResponseData
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
 import java.time.LocalDate
@@ -40,9 +41,9 @@ fun PersistedOppfolgingsplanUtkast.toResponse(sykmeldt: Sykmeldt): Oppfolgingspl
             fnr = sykmeldtFnr,
             name = sykmeldt.navn,
         ),
-        content = content,
-        evalueringsdato = evalueringsdato,
-        createdAt = createdAt,
-        sistLagret = updatedAt,
+        utkast = UtkastResponseData(
+            content = content,
+            sistLagretTidspunkt = updatedAt,
+        ),
     )
 }

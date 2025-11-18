@@ -4,6 +4,7 @@ import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponseData
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
 import java.time.LocalDate
@@ -41,7 +42,6 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadat
 
 fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanResponse {
     return OppfolgingsplanResponse(
-        id = uuid,
         userHasEditAccess = canEditPlan,
         organization = OrganizationDetails(
             orgNumber = organisasjonsnummer,
@@ -51,10 +51,13 @@ fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanRe
             fnr = sykmeldtFnr,
             name = sykmeldtFullName,
         ),
-        evalueringsdato = evalueringsdato,
-        deltMedLegeTidspunkt = deltMedLegeTidspunkt,
-        deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
-        content = content,
-        ferdistiltTidspunkt = createdAt,
+        oppfolgingsplan = OppfolgingsplanResponseData(
+            id = uuid,
+            content = content,
+            evalueringsDato = evalueringsdato,
+            deltMedLegeTidspunkt = deltMedLegeTidspunkt,
+            deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
+            ferdistiltTidspunkt = createdAt,
+        ),
     )
 }

@@ -7,16 +7,20 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-data class OppfolgingsplanResponse(
+data class OppfolgingsplanResponseData(
     val id: UUID,
-    val userHasEditAccess: Boolean,
-    val organization: OrganizationDetails,
-    val employee: EmployeeDetails,
     val content: FormSnapshot,
-    val evalueringsdato: LocalDate,
+    val evalueringsDato: LocalDate,
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
     val ferdistiltTidspunkt: Instant,
+)
+
+data class OppfolgingsplanResponse(
+    val userHasEditAccess: Boolean,
+    val organization: OrganizationDetails,
+    val employee: EmployeeDetails,
+    val oppfolgingsplan: OppfolgingsplanResponseData,
 )
 
 data class CreateOppfolgingsplanRequest(

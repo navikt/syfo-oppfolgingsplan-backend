@@ -6,14 +6,16 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
 import java.time.LocalDate
 
+data class UtkastResponseData(
+    val content: FormSnapshot?,
+    val sistLagretTidspunkt: Instant,
+)
+
 data class OppfolgingsplanUtkastResponse(
     val userHasEditAccess: Boolean,
     val organization: OrganizationDetails,
     val employee: EmployeeDetails,
-    val content: FormSnapshot?,
-    val evalueringsdato: LocalDate?,
-    val createdAt: Instant,
-    val sistLagret: Instant,
+    val utkast: UtkastResponseData?,
 )
 
 data class CreateUtkastRequest(

@@ -24,6 +24,7 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverviewResponse
+import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
@@ -126,9 +127,11 @@ class OppfolgingsplanService(
                 fnr = sykmeldt.fnr,
                 name = sykmeldt.navn,
             ),
-            utkast = utkast,
-            aktivOppfolgingsplan = oppfolgingsplaner.firstOrNull(),
-            tidligerePlaner = oppfolgingsplaner.drop(1),
+            oversikt = OversiktResponseData(
+                utkast = utkast,
+                aktivPlan = oppfolgingsplaner.firstOrNull(),
+                tidligerePlaner = oppfolgingsplaner.drop(1),
+            )
         )
     }
 
