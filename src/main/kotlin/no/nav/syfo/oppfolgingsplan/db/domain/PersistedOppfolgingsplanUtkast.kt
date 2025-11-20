@@ -30,20 +30,22 @@ fun PersistedOppfolgingsplanUtkast.toUtkastMetadata(): UtkastMetadata {
     )
 }
 
-fun PersistedOppfolgingsplanUtkast.toResponse(sykmeldt: Sykmeldt): OppfolgingsplanUtkastResponse {
+fun PersistedOppfolgingsplanUtkast?.toResponse(sykmeldt: Sykmeldt): OppfolgingsplanUtkastResponse {
     return OppfolgingsplanUtkastResponse(
         userHasEditAccess = sykmeldt.aktivSykmelding == true,
         organization = OrganizationDetails(
-            orgNumber = organisasjonsnummer,
+            orgNumber = sykmeldt.orgnummer,
             orgName = sykmeldt.getOrganizationName(),
         ),
         employee = EmployeeDetails(
-            fnr = sykmeldtFnr,
+            fnr = sykmeldt.fnr,
             name = sykmeldt.navn,
         ),
-        utkast = UtkastResponseData(
-            content = content,
-            sistLagretTidspunkt = updatedAt,
-        ),
+        utkast = this?.let {
+            UtkastResponseData(
+                content = it.content,
+                sistLagretTidspunkt = it.updatedAt,
+            )
+        },
     )
 }

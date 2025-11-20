@@ -3,7 +3,6 @@ package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
-import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -55,15 +54,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
 
             val persistedOppfolgingsplanUtkast = oppfolgingsplanService.getPersistedOppfolgingsplanUtkast(sykmeldt)
 
-            if (persistedOppfolgingsplanUtkast != null) {
-                call.respond(
-                    HttpStatusCode.OK,
-                    persistedOppfolgingsplanUtkast.toResponse(sykmeldt)
-                )
-                return@get
-            }
-
-            throw NotFoundException("No draft found for the given narmestelederId")
+            call.respond(
+                HttpStatusCode.OK,
+                persistedOppfolgingsplanUtkast.toResponse(sykmeldt)
+            )
         }
     }
 }
