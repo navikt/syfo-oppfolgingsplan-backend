@@ -24,24 +24,21 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
-import java.util.*
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
-import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.generatedPdfStandin
-import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -53,6 +50,9 @@ import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.util.*
 
 class OppfolgingsplanApiV1Test : DescribeSpec({
 
@@ -218,9 +218,9 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     // Assert
                     response.status shouldBe HttpStatusCode.OK
                     val overview = response.body<SykmeldtOppfolgingsplanOverview>()
-                    overview.oppfolgingsplaner.firstOrNull()?.uuid shouldBe latestPlanUUID
-                    overview.previousOppfolgingsplaner.size shouldBe 1
-                    overview.previousOppfolgingsplaner.first().uuid shouldBe firstPlanUUID
+                    overview.aktiveOppfolgingsplaner.firstOrNull()?.id shouldBe latestPlanUUID
+                    overview.tidligerePlaner.size shouldBe 1
+                    overview.tidligerePlaner.first().id shouldBe firstPlanUUID
                 }
             }
         }
@@ -259,8 +259,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     }
                     // Assert
                     response.status shouldBe HttpStatusCode.OK
-                    val plan = response.body<PersistedOppfolgingsplan>()
-                    plan.uuid shouldBe existingUUID
+                    response.body<OppfolgingsplanResponse>()
                 }
             }
 

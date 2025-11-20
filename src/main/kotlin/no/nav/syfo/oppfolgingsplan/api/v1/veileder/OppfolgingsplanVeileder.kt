@@ -1,11 +1,11 @@
-package no.nav.syfo.oppfolgingsplan.api.v1.veilder
+package no.nav.syfo.oppfolgingsplan.api.v1.veileder
 
-import java.util.UUID
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import java.time.Instant
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import java.time.LocalDate
+import java.util.*
 
-data class OppfolgingsplanVeilder(
+data class OppfolgingsplanVeileder(
     val uuid: UUID,
     val fnr: String,
     val deltMedNavTidspunkt: Instant,
@@ -15,7 +15,7 @@ data class OppfolgingsplanVeilder(
     val evalueringsdato: LocalDate,
 ) {
     companion object {
-        fun from(item: OppfolgingsplanMetadata): OppfolgingsplanVeilder {
+        fun from(item: PersistedOppfolgingsplan): OppfolgingsplanVeileder {
             with(item) {
                 require(deltMedVeilederTidspunkt != null) {
                     "Oppfolgingsplan ${uuid} is not shared with veileder"
@@ -25,7 +25,7 @@ data class OppfolgingsplanVeilder(
                     deltMedVeilederTidspunkt,
                     deltMedLegeTidspunkt
                 ).max()
-                return OppfolgingsplanVeilder(
+                return OppfolgingsplanVeileder(
                     uuid = uuid,
                     fnr = sykmeldtFnr,
                     virksomhetsnummer = organisasjonsnummer,

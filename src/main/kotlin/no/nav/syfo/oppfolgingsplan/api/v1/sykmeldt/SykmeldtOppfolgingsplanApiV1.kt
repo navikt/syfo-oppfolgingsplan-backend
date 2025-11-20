@@ -7,16 +7,17 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
-import java.util.*
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.toSykmeldtOppfolgingsplanOverview
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
+import java.util.*
 
 fun Route.registerSykmeldtOppfolgingsplanApiV1(
     texasHttpClient: TexasHttpClient,
@@ -25,10 +26,10 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
 ) {
     val logger = logger()
 
-    fun tryToGetOppfolgingsplanByUuid(
+    fun tryToGetPersistedOppfolgingsplanByUuid(
         uuid: UUID,
     ): PersistedOppfolgingsplan =
-        oppfolgingsplanService.getOppfolgingsplanByUuid(uuid) ?: run {
+        oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid) ?: run {
             throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
         }
 
@@ -55,7 +56,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
             val brukerFnr = call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
             val oppfolgingsplaner =
                 oppfolgingsplanService
-                    .getOppfolginsplanOverviewFor(brukerFnr.value)
+                    .getOppfolgingsplanOverviewFor(brukerFnr.value)
                     .toSykmeldtOppfolgingsplanOverview()
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
@@ -67,18 +68,18 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
         get("/{uuid}") {
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
-            val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
+            val persistedOppfolgingsplan = tryToGetPersistedOppfolgingsplanByUuid(uuid)
 
             val brukerFnr = call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
-            checkIfOppfolgingsplanBelongsToSykmeldt(oppfolgingsplan, brukerFnr)
+            checkIfOppfolgingsplanBelongsToSykmeldt(persistedOppfolgingsplan, brukerFnr)
 
-            call.respond(HttpStatusCode.OK, oppfolgingsplan)
+            call.respond(HttpStatusCode.OK, persistedOppfolgingsplan.toResponse(false))
         }
 
         get("/{uuid}/pdf") {
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
-            val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
+            val oppfolgingsplan = tryToGetPersistedOppfolgingsplanByUuid(uuid)
 
             val brukerFnr = call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
             checkIfOppfolgingsplanBelongsToSykmeldt(oppfolgingsplan, brukerFnr)

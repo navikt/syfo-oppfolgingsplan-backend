@@ -9,7 +9,7 @@ import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanUtkastApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.registerSykmeldtOppfolgingsplanApiV1
-import no.nav.syfo.oppfolgingsplan.api.v1.veilder.registerVeilderOppfolgingsplanApiV1
+import no.nav.syfo.oppfolgingsplan.api.v1.veileder.registerVeilderOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.TexasAzureADAuthPlugin

@@ -13,21 +13,22 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.exception.ConflictException
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
-import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
+import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
+import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.validateFields
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
 import java.time.Instant
-import no.nav.syfo.application.exception.ConflictException
-import no.nav.syfo.dokarkiv.DokarkivService
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.validateFields
 
 @Suppress("LongParameterList", "LongMethod", "ThrowsCount")
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
@@ -45,7 +46,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             this.texasHttpClient = texasHttpClient
             this.dineSykmeldteService = dineSykmeldteService
         }
-        fun checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
+        fun checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
             sykmeldtFnr: String,
             orgnummer: String,
             sykmeldt: Sykmeldt,
@@ -92,9 +93,28 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
         get("/oversikt") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
             val oppfolgingsplaner =
-                oppfolgingsplanService.getOppfolginsplanOverviewFor(sykmeldt.fnr, sykmeldt.orgnummer)
+                oppfolgingsplanService.getOppfolgingsplanOverviewFor(sykmeldt)
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
+        }
+
+        /**
+         * Gir en komplett aktiv oppfolginsplan.
+         */
+        get("/aktiv-plan") {
+            val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
+
+            val aktivPlan =
+                oppfolgingsplanService.getAktivplanForSykmeldt(sykmeldt)
+                    ?: throw NotFoundException("Aktiv plan not found")
+
+            checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
+                aktivPlan.sykmeldtFnr,
+                aktivPlan.organisasjonsnummer,
+                sykmeldt
+            )
+
+            call.respond(HttpStatusCode.OK, aktivPlan.toResponse(sykmeldt.aktivSykmelding == true))
         }
 
         /**
@@ -105,16 +125,16 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
-            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid)
+            val persistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
                 ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
-            checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
-                oppfolgingsplan.sykmeldtFnr,
-                oppfolgingsplan.organisasjonsnummer,
+            checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
+                persistedOppfolgingsplan.sykmeldtFnr,
+                persistedOppfolgingsplan.organisasjonsnummer,
                 sykmeldt
             )
 
-            call.respond(HttpStatusCode.OK, oppfolgingsplan)
+            call.respond(HttpStatusCode.OK, persistedOppfolgingsplan.toResponse(sykmeldt.aktivSykmelding == true))
         }
 
         post("/{uuid}/del-med-lege") {
@@ -131,10 +151,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
-            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid)
+            val oppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
                 ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
-            checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
+            checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 oppfolgingsplan.sykmeldtFnr,
                 oppfolgingsplan.organisasjonsnummer,
                 sykmeldt
@@ -168,10 +188,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
-            val oppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid)
+            val oppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
                 ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
-            checkIfOppfolgingsplanPropertiesBelongsToSykmelt(
+            checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 oppfolgingsplan.sykmeldtFnr,
                 oppfolgingsplan.organisasjonsnummer,
                 sykmeldt
@@ -192,6 +212,27 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)
                 throw InternalServerErrorException("An error occurred while archiving oppfolgingsplan")
             }
+        }
+
+        get("/{uuid}/pdf") {
+            val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
+            val uuid = call.parameters.extractAndValidateUUIDParameter()
+
+            val persistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
+                ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
+
+            checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
+                persistedOppfolgingsplan.sykmeldtFnr,
+                persistedOppfolgingsplan.organisasjonsnummer,
+                sykmeldt
+            )
+
+            val pdfByteArray = pdfGenService.generatePdf(persistedOppfolgingsplan)
+                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+
+            call.response.status(HttpStatusCode.OK)
+            call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
+            call.respond<ByteArray>(pdfByteArray)
         }
     }
 }

@@ -1,13 +1,13 @@
 package no.nav.syfo.oppfolgingsplan.service
 
-import java.time.Instant
-import java.time.LocalDate
-import java.util.*
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.api.v1.veilder.OppfolgingsplanVeilder
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
+import no.nav.syfo.dinesykmeldte.client.getOrganizationName
+import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
+import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
@@ -18,18 +18,22 @@ import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
+import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverviewResponse
+import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
-import no.nav.syfo.oppfolgingsplan.dto.mapToOppfolgingsplanMetadata
-import no.nav.syfo.oppfolgingsplan.dto.mapToUtkastMetadata
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
+import java.time.Instant
+import java.time.LocalDate
+import java.util.*
 
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
@@ -63,11 +67,14 @@ class OppfolgingsplanService(
         )
     }
 
-    fun getOppfolgingsplanUtkast(sykmeldtFnr: String, orgnummer: String): PersistedOppfolgingsplanUtkast? {
-        return database.findOppfolgingsplanUtkastBy(sykmeldtFnr, orgnummer)
+    fun getPersistedOppfolgingsplanUtkast(sykmeldt: Sykmeldt): PersistedOppfolgingsplanUtkast? {
+        return database.findOppfolgingsplanUtkastBy(
+            sykmeldtFnr = sykmeldt.fnr,
+            organisasjonsnummer = sykmeldt.orgnummer
+        )
     }
 
-    fun getOppfolgingsplanByUuid(uuid: UUID): PersistedOppfolgingsplan? {
+    fun getPersistedOppfolgingsplanByUuid(uuid: UUID): PersistedOppfolgingsplan? {
         return database.findOppfolgingsplanBy(uuid)
     }
 
@@ -99,22 +106,41 @@ class OppfolgingsplanService(
         database.setDeltMedVeilderTidspunkt(uuid, deltMedVeilederTidspunkt)
     }
 
-    fun getOppfolginsplanOverviewFor(sykmeldtFnr: String, orgnummer: String): OppfolgingsplanOverview {
-        val utkast = database.findOppfolgingsplanUtkastBy(sykmeldtFnr, orgnummer)
-            ?.mapToUtkastMetadata()
-        val oppfolgingsplaner = database.findAllOppfolgingsplanerBy(sykmeldtFnr, orgnummer)
-            .map { it.mapToOppfolgingsplanMetadata() }
+    fun getAktivplanForSykmeldt(sykmeldt: Sykmeldt): PersistedOppfolgingsplan? {
+        return database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+            .firstOrNull()
+    }
 
-        return OppfolgingsplanOverview(
-            utkast = utkast,
-            oppfolgingsplan = oppfolgingsplaner.firstOrNull(),
-            previousOppfolgingsplaner = oppfolgingsplaner.drop(1),
+    fun getOppfolgingsplanOverviewFor(sykmeldt: Sykmeldt): OppfolgingsplanOverviewResponse {
+        val utkast = database.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
+            ?.toUtkastMetadata()
+        val oppfolgingsplaner = database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+            .map { it.toOppfolgingsplanMetadata() }
+
+        return OppfolgingsplanOverviewResponse(
+            userHasEditAccess = sykmeldt.aktivSykmelding == true,
+            organization = OrganizationDetails(
+                orgNumber = sykmeldt.orgnummer,
+                orgName = sykmeldt.getOrganizationName(),
+            ),
+            employee = EmployeeDetails(
+                fnr = sykmeldt.fnr,
+                name = sykmeldt.navn,
+            ),
+            oversikt = OversiktResponseData(
+                utkast = utkast,
+                aktivPlan = oppfolgingsplaner.firstOrNull(),
+                tidligerePlaner = oppfolgingsplaner.drop(1),
+            )
         )
     }
 
-    fun getOppfolginsplanOverviewFor(sykmeldtFnr: String): List<OppfolgingsplanMetadata> =
+    fun getOppfolgingsplanOverviewFor(sykmeldtFnr: String): List<OppfolgingsplanMetadata> =
         database.findAllOppfolgingsplanerBy(sykmeldtFnr)
-            .map { it.mapToOppfolgingsplanMetadata() }
+            .map { it.toOppfolgingsplanMetadata() }
+
+    fun getPersistedOppfolgingsplanListBy(sykmeldtFnr: String): List<PersistedOppfolgingsplan> =
+        database.findAllOppfolgingsplanerBy(sykmeldtFnr)
 
     suspend fun getAndSetNarmestelederFullname(
         persistedOppfolgingsplan: PersistedOppfolgingsplan
@@ -145,16 +171,16 @@ class OppfolgingsplanService(
 }
 
 fun List<OppfolgingsplanMetadata>.toSykmeldtOppfolgingsplanOverview(): SykmeldtOppfolgingsplanOverview {
-    val (current, previous) = this.partition { it.evalueringsdato >= LocalDate.now() }
+    val (current, previous) = this.partition { it.evalueringsDato >= LocalDate.now() }
     return SykmeldtOppfolgingsplanOverview(
-        oppfolgingsplaner = current,
-        previousOppfolgingsplaner = previous,
+        aktiveOppfolgingsplaner = current,
+        tidligerePlaner = previous,
     )
 }
 
-fun List<OppfolgingsplanMetadata>.toListOppfolginsplanVeiler(): List<OppfolgingsplanVeilder> =
+fun List<PersistedOppfolgingsplan>.toListOppfolgingsplanVeileder(): List<OppfolgingsplanVeileder> =
     this.filter { it.deltMedVeilederTidspunkt != null }
         .sortedByDescending { it.createdAt }
         .map {
-            OppfolgingsplanVeilder.from(it)
+            OppfolgingsplanVeileder.from(it)
         }

@@ -1,32 +1,29 @@
-package no.nav.syfo.oppfolgingsplan.api.v1.veilder
+package no.nav.syfo.oppfolgingsplan.api.v1.veileder
 
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCallPipeline
 import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
-import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
-import io.ktor.server.routing.intercept
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
-import java.util.*
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.oppfolgingsplan.service.toListOppfolginsplanVeiler
+import no.nav.syfo.oppfolgingsplan.service.toListOppfolgingsplanVeileder
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
+import java.util.*
 
 @Suppress("ThrowsCount")
 fun Route.registerVeilderOppfolgingsplanApiV1(
@@ -38,7 +35,7 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
     route("/oppfolgingsplaner") {
         fun tryToGetOppfolgingsplanByUuid(
             uuid: UUID,
-        ): PersistedOppfolgingsplan = oppfolgingsplanService.getOppfolgingsplanByUuid(uuid).let {
+        ): PersistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid).let {
             if (it == null || it.deltMedVeilederTidspunkt == null) {
                 throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
             } else {
@@ -70,7 +67,7 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
                 token = innloggetBruker.token,
             )
             val oppfolgingsplaner =
-                oppfolgingsplanService.getOppfolginsplanOverviewFor(sykmeldtFnr).toListOppfolginsplanVeiler()
+                oppfolgingsplanService.getPersistedOppfolgingsplanListBy(sykmeldtFnr).toListOppfolgingsplanVeileder()
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }
@@ -94,4 +91,5 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
         }
     }
 }
+
 const val NAV_PERSONIDENT_HEADER = "nav-personident"

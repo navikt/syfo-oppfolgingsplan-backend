@@ -3,7 +3,6 @@ package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
-import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -13,6 +12,7 @@ import io.ktor.server.routing.route
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -52,9 +52,12 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
         get {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
-            oppfolgingsplanService.getOppfolgingsplanUtkast(sykmeldt.fnr, sykmeldt.orgnummer)?.let { utkast ->
-                call.respond(HttpStatusCode.OK, utkast)
-            } ?: throw NotFoundException("No draft found for the given narmestelederId")
+            val persistedOppfolgingsplanUtkast = oppfolgingsplanService.getPersistedOppfolgingsplanUtkast(sykmeldt)
+
+            call.respond(
+                HttpStatusCode.OK,
+                persistedOppfolgingsplanUtkast.toResponse(sykmeldt)
+            )
         }
     }
 }

@@ -3,8 +3,8 @@ package no.nav.syfo
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
@@ -13,11 +13,7 @@ import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy
 import java.sql.Connection
 import java.sql.Date
 import java.sql.Types
-import java.util.UUID
-import kotlin.apply
-import kotlin.run
-import kotlin.to
-import kotlin.use
+import java.util.*
 
 class PsqlContainer : PostgreSQLContainer<PsqlContainer>("postgres:17-alpine")
 
@@ -172,4 +168,5 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             it.executeUpdate()
         }
         connection.commit()
-    }}
+    }
+}

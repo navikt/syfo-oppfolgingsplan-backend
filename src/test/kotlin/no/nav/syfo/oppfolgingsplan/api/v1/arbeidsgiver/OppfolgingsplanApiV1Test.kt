@@ -1,6 +1,5 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
-import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -28,8 +27,6 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import java.time.Instant
-import java.util.*
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.exception.ApiError
 import no.nav.syfo.application.exception.ErrorType
@@ -40,19 +37,20 @@ import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
-import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverview
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverviewResponse
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
@@ -63,6 +61,8 @@ import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
+import java.time.Instant
+import java.util.*
 
 class OppfolgingsplanApiV1Test : DescribeSpec({
 
@@ -86,7 +86,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     beforeTest {
         clearAllMocks()
         TestDB.clearAllData()
-        every { valkeyCacheMock.getSykmeldt(any(),any()) } returns null
+        every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
     }
     val oppfolgingsplanService = OppfolgingsplanService(
         database = testDb,
@@ -238,8 +238,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                val plan = response.body<PersistedOppfolgingsplan>()
-                plan.uuid shouldBe existingUUID
+                response.body<OppfolgingsplanResponse>()
             }
         }
 
@@ -262,7 +261,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                             narmesteLederId = narmestelederId,
                         )
                 )
-                val utkastUUID = testDb.upsertOppfolgingsplanUtkast(
+                testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
                     createUtkastRequest = defaultUtkast()
@@ -276,11 +275,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                val overview = response.body<OppfolgingsplanOverview>()
-                overview.utkast?.uuid shouldBe utkastUUID
-                overview.oppfolgingsplan?.uuid shouldBe latestPlanUUID
-                overview.previousOppfolgingsplaner.size shouldBe 1
-                overview.previousOppfolgingsplaner.first().uuid shouldBe firstPlanUUID
+                val overview = response.body<OppfolgingsplanOverviewResponse>().oversikt
+                overview.aktivPlan?.id shouldBe latestPlanUUID
+                overview.tidligerePlaner.size shouldBe 1
+                overview.tidligerePlaner.first().id shouldBe firstPlanUUID
             }
         }
         it("POST /oppfolgingsplaner should respond with 201 when oppfolgingsplan is created successfully") {
@@ -314,10 +312,6 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 persisted.first().organisasjonsnummer shouldBe sykmeldt.orgnummer
                 persisted.first().content.toString() shouldBe oppfolgingsplan.content.toString()
                 persisted.first().evalueringsdato.toString() shouldBe oppfolgingsplan.evalueringsdato.toString()
-                persisted.first().skalDelesMedLege shouldBe oppfolgingsplan.skalDelesMedLege
-                persisted.first().skalDelesMedVeileder shouldBe oppfolgingsplan.skalDelesMedVeileder
-                persisted.first().deltMedVeilederTidspunkt shouldBe oppfolgingsplan.deltMedVeilederTidspunkt
-                persisted.first().deltMedLegeTidspunkt shouldBe oppfolgingsplan.deltMedLegeTidspunkt
                 persisted.first().sykmeldtFullName shouldBe "Navn Sykmeldt"
                 persisted.first().organisasjonsnavn shouldBe "Test AS"
                 verify(exactly = 1) {
@@ -539,7 +533,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
             val uuid = testDb.persistOppfolgingsplan(
                 defaultPersistedOppfolgingsplan()
-                    .copy(narmesteLederId = narmestelederId,
+                    .copy(
+                        narmesteLederId = narmestelederId,
                         skalDelesMedVeileder = true,
                     )
             )

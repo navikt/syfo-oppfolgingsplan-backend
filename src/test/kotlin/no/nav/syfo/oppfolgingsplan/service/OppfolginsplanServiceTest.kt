@@ -6,31 +6,30 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.dto.mapToOppfolgingsplanMetadata
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.varsel.EsyfovarselProducer
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 class OppfolginsplanServiceTest : DescribeSpec({
     describe("Extension function tests") {
         it("toListOppfolginsplanVeiler should filter out items not delt with veileder") {
             // Arrange
-            val deltMedVeilder = defaultPersistedOppfolgingsplan().mapToOppfolgingsplanMetadata().copy(
+            val deltMedVeilder = defaultPersistedOppfolgingsplan().copy(
                 deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
                 skalDelesMedVeileder = true
             )
-            val ikkeDeltMedVeilder = defaultPersistedOppfolgingsplan().mapToOppfolgingsplanMetadata().copy(
+            val ikkeDeltMedVeilder = defaultPersistedOppfolgingsplan().copy(
                 deltMedVeilederTidspunkt = null,
                 skalDelesMedVeileder = false
             )
             val oppfolgingsplaner = listOf(ikkeDeltMedVeilder, deltMedVeilder)
 
             // Act
-            val filtered = oppfolgingsplaner.toListOppfolginsplanVeiler()
+            val filtered = oppfolgingsplaner.toListOppfolgingsplanVeileder()
             // Assert
 
             filtered.size shouldBe 1
@@ -65,7 +64,7 @@ class OppfolginsplanServiceTest : DescribeSpec({
 
                 // Assert
                 result.narmesteLederFullName shouldBe "Ola Nordmann"
-                val fromDb = service.getOppfolgingsplanByUuid(persistedPlan.uuid)
+                val fromDb = service.getPersistedOppfolgingsplanByUuid(persistedPlan.uuid)
                 fromDb?.narmesteLederFullName shouldBe "Ola Nordmann"
                 coVerify(exactly = 1) { pdlServive.getNameFor(any()) }
             }

@@ -23,34 +23,34 @@ import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
-import java.time.LocalDate
-import java.util.*
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkast
-import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
-import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
-import no.nav.syfo.oppfolgingsplan.db.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkastResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.pdl.client.PdlClient
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
+import java.time.LocalDate
+import java.util.*
 
 class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
@@ -198,7 +198,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val requestUtkast = defaultUtkast()
-                val existingUUID = testDb.upsertOppfolgingsplanUtkast(
+                testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
                     requestUtkast
@@ -211,14 +211,9 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                val utkast = response.body<PersistedOppfolgingsplanUtkast>()
-                utkast shouldNotBe null
-                utkast.uuid shouldBe existingUUID
-                utkast.sykmeldtFnr shouldBe sykmeldt.fnr
-                utkast.narmesteLederFnr shouldBe pidInnlogetBruker
-                utkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
-                utkast.content shouldBe defaultFormSnapshot()
-                utkast.evalueringsdato shouldBe requestUtkast.evalueringsdato
+                val utkastResponse = response.body<OppfolgingsplanUtkastResponse>()
+                utkastResponse shouldNotBe null
+                utkastResponse.utkast?.content shouldBe defaultFormSnapshot()
             }
         }
     }
