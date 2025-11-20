@@ -8,7 +8,7 @@ import java.util.*
 
 
 data class UtkastMetadata(
-    val updatedAt: Instant,
+    val sistLagretTidspunkt: Instant,
 )
 
 data class OversiktResponseData(
@@ -19,10 +19,10 @@ data class OversiktResponseData(
 
 data class OppfolgingsplanMetadata(
     val id: UUID,
-    val evalueringsdato: LocalDate,
+    val evalueringsDato: LocalDate,
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
-    val createdAt: Instant,
+    val ferdigstiltTidspunkt: Instant,
 )
 
 data class OppfolgingsplanOverviewResponse(

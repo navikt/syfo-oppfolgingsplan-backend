@@ -26,7 +26,7 @@ data class PersistedOppfolgingsplanUtkast(
 
 fun PersistedOppfolgingsplanUtkast.toUtkastMetadata(): UtkastMetadata {
     return UtkastMetadata(
-        updatedAt = updatedAt
+        sistLagretTidspunkt = updatedAt
     )
 }
 

@@ -171,7 +171,7 @@ class OppfolgingsplanService(
 }
 
 fun List<OppfolgingsplanMetadata>.toSykmeldtOppfolgingsplanOverview(): SykmeldtOppfolgingsplanOverview {
-    val (current, previous) = this.partition { it.evalueringsdato >= LocalDate.now() }
+    val (current, previous) = this.partition { it.evalueringsDato >= LocalDate.now() }
     return SykmeldtOppfolgingsplanOverview(
         aktiveOppfolgingsplaner = current,
         tidligerePlaner = previous,

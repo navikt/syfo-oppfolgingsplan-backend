@@ -13,7 +13,7 @@ data class OppfolgingsplanResponseData(
     val evalueringsDato: LocalDate,
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
-    val ferdistiltTidspunkt: Instant,
+    val ferdigstiltTidspunkt: Instant,
 )
 
 data class OppfolgingsplanResponse(
