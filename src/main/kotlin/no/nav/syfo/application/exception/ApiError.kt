@@ -12,6 +12,7 @@ enum class ErrorType {
     BAD_REQUEST,
     LEGE_NOT_FOUND,
     PLAN_NOT_FOUND,
+    SYKMELDT_NOT_FOUND,
     CONFLICT
 }
 
@@ -48,4 +49,7 @@ open class ApiError(
 
     data class PlanNotFoundError(override val message: String, override val path: String?) :
         ApiError(HttpStatusCode.NotFound, ErrorType.PLAN_NOT_FOUND, message, Instant.now())
+
+    data class SykmeldtNotFoundError(override val message: String, override val path: String?) :
+        ApiError(HttpStatusCode.NotFound, ErrorType.SYKMELDT_NOT_FOUND, message, Instant.now())
 }

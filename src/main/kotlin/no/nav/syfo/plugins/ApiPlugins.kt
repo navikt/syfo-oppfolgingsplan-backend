@@ -29,6 +29,7 @@ import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.application.exception.PlanNotFoundException
+import no.nav.syfo.application.exception.SykmeldtNotFoundException
 import no.nav.syfo.application.exception.UnauthorizedException
 import java.util.*
 
@@ -65,6 +66,7 @@ private fun determineApiError(cause: Throwable, path: String?): ApiError {
         is InternalServerErrorException -> InternalServerError(cause.message ?: "Internal server error", path)
         is LegeNotFoundException -> ApiError.LegeNotFoundError(cause.message ?: "Lege not found", path)
         is PlanNotFoundException -> ApiError.PlanNotFoundError(cause.message ?: "Plan not found", path)
+        is SykmeldtNotFoundException -> ApiError.SykmeldtNotFoundError(cause.message ?: "Sykmeldt not found", path)
         else -> InternalServerError(cause.message ?: "Internal server error", path)
     }
 }
