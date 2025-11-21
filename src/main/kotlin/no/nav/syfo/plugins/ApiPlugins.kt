@@ -17,7 +17,6 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.path
 import io.ktor.server.response.respond
-import java.util.*
 import no.nav.syfo.application.exception.ApiError
 import no.nav.syfo.application.exception.ApiError.AuthenticationError
 import no.nav.syfo.application.exception.ApiError.AuthorizationError
@@ -29,7 +28,10 @@ import no.nav.syfo.application.exception.ConflictException
 import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.application.exception.LegeNotFoundException
+import no.nav.syfo.application.exception.PlanNotFoundException
+import no.nav.syfo.application.exception.SykmeldtNotFoundException
 import no.nav.syfo.application.exception.UnauthorizedException
+import java.util.*
 
 const val NAV_CALL_ID_HEADER = "Nav-Call-Id"
 
@@ -63,13 +65,15 @@ private fun determineApiError(cause: Throwable, path: String?): ApiError {
         is UnauthorizedException -> AuthenticationError(cause.message ?: "Unauthorized", path)
         is InternalServerErrorException -> InternalServerError(cause.message ?: "Internal server error", path)
         is LegeNotFoundException -> ApiError.LegeNotFoundError(cause.message ?: "Lege not found", path)
+        is PlanNotFoundException -> ApiError.PlanNotFoundError(cause.message ?: "Plan not found", path)
+        is SykmeldtNotFoundException -> ApiError.SykmeldtNotFoundError(cause.message ?: "Sykmeldt not found", path)
         else -> InternalServerError(cause.message ?: "Internal server error", path)
     }
 }
 
 private fun logException(call: ApplicationCall, cause: Throwable) {
     val logExceptionMessage = "Caught ${cause::class.simpleName} exception"
-    call.application.log.warn(logExceptionMessage, cause)
+    call.application.log.error(logExceptionMessage, cause)
 }
 
 

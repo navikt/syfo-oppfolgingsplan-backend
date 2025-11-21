@@ -3,9 +3,9 @@ package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
-import io.ktor.server.plugins.NotFoundException
 import io.ktor.util.AttributeKey
 import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.exception.SykmeldtNotFoundException
 import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
@@ -47,7 +47,7 @@ val AuthorizeLeaderAccessToSykmeldtPlugin = createRouteScopedPlugin(
                 innloggetBruker.ident,
                 texasResponse.accessToken
             )
-                ?: throw NotFoundException("Sykmeldt not found for narmestelederId: $narmesteLederId")
+                ?: throw SykmeldtNotFoundException("Sykmeldt not found for narmestelederId: $narmesteLederId")
 
             call.attributes[CALL_ATTRIBUTE_SYKMELDT] = sykmeldt
         }
