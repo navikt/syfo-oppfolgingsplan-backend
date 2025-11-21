@@ -57,6 +57,7 @@ import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
+import no.nav.syfo.returnsNotFound
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -196,6 +197,25 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.Unauthorized
+            }
+        }
+        it("GET /oppfolgingsplaner/oversikt should respond with SYKMELDT_NOT_FOUND when dine sykmeldte returns not found") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks()
+
+                dineSykmeldteHttpClientMock.returnsNotFound(narmestelederId = narmestelederId)
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
+                    bearerAuth("Bearer token")
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.NotFound
+                val apiError = response.body<ApiError>()
+                apiError.type shouldBe ErrorType.SYKMELDT_NOT_FOUND
             }
         }
         it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
