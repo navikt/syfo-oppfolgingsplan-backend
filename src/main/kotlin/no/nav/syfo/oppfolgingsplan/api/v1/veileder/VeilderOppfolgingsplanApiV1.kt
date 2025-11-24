@@ -4,7 +4,6 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
 import io.ktor.server.plugins.BadRequestException
-import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -14,6 +13,7 @@ import io.ktor.server.routing.route
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
@@ -36,8 +36,8 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
         fun tryToGetOppfolgingsplanByUuid(
             uuid: UUID,
         ): PersistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid).let {
-            if (it == null || it.deltMedVeilederTidspunkt == null) {
-                throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
+            if (it.deltMedVeilederTidspunkt == null) {
+                throw PlanNotFoundException("Oppfolgingsplan not found for uuid: $uuid")
             } else {
                 it
             }

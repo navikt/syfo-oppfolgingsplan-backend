@@ -2,11 +2,14 @@ package no.nav.syfo
 
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.ClientRequestException
 import io.ktor.http.Headers
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.fullPath
 import io.ktor.http.isSuccess
 import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
@@ -164,6 +167,21 @@ fun DineSykmeldteHttpClient.defaultMocks(narmestelederId: String) {
             "token"
         )
     } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
+}
+
+fun DineSykmeldteHttpClient.returnsNotFound(narmestelederId: String) {
+    coEvery {
+        getSykmeldtForNarmesteLederId(
+            narmestelederId,
+            "token"
+        )
+    } throws ClientRequestException(
+        response = mockk {
+            every { status } returns HttpStatusCode.NotFound
+            every { call } returns mockk(relaxed = true)
+        },
+        cachedResponseText = "Not Found"
+    )
 }
 
 val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)

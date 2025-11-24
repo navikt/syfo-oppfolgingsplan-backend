@@ -57,6 +57,7 @@ import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
+import no.nav.syfo.returnsNotFound
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -198,6 +199,25 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 response.status shouldBe HttpStatusCode.Unauthorized
             }
         }
+        it("GET /oppfolgingsplaner/oversikt should respond with SYKMELDT_NOT_FOUND when dine sykmeldte returns not found") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks()
+
+                dineSykmeldteHttpClientMock.returnsNotFound(narmestelederId = narmestelederId)
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
+                    bearerAuth("Bearer token")
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.NotFound
+                val apiError = response.body<ApiError>()
+                apiError.type shouldBe ErrorType.SYKMELDT_NOT_FOUND
+            }
+        }
         it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
             withTestApplication {
                 // Arrange
@@ -213,6 +233,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.NotFound
+                val apiError = response.body<ApiError>()
+                apiError.type shouldBe ErrorType.PLAN_NOT_FOUND
             }
         }
 
@@ -233,6 +255,52 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 // Act
                 val response = client.get {
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$existingUUID")
+                    bearerAuth("Bearer token")
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.OK
+                response.body<OppfolgingsplanResponse>()
+            }
+        }
+
+        it("GET /oppfolgingsplaner/aktiv-plan should respond with PLAN_NOT_FOUND if aktiv plan does not exist") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks()
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/aktiv-plan")
+                    bearerAuth("Bearer token")
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.NotFound
+                val apiError = response.body<ApiError>()
+                apiError.type shouldBe ErrorType.PLAN_NOT_FOUND
+            }
+        }
+
+        it("GET /oppfolgingsplaner/aktiv-plan should respond with OK and return oppfolgingsplan when found and authorized") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks()
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                testDb.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                        )
+                )
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/aktiv-plan")
                     bearerAuth("Bearer token")
                 }
 
@@ -430,6 +498,40 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             response.status shouldBe HttpStatusCode.NotFound
             val apiError = response.body<ApiError>()
             apiError.message shouldBe "Oppfolgingsplan not found for uuid: $uuid"
+            apiError.type shouldBe ErrorType.PLAN_NOT_FOUND
+        }
+    }
+
+    it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with LEGE_NOT_FOUND if couldnt send to lege") {
+        withTestApplication {
+            // Arrange
+            texasClientMock.defaultMocks(pidInnlogetBruker)
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+            coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+
+            coEvery {
+                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(any(), any(), any())
+            } throws LegeNotFoundException("Lege not found for sykmeldt")
+
+            val uuid = testDb.persistOppfolgingsplan(
+                defaultPersistedOppfolgingsplan()
+                    .copy(narmesteLederId = narmestelederId)
+            )
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-lege")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
+            plan.skalDelesMedLege shouldBe true
+            plan.deltMedLegeTidspunkt shouldBe null
+
+            response.status shouldBe HttpStatusCode.NotFound
+            val apiError = response.body<ApiError>()
+            apiError.type shouldBe ErrorType.LEGE_NOT_FOUND
         }
     }
 

@@ -1,6 +1,7 @@
 package no.nav.syfo.oppfolgingsplan.service
 
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
@@ -74,8 +75,9 @@ class OppfolgingsplanService(
         )
     }
 
-    fun getPersistedOppfolgingsplanByUuid(uuid: UUID): PersistedOppfolgingsplan? {
+    fun getPersistedOppfolgingsplanByUuid(uuid: UUID): PersistedOppfolgingsplan {
         return database.findOppfolgingsplanBy(uuid)
+            ?: throw PlanNotFoundException("Oppfolgingsplan not found for uuid: $uuid")
     }
 
     fun updateSkalDelesMedLege(

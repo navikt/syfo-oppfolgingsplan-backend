@@ -11,8 +11,11 @@ enum class ErrorType {
     ILLEGAL_ARGUMENT,
     BAD_REQUEST,
     LEGE_NOT_FOUND,
+    PLAN_NOT_FOUND,
+    SYKMELDT_NOT_FOUND,
     CONFLICT
 }
+
 open class ApiError(
     val status: HttpStatusCode,
     val type: ErrorType,
@@ -35,11 +38,18 @@ open class ApiError(
     data class ConflictRequestError(override val message: String, override val path: String?) :
         ApiError(HttpStatusCode.Conflict, ErrorType.CONFLICT, message, Instant.now())
 
-    data class AuthenticationError(override val message: String,  override val path: String?) :
+    data class AuthenticationError(override val message: String, override val path: String?) :
         ApiError(HttpStatusCode.Unauthorized, ErrorType.AUTHENTICATION_ERROR, message, Instant.now())
 
-    data class AuthorizationError(override val message: String,  override val path: String?) :
+    data class AuthorizationError(override val message: String, override val path: String?) :
         ApiError(HttpStatusCode.Forbidden, ErrorType.AUTHORIZATION_ERROR, message, Instant.now())
+
     data class LegeNotFoundError(override val message: String, override val path: String?) :
         ApiError(HttpStatusCode.NotFound, ErrorType.LEGE_NOT_FOUND, message, Instant.now())
+
+    data class PlanNotFoundError(override val message: String, override val path: String?) :
+        ApiError(HttpStatusCode.NotFound, ErrorType.PLAN_NOT_FOUND, message, Instant.now())
+
+    data class SykmeldtNotFoundError(override val message: String, override val path: String?) :
+        ApiError(HttpStatusCode.NotFound, ErrorType.SYKMELDT_NOT_FOUND, message, Instant.now())
 }
