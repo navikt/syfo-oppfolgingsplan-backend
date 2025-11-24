@@ -21,7 +21,7 @@ class FakeArkivportenClient : IArkivportenClient {
     val logger = logger()
     override suspend fun publishOppfolginsplan(document: Document) {
         logger.info(
-            "Publishing Oppfolginsplan: ${document.documentId}, ${document.dialogTitle}, ${document.dialogSummary}"
+            "Publishing Oppfolginsplan: ${document.documentId}, ${document.title}, ${document.summary}"
         )
     }
 }

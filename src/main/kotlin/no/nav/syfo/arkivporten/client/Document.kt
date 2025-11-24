@@ -8,8 +8,10 @@ data class Document(
     val content: ByteArray,
     val contentType: String,
     val orgnumber: String,
-    val dialogTitle: String,
-    val dialogSummary: String,
+    val fnr: String,
+    val fullName: String,
+    val title: String,
+    val summary: String,
 )
 
 enum class DocumentType {

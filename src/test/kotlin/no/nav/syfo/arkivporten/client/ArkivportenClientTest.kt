@@ -53,12 +53,14 @@ class ArkivportenClientTest : DescribeSpec({
         client.publishOppfolginsplan(
             Document(
                 documentId = UUID.randomUUID(),
-                dialogTitle = "Test Dialog",
-                dialogSummary = "This is a test dialog summary",
+                title = "Test Dialog",
+                summary = "This is a test dialog summary",
                 content = "Test content".toByteArray(charset("UTF-8")),
                 contentType = "application/json",
                 type = DocumentType.OPPFOLGINGSPLAN,
                 orgnumber = "orgnummer",
+                fnr = "12345678901",
+                fullName = "Test Testesen",
             )
         )
 
