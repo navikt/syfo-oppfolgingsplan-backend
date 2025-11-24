@@ -206,6 +206,39 @@ paths:
             '*/*':
               schema:
                 type: "object"
+    delete:
+      tags:
+        - Arbeidsgiver
+      summary: Delete oppfolgingsplan draft
+      description: |
+        Deletes the oppfolgingsplan draft for the sykmeldt identified by narmesteLederId.
+        Requires that the sykmeldt has an active sykmelding.
+      security:
+        - bearerAuth: [ ]
+      parameters:
+        - name: "narmesteLederId"
+          in: "path"
+          required: true
+          schema:
+            type: "string"
+      responses:
+        "204":
+          description: "Draft successfully deleted (no content)"
+        "400":
+          description: "Bad Request - sykmeldt has no active sykmelding"
+          content:
+            application/json:
+              schema:
+                type: "string"
+              examples:
+                Example#1:
+                  value: "Cannot delete oppfolgingsplan utkast for sykmeldt without active sykmelding"
+        "401":
+          description: "Unauthorized - invalid or missing token"
+        "403":
+          description: "Forbidden - user does not have access to this sykmeldt"
+        "404":
+          description: "Sykmeldt not found for given narmesteLederId"
   /api/v1/sykmeldt/oppfolgingsplaner/{uuid}:
     get:
       tags:

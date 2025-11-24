@@ -10,6 +10,7 @@ import io.kotest.matchers.shouldNotBe
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.put
 import io.ktor.client.request.setBody
@@ -21,6 +22,7 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.syfo.TestDB
@@ -236,6 +238,66 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 persisted.content["arbeidsoppgaverSomIkkeKanUtfores"] shouldBe ""
                 persisted.content["tidligereTilrettelegging"] shouldBe ""
                 persisted.content["typiskArbeidshverdag"] shouldBe "Dette skrev jeg forrige gang. Kjekt at det blir lagret i et utkast."
+            }
+        }
+
+        it("DELETE /oppfolgingsplaner/utkast should delete existing draft") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks(pidInnlogetBruker)
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                val utkast = defaultUtkastRequest()
+                testDb.upsertOppfolgingsplanUtkast(
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
+                    utkast
+                )
+
+                // Verify draft exists
+                val existingUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
+                existingUtkast shouldNotBe null
+
+                // Act
+                val response = client.delete("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
+                    bearerAuth("Bearer token")
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.NoContent
+
+                val deletedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
+                deletedUtkast shouldBe null
+            }
+        }
+
+        it("DELETE /oppfolgingsplaner/utkast should return 400 when sykmeldt has no active sykmelding") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks(pidInnlogetBruker)
+
+                val sykmeldtWithoutActiveSykmelding = sykmeldt.copy(aktivSykmelding = false)
+                coEvery {
+                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                        narmestelederId,
+                        "token"
+                    )
+                } returns sykmeldtWithoutActiveSykmelding
+
+                val utkast = defaultUtkastRequest()
+                testDb.upsertOppfolgingsplanUtkast(
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldtWithoutActiveSykmelding,
+                    utkast
+                )
+
+                // Act
+                val response = client.delete("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
+                    bearerAuth("Bearer token")
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.BadRequest
             }
         }
     }

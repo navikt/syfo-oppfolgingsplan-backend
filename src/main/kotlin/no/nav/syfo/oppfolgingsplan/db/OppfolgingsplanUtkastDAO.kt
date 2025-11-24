@@ -52,6 +52,26 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     }
 }
 
+fun DatabaseInterface.deleteOppfolgingsplanUtkast(
+    sykmeldt: Sykmeldt
+) {
+    val statement =
+        """
+        DELETE FROM oppfolgingsplan_utkast
+        WHERE sykmeldt_fnr = ?
+        AND organisasjonsnummer = ?
+        """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, sykmeldt.fnr)
+            preparedStatement.setString(2, sykmeldt.orgnummer)
+            preparedStatement.executeUpdate()
+            connection.commit()
+        }
+    }
+}
+
 fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     sykmeldtFnr: String,
     organisasjonsnummer: String
