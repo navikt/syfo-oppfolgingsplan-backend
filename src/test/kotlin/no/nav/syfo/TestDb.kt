@@ -1,5 +1,6 @@
 package no.nav.syfo
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import no.nav.syfo.application.database.DatabaseInterface
@@ -14,6 +15,8 @@ import java.sql.Connection
 import java.sql.Date
 import java.sql.Types
 import java.util.*
+
+private val objectMapper = jacksonObjectMapper()
 
 class PsqlContainer : PostgreSQLContainer<PsqlContainer>("postgres:17-alpine")
 
@@ -144,16 +147,14 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             narmeste_leder_fnr,
             organisasjonsnummer,
             content,
-            evalueringsdato,
             created_at,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
         ON CONFLICT (narmeste_leder_id) DO UPDATE SET
             sykmeldt_fnr = EXCLUDED.sykmeldt_fnr,
             narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
             organisasjonsnummer = EXCLUDED.organisasjonsnummer,
             content = EXCLUDED.content,
-            evalueringsdato = EXCLUDED.evalueringsdato,
             updated_at = NOW()
     """.trimIndent()
 
@@ -163,8 +164,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             it.setString(2, persistedOppfolgingsplanUtkast.narmesteLederId)
             it.setString(3, persistedOppfolgingsplanUtkast.narmesteLederFnr)
             it.setString(4, persistedOppfolgingsplanUtkast.organisasjonsnummer)
-            it.setObject(5, persistedOppfolgingsplanUtkast.content?.toJsonString(), Types.OTHER)
-            it.setDate(6, Date.valueOf(persistedOppfolgingsplanUtkast.evalueringsdato.toString()))
+            it.setObject(5, objectMapper.writeValueAsString(persistedOppfolgingsplanUtkast.content), Types.OTHER)
             it.executeUpdate()
         }
         connection.commit()

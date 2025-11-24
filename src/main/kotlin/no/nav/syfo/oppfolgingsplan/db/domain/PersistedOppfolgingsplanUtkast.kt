@@ -7,9 +7,7 @@ import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.UtkastMetadata
 import no.nav.syfo.oppfolgingsplan.dto.UtkastResponseData
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
-import java.time.LocalDate
 import java.util.*
 
 data class PersistedOppfolgingsplanUtkast(
@@ -18,8 +16,7 @@ data class PersistedOppfolgingsplanUtkast(
     val narmesteLederId: String,
     val narmesteLederFnr: String,
     val organisasjonsnummer: String,
-    val content: FormSnapshot?,
-    val evalueringsdato: LocalDate?,
+    val content: Map<String, String?>,
     val createdAt: Instant,
     val updatedAt: Instant,
 )

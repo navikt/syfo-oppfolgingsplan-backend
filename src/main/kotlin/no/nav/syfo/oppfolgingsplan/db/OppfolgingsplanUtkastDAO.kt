@@ -1,16 +1,16 @@
 package no.nav.syfo.oppfolgingsplan.db
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
-import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Types
 import java.util.*
+
+private val objectMapper = jacksonObjectMapper()
 
 fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     narmesteLederFnr: String,
@@ -25,16 +25,14 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             narmeste_leder_fnr,
             organisasjonsnummer,
             content,
-            evalueringsdato,
             created_at,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
+        ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
         ON CONFLICT (narmeste_leder_id) DO UPDATE SET
             sykmeldt_fnr = EXCLUDED.sykmeldt_fnr,
             narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
             organisasjonsnummer = EXCLUDED.organisasjonsnummer,
             content = EXCLUDED.content,
-            evalueringsdato = EXCLUDED.evalueringsdato,
             updated_at = NOW()
         RETURNING uuid
         """.trimIndent()
@@ -45,12 +43,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             preparedStatement.setString(2, sykmeldt.narmestelederId)
             preparedStatement.setString(3, narmesteLederFnr)
             preparedStatement.setString(4, sykmeldt.orgnummer)
-            preparedStatement.setObject(5, createUtkastRequest.content?.toJsonString(), Types.OTHER)
-            if (createUtkastRequest.evalueringsdato != null) {
-                preparedStatement.setDate(6, Date.valueOf(createUtkastRequest.evalueringsdato))
-            } else {
-                preparedStatement.setNull(6, Types.DATE)
-            }
+            preparedStatement.setObject(5, objectMapper.writeValueAsString(createUtkastRequest.content), Types.OTHER)
             val resultSet = preparedStatement.executeQuery()
             connection.commit()
             resultSet.next()
@@ -92,8 +85,7 @@ fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
         narmesteLederId = getString("narmeste_leder_id"),
         narmesteLederFnr = getString("narmeste_leder_fnr"),
         organisasjonsnummer = getString("organisasjonsnummer"),
-        content = FormSnapshot.jsonToFormSnapshot(getString("content")),
-        evalueringsdato = getDate("evalueringsdato")?.toLocalDate(),
+        content = objectMapper.readValue(getString("content")),
         createdAt = getTimestamp("created_at").toInstant(),
         updatedAt = getTimestamp("updated_at").toInstant()
     )
