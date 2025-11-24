@@ -518,23 +518,14 @@ components:
     CreateUtkastRequest:
       type: "object"
       properties:
-        sykmeldtFnr:
-          type: "string"
-        narmesteLederFnr:
-          type: "string"
-        orgnummer:
-          type: "string"
         content:
-          nullable: true
-          $ref: "#/components/schemas/JsonNode"
-        evalueringsdato:
-          type: "string"
-          format: "date"
-          nullable: true
+          type: "object"
+          additionalProperties:
+            type: "string"
+            nullable: true
+          description: "Key-value pairs where keys are field identifiers and values are strings or null"
       required:
-        - "sykmeldtFnr"
-        - "narmesteLederFnr"
-        - "orgnummer"
+        - "content"
     SykmeldtOppfolgingsplanOverview:
       type: "object"
       properties:

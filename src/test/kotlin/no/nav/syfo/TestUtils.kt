@@ -30,10 +30,23 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.*
 
-fun defaultUtkast() = CreateUtkastRequest(
-    content = defaultFormSnapshot(),
-    evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
+fun defaultUtkastMap(): Map<String, String?> = mapOf(
+    "typiskArbeidshverdag" to "Dette skrev jeg forrige gang. Kjekt at det blir lagret i et utkast.",
+    "arbeidsoppgaverSomKanUtfores" to "df",
+    "arbeidsoppgaverSomIkkeKanUtfores" to "df",
+    "tidligereTilrettelegging" to "asdf",
+    "tilretteleggingFremover" to "qwer",
+    "annenTilrettelegging" to "rt",
+    "hvordanFolgeOpp" to "df",
+    "evalueringsDato" to "2025-11-24T23:00:00.000Z",
+    "harDenAnsatteMedvirket" to null,
+    "denAnsatteHarIkkeMedvirketBegrunnelse" to ""
 )
+
+fun defaultUtkastRequest(mutate: MutableMap<String, String?>.() -> Unit = {}): CreateUtkastRequest =
+    CreateUtkastRequest(
+        content = defaultUtkastMap().toMutableMap().apply(mutate),
+    )
 
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
     content = defaultFormSnapshot(),
@@ -62,8 +75,7 @@ fun defaultPersistedOppfolgingsplanUtkast() = PersistedOppfolgingsplanUtkast(
     narmesteLederId = UUID.randomUUID().toString(),
     narmesteLederFnr = "10987654321",
     organisasjonsnummer = "orgnummer",
-    content = defaultFormSnapshot(),
-    evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
+    content = defaultUtkastMap(),
     createdAt = Instant.now(),
     updatedAt = Instant.now(),
 )
@@ -76,6 +88,7 @@ fun defaultSykmeldt() = Sykmeldt(
     sykmeldinger = listOf(DineSykmeldteSykmelding("Test AS")),
     true,
 )
+
 
 fun defaultFormSnapshot() = FormSnapshot(
     formIdentifier = "oppfolgingsplan",

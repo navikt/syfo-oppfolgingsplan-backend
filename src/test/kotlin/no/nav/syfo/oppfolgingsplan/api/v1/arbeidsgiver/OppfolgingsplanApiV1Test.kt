@@ -36,7 +36,7 @@ import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
-import no.nav.syfo.defaultUtkast
+import no.nav.syfo.defaultUtkastRequest
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
@@ -332,7 +332,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
-                    createUtkastRequest = defaultUtkast()
+                    createUtkastRequest = defaultUtkastRequest()
                 )
 
                 // Act
@@ -405,7 +405,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
-                    createUtkastRequest = defaultUtkast()
+                    createUtkastRequest = defaultUtkastRequest()
                 )
 
                 val existingUtkast = testDb.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
@@ -452,7 +452,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             testDb.upsertOppfolgingsplanUtkast(
                 narmesteLederFnr = pidInnlogetBruker,
                 sykmeldt = sykmeldt,
-                createUtkastRequest = defaultUtkast()
+                createUtkastRequest = defaultUtkastRequest()
             )
 
             val oppfolgingsplan = defaultOppfolgingsplan()

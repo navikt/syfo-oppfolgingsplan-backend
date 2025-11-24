@@ -25,10 +25,9 @@ import io.mockk.every
 import io.mockk.mockk
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.valkey.ValkeyCache
-import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultSykmeldt
-import no.nav.syfo.defaultUtkast
+import no.nav.syfo.defaultUtkastRequest
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
@@ -49,7 +48,6 @@ import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
-import java.time.LocalDate
 import java.util.*
 
 class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
@@ -121,7 +119,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
-                val utkast = defaultUtkast()
+                val utkast = defaultUtkastRequest()
 
                 // Act
                 val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
@@ -141,52 +139,46 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                     it.narmesteLederFnr shouldBe pidInnlogetBruker
                     it.organisasjonsnummer shouldBe "orgnummer"
                     it.content shouldNotBe null
-                    it.evalueringsdato shouldBe utkast.evalueringsdato
                 }
             }
         }
 
         it("PUT /oppfolgingsplaner/utkast overwrite existing draft") {
             withTestApplication {
-                // Arrange
                 texasClientMock.defaultMocks(pidInnlogetBruker)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
+                val initialUtkastRequest = defaultUtkastRequest { put("hvordanFolgeOpp", "initial value") }
+                val updatedUtkastRequest = defaultUtkastRequest { put("hvordanFolgeOpp", "updated value") }
+
                 val existingUUID = testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
-                    defaultUtkast()
-                        .copy(
-                            evalueringsdato = LocalDate.parse("2020-01-01")
-                        )
+                    initialUtkastRequest
                 )
 
-                // Act
+                val initialPersistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")!!
+                initialPersistedUtkast.content shouldBe initialUtkastRequest.content
+                initialPersistedUtkast.content["hvordanFolgeOpp"] shouldBe "initial value"
+
                 val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
                     bearerAuth("Bearer token")
                     contentType(ContentType.Application.Json)
-                    setBody(
-                        defaultUtkast().copy(
-                            evalueringsdato = LocalDate.parse("2020-01-02")
-                        )
-                    )
+                    setBody(updatedUtkastRequest)
                 }
 
-                // Assert
                 response.status shouldBe HttpStatusCode.OK
 
-                val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
-                persisted shouldNotBe null
-                persisted?.let {
-                    it.uuid shouldBe existingUUID
-                    it.sykmeldtFnr shouldBe sykmeldt.fnr
-                    it.narmesteLederId shouldBe narmestelederId
-                    it.narmesteLederFnr shouldBe pidInnlogetBruker
-                    it.organisasjonsnummer shouldBe sykmeldt.orgnummer
-                    it.content shouldBe defaultFormSnapshot()
-                    it.evalueringsdato shouldBe LocalDate.parse("2020-01-02")
-                }
+                val updatedPersistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")!!
+                updatedPersistedUtkast shouldNotBe null
+                updatedPersistedUtkast.uuid shouldBe existingUUID
+                updatedPersistedUtkast.sykmeldtFnr shouldBe sykmeldt.fnr
+                updatedPersistedUtkast.narmesteLederId shouldBe narmestelederId
+                updatedPersistedUtkast.narmesteLederFnr shouldBe pidInnlogetBruker
+                updatedPersistedUtkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
+                updatedPersistedUtkast.content shouldBe updatedUtkastRequest.content
+                updatedPersistedUtkast.content["hvordanFolgeOpp"] shouldBe "updated value"
             }
         }
 
@@ -197,7 +189,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
-                val requestUtkast = defaultUtkast()
+                val requestUtkast = defaultUtkastRequest()
                 testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
@@ -213,7 +205,37 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 response.status shouldBe HttpStatusCode.OK
                 val utkastResponse = response.body<OppfolgingsplanUtkastResponse>()
                 utkastResponse shouldNotBe null
-                utkastResponse.utkast?.content shouldBe defaultFormSnapshot()
+                utkastResponse.utkast?.content shouldBe requestUtkast.content
+            }
+        }
+
+        it("PUT /oppfolgingsplaner/utkast should handle null values correctly") {
+            withTestApplication {
+                texasClientMock.defaultMocks(pidInnlogetBruker)
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                val utkastWithNulls = defaultUtkastRequest {
+                    put("evalueringsDato", null)
+                    put("harDenAnsatteMedvirket", null)
+                    put("arbeidsoppgaverSomIkkeKanUtfores", "")
+                    put("tidligereTilrettelegging", "")
+                }
+
+                val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
+                    bearerAuth("Bearer token")
+                    contentType(ContentType.Application.Json)
+                    setBody(utkastWithNulls)
+                }
+
+                response.status shouldBe HttpStatusCode.OK
+
+                val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")!!
+                persisted.content shouldBe utkastWithNulls.content
+                persisted.content["evalueringsDato"] shouldBe null
+                persisted.content["harDenAnsatteMedvirket"] shouldBe null
+                persisted.content["arbeidsoppgaverSomIkkeKanUtfores"] shouldBe ""
+                persisted.content["tidligereTilrettelegging"] shouldBe ""
+                persisted.content["typiskArbeidshverdag"] shouldBe "Dette skrev jeg forrige gang. Kjekt at det blir lagret i et utkast."
             }
         }
     }
