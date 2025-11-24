@@ -12,7 +12,6 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.util.logger
 import java.time.Instant
-import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -51,7 +50,7 @@ class ArkivportenService(
 
 fun PersistedOppfolgingsplan.toArkivportenDocument(content: ByteArray, dateFormatter: DateTimeFormatter) = Document(
     documentId = this.uuid,
-    orgnumber = this.organisasjonsnummer,
+    orgNumber = this.organisasjonsnummer,
     content = content,
     contentType = "application/pdf",
     type = DocumentType.OPPFOLGINGSPLAN,

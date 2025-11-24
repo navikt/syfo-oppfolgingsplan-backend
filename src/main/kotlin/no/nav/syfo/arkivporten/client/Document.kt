@@ -7,7 +7,7 @@ data class Document(
     val type: DocumentType,
     val content: ByteArray,
     val contentType: String,
-    val orgnumber: String,
+    val orgNumber: String,
     val fnr: String,
     val fullName: String,
     val title: String,
