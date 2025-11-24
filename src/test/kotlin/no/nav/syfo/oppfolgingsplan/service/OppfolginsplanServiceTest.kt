@@ -65,7 +65,7 @@ class OppfolginsplanServiceTest : DescribeSpec({
                 // Assert
                 result.narmesteLederFullName shouldBe "Ola Nordmann"
                 val fromDb = service.getPersistedOppfolgingsplanByUuid(persistedPlan.uuid)
-                fromDb?.narmesteLederFullName shouldBe "Ola Nordmann"
+                fromDb.narmesteLederFullName shouldBe "Ola Nordmann"
                 coVerify(exactly = 1) { pdlServive.getNameFor(any()) }
             }
 

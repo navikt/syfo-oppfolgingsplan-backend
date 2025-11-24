@@ -127,7 +127,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
             val persistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
-                ?: throw PlanNotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 persistedOppfolgingsplan.sykmeldtFnr,
@@ -153,7 +152,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
             val oppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
-                ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 oppfolgingsplan.sykmeldtFnr,
@@ -190,7 +188,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
             val oppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
-                ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 oppfolgingsplan.sykmeldtFnr,
@@ -220,7 +217,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
             val persistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
-                ?: throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 persistedOppfolgingsplan.sykmeldtFnr,
