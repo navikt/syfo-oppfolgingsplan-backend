@@ -498,6 +498,39 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             response.status shouldBe HttpStatusCode.NotFound
             val apiError = response.body<ApiError>()
             apiError.message shouldBe "Oppfolgingsplan not found for uuid: $uuid"
+            apiError.type shouldBe ErrorType.PLAN_NOT_FOUND
+        }
+    }
+
+    it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with LEGE_NOT_FOUND if couldnt send to lege") {
+        withTestApplication {
+            // Arrange
+            texasClientMock.defaultMocks(pidInnlogetBruker)
+
+            dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+            coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
+
+            coEvery {
+                isDialogmeldingClientMock.sendOppfolgingsplanToGeneralPractitioner(any(), any(), any())
+            } throws LegeNotFoundException("Lege not found for sykmeldt")
+
+            val uuid = testDb.persistOppfolgingsplan(
+                defaultPersistedOppfolgingsplan()
+                    .copy(narmesteLederId = narmestelederId)
+            )
+            // Act
+            val response = client.post {
+                url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$uuid/del-med-lege")
+                bearerAuth("Bearer token")
+            }
+            // Assert
+            val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
+            plan.skalDelesMedLege shouldBe true
+            plan.deltMedLegeTidspunkt shouldBe null
+
+            response.status shouldBe HttpStatusCode.NotFound
+            val apiError = response.body<ApiError>()
             apiError.type shouldBe ErrorType.LEGE_NOT_FOUND
         }
     }
