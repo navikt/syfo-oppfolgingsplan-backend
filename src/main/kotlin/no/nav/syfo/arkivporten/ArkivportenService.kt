@@ -12,6 +12,7 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.util.logger
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
@@ -54,12 +55,16 @@ fun PersistedOppfolgingsplan.toArkivportenDocument(content: ByteArray, dateForma
     content = content,
     contentType = "application/pdf",
     type = DocumentType.OPPFOLGINGSPLAN,
-    dialogTitle = "Oppfølgingsplan for ${this.sykmeldtFullName}",
-    dialogSummary = getDialogSummary(dateFormatter),
+    title = title(),
+    summary = summary(dateFormatter),
+    fnr = this.sykmeldtFnr,
+    fullName = this.sykmeldtFullName,
 )
 
-fun PersistedOppfolgingsplan.getDialogSummary(dateFormatter: DateTimeFormatter): String =
-    narmesteLederFullName?.let {
-        "Oppfølgingsplan opprettet den ${dateFormatter.format(this.createdAt)} " +
-                "av ${this.narmesteLederFullName}"
-    } ?: "Oppfølgingsplan opprettet den ${dateFormatter.format(this.createdAt)}"
+fun PersistedOppfolgingsplan.title(): String =
+    "Oppfølgingsplan for ${this.sykmeldtFullName}"
+
+fun PersistedOppfolgingsplan.summary(dateFormatter: DateTimeFormatter): String =
+    this.narmesteLederFullName?.let {
+    "${this.narmesteLederFullName} har opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${dateFormatter.format(this.createdAt)}"
+} ?: "Det er opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${dateFormatter.format(this.createdAt)}"
