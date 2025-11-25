@@ -2,6 +2,7 @@ package no.nav.syfo.oppfolgingsplan.dto.formsnapshot
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import java.io.Serializable
+import java.time.LocalDate
 
 // The kdoc comments are written in regard to FormSnapshot being used in a general context,
 // not specifically for the motebehov use case.
@@ -104,6 +105,15 @@ data class RadioGroupFieldSnapshot(
     val wasRequired: Boolean? = true,
 ) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.RADIO_GROUP, label, description, sectionId)
 
+data class DateFieldSnapshot(
+    override val fieldId: String,
+    override val label: String,
+    override val description: String? = null,
+    override val sectionId: String? = null,
+    val value: LocalDate,
+    val wasRequired: Boolean? = true,
+) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.DATE, label, description, sectionId)
+
 data class FormSnapshotFieldOption(
     val optionId: String,
     val optionLabel: String,
@@ -114,7 +124,8 @@ enum class FormSnapshotFieldType(val type: String) {
     TEXT("text"),
     CHECKBOX_SINGLE("checkboxSingle"),
     CHECKBOX("checkbox"),
-    RADIO_GROUP("radioGroup")
+    RADIO_GROUP("radioGroup"),
+    DATE("date"),
 }
 
 data class FormSection(

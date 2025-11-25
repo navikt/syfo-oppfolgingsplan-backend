@@ -4,8 +4,10 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshotFieldOption
@@ -20,9 +22,21 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
         it("should map all fields and sections including radio group and duplicate text fields") {
             val createdAt = Instant.parse("2024-06-01T22:30:00Z") // converts to 2024-06-02 Europe/Oslo (CEST +02)
             val evalueringsdato = LocalDate.parse("2024-08-15")
+
+            val formSnapshot = defaultFormSnapshot().copy(
+                fieldSnapshots = defaultFormSnapshot().fieldSnapshots.map { field ->
+                    if (field is DateFieldSnapshot && field.fieldId == "evalueringsDato") {
+                        field.copy(value = evalueringsdato)
+                    } else {
+                        field
+                    }
+                }
+            )
+
             val plan = defaultPersistedOppfolgingsplan().copy(
                 createdAt = createdAt,
-                evalueringsdato = evalueringsdato
+                evalueringsdato = evalueringsdato,
+                content = formSnapshot
             )
 
             val pdf = plan.toOppfolginsplanPdfV1()
@@ -52,10 +66,14 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
 
             sections[1].id shouldBe "tilpassninger"
             sections[1].title shouldBe "Tilpassninger"
-            // Radio group snapshot -> single selected option label
-            sections[1].inputFields.shouldHaveSize(1)
+            // Radio group snapshot -> single selected option label, plus date field
+            sections[1].inputFields.shouldHaveSize(2)
             sections[1].inputFields[0].id shouldBe "arbeidsgiver"
             sections[1].inputFields[0].value shouldBe "Dette er option 2"
+            // DateFieldSnapshot should be formatted as dd.MM.yyyy
+            sections[1].inputFields[1].id shouldBe "evalueringsDato"
+            sections[1].inputFields[1].title shouldBe "Evalueringsdato"
+            sections[1].inputFields[1].value shouldBe "15.08.2024"
         }
 
         it("should map checkbox field values joined with newline in original order") {
@@ -149,6 +167,37 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             fields[0].title shouldBe "Single Checkbox field"
             fields[0].description shouldBe "desc"
             fields[0].value shouldBe "Ja"
+        }
+
+        it("should format DateFieldSnapshot value as dd.MM.yyyy in PDF") {
+            val testDate = LocalDate.of(2025, 11, 25)
+            val formSnapshot = FormSnapshot(
+                formIdentifier = "oppfolgingsplan",
+                formSemanticVersion = "1.0.0",
+                formSnapshotVersion = "2.0.0",
+                sections = listOf(
+                    FormSection("dateSection", "Date Section")
+                ),
+                fieldSnapshots = listOf(
+                    DateFieldSnapshot(
+                        fieldId = "testDate",
+                        label = "Test Date",
+                        description = "A test date",
+                        sectionId = "dateSection",
+                        value = testDate,
+                        wasRequired = true
+                    )
+                )
+            )
+            val plan = defaultPersistedOppfolgingsplan().copy(content = formSnapshot)
+
+            val pdf = plan.toOppfolginsplanPdfV1()
+
+            val fields = pdf.oppfolgingsplan.sections[0].inputFields
+            fields.shouldHaveSize(1)
+            fields[0].id shouldBe "testDate"
+            fields[0].title shouldBe "Test Date"
+            fields[0].value shouldBe "25.11.2025"
         }
     }
 })

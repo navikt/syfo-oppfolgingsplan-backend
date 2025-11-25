@@ -17,6 +17,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshotFieldOption
@@ -141,6 +142,14 @@ fun defaultFormSnapshot() = FormSnapshot(
                     wasSelected = false
                 ),
             ),
+            wasRequired = true
+        ),
+        DateFieldSnapshot(
+            fieldId = "evalueringsDato",
+            sectionId = "tilpassninger",
+            label = "Evalueringsdato",
+            value = LocalDate.now().plusDays(30),
+            description = "Dato for når oppfølgingsplanen skal evalueres",
             wasRequired = true
         )
     )

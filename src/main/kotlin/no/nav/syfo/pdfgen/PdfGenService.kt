@@ -4,6 +4,7 @@ import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
@@ -69,6 +70,8 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 {
                                     is CheckboxFieldSnapshot -> fieldSnapshot.options
                                         .filter { it.wasSelected }
                                         .joinToString("\n") { it.optionLabel }
+
+                                    is DateFieldSnapshot -> fieldSnapshot.value.format(formatter)
 
                                     else -> throw IllegalArgumentException("Unknown field type: ${fieldSnapshot.fieldType}")
                                 }

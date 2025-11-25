@@ -16,6 +16,7 @@ fun FormSnapshot.validateFields() {
                     require(fieldSnapshot.value.isNotBlank()) { "Text field value must not be blank" }
                 }
             }
+
             is CheckboxFieldSnapshot -> {
                 require(fieldSnapshot.options.isNotEmpty()) { "Checkbox field must have at least one option" }
                 fieldSnapshot.options.forEach { option ->
@@ -44,6 +45,15 @@ fun FormSnapshot.validateFields() {
                         "At most one option can be selected for a non-required radio group field"
                     }
                 }
+            }
+
+            is DateFieldSnapshot -> {
+                // Date validation - LocalDate is always valid, no additional validation needed
+                // Could add future/past date validation here if needed
+            }
+
+            is SingleCheckboxFieldSnapshot -> {
+                // SingleCheckboxFieldSnapshot has no additional validation requirements
             }
         }
     }
