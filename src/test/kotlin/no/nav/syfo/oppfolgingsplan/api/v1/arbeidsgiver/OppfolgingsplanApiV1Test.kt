@@ -665,7 +665,8 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
 
-            coEvery { dokarkivServiceMock.arkiverOppfolginsplan(any(), any()) } returns UUID.randomUUID().toString()
+            val randomJournalpostId = UUID.randomUUID().toString()
+            coEvery { dokarkivServiceMock.arkiverOppfolginsplan(any(), any()) } returns randomJournalpostId
 
             val uuid = testDb.persistOppfolgingsplan(
                 defaultPersistedOppfolgingsplan()
@@ -681,6 +682,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
             plan.skalDelesMedVeileder shouldBe true
             plan.deltMedVeilederTidspunkt shouldNotBe null
+            plan.journalpostId shouldBe randomJournalpostId
             coVerify(exactly = 1) {
                 dokarkivServiceMock.arkiverOppfolginsplan(any(), any())
             }

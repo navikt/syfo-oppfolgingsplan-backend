@@ -14,7 +14,8 @@ import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
-import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
@@ -105,7 +106,14 @@ class OppfolgingsplanService(
         uuid: UUID,
         deltMedVeilederTidspunkt: Instant
     ) {
-        database.setDeltMedVeilderTidspunkt(uuid, deltMedVeilederTidspunkt)
+        database.setDeltMedVeilederTidspunkt(uuid, deltMedVeilederTidspunkt)
+    }
+
+    fun setJournalpostId(
+        uuid: UUID,
+        journalpostId: String,
+    ) {
+        database.setJournalpostId(uuid, journalpostId)
     }
 
     fun getAktivplanForSykmeldt(sykmeldt: Sykmeldt): PersistedOppfolgingsplan? {

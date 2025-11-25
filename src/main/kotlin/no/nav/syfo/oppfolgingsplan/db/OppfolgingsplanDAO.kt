@@ -210,7 +210,7 @@ fun DatabaseInterface.setDeltMedLegeTidspunkt(
     }
 }
 
-fun DatabaseInterface.setDeltMedVeilderTidspunkt(
+fun DatabaseInterface.setDeltMedVeilederTidspunkt(
     uuid: UUID,
     deltMedVeilederTidspunkt: Instant,
 ) {
@@ -223,6 +223,26 @@ fun DatabaseInterface.setDeltMedVeilderTidspunkt(
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setTimestamp(1, Timestamp.from(deltMedVeilederTidspunkt))
+            preparedStatement.setObject(2, uuid)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
+
+fun DatabaseInterface.setJournalpostId(
+    uuid: UUID,
+    journalpostId: String,
+) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET journalpost_id = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, journalpostId)
             preparedStatement.setObject(2, uuid)
             preparedStatement.executeUpdate()
         }
@@ -308,6 +328,7 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
         skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),
         deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),
+        journalpostId = this.getString("journalpost_id"),
         deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
         utkastCreatedAt = this.getTimestamp("utkast_created_at")?.toInstant(),
         createdAt = getTimestamp("created_at").toInstant(),
