@@ -1,10 +1,12 @@
 package no.nav.syfo.oppfolgingsplan.service
 
+import io.ktor.server.plugins.BadRequestException
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
+import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
@@ -66,6 +68,16 @@ class OppfolgingsplanService(
             sykmeldt,
             utkast
         )
+    }
+
+    fun deleteOppfolgingsplanUtkast(sykmeldt: Sykmeldt) {
+        if (sykmeldt.aktivSykmelding != true) {
+            throw BadRequestException(
+                "Cannot delete oppfolgingsplan utkast for sykmeldt without active sykmelding"
+            )
+        }
+
+        database.deleteOppfolgingsplanUtkast(sykmeldt)
     }
 
     fun getPersistedOppfolgingsplanUtkast(sykmeldt: Sykmeldt): PersistedOppfolgingsplanUtkast? {
