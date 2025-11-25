@@ -66,7 +66,7 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
 
             sections[1].id shouldBe "tilpassninger"
             sections[1].title shouldBe "Tilpassninger"
-            // Radio group snapshot -> single selected option label, plus date field
+            // Radio group snapshot -> single selected option label
             sections[1].inputFields.shouldHaveSize(2)
             sections[1].inputFields[0].id shouldBe "arbeidsgiver"
             sections[1].inputFields[0].value shouldBe "Dette er option 2"
