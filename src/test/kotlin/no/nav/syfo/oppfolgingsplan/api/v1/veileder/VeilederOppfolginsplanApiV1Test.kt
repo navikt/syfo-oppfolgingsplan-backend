@@ -38,7 +38,7 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
-import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilderTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
@@ -202,7 +202,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                         )
                     )
                     testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
-                    testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
+                    testDb.setDeltMedVeilederTidspunkt(firstPlanUUID, Instant.now())
                     testDb.persistOppfolgingsplan(
                         defaultPersistedOppfolgingsplan().copy(
                             narmesteLederId = narmestelederId,
@@ -280,7 +280,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                     )
                 )
                 testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
-                testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
+                testDb.setDeltMedVeilederTidspunkt(firstPlanUUID, Instant.now())
                 testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
                         narmesteLederId = narmestelederId,
@@ -319,7 +319,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                     )
                 )
                 testDb.updateSkalDelesMedVeileder(firstPlanUUID, true)
-                testDb.setDeltMedVeilderTidspunkt(firstPlanUUID, Instant.now())
+                testDb.setDeltMedVeilederTidspunkt(firstPlanUUID, Instant.now())
                 testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
                         narmesteLederId = narmestelederId,

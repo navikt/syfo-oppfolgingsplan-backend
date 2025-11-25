@@ -25,6 +25,7 @@ data class PersistedOppfolgingsplan(
     val skalDelesMedVeileder: Boolean,
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
+    val journalpostId: String? = null,
     val utkastCreatedAt: Instant? = null,
     val createdAt: Instant,
     val sendtTilArkivportenTidspunkt: Instant? = null,

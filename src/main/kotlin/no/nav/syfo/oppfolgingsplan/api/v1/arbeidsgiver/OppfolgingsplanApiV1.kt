@@ -203,8 +203,9 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
             try {
-                dokarkivService.arkiverOppfolginsplan(oppfolgingsplan, pdfByteArray)
+                val journalpostId = dokarkivService.arkiverOppfolginsplan(oppfolgingsplan, pdfByteArray)
                 oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
+                oppfolgingsplanService.setJournalpostId(uuid, journalpostId)
                 call.respond(HttpStatusCode.OK)
             } catch (e: Exception) {
                 logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)
