@@ -3,9 +3,9 @@ package no.nav.syfo.oppfolgingsplan.dto
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshotFieldType
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
@@ -21,19 +21,18 @@ class DateFieldSnapshotTest : DescribeSpec({
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
                 sections = listOf(
-                    FormSection(
+                    Section(
                         sectionId = "dates",
-                        sectionTitle = "Date Section"
-                    )
-                ),
-                fieldSnapshots = listOf(
-                    DateFieldSnapshot(
-                        fieldId = "testDate",
-                        label = "Test Date",
-                        description = "A test date field",
-                        sectionId = "dates",
-                        value = originalDate,
-                        wasRequired = true
+                        sectionTitle = "Date Section",
+                        sectionFields = listOf(
+                            DateFieldSnapshot(
+                                fieldId = "testDate",
+                                label = "Test Date",
+                                description = "A test date field",
+                                value = originalDate,
+                                wasRequired = true
+                            )
+                        )
                     )
                 )
             )
@@ -49,12 +48,12 @@ class DateFieldSnapshotTest : DescribeSpec({
             val deserializedSnapshot = FormSnapshot.jsonToFormSnapshot(jsonString)
 
             // Verify the snapshot is correctly deserialized
-            deserializedSnapshot.fieldSnapshots.size shouldBe 1
-            val dateField = deserializedSnapshot.fieldSnapshots[0] as DateFieldSnapshot
+            deserializedSnapshot.sections.size shouldBe 1
+            deserializedSnapshot.sections[0].sectionFields.size shouldBe 1
+            val dateField = deserializedSnapshot.sections[0].sectionFields[0] as DateFieldSnapshot
             dateField.fieldId shouldBe "testDate"
             dateField.label shouldBe "Test Date"
             dateField.description shouldBe "A test date field"
-            dateField.sectionId shouldBe "dates"
             dateField.value shouldBe originalDate
             dateField.wasRequired shouldBe true
             dateField.fieldType shouldBe FormSnapshotFieldType.DATE
@@ -67,21 +66,24 @@ class DateFieldSnapshotTest : DescribeSpec({
                 formIdentifier = "multi-date-form",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
-                sections = listOf(FormSection("s1", "Section 1")),
-                fieldSnapshots = listOf(
-                    DateFieldSnapshot(
-                        fieldId = "startDate",
-                        label = "Start Date",
+                sections = listOf(
+                    Section(
                         sectionId = "s1",
-                        value = date1,
-                        wasRequired = true
-                    ),
-                    DateFieldSnapshot(
-                        fieldId = "endDate",
-                        label = "End Date",
-                        sectionId = "s1",
-                        value = date2,
-                        wasRequired = false
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            DateFieldSnapshot(
+                                fieldId = "startDate",
+                                label = "Start Date",
+                                value = date1,
+                                wasRequired = true
+                            ),
+                            DateFieldSnapshot(
+                                fieldId = "endDate",
+                                label = "End Date",
+                                value = date2,
+                                wasRequired = false
+                            )
+                        )
                     )
                 )
             )
@@ -89,9 +91,10 @@ class DateFieldSnapshotTest : DescribeSpec({
             val jsonString = snapshot.toJsonString()
             val deserialized = FormSnapshot.jsonToFormSnapshot(jsonString)
 
-            deserialized.fieldSnapshots.size shouldBe 2
-            val startDateField = deserialized.fieldSnapshots[0] as DateFieldSnapshot
-            val endDateField = deserialized.fieldSnapshots[1] as DateFieldSnapshot
+            deserialized.sections.size shouldBe 1
+            deserialized.sections[0].sectionFields.size shouldBe 2
+            val startDateField = deserialized.sections[0].sectionFields[0] as DateFieldSnapshot
+            val endDateField = deserialized.sections[0].sectionFields[1] as DateFieldSnapshot
 
             startDateField.value shouldBe date1
             startDateField.wasRequired shouldBe true
@@ -105,25 +108,27 @@ class DateFieldSnapshotTest : DescribeSpec({
                 formIdentifier = "mixed-form",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
-                sections = listOf(FormSection("s1", "Section 1")),
-                fieldSnapshots = listOf(
-                    TextFieldSnapshot(
-                        fieldId = "text1",
-                        label = "Text Field",
+                sections = listOf(
+                    Section(
                         sectionId = "s1",
-                        value = "Some text"
-                    ),
-                    DateFieldSnapshot(
-                        fieldId = "date1",
-                        label = "Date Field",
-                        sectionId = "s1",
-                        value = testDate
-                    ),
-                    SingleCheckboxFieldSnapshot(
-                        fieldId = "checkbox1",
-                        label = "Checkbox",
-                        sectionId = "s1",
-                        value = true
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            TextFieldSnapshot(
+                                fieldId = "text1",
+                                label = "Text Field",
+                                value = "Some text"
+                            ),
+                            DateFieldSnapshot(
+                                fieldId = "date1",
+                                label = "Date Field",
+                                value = testDate
+                            ),
+                            SingleCheckboxFieldSnapshot(
+                                fieldId = "checkbox1",
+                                label = "Checkbox",
+                                value = true
+                            )
+                        )
                     )
                 )
             )
@@ -131,8 +136,9 @@ class DateFieldSnapshotTest : DescribeSpec({
             val jsonString = snapshot.toJsonString()
             val deserialized = FormSnapshot.jsonToFormSnapshot(jsonString)
 
-            deserialized.fieldSnapshots.size shouldBe 3
-            val dateField = deserialized.fieldSnapshots[1] as DateFieldSnapshot
+            deserialized.sections.size shouldBe 1
+            deserialized.sections[0].sectionFields.size shouldBe 3
+            val dateField = deserialized.sections[0].sectionFields[1] as DateFieldSnapshot
             dateField.value shouldBe testDate
         }
     }

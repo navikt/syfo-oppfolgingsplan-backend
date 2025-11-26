@@ -18,10 +18,10 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshotFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadiogroupFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
@@ -96,63 +96,59 @@ fun defaultFormSnapshot() = FormSnapshot(
     formSemanticVersion = "1.0.0",
     formSnapshotVersion = "2.0.0",
     sections = listOf(
-        FormSection(
+        Section(
             sectionId = "arbeidsoppgaver",
             sectionTitle = "Arbeidsoppgaver",
+            sectionFields = listOf(
+                TextFieldSnapshot(
+                    fieldId = "vanligArbeidsdag",
+                    value = "Jeg skriver litt om min vanlige arbeidsdag her",
+                    label = "Hvordan ser en vanlig arbeidsdag ut?",
+                    description = "Beskriv en vanlig arbeidsdag og hvilke oppgaver arbeidstaker gjør på jobben"
+                ),
+                TextFieldSnapshot(
+                    fieldId = "ordinæreArbeidsoppgaver",
+                    value = "Jeg skriver litt om mine ordinære arbeidsoppgaver her",
+                    label = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?",
+                    description = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?"
+                ),
+            )
         ),
-        FormSection(
-            sectionId = "tilpassninger",
-            sectionTitle = "Tilpassninger",
+        Section(
+            sectionId = "tilpasninger",
+            sectionTitle = "Tilpasninger",
+            sectionFields = listOf(
+                RadioGroupFieldSnapshot(
+                    fieldId = "arbeidsgiver",
+                    label = "Dette er tittelen på en radio gruppe",
+                    description = "Dette er en beskrivelse av radio gruppen",
+                    options = listOf(
+                        RadiogroupFieldOption(
+                            optionId = "option1",
+                            optionLabel = "Dette er option 1",
+                        ),
+                        RadiogroupFieldOption(
+                            optionId = "option2",
+                            optionLabel = "Dette er option 2",
+                        ),
+                        RadiogroupFieldOption(
+                            optionId = "option3",
+                            optionLabel = "Dette er option 3",
+                        ),
+                    ),
+                    selectedOptionId = "option2",
+                    wasRequired = true
+                ),
+                DateFieldSnapshot(
+                    fieldId = "evalueringsDato",
+                    label = "Evalueringsdato",
+                    value = LocalDate.now().plusDays(30),
+                    description = "Dato for når oppfølgingsplanen skal evalueres",
+                    wasRequired = true
+                )
+            )
         ),
     ),
-    fieldSnapshots = listOf(
-        TextFieldSnapshot(
-            fieldId = "vanligArbeidsdag",
-            sectionId = "arbeidsoppgaver",
-            value = "Jeg skriver litt om min vanlige arbeidsdag her",
-            label = "Hvordan ser en vanlig arbeidsdag ut?",
-            description = "Beskriv en vanlig arbeidsdag og hvilke oppgaver arbeidstaker gjør på jobben"
-        ),
-        TextFieldSnapshot(
-            fieldId = "ordinæreArbeidsoppgaver",
-            sectionId = "arbeidsoppgaver",
-            value = "Jeg skriver litt om mine ordinære arbeidsoppgaver her",
-            label = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?",
-            description = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?"
-        ),
-        RadioGroupFieldSnapshot(
-            fieldId = "arbeidsgiver",
-            sectionId = "tilpassninger",
-            label = "Dette er tittelen på en radio gruppe",
-            description = "Dette er en beskrivelse av radio gruppen",
-            options = listOf(
-                FormSnapshotFieldOption(
-                    optionId = "option1",
-                    optionLabel = "Dette er option 1",
-                    wasSelected = false
-                ),
-                FormSnapshotFieldOption(
-                    optionId = "option2",
-                    optionLabel = "Dette er option 2",
-                    wasSelected = true
-                ),
-                FormSnapshotFieldOption(
-                    optionId = "option3",
-                    optionLabel = "Dette er option 3",
-                    wasSelected = false
-                ),
-            ),
-            wasRequired = true
-        ),
-        DateFieldSnapshot(
-            fieldId = "evalueringsDato",
-            sectionId = "tilpassninger",
-            label = "Evalueringsdato",
-            value = LocalDate.now().plusDays(30),
-            description = "Dato for når oppfølgingsplanen skal evalueres",
-            wasRequired = true
-        )
-    )
 )
 
 fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "Level4", navident: String? = null) {

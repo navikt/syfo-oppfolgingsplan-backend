@@ -6,13 +6,12 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultPersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshotFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.pdfgen.toOppfolginsplanPdfV1
 import java.time.Instant
 import java.time.LocalDate
@@ -24,12 +23,16 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             val evalueringsdato = LocalDate.parse("2024-08-15")
 
             val formSnapshot = defaultFormSnapshot().copy(
-                fieldSnapshots = defaultFormSnapshot().fieldSnapshots.map { field ->
-                    if (field is DateFieldSnapshot && field.fieldId == "evalueringsDato") {
-                        field.copy(value = evalueringsdato)
-                    } else {
-                        field
-                    }
+                sections = defaultFormSnapshot().sections.map { section ->
+                    section.copy(
+                        sectionFields = section.sectionFields.map { field ->
+                            if (field is DateFieldSnapshot && field.fieldId == "evalueringsDato") {
+                                field.copy(value = evalueringsdato)
+                            } else {
+                                field
+                            }
+                        }
+                    )
                 }
             )
 
@@ -64,8 +67,8 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             sections[0].inputFields[1].id shouldBe "ordinæreArbeidsoppgaver"
             sections[0].inputFields[1].value shouldBe "Jeg skriver litt om mine ordinære arbeidsoppgaver her"
 
-            sections[1].id shouldBe "tilpassninger"
-            sections[1].title shouldBe "Tilpassninger"
+            sections[1].id shouldBe "tilpasninger"
+            sections[1].title shouldBe "Tilpasninger"
             // Radio group snapshot -> single selected option label
             sections[1].inputFields.shouldHaveSize(2)
             sections[1].inputFields[0].id shouldBe "arbeidsgiver"
@@ -82,18 +85,20 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
                 sections = listOf(
-                    FormSection("s1", "Section 1")
-                ),
-                fieldSnapshots = listOf(
-                    CheckboxFieldSnapshot(
-                        fieldId = "cb",
+                    Section(
                         sectionId = "s1",
-                        label = "Checkbox field",
-                        description = null,
-                        options = listOf(
-                            FormSnapshotFieldOption("a", "A", wasSelected = true),
-                            FormSnapshotFieldOption("b", "B", wasSelected = false),
-                            FormSnapshotFieldOption("c", "C", wasSelected = true)
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            CheckboxFieldSnapshot(
+                                fieldId = "cb",
+                                label = "Checkbox field",
+                                description = null,
+                                options = listOf(
+                                    CheckboxFieldOption("a", "A", wasSelected = true),
+                                    CheckboxFieldOption("b", "B", wasSelected = false),
+                                    CheckboxFieldOption("c", "C", wasSelected = true)
+                                )
+                            )
                         )
                     )
                 )
@@ -107,25 +112,18 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             fields[0].value shouldBe "A\nC"
         }
 
-        it("should throw when sections are missing") {
+        it("should handle empty sections list") {
             val formSnapshot = FormSnapshot(
                 formIdentifier = "oppfolgingsplan",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
-                sections = null, // triggers IllegalStateException in mapping
-                fieldSnapshots = listOf(
-                    TextFieldSnapshot(
-                        fieldId = "t1",
-                        sectionId = null,
-                        value = "some text",
-                        label = "Label",
-                        description = null
-                    )
-                )
+                sections = emptyList()
             )
             val plan = defaultPersistedOppfolgingsplan().copy(content = formSnapshot)
 
-            shouldThrow<IllegalStateException> { plan.toOppfolginsplanPdfV1() }
+            val pdf = plan.toOppfolginsplanPdfV1()
+
+            pdf.oppfolgingsplan.sections.shouldHaveSize(0)
         }
 
         it("should throw when organisasjonsnavn is null") {
@@ -146,15 +144,17 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
                 sections = listOf(
-                    FormSection("singlecb", "Single Checkbox Section")
-                ),
-                fieldSnapshots = listOf(
-                    SingleCheckboxFieldSnapshot(
-                        fieldId = "singlecb1",
-                        label = "Single Checkbox field",
-                        description = "desc",
+                    Section(
                         sectionId = "singlecb",
-                        value = true
+                        sectionTitle = "Single Checkbox Section",
+                        sectionFields = listOf(
+                            SingleCheckboxFieldSnapshot(
+                                fieldId = "singlecb1",
+                                label = "Single Checkbox field",
+                                description = "desc",
+                                value = true
+                            )
+                        )
                     )
                 )
             )
@@ -176,16 +176,18 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
                 sections = listOf(
-                    FormSection("dateSection", "Date Section")
-                ),
-                fieldSnapshots = listOf(
-                    DateFieldSnapshot(
-                        fieldId = "testDate",
-                        label = "Test Date",
-                        description = "A test date",
+                    Section(
                         sectionId = "dateSection",
-                        value = testDate,
-                        wasRequired = true
+                        sectionTitle = "Date Section",
+                        sectionFields = listOf(
+                            DateFieldSnapshot(
+                                fieldId = "testDate",
+                                label = "Test Date",
+                                description = "A test date",
+                                value = testDate,
+                                wasRequired = true
+                            )
+                        )
                     )
                 )
             )

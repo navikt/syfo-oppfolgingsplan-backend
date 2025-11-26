@@ -1,278 +1,210 @@
 package no.nav.syfo.oppfolgingsplan.dto
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSection
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshotFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadiogroupFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.validateFields
 
 class FormSnapshotValidateFieldsTest : DescribeSpec({
-    describe("FormSnapshot.validateFields - sections") {
-        it("passes when all sectionIds match defined sections") {
+    describe("FormSnapshot structure") {
+        it("can create snapshot with sections containing fields") {
             val snapshot = FormSnapshot(
                 formIdentifier = "f",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
                 sections = listOf(
-                    FormSection("s1", "Section 1"),
-                    FormSection("s2", "Section 2")
-                ),
-                fieldSnapshots = listOf(
-                    TextFieldSnapshot("t1", label = "L1", sectionId = "s1", value = "text"),
-                    TextFieldSnapshot("t2", label = "L2", sectionId = "s2", value = "text")
+                    Section(
+                        sectionId = "s1",
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            TextFieldSnapshot(fieldId = "t1", label = "L1", value = "text")
+                        )
+                    ),
+                    Section(
+                        sectionId = "s2",
+                        sectionTitle = "Section 2",
+                        sectionFields = listOf(
+                            TextFieldSnapshot(fieldId = "t2", label = "L2", value = "text")
+                        )
+                    )
                 )
             )
-            shouldNotThrowAny { snapshot.validateFields() }
+            shouldNotThrowAny { snapshot.sections.size shouldBe 2 }
         }
-        it("fails when a field references a non-existing section") {
+
+        it("can create snapshot with multiple field types in one section") {
             val snapshot = FormSnapshot(
                 formIdentifier = "f",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
-                sections = listOf(FormSection("s1", "Section 1")),
-                fieldSnapshots = listOf(
-                    TextFieldSnapshot("t1", label = "L1", sectionId = "does-not-exist", value = "text")
+                sections = listOf(
+                    Section(
+                        sectionId = "s1",
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            TextFieldSnapshot(fieldId = "t1", label = "Label", value = "text"),
+                            CheckboxFieldSnapshot(
+                                fieldId = "cb1",
+                                label = "Label",
+                                options = listOf(
+                                    CheckboxFieldOption(optionId = "o1", optionLabel = "Opt1", wasSelected = true)
+                                )
+                            ),
+                            RadioGroupFieldSnapshot(
+                                fieldId = "rg1",
+                                label = "Label",
+                                options = listOf(
+                                    RadiogroupFieldOption(optionId = "o1", optionLabel = "Opt1"),
+                                    RadiogroupFieldOption(optionId = "o2", optionLabel = "Opt2")
+                                ),
+                                selectedOptionId = "o1",
+                            )
+                        )
+                    )
                 )
             )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "field with fieldId t1 has sectionId does-not-exist which does not match any section"
+            shouldNotThrowAny {
+                snapshot.sections[0].sectionFields.size shouldBe 3
+            }
         }
     }
 
-    describe("TextFieldSnapshot validation") {
-        it("fails when required text field value is blank") {
+    describe("TextFieldSnapshot") {
+        it("can have blank value when optional") {
             val snapshot = FormSnapshot(
                 formIdentifier = "f",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    TextFieldSnapshot("t1", label = "Label", value = "", wasRequired = true)
+                sections = listOf(
+                    Section(
+                        sectionId = "s1",
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            TextFieldSnapshot(fieldId = "t1", label = "Label", value = "", wasRequired = false)
+                        )
+                    )
                 )
             )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "Text field value must not be blank"
+            shouldNotThrowAny {
+                val field = snapshot.sections[0].sectionFields[0] as TextFieldSnapshot
+                field.value shouldBe ""
+            }
         }
-        it("passes when optional text field value is blank") {
+
+        it("can have null value") {
             val snapshot = FormSnapshot(
                 formIdentifier = "f",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    TextFieldSnapshot("t1", label = "Label", value = "", wasRequired = false)
+                sections = listOf(
+                    Section(
+                        sectionId = "s1",
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            TextFieldSnapshot(fieldId = "t1", label = "Label", value = null, wasRequired = false)
+                        )
+                    )
                 )
             )
-            shouldNotThrowAny { snapshot.validateFields() }
+            shouldNotThrowAny {
+                val field = snapshot.sections[0].sectionFields[0] as TextFieldSnapshot
+                field.value shouldBe null
+            }
         }
     }
 
-    describe("CheckboxFieldSnapshot validation") {
-        it("fails when no options provided") {
+    describe("CheckboxFieldSnapshot") {
+        it("can have no selected options when optional") {
             val snapshot = FormSnapshot(
                 formIdentifier = "f",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    CheckboxFieldSnapshot(
-                        fieldId = "cb1",
-                        label = "Label",
-                        options = emptyList(),
-                        sectionId = null,
-                        description = null
-                    )
-                )
-            )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "Checkbox field must have at least one option"
-        }
-        it("fails when any option id is blank") {
-            val snapshot = FormSnapshot(
-                formIdentifier = "f",
-                formSemanticVersion = "1.0.0",
-                formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    CheckboxFieldSnapshot(
-                        fieldId = "cb1",
-                        label = "Label",
-                        options = listOf(
-                            FormSnapshotFieldOption(optionId = "", optionLabel = "Lbl", wasSelected = true)
+                sections = listOf(
+                    Section(
+                        sectionId = "s1",
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            CheckboxFieldSnapshot(
+                                fieldId = "cb1",
+                                label = "Label",
+                                options = listOf(
+                                    CheckboxFieldOption(optionId = "id1", optionLabel = "Opt1", wasSelected = false)
+                                ),
+                                wasRequired = false
+                            )
                         )
                     )
                 )
             )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "optionId must not be blank"
+            shouldNotThrowAny {
+                val field = snapshot.sections[0].sectionFields[0] as CheckboxFieldSnapshot
+                field.options.none { it.wasSelected } shouldBe true
+            }
         }
-        it("fails when any option label is blank") {
+
+        it("can have multiple selected options") {
             val snapshot = FormSnapshot(
                 formIdentifier = "f",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    CheckboxFieldSnapshot(
-                        fieldId = "cb1",
-                        label = "Label",
-                        options = listOf(
-                            FormSnapshotFieldOption(optionId = "id", optionLabel = "", wasSelected = true)
+                sections = listOf(
+                    Section(
+                        sectionId = "s1",
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            CheckboxFieldSnapshot(
+                                fieldId = "cb1",
+                                label = "Label",
+                                options = listOf(
+                                    CheckboxFieldOption(optionId = "id1", optionLabel = "Opt1", wasSelected = true),
+                                    CheckboxFieldOption(optionId = "id2", optionLabel = "Opt2", wasSelected = true)
+                                )
+                            )
                         )
                     )
                 )
             )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "optionLabel must not be blank"
-        }
-        it("fails when required checkbox field has no selected options") {
-            val snapshot = FormSnapshot(
-                formIdentifier = "f",
-                formSemanticVersion = "1.0.0",
-                formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    CheckboxFieldSnapshot(
-                        fieldId = "cb1",
-                        label = "Label",
-                        options = listOf(
-                            FormSnapshotFieldOption(optionId = "id1", optionLabel = "Opt1", wasSelected = false)
-                        ),
-                        wasRequired = true
-                    )
-                )
-            )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "At least one option must be selected for a required checkbox field"
-        }
-        it("passes when optional checkbox field has no selection") {
-            val snapshot = FormSnapshot(
-                formIdentifier = "f",
-                formSemanticVersion = "1.0.0",
-                formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    CheckboxFieldSnapshot(
-                        fieldId = "cb1",
-                        label = "Label",
-                        options = listOf(
-                            FormSnapshotFieldOption(optionId = "id1", optionLabel = "Opt1", wasSelected = false)
-                        ),
-                        wasRequired = false
-                    )
-                )
-            )
-            shouldNotThrowAny { snapshot.validateFields() }
+            shouldNotThrowAny {
+                val field = snapshot.sections[0].sectionFields[0] as CheckboxFieldSnapshot
+                field.options.count { it.wasSelected } shouldBe 2
+            }
         }
     }
 
-    describe("RadioGroupFieldSnapshot validation") {
-        it("fails when fewer than two options") {
+    describe("RadioGroupFieldSnapshot") {
+        it("can have no selected options when optional") {
             val snapshot = FormSnapshot(
                 formIdentifier = "f",
                 formSemanticVersion = "1.0.0",
                 formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    RadioGroupFieldSnapshot(
-                        fieldId = "rg1",
-                        label = "Label",
-                        options = listOf(
-                            FormSnapshotFieldOption(optionId = "o1", optionLabel = "Opt1", wasSelected = true)
+                sections = listOf(
+                    Section(
+                        sectionId = "s1",
+                        sectionTitle = "Section 1",
+                        sectionFields = listOf(
+                            RadioGroupFieldSnapshot(
+                                fieldId = "rg1",
+                                label = "Label",
+                                options = listOf(
+                                    RadiogroupFieldOption(optionId = "o1", optionLabel = "Opt1"),
+                                    RadiogroupFieldOption(optionId = "o2", optionLabel = "Opt2")
+                                ),
+                                wasRequired = false
+                            )
                         )
                     )
                 )
             )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "Radio group field must have at least two options"
-        }
-        it("fails when option label blank") {
-            val snapshot = FormSnapshot(
-                formIdentifier = "f",
-                formSemanticVersion = "1.0.0",
-                formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    RadioGroupFieldSnapshot(
-                        fieldId = "rg1",
-                        label = "Label",
-                        options = listOf(
-                            FormSnapshotFieldOption(optionId = "o1", optionLabel = "", wasSelected = true),
-                            FormSnapshotFieldOption(optionId = "o2", optionLabel = "Opt2", wasSelected = false)
-                        )
-                    )
-                )
-            )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "optionLabel must not be blank"
-        }
-        it("fails when required and zero selected") {
-            val snapshot = FormSnapshot(
-                formIdentifier = "f",
-                formSemanticVersion = "1.0.0",
-                formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    RadioGroupFieldSnapshot(
-                        fieldId = "rg1",
-                        label = "Label",
-                        options = listOf(
-                            FormSnapshotFieldOption(optionId = "o1", optionLabel = "Opt1", wasSelected = false),
-                            FormSnapshotFieldOption(optionId = "o2", optionLabel = "Opt2", wasSelected = false)
-                        ),
-                        wasRequired = true
-                    )
-                )
-            )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "Exactly one option must be selected for a required radio group field"
-        }
-        it("fails when required and more than one selected") {
-            val snapshot = FormSnapshot(
-                formIdentifier = "f",
-                formSemanticVersion = "1.0.0",
-                formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    RadioGroupFieldSnapshot(
-                        fieldId = "rg1",
-                        label = "Label",
-                        options = listOf(
-                            FormSnapshotFieldOption(optionId = "o1", optionLabel = "Opt1", wasSelected = true),
-                            FormSnapshotFieldOption(optionId = "o2", optionLabel = "Opt2", wasSelected = true)
-                        ),
-                        wasRequired = true
-                    )
-                )
-            )
-            val ex = shouldThrow<IllegalArgumentException> { snapshot.validateFields() }
-            ex.message shouldBe "Exactly one option must be selected for a required radio group field"
-        }
-        it("passes when exactly one selected and valid") {
-            val snapshot = FormSnapshot(
-                formIdentifier = "f",
-                formSemanticVersion = "1.0.0",
-                formSnapshotVersion = "2.0.0",
-                sections = null,
-                fieldSnapshots = listOf(
-                    RadioGroupFieldSnapshot(
-                        fieldId = "rg1",
-                        label = "Label",
-                        options = listOf(
-                            FormSnapshotFieldOption(optionId = "o1", optionLabel = "Opt1", wasSelected = true),
-                            FormSnapshotFieldOption(optionId = "o2", optionLabel = "Opt2", wasSelected = false)
-                        ),
-                        wasRequired = true
-                    )
-                )
-            )
-            shouldNotThrowAny { snapshot.validateFields() }
+            shouldNotThrowAny {
+                val field = snapshot.sections[0].sectionFields[0] as RadioGroupFieldSnapshot
+                field.selectedOptionId shouldBe null
+            }
         }
     }
 })
