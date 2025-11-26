@@ -27,9 +27,9 @@ class FieldSnapshotDeserializer : JsonDeserializer<FieldSnapshot>() {
                 TextFieldSnapshot::class.java
             )
 
-            FormSnapshotFieldType.CHECKBOX.name -> ctxt.readTreeAsValue(
+            FormSnapshotFieldType.CHECKBOX_GROUP.name -> ctxt.readTreeAsValue(
                 node,
-                CheckboxFieldSnapshot::class.java
+                CheckboxGroupFieldSnapshot::class.java
             )
 
             FormSnapshotFieldType.RADIO_GROUP.name -> ctxt.readTreeAsValue(

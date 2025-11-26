@@ -3,7 +3,7 @@ package no.nav.syfo.pdfgen
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
@@ -56,7 +56,7 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 {
                 Section(
                     id = section.sectionId,
                     title = section.sectionTitle,
-                    inputFields = section.sectionFields
+                    inputFields = section.fields
                         .map { fieldSnapshot ->
                             InputField(
                                 id = fieldSnapshot.fieldId,
@@ -69,7 +69,7 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 {
                                         ?: ""
 
                                     is SingleCheckboxFieldSnapshot -> if (fieldSnapshot.value) "Ja" else "Nei"
-                                    is CheckboxFieldSnapshot -> fieldSnapshot.options
+                                    is CheckboxGroupFieldSnapshot -> fieldSnapshot.options
                                         .filter { it.wasSelected }
                                         .joinToString("\n") { it.optionLabel }
                                         .ifEmpty { "" }
