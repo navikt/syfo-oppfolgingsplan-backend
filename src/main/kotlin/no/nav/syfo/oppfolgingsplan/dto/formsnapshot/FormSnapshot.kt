@@ -78,7 +78,7 @@ data class TextFieldSnapshot(
     override val fieldId: String,
     override val label: String,
     override val description: String? = null,
-    val value: String? = null,
+    val value: String,
     val wasRequired: Boolean? = true,
 ) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.TEXT, label, description)
 

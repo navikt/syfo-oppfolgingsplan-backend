@@ -97,7 +97,7 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
             }
         }
 
-        it("can have null value") {
+        it("can have empty value") {
             val snapshot = FormSnapshot(
                 formIdentifier = "f",
                 formSemanticVersion = "1.0.0",
@@ -107,14 +107,14 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                         sectionId = "s1",
                         sectionTitle = "Section 1",
                         sectionFields = listOf(
-                            TextFieldSnapshot(fieldId = "t1", label = "Label", value = null, wasRequired = false)
+                            TextFieldSnapshot(fieldId = "t1", label = "Label", value = "", wasRequired = false)
                         )
                     )
                 )
             )
             shouldNotThrowAny {
                 val field = snapshot.sections[0].sectionFields[0] as TextFieldSnapshot
-                field.value shouldBe null
+                field.value shouldBe ""
             }
         }
     }

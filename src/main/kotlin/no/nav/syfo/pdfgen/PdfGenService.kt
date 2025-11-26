@@ -63,7 +63,7 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 {
                                 title = fieldSnapshot.label,
                                 description = fieldSnapshot.description,
                                 value = when (fieldSnapshot) {
-                                    is TextFieldSnapshot -> fieldSnapshot.value ?: ""
+                                    is TextFieldSnapshot -> fieldSnapshot.value
                                     is RadioGroupFieldSnapshot -> fieldSnapshot.options
                                         .firstOrNull { it.optionId == fieldSnapshot.selectedOptionId }?.optionLabel
                                         ?: ""
