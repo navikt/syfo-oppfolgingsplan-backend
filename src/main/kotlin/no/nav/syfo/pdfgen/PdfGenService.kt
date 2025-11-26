@@ -3,7 +3,8 @@ package no.nav.syfo.pdfgen
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.ServerResponseException
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
@@ -51,12 +52,11 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 {
             organisasjonsnavn = this.organisasjonsnavn ?: throw RuntimeException("Organisasjonsnavn is null"),
             organisasjonsnummer = this.organisasjonsnummer,
             narmesteLederName = this.narmesteLederFullName ?: throw RuntimeException("NarmesteLederName is null"),
-            sections = content.sections?.map { section ->
+            sections = content.sections.map { section ->
                 Section(
                     id = section.sectionId,
                     title = section.sectionTitle,
-                    inputFields = content.fieldSnapshots
-                        .filter { it.sectionId == section.sectionId }
+                    inputFields = section.fields
                         .map { fieldSnapshot ->
                             InputField(
                                 id = fieldSnapshot.fieldId,
@@ -64,18 +64,24 @@ fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 {
                                 description = fieldSnapshot.description,
                                 value = when (fieldSnapshot) {
                                     is TextFieldSnapshot -> fieldSnapshot.value
-                                    is RadioGroupFieldSnapshot -> fieldSnapshot.options.first { it.wasSelected }.optionLabel
+                                    is RadioGroupFieldSnapshot -> fieldSnapshot.options
+                                        .firstOrNull { it.optionId == fieldSnapshot.selectedOptionId }?.optionLabel
+                                        ?: ""
+
                                     is SingleCheckboxFieldSnapshot -> if (fieldSnapshot.value) "Ja" else "Nei"
-                                    is CheckboxFieldSnapshot -> fieldSnapshot.options
+                                    is CheckboxGroupFieldSnapshot -> fieldSnapshot.options
                                         .filter { it.wasSelected }
                                         .joinToString("\n") { it.optionLabel }
+                                        .ifEmpty { "" }
+
+                                    is DateFieldSnapshot -> fieldSnapshot.value?.format(formatter) ?: ""
 
                                     else -> throw IllegalArgumentException("Unknown field type: ${fieldSnapshot.fieldType}")
                                 }
                             )
                         }
                 )
-            } ?: throw IllegalStateException("Missing sections in content")
+            }
         )
     )
 }

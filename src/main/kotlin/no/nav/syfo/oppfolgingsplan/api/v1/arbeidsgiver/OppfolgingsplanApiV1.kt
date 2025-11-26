@@ -24,7 +24,6 @@ import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.validateFields
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -68,7 +67,6 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             val oppfolgingsplan = try {
                 val plan = call.receive<CreateOppfolgingsplanRequest>()
-                plan.content.validateFields()
                 plan
             } catch (e: Exception) {
                 throw BadRequestException("Invalid Oppfolgingsplan in request: ${e.message}", e)

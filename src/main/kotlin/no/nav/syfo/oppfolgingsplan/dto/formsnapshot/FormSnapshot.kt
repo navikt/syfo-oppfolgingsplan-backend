@@ -2,6 +2,7 @@ package no.nav.syfo.oppfolgingsplan.dto.formsnapshot
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize
 import java.io.Serializable
+import java.time.LocalDate
 
 // The kdoc comments are written in regard to FormSnapshot being used in a general context,
 // not specifically for the motebehov use case.
@@ -32,8 +33,12 @@ import java.io.Serializable
  * A form snapshot consists of a list of *snapshot fields*. All snapshot fields have an id, a label, and a type.
  * The type of a field can be one of the following:
  * - TEXT: A field where the user could input text.
- * - CHECKBOX: A checkbox field.
  * - RADIO_GROUP: A radio buttons field where the user could select one of multiple options.
+ * - CHECKBOX_GROUP: Represents a field with a field label and one or many checkboxes with their own labels. The user
+ *   could select zero, one or multiple options.
+ * - CHECKBOX_SINGLE: Represents a single checkbox with a label where the user could either check or not check
+ *   the checkbox.
+ * - DATE: A date picker field where the user could select a date.
  */
 data class FormSnapshot(
     /** An identifier or name identifying which form this is snapshot is for. */
@@ -46,23 +51,25 @@ data class FormSnapshot(
     val formSemanticVersion: String,
     /** The version of the form snapshot format itself. */
     val formSnapshotVersion: String,
-    // For info: This configures deserialization both for POST-handlers in controllers and for the object mapper used
-    // when reading from the database in FormSnapshotJSONConversion.kt.
-    @JsonDeserialize(contentUsing = FieldSnapshotDeserializer::class)
-    val fieldSnapshots: List<FieldSnapshot>,
-
-    val sections: List<FormSection>? = null
-
+    val sections: List<Section>,
 ) {
     companion object
 }
+
+data class Section(
+    val sectionId: String,
+    val sectionTitle: String,
+    // For info: This configures deserialization both for POST-handlers in controllers and for the object mapper used
+    // when reading from the database in FormSnapshotJSONConversion.kt.
+    @JsonDeserialize(contentUsing = FieldSnapshotDeserializer::class)
+    val fields: List<FieldSnapshot>,
+)
 
 abstract class FieldSnapshot(
     open val fieldId: String,
     open val fieldType: FormSnapshotFieldType,
     open val label: String,
     open val description: String? = null,
-    open val sectionId: String? = null,
 ) : Serializable {
     companion object {
         private const val serialVersionUID: Long = 1L
@@ -73,51 +80,57 @@ data class TextFieldSnapshot(
     override val fieldId: String,
     override val label: String,
     override val description: String? = null,
-    override val sectionId: String? = null,
     val value: String,
     val wasRequired: Boolean? = true,
-) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.TEXT, label, description, sectionId)
-
-data class SingleCheckboxFieldSnapshot(
-    override val fieldId: String,
-    override val label: String,
-    override val description: String? = null,
-    override val sectionId: String? = null,
-    val value: Boolean,
-) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.CHECKBOX_SINGLE, label, description)
-
-data class CheckboxFieldSnapshot(
-    override val fieldId: String,
-    override val label: String,
-    override val description: String? = null,
-    override val sectionId: String? = null,
-    val options: List<FormSnapshotFieldOption>,
-    val wasRequired: Boolean? = true,
-) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.CHECKBOX, label, description, sectionId)
+) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.TEXT, label, description)
 
 data class RadioGroupFieldSnapshot(
     override val fieldId: String,
     override val label: String,
     override val description: String? = null,
-    override val sectionId: String? = null,
-    val options: List<FormSnapshotFieldOption>,
+    val options: List<RadioGroupFieldOption>,
+    val selectedOptionId: String? = null,
     val wasRequired: Boolean? = true,
-) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.RADIO_GROUP, label, description, sectionId)
+) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.RADIO_GROUP, label, description)
 
-data class FormSnapshotFieldOption(
+data class RadioGroupFieldOption(
+    val optionId: String,
+    val optionLabel: String,
+)
+
+data class CheckboxGroupFieldSnapshot(
+    override val fieldId: String,
+    override val label: String,
+    override val description: String? = null,
+    val options: List<CheckboxGroupFieldOption>,
+    val wasRequired: Boolean? = true,
+) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.CHECKBOX_GROUP, label, description)
+
+data class CheckboxGroupFieldOption(
     val optionId: String,
     val optionLabel: String,
     val wasSelected: Boolean = false,
 )
 
+data class SingleCheckboxFieldSnapshot(
+    override val fieldId: String,
+    override val label: String,
+    override val description: String? = null,
+    val value: Boolean,
+) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.CHECKBOX_SINGLE, label, description)
+
+data class DateFieldSnapshot(
+    override val fieldId: String,
+    override val label: String,
+    override val description: String? = null,
+    val value: LocalDate? = null,
+    val wasRequired: Boolean? = true,
+) : FieldSnapshot(fieldId, fieldType = FormSnapshotFieldType.DATE, label, description)
+
 enum class FormSnapshotFieldType(val type: String) {
     TEXT("text"),
     CHECKBOX_SINGLE("checkboxSingle"),
-    CHECKBOX("checkbox"),
-    RADIO_GROUP("radioGroup")
+    CHECKBOX_GROUP("checkboxGroup"),
+    RADIO_GROUP("radioGroup"),
+    DATE("date"),
 }
-
-data class FormSection(
-    val sectionId: String,
-    val sectionTitle: String,
-)
