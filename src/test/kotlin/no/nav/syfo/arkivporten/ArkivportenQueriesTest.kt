@@ -4,16 +4,16 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.mockk.clearAllMocks
-import java.time.Instant
 import no.nav.syfo.TestDB
 import no.nav.syfo.arkivporten.client.FakeArkivportenClient
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForArkivportenPublisering
+import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForArkivportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.setSendtTilArkivportenTidspunkt
 import no.nav.syfo.persistOppfolgingsplan
+import java.time.Instant
 
 class ArkivportenQueriesTest : DescribeSpec({
-    val client = FakeArkivportenClient()
+    FakeArkivportenClient()
     val testDb = TestDB.database
 
     beforeTest {
@@ -28,7 +28,7 @@ class ArkivportenQueriesTest : DescribeSpec({
             val third = testDb.persistOppfolgingsplan(defaultPersistedOppfolgingsplan())
             testDb.setSendtTilArkivportenTidspunkt(third, Instant.now())
             // Act
-            val unsendtPlans = testDb.findOppfolgingsplanserForArkivportenPublisering()
+            val unsendtPlans = testDb.findOppfolgingsplanerForArkivportenPublisering()
             unsendtPlans.size shouldBe 2
             unsendtPlans.find { it.uuid == first } shouldNotBe null
             unsendtPlans.find { it.uuid == second } shouldNotBe null
@@ -40,7 +40,7 @@ class ArkivportenQueriesTest : DescribeSpec({
             val third = testDb.persistOppfolgingsplan(defaultPersistedOppfolgingsplan())
             testDb.setSendtTilArkivportenTidspunkt(third, Instant.now())
             // Act
-            val unsendtPlans = testDb.findOppfolgingsplanserForArkivportenPublisering()
+            val unsendtPlans = testDb.findOppfolgingsplanerForArkivportenPublisering()
             unsendtPlans.size shouldBe 2
             unsendtPlans.find { it.uuid == first } shouldNotBe null
             unsendtPlans.find { it.uuid == second } shouldNotBe null

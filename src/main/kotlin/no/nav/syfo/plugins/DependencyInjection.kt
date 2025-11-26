@@ -1,6 +1,5 @@
 package no.nav.syfo.plugins
 
-import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import no.nav.syfo.application.ApplicationState
@@ -15,24 +14,25 @@ import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.arkivporten.ArkivportenService
-import no.nav.syfo.arkivporten.SendOppfolginsplanTask
+import no.nav.syfo.arkivporten.SendOppfolgingsplanTask
 import no.nav.syfo.arkivporten.client.ArkivportenClient
 import no.nav.syfo.arkivporten.client.FakeArkivportenClient
 import no.nav.syfo.arkivporten.client.IArkivportenClient
+import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
-import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.dokarkiv.client.DokarkivClient
 import no.nav.syfo.dokarkiv.client.FakeDokarkivClient
-import no.nav.syfo.dokarkiv.DokarkivService
-import no.nav.syfo.isdialogmelding.client.FakeIsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.isdialogmelding.client.FakeIsDialogmeldingClient
+import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.pdl.client.FakePdlClient
 import no.nav.syfo.pdl.client.PdlClient
@@ -159,7 +159,7 @@ private fun servicesModule() = module {
     single { PdlService(get()) }
     single { OppfolgingsplanService(database = get(), esyfovarselProducer = get(), get()) }
     single { PdfGenService(get(), get()) }
-    single { SendOppfolginsplanTask(get(), get()) }
+    single { SendOppfolgingsplanTask(get(), get()) }
 }
 
 private fun Scope.env() = get<Environment>()

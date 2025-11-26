@@ -271,7 +271,7 @@ fun DatabaseInterface.setNarmesteLederFullName(
     }
 }
 
-fun DatabaseInterface.findOppfolgingsplanserForArkivportenPublisering(
+fun DatabaseInterface.findOppfolgingsplanerForArkivportenPublisering(
 ): List<PersistedOppfolgingsplan> {
     val statement = """
         SELECT *

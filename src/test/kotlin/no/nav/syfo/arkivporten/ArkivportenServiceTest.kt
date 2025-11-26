@@ -11,7 +11,7 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.arkivporten.client.FakeArkivportenClient
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForArkivportenPublisering
+import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForArkivportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -55,7 +55,7 @@ class ArkivportenServiceTest : DescribeSpec({
                 oppfolgingsplanService = oppfolginsplanService,
             )
             // Act
-            val unsendtPlans = testDb.findOppfolgingsplanserForArkivportenPublisering()
+            val unsendtPlans = testDb.findOppfolgingsplanerForArkivportenPublisering()
             service.findAndSendOppfolgingsplaner()
 
             // Assert
@@ -67,7 +67,7 @@ class ArkivportenServiceTest : DescribeSpec({
                 pdfGenService.generatePdf(eq(unsendtPlans.last()))
             }
             // Should no longer be any unsent plans
-            testDb.findOppfolgingsplanserForArkivportenPublisering().size shouldBe 0
+            testDb.findOppfolgingsplanerForArkivportenPublisering().size shouldBe 0
         }
     }
 })

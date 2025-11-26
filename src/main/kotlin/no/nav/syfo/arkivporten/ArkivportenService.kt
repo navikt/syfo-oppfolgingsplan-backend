@@ -6,7 +6,7 @@ import no.nav.syfo.arkivporten.client.Document
 import no.nav.syfo.arkivporten.client.DocumentType
 import no.nav.syfo.arkivporten.client.IArkivportenClient
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForArkivportenPublisering
+import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForArkivportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.setSendtTilArkivportenTidspunkt
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -31,7 +31,7 @@ class ArkivportenService(
     suspend fun findAndSendOppfolgingsplaner() {
         try {
             logger.info("Starting task for send documents to arkivporten")
-            val planer = database.findOppfolgingsplanserForArkivportenPublisering()
+            val planer = database.findOppfolgingsplanerForArkivportenPublisering()
             logger.info("Found ${planer.size} documents to send to arkivporten")
             planer.forEach { oppfolgingsplan ->
                 val planWithNarmestelederName = oppfolgingsplanService.getAndSetNarmestelederFullname(oppfolgingsplan)
@@ -65,5 +65,14 @@ fun PersistedOppfolgingsplan.title(): String =
 
 fun PersistedOppfolgingsplan.summary(dateFormatter: DateTimeFormatter): String =
     this.narmesteLederFullName?.let {
-    "${this.narmesteLederFullName} har opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${dateFormatter.format(this.createdAt)}"
-} ?: "Det er opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${dateFormatter.format(this.createdAt)}"
+        "${this.narmesteLederFullName} har opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${
+            dateFormatter.format(
+                this.createdAt
+            )
+        }"
+    }
+        ?: "Det er opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${
+            dateFormatter.format(
+                this.createdAt
+            )
+        }"
