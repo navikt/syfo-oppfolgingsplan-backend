@@ -3,11 +3,11 @@ package no.nav.syfo.oppfolgingsplan.dto
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldOption
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadiogroupFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 
@@ -22,14 +22,14 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
+                        fields = listOf(
                             TextFieldSnapshot(fieldId = "t1", label = "L1", value = "text")
                         )
                     ),
                     Section(
                         sectionId = "s2",
                         sectionTitle = "Section 2",
-                        sectionFields = listOf(
+                        fields = listOf(
                             TextFieldSnapshot(fieldId = "t2", label = "L2", value = "text")
                         )
                     )
@@ -47,21 +47,21 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
+                        fields = listOf(
                             TextFieldSnapshot(fieldId = "t1", label = "Label", value = "text"),
-                            CheckboxFieldSnapshot(
+                            CheckboxGroupFieldSnapshot(
                                 fieldId = "cb1",
                                 label = "Label",
                                 options = listOf(
-                                    CheckboxFieldOption(optionId = "o1", optionLabel = "Opt1", wasSelected = true)
+                                    CheckboxGroupFieldOption(optionId = "o1", optionLabel = "Opt1", wasSelected = true)
                                 )
                             ),
                             RadioGroupFieldSnapshot(
                                 fieldId = "rg1",
                                 label = "Label",
                                 options = listOf(
-                                    RadiogroupFieldOption(optionId = "o1", optionLabel = "Opt1"),
-                                    RadiogroupFieldOption(optionId = "o2", optionLabel = "Opt2")
+                                    RadioGroupFieldOption(optionId = "o1", optionLabel = "Opt1"),
+                                    RadioGroupFieldOption(optionId = "o2", optionLabel = "Opt2")
                                 ),
                                 selectedOptionId = "o1",
                             )
@@ -70,7 +70,7 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                 )
             )
             shouldNotThrowAny {
-                snapshot.sections[0].sectionFields.size shouldBe 3
+                snapshot.sections[0].fields.size shouldBe 3
             }
         }
     }
@@ -85,14 +85,14 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
+                        fields = listOf(
                             TextFieldSnapshot(fieldId = "t1", label = "Label", value = "", wasRequired = false)
                         )
                     )
                 )
             )
             shouldNotThrowAny {
-                val field = snapshot.sections[0].sectionFields[0] as TextFieldSnapshot
+                val field = snapshot.sections[0].fields[0] as TextFieldSnapshot
                 field.value shouldBe ""
             }
         }
@@ -106,14 +106,14 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
+                        fields = listOf(
                             TextFieldSnapshot(fieldId = "t1", label = "Label", value = "", wasRequired = false)
                         )
                     )
                 )
             )
             shouldNotThrowAny {
-                val field = snapshot.sections[0].sectionFields[0] as TextFieldSnapshot
+                val field = snapshot.sections[0].fields[0] as TextFieldSnapshot
                 field.value shouldBe ""
             }
         }
@@ -129,12 +129,12 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
-                            CheckboxFieldSnapshot(
+                        fields = listOf(
+                            CheckboxGroupFieldSnapshot(
                                 fieldId = "cb1",
                                 label = "Label",
                                 options = listOf(
-                                    CheckboxFieldOption(optionId = "id1", optionLabel = "Opt1", wasSelected = false)
+                                    CheckboxGroupFieldOption(optionId = "id1", optionLabel = "Opt1", wasSelected = false)
                                 ),
                                 wasRequired = false
                             )
@@ -143,7 +143,7 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                 )
             )
             shouldNotThrowAny {
-                val field = snapshot.sections[0].sectionFields[0] as CheckboxFieldSnapshot
+                val field = snapshot.sections[0].fields[0] as CheckboxGroupFieldSnapshot
                 field.options.none { it.wasSelected } shouldBe true
             }
         }
@@ -157,13 +157,13 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
-                            CheckboxFieldSnapshot(
+                        fields = listOf(
+                            CheckboxGroupFieldSnapshot(
                                 fieldId = "cb1",
                                 label = "Label",
                                 options = listOf(
-                                    CheckboxFieldOption(optionId = "id1", optionLabel = "Opt1", wasSelected = true),
-                                    CheckboxFieldOption(optionId = "id2", optionLabel = "Opt2", wasSelected = true)
+                                    CheckboxGroupFieldOption(optionId = "id1", optionLabel = "Opt1", wasSelected = true),
+                                    CheckboxGroupFieldOption(optionId = "id2", optionLabel = "Opt2", wasSelected = true)
                                 )
                             )
                         )
@@ -171,7 +171,7 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                 )
             )
             shouldNotThrowAny {
-                val field = snapshot.sections[0].sectionFields[0] as CheckboxFieldSnapshot
+                val field = snapshot.sections[0].fields[0] as CheckboxGroupFieldSnapshot
                 field.options.count { it.wasSelected } shouldBe 2
             }
         }
@@ -187,13 +187,13 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
+                        fields = listOf(
                             RadioGroupFieldSnapshot(
                                 fieldId = "rg1",
                                 label = "Label",
                                 options = listOf(
-                                    RadiogroupFieldOption(optionId = "o1", optionLabel = "Opt1"),
-                                    RadiogroupFieldOption(optionId = "o2", optionLabel = "Opt2")
+                                    RadioGroupFieldOption(optionId = "o1", optionLabel = "Opt1"),
+                                    RadioGroupFieldOption(optionId = "o2", optionLabel = "Opt2")
                                 ),
                                 wasRequired = false
                             )
@@ -202,7 +202,7 @@ class FormSnapshotValidateFieldsTest : DescribeSpec({
                 )
             )
             shouldNotThrowAny {
-                val field = snapshot.sections[0].sectionFields[0] as RadioGroupFieldSnapshot
+                val field = snapshot.sections[0].fields[0] as RadioGroupFieldSnapshot
                 field.selectedOptionId shouldBe null
             }
         }

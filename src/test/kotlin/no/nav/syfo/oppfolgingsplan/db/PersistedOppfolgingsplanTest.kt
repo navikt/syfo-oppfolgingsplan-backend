@@ -6,8 +6,8 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldOption
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
@@ -25,7 +25,7 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             val formSnapshot = defaultFormSnapshot().copy(
                 sections = defaultFormSnapshot().sections.map { section ->
                     section.copy(
-                        sectionFields = section.sectionFields.map { field ->
+                        fields = section.fields.map { field ->
                             if (field is DateFieldSnapshot && field.fieldId == "evalueringsDato") {
                                 field.copy(value = evalueringsdato)
                             } else {
@@ -88,15 +88,15 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
-                            CheckboxFieldSnapshot(
+                        fields = listOf(
+                            CheckboxGroupFieldSnapshot(
                                 fieldId = "cb",
                                 label = "Checkbox field",
                                 description = null,
                                 options = listOf(
-                                    CheckboxFieldOption("a", "A", wasSelected = true),
-                                    CheckboxFieldOption("b", "B", wasSelected = false),
-                                    CheckboxFieldOption("c", "C", wasSelected = true)
+                                    CheckboxGroupFieldOption("a", "A", wasSelected = true),
+                                    CheckboxGroupFieldOption("b", "B", wasSelected = false),
+                                    CheckboxGroupFieldOption("c", "C", wasSelected = true)
                                 )
                             )
                         )
@@ -147,7 +147,7 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
                     Section(
                         sectionId = "singlecb",
                         sectionTitle = "Single Checkbox Section",
-                        sectionFields = listOf(
+                        fields = listOf(
                             SingleCheckboxFieldSnapshot(
                                 fieldId = "singlecb1",
                                 label = "Single Checkbox field",
@@ -179,7 +179,7 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
                     Section(
                         sectionId = "dateSection",
                         sectionTitle = "Date Section",
-                        sectionFields = listOf(
+                        fields = listOf(
                             DateFieldSnapshot(
                                 fieldId = "testDate",
                                 label = "Test Date",

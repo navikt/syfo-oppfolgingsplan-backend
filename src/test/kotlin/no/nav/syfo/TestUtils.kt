@@ -20,7 +20,7 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadiogroupFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -99,7 +99,7 @@ fun defaultFormSnapshot() = FormSnapshot(
         Section(
             sectionId = "arbeidsoppgaver",
             sectionTitle = "Arbeidsoppgaver",
-            sectionFields = listOf(
+            fields = listOf(
                 TextFieldSnapshot(
                     fieldId = "vanligArbeidsdag",
                     value = "Jeg skriver litt om min vanlige arbeidsdag her",
@@ -117,21 +117,21 @@ fun defaultFormSnapshot() = FormSnapshot(
         Section(
             sectionId = "tilpasninger",
             sectionTitle = "Tilpasninger",
-            sectionFields = listOf(
+            fields = listOf(
                 RadioGroupFieldSnapshot(
                     fieldId = "arbeidsgiver",
                     label = "Dette er tittelen på en radio gruppe",
                     description = "Dette er en beskrivelse av radio gruppen",
                     options = listOf(
-                        RadiogroupFieldOption(
+                        RadioGroupFieldOption(
                             optionId = "option1",
                             optionLabel = "Dette er option 1",
                         ),
-                        RadiogroupFieldOption(
+                        RadioGroupFieldOption(
                             optionId = "option2",
                             optionLabel = "Dette er option 2",
                         ),
-                        RadiogroupFieldOption(
+                        RadioGroupFieldOption(
                             optionId = "option3",
                             optionLabel = "Dette er option 3",
                         ),

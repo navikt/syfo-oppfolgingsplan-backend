@@ -24,7 +24,7 @@ class DateFieldSnapshotTest : DescribeSpec({
                     Section(
                         sectionId = "dates",
                         sectionTitle = "Date Section",
-                        sectionFields = listOf(
+                        fields = listOf(
                             DateFieldSnapshot(
                                 fieldId = "testDate",
                                 label = "Test Date",
@@ -49,8 +49,8 @@ class DateFieldSnapshotTest : DescribeSpec({
 
             // Verify the snapshot is correctly deserialized
             deserializedSnapshot.sections.size shouldBe 1
-            deserializedSnapshot.sections[0].sectionFields.size shouldBe 1
-            val dateField = deserializedSnapshot.sections[0].sectionFields[0] as DateFieldSnapshot
+            deserializedSnapshot.sections[0].fields.size shouldBe 1
+            val dateField = deserializedSnapshot.sections[0].fields[0] as DateFieldSnapshot
             dateField.fieldId shouldBe "testDate"
             dateField.label shouldBe "Test Date"
             dateField.description shouldBe "A test date field"
@@ -70,7 +70,7 @@ class DateFieldSnapshotTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
+                        fields = listOf(
                             DateFieldSnapshot(
                                 fieldId = "startDate",
                                 label = "Start Date",
@@ -92,9 +92,9 @@ class DateFieldSnapshotTest : DescribeSpec({
             val deserialized = FormSnapshot.jsonToFormSnapshot(jsonString)
 
             deserialized.sections.size shouldBe 1
-            deserialized.sections[0].sectionFields.size shouldBe 2
-            val startDateField = deserialized.sections[0].sectionFields[0] as DateFieldSnapshot
-            val endDateField = deserialized.sections[0].sectionFields[1] as DateFieldSnapshot
+            deserialized.sections[0].fields.size shouldBe 2
+            val startDateField = deserialized.sections[0].fields[0] as DateFieldSnapshot
+            val endDateField = deserialized.sections[0].fields[1] as DateFieldSnapshot
 
             startDateField.value shouldBe date1
             startDateField.wasRequired shouldBe true
@@ -112,7 +112,7 @@ class DateFieldSnapshotTest : DescribeSpec({
                     Section(
                         sectionId = "s1",
                         sectionTitle = "Section 1",
-                        sectionFields = listOf(
+                        fields = listOf(
                             TextFieldSnapshot(
                                 fieldId = "text1",
                                 label = "Text Field",
@@ -137,8 +137,8 @@ class DateFieldSnapshotTest : DescribeSpec({
             val deserialized = FormSnapshot.jsonToFormSnapshot(jsonString)
 
             deserialized.sections.size shouldBe 1
-            deserialized.sections[0].sectionFields.size shouldBe 3
-            val dateField = deserialized.sections[0].sectionFields[1] as DateFieldSnapshot
+            deserialized.sections[0].fields.size shouldBe 3
+            val dateField = deserialized.sections[0].fields[1] as DateFieldSnapshot
             dateField.value shouldBe testDate
         }
     }
