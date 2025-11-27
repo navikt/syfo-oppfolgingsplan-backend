@@ -8,7 +8,7 @@ metadata:
   annotations:
     texas.nais.io/enabled: "true"
 spec:
-  image: {{ image }}
+  image: { { image } }
   port: 8080
   liveness:
     path: /internal/is_alive
@@ -113,3 +113,7 @@ spec:
       value: https://pdl-api.dev-fss-pub.nais.io/graphql
     - name: PDL_SCOPE
       value: dev-fss.pdl.pdl-api
+    - name: SYFOMODIAPERSON_CLIENT_ID
+      value: dev-gcp:teamsykefravr:syfomodiaperson
+    - name: SYFO_OPPFOLGINGSPLAN_FRONTEND_CLIENT_ID
+      value: dev-gcp:team-esyfo:syfo-oppfolgingsplan-frontend

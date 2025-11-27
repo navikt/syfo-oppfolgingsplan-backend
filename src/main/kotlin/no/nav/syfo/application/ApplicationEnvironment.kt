@@ -23,6 +23,8 @@ interface Environment {
     val pdlScope: String
     val kafka: KafkaEnv
     val electorPath: String
+    val syfomodiapersonClientId: String
+    val syfoOppfolgingsplanFrontendClientId: String
 }
 
 data class NaisEnvironment(
@@ -63,6 +65,8 @@ data class NaisEnvironment(
     override val pdlScope: String = getEnvVar("PDL_SCOPE"),
     override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars(),
     override val electorPath: String = getEnvVar("ELECTOR_PATH"),
+    override val syfomodiapersonClientId: String = getEnvVar("SYFOMODIAPERSON_CLIENT_ID"),
+    override val syfoOppfolgingsplanFrontendClientId: String = getEnvVar("SYFO_OPPFOLGINGSPLAN_FRONTEND_CLIENT_ID"),
 ) : Environment
 
 fun getEnvVar(varName: String, defaultValue: String? = null) =
@@ -114,4 +118,6 @@ data class LocalEnvironment(
     override val pdlScope: String = "pdl",
     override val kafka: KafkaEnv = KafkaEnv.createForLocal(),
     override val electorPath: String = "/elector",
+    override val syfomodiapersonClientId: String = "dev-gcp:teamsykefravr:syfomodiaperson",
+    override val syfoOppfolgingsplanFrontendClientId: String = "dev-gcp:team-esyfo:syfo-oppfolgingsplan-frontend",
 ) : Environment

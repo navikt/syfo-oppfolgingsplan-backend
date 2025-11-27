@@ -34,7 +34,7 @@ val TexasTokenXAuthPlugin = createRouteScopedPlugin(
             if (!introspectionResponse.active) {
                 call.application.environment.log.warn(
                     "" +
-                        "Token is not active: ${introspectionResponse.error ?: "No error message"}"
+                            "Token is not active: ${introspectionResponse.error ?: "No error message"}"
                 )
                 call.respondNullable(HttpStatusCode.Unauthorized)
                 return@onCall
@@ -50,7 +50,13 @@ val TexasTokenXAuthPlugin = createRouteScopedPlugin(
                 call.respondNullable(HttpStatusCode.Unauthorized)
                 return@onCall
             }
-            call.authentication.principal(BrukerPrincipal(introspectionResponse.pid, bearerToken))
+            call.authentication.principal(
+                BrukerPrincipal(
+                    ident = introspectionResponse.pid,
+                    token = bearerToken,
+                    azp = introspectionResponse.azp
+                )
+            )
         }
     }
     logger.info("TexasTokenXAuthPlugin installed")

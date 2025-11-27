@@ -43,7 +43,13 @@ val TexasAzureADAuthPlugin = createRouteScopedPlugin(
                 call.respondNullable(HttpStatusCode.Unauthorized)
                 return@onCall
             }
-            call.authentication.principal(BrukerPrincipal(introspectionResponse.NAVident, bearerToken))
+            call.authentication.principal(
+                BrukerPrincipal(
+                    ident = introspectionResponse.NAVident,
+                    token = bearerToken,
+                    azp = introspectionResponse.azp
+                )
+            )
         }
     }
     logger.info("TexasAzureAdAuthPlugin installed")

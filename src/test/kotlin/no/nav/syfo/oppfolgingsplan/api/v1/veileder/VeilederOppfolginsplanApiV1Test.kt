@@ -27,6 +27,8 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.syfo.TestDB
+import no.nav.syfo.application.Environment
+import no.nav.syfo.application.LocalEnvironment
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultPersistedOppfolgingsplan
@@ -64,6 +66,8 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
     val dokarkivServiceMock = mockk<DokarkivService>()
     val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
     val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
+    val environment: Environment = LocalEnvironment()
+    val syfomodiapersonClientId = environment.syfomodiapersonClientId
 
     beforeTest {
         clearAllMocks()
@@ -101,6 +105,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                         isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                         dokarkivService = dokarkivServiceMock,
                         isTilgangskontrollService = isTilgangskontrollServiceMock,
+                        environment = environment,
                     )
                 }
             }
@@ -143,10 +148,38 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
+            it("POST /veilder/oppfolgingsplaner should respond with Forbidden when client is not allowed") {
+                withTestApplication {
+                    // Arrange
+                    // Mock with WRONG client (frontend trying to access veileder route)
+                    texasClientMock.defaultMocks(
+                        pid = "some-token",
+                        navident = "some-navident",
+                        azp = environment.syfoOppfolgingsplanFrontendClientId
+                    )
+                    coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
+
+                    // Act
+                    val response = client.post {
+                        url("/api/v1/veileder/oppfolgingsplaner/query")
+                        bearerAuth(token = "Bearer token")
+                        contentType(ContentType.Application.Json)
+                        setBody(OppfolginsplanerReadRequest(sykmeldtFnr))
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.Forbidden
+                }
+            }
+
             it("POST /veilder/oppfolgingsplaner should respond with Bad Request if sykmeldt fnr is not provided in body") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
+                    texasClientMock.defaultMocks(
+                        pid = "some-veileder-token",
+                        navident = "some-navident",
+                        azp = syfomodiapersonClientId
+                    )
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
 
                     // Act
@@ -168,7 +201,11 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             it("POST /veilder/oppfolgingsplaner should respond with Forbidden when Tilgangskontroll rejects access to sykemeldt") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
+                    texasClientMock.defaultMocks(
+                        pid = "some-veileder-token",
+                        navident = "some-navident",
+                        azp = syfomodiapersonClientId
+                    )
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns false
 
                     // Act
@@ -192,7 +229,11 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             it("POST /veilder/oppfolgingsplaner should respond with OK when correct authentication is provided") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
+                    texasClientMock.defaultMocks(
+                        pid = "some-veileder-token",
+                        navident = "some-navident",
+                        azp = syfomodiapersonClientId
+                    )
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
 
                     val firstPlanUUID = testDb.persistOppfolgingsplan(
@@ -242,7 +283,11 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 val pdfContent = "ThisIsPdfContent"
-                texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
+                texasClientMock.defaultMocks(
+                    pid = "some-veileder-token",
+                    navident = "some-navident",
+                    azp = syfomodiapersonClientId
+                )
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
                 coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
@@ -271,7 +316,11 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
         it("GET /veilder/oppfolgingsplaner/<uuid> should respond with forbidden when Tilgangskontroll rejects access to sykemeldt") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
+                texasClientMock.defaultMocks(
+                    pid = "some-veileder-token",
+                    navident = "some-navident",
+                    azp = syfomodiapersonClientId
+                )
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns false
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
@@ -309,7 +358,11 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 val pdfContent = "ThisIsPdfContent"
-                texasClientMock.defaultMocks(pid = "some-veileder-token", navident = "some-navident")
+                texasClientMock.defaultMocks(
+                    pid = "some-veileder-token",
+                    navident = "some-navident",
+                    azp = syfomodiapersonClientId
+                )
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
                 coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
                 val firstPlanUUID = testDb.persistOppfolgingsplan(

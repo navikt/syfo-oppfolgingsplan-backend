@@ -2,6 +2,8 @@ package no.nav.syfo.oppfolgingsplan.api.v1
 
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
+import no.nav.syfo.application.Environment
+import no.nav.syfo.application.auth.ClientAuthorizationPlugin
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
@@ -25,10 +27,14 @@ fun Route.registerApiV1(
     isDialogmeldingService: IsDialogmeldingService,
     isTilgangskontrollService: IsTilgangskontrollService,
     dokarkivService: DokarkivService,
+    environment: Environment,
 ) {
     route("/api/v1/arbeidsgiver") {
         install(TexasTokenXAuthPlugin) {
             client = texasHttpClient
+        }
+        install(ClientAuthorizationPlugin) {
+            allowedClientId = environment.syfoOppfolgingsplanFrontendClientId
         }
         registerArbeidsgiverOppfolgingsplanApiV1(
             dineSykmeldteService,
@@ -48,6 +54,9 @@ fun Route.registerApiV1(
         install(TexasTokenXAuthPlugin) {
             client = texasHttpClient
         }
+        install(ClientAuthorizationPlugin) {
+            allowedClientId = environment.syfoOppfolgingsplanFrontendClientId
+        }
         registerSykmeldtOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
@@ -57,6 +66,9 @@ fun Route.registerApiV1(
     route("/api/v1/veileder") {
         install(TexasAzureADAuthPlugin) {
             client = texasHttpClient
+        }
+        install(ClientAuthorizationPlugin) {
+            allowedClientId = environment.syfomodiapersonClientId
         }
         registerVeilderOppfolgingsplanApiV1(
             texasHttpClient,
