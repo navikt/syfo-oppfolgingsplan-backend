@@ -19,8 +19,8 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -151,13 +151,19 @@ fun defaultFormSnapshot() = FormSnapshot(
     ),
 )
 
-fun TexasHttpClient.defaultMocks(pid: String = "userIdentifier", acr: String = "Level4", navident: String? = null) {
+fun TexasHttpClient.defaultMocks(
+    pid: String = "userIdentifier",
+    acr: String = "Level4",
+    navident: String? = null,
+    azp: String = "dev-gcp:some:client"
+) {
     coEvery { introspectToken(any(), any()) } returns TexasIntrospectionResponse(
         active = true,
         pid = pid,
         acr = acr,
         sub = UUID.randomUUID().toString(),
-        NAVident = navident
+        NAVident = navident,
+        azp = azp
     )
     coEvery {
         exchangeTokenForDineSykmeldte(any())
