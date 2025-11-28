@@ -12,7 +12,7 @@ info:
     Innlogget bruker må være registrert som nærmeste leder for den sykmeldte via `narmesteLederId`.
   version: "1.0.0"
   contact:
-    name: Team eSyfo
+    name: Kildekode (GitHub)
     url: https://github.com/navikt/syfo-oppfolgingsplan-backend
 servers:
   - url: http://localhost:8080
