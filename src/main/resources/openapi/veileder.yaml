@@ -13,7 +13,7 @@ info:
     Kun oppfølgingsplaner som er delt med Nav vises.
   version: "1.0.0"
   contact:
-    name: Kildekode (GitHub)
+    name: Team eSyfo
     url: https://github.com/navikt/syfo-oppfolgingsplan-backend
 servers:
   - url: http://localhost:8080
@@ -37,7 +37,7 @@ paths:
         Kun oppfølgingsplaner der `deltMedNav` er satt returneres.
       operationId: getVeilederOppfolgingsplaner
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       requestBody:
         required: true
         content:
@@ -72,7 +72,7 @@ paths:
         Oppfølgingsplanen må være delt med Nav.
       operationId: getVeilederOppfolgingsplanPdf
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/OppfolgingsplanUuid'
       responses:

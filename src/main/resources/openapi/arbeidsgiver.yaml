@@ -12,7 +12,7 @@ info:
     Innlogget bruker må være registrert som nærmeste leder for den sykmeldte via `narmesteLederId`.
   version: "1.0.0"
   contact:
-    name: Kildekode (GitHub)
+    name: Team eSyfo
     url: https://github.com/navikt/syfo-oppfolgingsplan-backend
 servers:
   - url: http://localhost:8080
@@ -36,7 +36,7 @@ paths:
         Eventuelt eksisterende utkast slettes automatisk når planen opprettes.
       operationId: createOppfolgingsplan
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
       requestBody:
@@ -76,7 +76,7 @@ paths:
         Tiltenkt for oversiktsvisning.
       operationId: getOppfolgingsplanOversikt
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
       responses:
@@ -104,7 +104,7 @@ paths:
         Returnerer den nyeste (aktive) oppfølgingsplanen for den sykmeldte.
       operationId: getAktivOppfolgingsplan
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
       responses:
@@ -131,7 +131,7 @@ paths:
       description: Returnerer en komplett oppfølgingsplan identifisert ved UUID.
       operationId: getOppfolgingsplanById
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
         - $ref: '#/components/parameters/OppfolgingsplanUuid'
@@ -163,7 +163,7 @@ paths:
         Krever aktiv sykmelding. Kan bare gjøres én gang per plan.
       operationId: delOppfolgingsplanMedLege
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
         - $ref: '#/components/parameters/OppfolgingsplanUuid'
@@ -193,7 +193,7 @@ paths:
         Krever aktiv sykmelding. Kan bare gjøres én gang per plan.
       operationId: delOppfolgingsplanMedVeileder
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
         - $ref: '#/components/parameters/OppfolgingsplanUuid'
@@ -221,7 +221,7 @@ paths:
       description: Genererer og returnerer oppfølgingsplanen som PDF-dokument.
       operationId: getOppfolgingsplanPdf
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
         - $ref: '#/components/parameters/OppfolgingsplanUuid'
@@ -250,7 +250,7 @@ paths:
       description: Returnerer gjeldende utkast for den sykmeldte, eller tomt utkast hvis ingen finnes.
       operationId: getUtkast
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
       responses:
@@ -278,7 +278,7 @@ paths:
         Utkastet lagres automatisk og kan hentes igjen senere.
       operationId: saveUtkast
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
       requestBody:
@@ -310,7 +310,7 @@ paths:
         Krever at den sykmeldte har en aktiv sykmelding.
       operationId: deleteUtkast
       security:
-        - bearerAuth: []
+        - bearerAuth: [ ]
       parameters:
         - $ref: '#/components/parameters/NarmesteLederId'
       responses:
