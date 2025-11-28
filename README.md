@@ -7,6 +7,14 @@
 - If you need an access token for testing secured endpoints you can run `./fetch-token-for-local-dev.sh` to get a fake token.
 The auth server will always return a token with the claims defined in docker-compose.yml.
 
+## API Documentation (Swagger)
+When running the application locally (or in dev), Swagger UI is available at the following endpoints:
+- **Arbeidsgiver:** [http://localhost:8080/swagger/arbeidsgiver](http://localhost:8080/swagger/arbeidsgiver)
+- **Sykmeldt:** [http://localhost:8080/swagger/sykmeldt](http://localhost:8080/swagger/sykmeldt)
+- **Veileder:** [http://localhost:8080/swagger/veileder](http://localhost:8080/swagger/veileder)
+
+The OpenAPI specifications can be found in `src/main/resources/openapi/`.
+
 ## Docker compose
 ### Size of container platform
 In order to run kafka++ you will probably need to extend the default size of your container platform. (Rancher Desktop, Colima etc.)

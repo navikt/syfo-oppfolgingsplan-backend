@@ -25,29 +25,26 @@ class ValkeyCache(
     )
 
     private fun <T> get(key: String, type: Class<T>): T? {
-        try {
-            val jedis = jedisPool.resource
-            val json = jedis.get(key)
-            return json?.let {
-                jacksonObjectMapper().readValue(it, type)
+        return try {
+            jedisPool.resource.use { jedis ->
+                jedis.get(key)?.let {
+                    jacksonObjectMapper().readValue(it, type)
+                }
             }
         } catch (e: Exception) {
             logger.error("Failed to get from cache", e)
-            return null
-        } finally {
-            jedisPool.resource.close()
+            null
         }
     }
 
     private fun <T> put(key: String, value: T, ttlSeconds: Long = CACHE_TTL_SECONDS) {
         try {
-            val jedis = jedisPool.resource
-            val json = jacksonObjectMapper().writeValueAsString(value)
-            jedis.setex(key, ttlSeconds, json)
+            jedisPool.resource.use { jedis ->
+                val json = jacksonObjectMapper().writeValueAsString(value)
+                jedis.setex(key, ttlSeconds, json)
+            }
         } catch (e: Exception) {
             logger.error("Failed to put in cache", e)
-        } finally {
-            jedisPool.resource.close()
         }
     }
 

@@ -1,0 +1,260 @@
+openapi: "3.1.0"
+info:
+  title: "Oppfølgingsplan API - Veileder"
+  description: |
+    API for NAV-veiledere for å se oppfølgingsplaner som er delt med Nav.
+    
+    ## Autentisering
+    Alle endepunkter krever Bearer token fra Azure AD med veileder-innlogging via LDAP.
+    Token må være utstedt til godkjent NAV-applikasjon (syfomodiaperson).
+    
+    ## Autorisasjon
+    Veileder må ha tilgang til brukerens enhet via tilgangskontroll-tjenesten (istilgangskontroll).
+    Kun oppfølgingsplaner som er delt med Nav vises.
+  version: "1.0.0"
+  contact:
+    name: Team eSyfo
+    url: https://github.com/navikt/syfo-oppfolgingsplan-backend
+servers:
+  - url: http://localhost:8080
+    description: Lokal utvikling
+  - url: https://syfo-oppfolgingsplan-backend.intern.dev.nav.no
+    description: Dev-miljø
+tags:
+  - name: Oppfølgingsplan
+    description: Veileder-operasjoner for oppfølgingsplaner
+
+paths:
+  /api/v1/veileder/oppfolgingsplaner:
+    post:
+      tags:
+        - Oppfølgingsplan
+      summary: Hent oppfølgingsplaner for en sykmeldt
+      description: |
+        Returnerer alle oppfølgingsplaner som er delt med Nav for en gitt sykmeldt.
+        
+        Veileder må ha tilgang til brukerens enhet via istilgangskontroll.
+        Kun oppfølgingsplaner der `deltMedNav` er satt returneres.
+      operationId: getVeilederOppfolgingsplaner
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VeilederOppfolgingsplanRequest'
+      responses:
+        '200':
+          description: Liste med oppfølgingsplaner som er delt med Nav
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VeilederOppfolgingsplanResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/veileder/oppfolgingsplaner/{uuid}:
+    get:
+      tags:
+        - Oppfølgingsplan
+      summary: Hent PDF for en oppfølgingsplan
+      description: |
+        Returnerer oppfølgingsplanen som PDF-dokument.
+        
+        Veileder må ha tilgang til brukerens enhet via istilgangskontroll.
+        Oppfølgingsplanen må være delt med Nav.
+      operationId: getVeilederOppfolgingsplanPdf
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OppfolgingsplanUuid'
+      responses:
+        '200':
+          description: PDF-dokument
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/PlanNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Azure AD-token for NAV-veileder med LDAP-autentisering.
+        Må være utstedt til godkjent NAV-applikasjon (syfomodiaperson).
+
+  parameters:
+    OppfolgingsplanUuid:
+      name: uuid
+      in: path
+      required: true
+      description: Unik identifikator for oppfølgingsplanen
+      schema:
+        type: string
+        format: uuid
+        example: "987fcdeb-51a2-3bc4-d567-890123456789"
+
+  responses:
+    Unauthorized:
+      description: Manglende eller ugyldig autentisering
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 401
+            type: AUTHENTICATION_ERROR
+            message: "Token is not active"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/veileder/oppfolgingsplaner"
+
+    Forbidden:
+      description: |
+        Veileder har ikke tilgang. Dette kan skyldes:
+        - Token ikke utstedt til godkjent applikasjon
+        - Veileder har ikke tilgang til brukerens enhet
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 403
+            type: AUTHORIZATION_ERROR
+            message: "Veileder is not authorized for this user"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/veileder/oppfolgingsplaner"
+
+    PlanNotFound:
+      description: Oppfølgingsplan ikke funnet eller ikke delt med Nav
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 404
+            type: NOT_FOUND
+            message: "Oppfolgingsplan not found"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/veileder/oppfolgingsplaner/987fcdeb-51a2-3bc4-d567-890123456789"
+
+    InternalServerError:
+      description: Intern serverfeil
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 500
+            type: INTERNAL_SERVER_ERROR
+            message: "An unexpected error occurred"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/veileder/oppfolgingsplaner"
+
+  schemas:
+    ApiError:
+      type: object
+      required:
+        - status
+        - type
+        - message
+        - timestamp
+      properties:
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        type:
+          type: string
+          enum:
+            - AUTHENTICATION_ERROR
+            - AUTHORIZATION_ERROR
+            - NOT_FOUND
+            - INTERNAL_SERVER_ERROR
+            - ILLEGAL_ARGUMENT
+            - BAD_REQUEST
+            - LEGE_NOT_FOUND
+            - PLAN_NOT_FOUND
+            - SYKMELDT_NOT_FOUND
+            - CONFLICT
+          description: Feiltype for maskinell håndtering
+        message:
+          type: string
+          description: Beskrivende feilmelding
+        timestamp:
+          type: string
+          format: date-time
+          description: Tidspunkt feilen oppstod
+        path:
+          type: string
+          nullable: true
+          description: URL-path som forårsaket feilen
+
+    VeilederOppfolgingsplanRequest:
+      type: object
+      required:
+        - sykmeldtFnr
+      properties:
+        sykmeldtFnr:
+          type: string
+          description: Fødselsnummer for den sykmeldte (11 siffer)
+          pattern: "^[0-9]{11}$"
+          example: "12345678901"
+
+    VeilederOppfolgingsplanResponse:
+      type: object
+      required:
+        - uuid
+        - sykmeldtNavn
+        - virksomhetsnavn
+        - virksomhetsnummer
+        - evalueringsDato
+        - ferdigstiltTidspunkt
+        - deltMedNavTidspunkt
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unik identifikator for oppfølgingsplanen
+        sykmeldtNavn:
+          type: string
+          description: Navn på den sykmeldte
+          example: "Ola Nordmann"
+        virksomhetsnavn:
+          type: string
+          description: Navn på virksomheten
+          example: "Bedrift AS"
+        virksomhetsnummer:
+          type: string
+          description: Organisasjonsnummer for virksomheten
+          example: "123456789"
+        evalueringsDato:
+          type: string
+          format: date
+          description: Dato for evaluering av planen
+        ferdigstiltTidspunkt:
+          type: string
+          format: date-time
+          description: Tidspunkt planen ble ferdigstilt
+        deltMedNavTidspunkt:
+          type: string
+          format: date-time
+          description: Tidspunkt planen ble delt med Nav

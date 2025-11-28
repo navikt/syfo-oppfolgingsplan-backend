@@ -8,8 +8,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.apache.Apache
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.jackson.jackson
+
+private const val DEFAULT_TIMEOUT_MS = 30_000L
+private const val DEFAULT_CONNECT_TIMEOUT_MS = 10_000L
 
 fun httpClientDefault(httpClient: HttpClient = HttpClient(Apache)): HttpClient {
     return httpClient.config {
@@ -21,6 +25,11 @@ fun httpClientDefault(httpClient: HttpClient = HttpClient(Apache)): HttpClient {
                 configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
                 configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             }
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = DEFAULT_TIMEOUT_MS
+            connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT_MS
+            socketTimeoutMillis = DEFAULT_TIMEOUT_MS
         }
         install(HttpRequestRetry) {
             retryOnExceptionIf(2) { _, cause ->

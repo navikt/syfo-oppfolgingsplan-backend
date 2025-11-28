@@ -1,0 +1,523 @@
+openapi: "3.1.0"
+info:
+  title: "Oppfølgingsplan API - Sykmeldt"
+  description: |
+    API for sykmeldte for å se sine oppfølgingsplaner.
+    
+    ## Autentisering
+    Alle endepunkter krever Bearer token fra TokenX med Level4 (BankID) innlogging.
+    Token må være utstedt til `syfo-oppfolgingsplan-frontend`.
+    
+    ## Autorisasjon
+    Innlogget bruker kan kun se oppfølgingsplaner som tilhører seg selv.
+  version: "1.0.0"
+  contact:
+    name: Team eSyfo
+    url: https://github.com/navikt/syfo-oppfolgingsplan-backend
+servers:
+  - url: http://localhost:8080
+    description: Lokal utvikling
+  - url: https://syfo-oppfolgingsplan-backend.intern.dev.nav.no
+    description: Dev-miljø
+tags:
+  - name: Oppfølgingsplan
+    description: Operasjoner for å se oppfølgingsplaner
+
+paths:
+  /api/v1/sykmeldt/oppfolgingsplaner/oversikt:
+    get:
+      tags:
+        - Oppfølgingsplan
+      summary: Hent oversikt over mine oppfølgingsplaner
+      description: |
+        Returnerer metadata for alle oppfølgingsplaner som tilhører innlogget sykmeldt.
+        Planer grupperes i aktive (evalueringsdato >= i dag) og tidligere planer.
+      operationId: getSykmeldtOppfolgingsplanOversikt
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Oversikt over oppfølgingsplaner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SykmeldtOppfolgingsplanOverview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/sykmeldt/oppfolgingsplaner/{uuid}:
+    get:
+      tags:
+        - Oppfølgingsplan
+      summary: Hent spesifikk oppfølgingsplan
+      description: |
+        Returnerer en komplett oppfølgingsplan identifisert ved UUID.
+        Planen må tilhøre innlogget bruker.
+      operationId: getSykmeldtOppfolgingsplanById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OppfolgingsplanUuid'
+      responses:
+        '200':
+          description: Oppfølgingsplan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OppfolgingsplanResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/PlanNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/sykmeldt/oppfolgingsplaner/{uuid}/pdf:
+    get:
+      tags:
+        - Oppfølgingsplan
+      summary: Last ned oppfølgingsplan som PDF
+      description: |
+        Genererer og returnerer oppfølgingsplanen som PDF-dokument.
+        Planen må tilhøre innlogget bruker.
+      operationId: getSykmeldtOppfolgingsplanPdf
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/OppfolgingsplanUuid'
+      responses:
+        '200':
+          description: PDF-dokument
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/PlanNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        TokenX-token med Level4 (BankID) autentisering.
+        Må være utstedt til `syfo-oppfolgingsplan-frontend`.
+
+  parameters:
+    OppfolgingsplanUuid:
+      name: uuid
+      in: path
+      required: true
+      description: Unik identifikator for oppfølgingsplanen
+      schema:
+        type: string
+        format: uuid
+        example: "987fcdeb-51a2-3bc4-d567-890123456789"
+
+  responses:
+    BadRequest:
+      description: Ugyldig forespørsel
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 400
+            type: BAD_REQUEST
+            message: "Invalid UUID format"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/sykmeldt/oppfolgingsplaner/invalid-uuid"
+
+    Unauthorized:
+      description: Manglende eller ugyldig autentisering
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 401
+            type: AUTHENTICATION_ERROR
+            message: "Token is not active"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/sykmeldt/oppfolgingsplaner/oversikt"
+
+    Forbidden:
+      description: Ikke tilgang til ressursen
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 403
+            type: AUTHORIZATION_ERROR
+            message: "Caller is not authorized for this endpoint"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/sykmeldt/oppfolgingsplaner/oversikt"
+
+    PlanNotFound:
+      description: Oppfølgingsplan ikke funnet (eller tilhører ikke innlogget bruker)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 404
+            type: NOT_FOUND
+            message: "Oppfolgingsplan not found"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/sykmeldt/oppfolgingsplaner/987fcdeb-51a2-3bc4-d567-890123456789"
+
+    InternalServerError:
+      description: Intern serverfeil
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 500
+            type: INTERNAL_SERVER_ERROR
+            message: "An unexpected error occurred"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/sykmeldt/oppfolgingsplaner/oversikt"
+
+  schemas:
+    ApiError:
+      type: object
+      required:
+        - status
+        - type
+        - message
+        - timestamp
+      properties:
+        status:
+          type: integer
+          description: HTTP status code
+          example: 400
+        type:
+          type: string
+          enum:
+            - AUTHENTICATION_ERROR
+            - AUTHORIZATION_ERROR
+            - NOT_FOUND
+            - INTERNAL_SERVER_ERROR
+            - ILLEGAL_ARGUMENT
+            - BAD_REQUEST
+            - LEGE_NOT_FOUND
+            - PLAN_NOT_FOUND
+            - SYKMELDT_NOT_FOUND
+            - CONFLICT
+          description: Feiltype for maskinell håndtering
+        message:
+          type: string
+          description: Beskrivende feilmelding
+        timestamp:
+          type: string
+          format: date-time
+          description: Tidspunkt feilen oppstod
+        path:
+          type: string
+          nullable: true
+          description: URL-path som forårsaket feilen
+
+    SykmeldtOppfolgingsplanOverview:
+      type: object
+      required:
+        - aktiveOppfolgingsplaner
+        - tidligerePlaner
+      properties:
+        aktiveOppfolgingsplaner:
+          type: array
+          description: Oppfølgingsplaner med evalueringsdato >= i dag
+          items:
+            $ref: '#/components/schemas/OppfolgingsplanMetadata'
+        tidligerePlaner:
+          type: array
+          description: Oppfølgingsplaner med evalueringsdato < i dag
+          items:
+            $ref: '#/components/schemas/OppfolgingsplanMetadata'
+
+    OppfolgingsplanResponse:
+      type: object
+      required:
+        - userHasEditAccess
+        - organization
+        - employee
+        - oppfolgingsplan
+      properties:
+        userHasEditAccess:
+          type: boolean
+          description: Alltid false for sykmeldt (de kan ikke redigere)
+        organization:
+          $ref: '#/components/schemas/OrganizationDetails'
+        employee:
+          $ref: '#/components/schemas/EmployeeDetails'
+        oppfolgingsplan:
+          $ref: '#/components/schemas/OppfolgingsplanResponseData'
+
+    OppfolgingsplanResponseData:
+      type: object
+      required:
+        - id
+        - content
+        - evalueringsDato
+        - ferdigstiltTidspunkt
+      properties:
+        id:
+          type: string
+          format: uuid
+        content:
+          $ref: '#/components/schemas/FormSnapshot'
+        evalueringsDato:
+          type: string
+          format: date
+        deltMedLegeTidspunkt:
+          type: string
+          format: date-time
+          nullable: true
+        deltMedVeilederTidspunkt:
+          type: string
+          format: date-time
+          nullable: true
+        ferdigstiltTidspunkt:
+          type: string
+          format: date-time
+
+    OppfolgingsplanMetadata:
+      type: object
+      required:
+        - id
+        - evalueringsDato
+        - ferdigstiltTidspunkt
+      properties:
+        id:
+          type: string
+          format: uuid
+        evalueringsDato:
+          type: string
+          format: date
+        deltMedLegeTidspunkt:
+          type: string
+          format: date-time
+          nullable: true
+        deltMedVeilederTidspunkt:
+          type: string
+          format: date-time
+          nullable: true
+        ferdigstiltTidspunkt:
+          type: string
+          format: date-time
+
+    OrganizationDetails:
+      type: object
+      required:
+        - orgNumber
+      properties:
+        orgNumber:
+          type: string
+          description: Organisasjonsnummer (9 siffer)
+          example: "123456789"
+        orgName:
+          type: string
+          nullable: true
+          description: Navn på organisasjonen
+          example: "Bedrift AS"
+
+    EmployeeDetails:
+      type: object
+      required:
+        - fnr
+        - name
+      properties:
+        fnr:
+          type: string
+          description: Fødselsnummer (11 siffer)
+          example: "12345678901"
+        name:
+          type: string
+          description: Fullt navn
+          example: "Ola Nordmann"
+
+    FormSnapshot:
+      type: object
+      required:
+        - formIdentifier
+        - formSemanticVersion
+        - formSnapshotVersion
+        - sections
+      properties:
+        formIdentifier:
+          type: string
+          description: Identifikator for skjematypen
+          example: "oppfolgingsplan"
+        formSemanticVersion:
+          type: string
+          description: Semantisk versjon av skjemaet
+          example: "1.0.0"
+        formSnapshotVersion:
+          type: string
+          description: Versjon av snapshot-formatet
+          example: "2.0.0"
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Section'
+
+    Section:
+      type: object
+      required:
+        - sectionId
+        - sectionTitle
+        - fields
+      properties:
+        sectionId:
+          type: string
+          example: "arbeidsoppgaver"
+        sectionTitle:
+          type: string
+          example: "Arbeidsoppgaver"
+        fields:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldSnapshot'
+
+    FieldSnapshot:
+      type: object
+      discriminator:
+        propertyName: fieldType
+        mapping:
+          TEXT: '#/components/schemas/TextFieldSnapshot'
+          RADIO_GROUP: '#/components/schemas/RadioGroupFieldSnapshot'
+          CHECKBOX_GROUP: '#/components/schemas/CheckboxGroupFieldSnapshot'
+          CHECKBOX_SINGLE: '#/components/schemas/SingleCheckboxFieldSnapshot'
+          DATE: '#/components/schemas/DateFieldSnapshot'
+      required:
+        - fieldId
+        - fieldType
+        - label
+      properties:
+        fieldId:
+          type: string
+        fieldType:
+          type: string
+          enum:
+            - TEXT
+            - RADIO_GROUP
+            - CHECKBOX_GROUP
+            - CHECKBOX_SINGLE
+            - DATE
+        label:
+          type: string
+        description:
+          type: string
+          nullable: true
+
+    TextFieldSnapshot:
+      allOf:
+        - $ref: '#/components/schemas/FieldSnapshot'
+        - type: object
+          required:
+            - value
+          properties:
+            value:
+              type: string
+            wasRequired:
+              type: boolean
+              default: true
+
+    RadioGroupFieldSnapshot:
+      allOf:
+        - $ref: '#/components/schemas/FieldSnapshot'
+        - type: object
+          required:
+            - options
+          properties:
+            options:
+              type: array
+              items:
+                $ref: '#/components/schemas/RadioGroupFieldOption'
+            selectedOptionId:
+              type: string
+              nullable: true
+            wasRequired:
+              type: boolean
+              default: true
+
+    RadioGroupFieldOption:
+      type: object
+      required:
+        - optionId
+        - optionLabel
+      properties:
+        optionId:
+          type: string
+        optionLabel:
+          type: string
+
+    CheckboxGroupFieldSnapshot:
+      allOf:
+        - $ref: '#/components/schemas/FieldSnapshot'
+        - type: object
+          required:
+            - options
+          properties:
+            options:
+              type: array
+              items:
+                $ref: '#/components/schemas/CheckboxGroupFieldOption'
+            wasRequired:
+              type: boolean
+              default: true
+
+    CheckboxGroupFieldOption:
+      type: object
+      required:
+        - optionId
+        - optionLabel
+      properties:
+        optionId:
+          type: string
+        optionLabel:
+          type: string
+        wasSelected:
+          type: boolean
+          default: false
+
+    SingleCheckboxFieldSnapshot:
+      allOf:
+        - $ref: '#/components/schemas/FieldSnapshot'
+        - type: object
+          required:
+            - value
+          properties:
+            value:
+              type: boolean
+
+    DateFieldSnapshot:
+      allOf:
+        - $ref: '#/components/schemas/FieldSnapshot'
+        - type: object
+          properties:
+            value:
+              type: string
+              format: date
+              nullable: true
+            wasRequired:
+              type: boolean
+              default: true
