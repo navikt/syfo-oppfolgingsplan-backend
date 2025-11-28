@@ -9,9 +9,9 @@ The auth server will always return a token with the claims defined in docker-com
 
 ## API Documentation (Swagger)
 When running the application locally (or in dev), Swagger UI is available at the following endpoints:
-- **Arbeidsgiver:** [http://localhost:8080/swagger/arbeidsgiver](http://localhost:8080/swagger/arbeidsgiver)
-- **Sykmeldt:** [http://localhost:8080/swagger/sykmeldt](http://localhost:8080/swagger/sykmeldt)
-- **Veileder:** [http://localhost:8080/swagger/veileder](http://localhost:8080/swagger/veileder)
+- **Arbeidsgiver:** [https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/arbeidsgiver](https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/arbeidsgiver)
+- **Sykmeldt:** [https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/sykmeldt](https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/sykmeldt)
+- **Veileder:** [https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/veileder](https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/veileder)
 
 The OpenAPI specifications can be found in `src/main/resources/openapi/`.
 
