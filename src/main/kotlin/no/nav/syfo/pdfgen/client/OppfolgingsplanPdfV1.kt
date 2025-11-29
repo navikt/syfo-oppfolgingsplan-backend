@@ -1,11 +1,11 @@
 package no.nav.syfo.pdfgen.client
 
-data class OppfolginsplanPdfV1(
+data class OppfolgingsplanPdfV1(
     val version: String = "1.0",
-    val oppfolgingsplan: Oppfolginsplan
+    val oppfolgingsplan: Oppfolgingsplan
 )
 
-data class Oppfolginsplan(
+data class Oppfolgingsplan(
     val createdDate: String,
     val evaluationDate: String,
     val sykmeldtName: String,

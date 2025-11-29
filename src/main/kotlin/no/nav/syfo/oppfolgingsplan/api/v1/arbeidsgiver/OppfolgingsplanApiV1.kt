@@ -98,7 +98,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
         }
 
         /**
-         * Gir en komplett aktiv oppfolginsplan.
+         * Gir en komplett aktiv oppfolgingsplan.
          */
         get("/aktiv-plan") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
@@ -117,7 +117,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
         }
 
         /**
-         * Gir en komplett oppfolginsplan.
+         * Gir en komplett oppfolgingsplan.
          */
         get("/{uuid}") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
@@ -201,7 +201,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
             try {
-                val journalpostId = dokarkivService.arkiverOppfolginsplan(oppfolgingsplan, pdfByteArray)
+                val journalpostId = dokarkivService.arkiverOppfolgingsplan(oppfolgingsplan, pdfByteArray)
                 oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
                 oppfolgingsplanService.setJournalpostId(uuid, journalpostId)
                 call.respond(HttpStatusCode.OK)

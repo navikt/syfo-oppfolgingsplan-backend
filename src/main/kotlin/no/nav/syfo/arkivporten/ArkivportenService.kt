@@ -37,7 +37,7 @@ class ArkivportenService(
                 val planWithNarmestelederName = oppfolgingsplanService.getAndSetNarmestelederFullname(oppfolgingsplan)
                 val pdfByteArray = pdfGenService.generatePdf(planWithNarmestelederName)
                     ?: throw InternalServerErrorException("An error occurred while generating pdf")
-                arkivportenClient.publishOppfolginsplan(
+                arkivportenClient.publishOppfolgingsplan(
                     oppfolgingsplan.toArkivportenDocument(pdfByteArray, dateFormatter),
                 )
                 database.setSendtTilArkivportenTidspunkt(planWithNarmestelederName.uuid, Instant.now())

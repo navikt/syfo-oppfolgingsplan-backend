@@ -7,7 +7,7 @@ import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.util.logger
 
-class SendOppfolginsplanTask(
+class SendOppfolgingsplanTask(
     private val leaderElection: LeaderElection,
     private val arkivportenService: ArkivportenService
     ) {

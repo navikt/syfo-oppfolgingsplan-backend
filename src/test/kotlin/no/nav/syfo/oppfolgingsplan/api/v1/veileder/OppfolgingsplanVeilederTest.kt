@@ -22,11 +22,11 @@ class OppfolgingsplanVeilederTest : DescribeSpec({
             )
 
             // Act
-            val veilderLast = OppfolgingsplanVeileder.from(deltMedVeilederLast)
+            val veilederLast = OppfolgingsplanVeileder.from(deltMedVeilederLast)
             val legeLast = OppfolgingsplanVeileder.from(deletMedLegeLast)
 
             // Assert
-            veilderLast.sistEndret shouldBe deltMedVeilederLast.deltMedVeilederTidspunkt
+            veilederLast.sistEndret shouldBe deltMedVeilederLast.deltMedVeilederTidspunkt
             legeLast.sistEndret shouldBe deletMedLegeLast.deltMedLegeTidspunkt
         }
     }

@@ -53,7 +53,7 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import java.time.Instant
 import java.util.*
 
-class VeilederOppfolginsplanApiV1Test : DescribeSpec({
+class VeilederOppfolgingsplanApiV1Test : DescribeSpec({
     val texasClientMock = mockk<TexasHttpClient>()
     val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
     val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
@@ -113,9 +113,9 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
         }
     }
 
-    describe("Veilder Oppfolgingsplan API") {
+    describe("Veileder Oppfolgingsplan API") {
         describe("List") {
-            it("POST /veilder/oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
+            it("POST /veileder/oppfolgingsplaner should respond with Unauthorized when no authentication is provided") {
                 withTestApplication {
                     // Arrange
                     // Act
@@ -126,7 +126,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("POST /veilder/oppfolgingsplaner should respond with Unauthorized if token is lacking NAVident") {
+            it("POST /veileder/oppfolgingsplaner should respond with Unauthorized if token is lacking NAVident") {
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(pid = "some-veileder-token")
@@ -148,7 +148,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("POST /veilder/oppfolgingsplaner should respond with Forbidden when client is not allowed") {
+            it("POST /veileder/oppfolgingsplaner should respond with Forbidden when client is not allowed") {
                 withTestApplication {
                     // Arrange
                     // Mock with WRONG client (frontend trying to access veileder route)
@@ -164,7 +164,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                         url("/api/v1/veileder/oppfolgingsplaner/query")
                         bearerAuth(token = "Bearer token")
                         contentType(ContentType.Application.Json)
-                        setBody(OppfolginsplanerReadRequest(sykmeldtFnr))
+                        setBody(OppfolgingsplanerReadRequest(sykmeldtFnr))
                     }
 
                     // Assert
@@ -172,7 +172,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("POST /veilder/oppfolgingsplaner should respond with Bad Request if sykmeldt fnr is not provided in body") {
+            it("POST /veileder/oppfolgingsplaner should respond with Bad Request if sykmeldt fnr is not provided in body") {
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(
@@ -198,7 +198,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("POST /veilder/oppfolgingsplaner should respond with Forbidden when Tilgangskontroll rejects access to sykemeldt") {
+            it("POST /veileder/oppfolgingsplaner should respond with Forbidden when Tilgangskontroll rejects access to sykemeldt") {
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(
@@ -213,7 +213,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                         url("/api/v1/veileder/oppfolgingsplaner/query")
                         bearerAuth(token = "Bearer token")
                         contentType(ContentType.Application.Json)
-                        setBody(OppfolginsplanerReadRequest(sykmeldtFnr))
+                        setBody(OppfolgingsplanerReadRequest(sykmeldtFnr))
                     }
 
                     // Assert
@@ -226,7 +226,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
 
-            it("POST /veilder/oppfolgingsplaner should respond with OK when correct authentication is provided") {
+            it("POST /veileder/oppfolgingsplaner should respond with OK when correct authentication is provided") {
                 withTestApplication {
                     // Arrange
                     texasClientMock.defaultMocks(
@@ -257,7 +257,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                         bearerAuth(token = "Bearer token")
                         header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
                         contentType(ContentType.Application.Json)
-                        setBody(OppfolginsplanerReadRequest(sykmeldtFnr))
+                        setBody(OppfolgingsplanerReadRequest(sykmeldtFnr))
                     }
 
                     // Assert
@@ -279,7 +279,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
     }
 
     describe("PDF for uuid") {
-        it("GET /veilder/oppfolgingsplaner/<uuid> should respond with Not Found when there is no oppfolginsplan delt with nav for the uuid") {
+        it("GET /veileder/oppfolgingsplaner/<uuid> should respond with Not Found when there is no oppfolgingsplan delt with nav for the uuid") {
             withTestApplication {
                 // Arrange
                 val pdfContent = "ThisIsPdfContent"
@@ -313,7 +313,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
                 }
             }
         }
-        it("GET /veilder/oppfolgingsplaner/<uuid> should respond with forbidden when Tilgangskontroll rejects access to sykemeldt") {
+        it("GET /veileder/oppfolgingsplaner/<uuid> should respond with forbidden when Tilgangskontroll rejects access to sykemeldt") {
             withTestApplication {
                 // Arrange
                 texasClientMock.defaultMocks(
@@ -354,7 +354,7 @@ class VeilederOppfolginsplanApiV1Test : DescribeSpec({
             }
         }
 
-        it("GET /veilder/oppfolgingsplaner/<uuid> should respond with OK and pdf as ByteArray") {
+        it("GET /veileder/oppfolgingsplaner/<uuid> should respond with OK and pdf as ByteArray") {
             withTestApplication {
                 // Arrange
                 val pdfContent = "ThisIsPdfContent"

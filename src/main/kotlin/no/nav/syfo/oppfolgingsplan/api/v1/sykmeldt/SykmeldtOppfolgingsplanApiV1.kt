@@ -63,7 +63,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
         }
 
         /**
-         * Gir en komplett oppfolginsplan.
+         * Gir en komplett oppfolgingsplan.
          */
         get("/{uuid}") {
             val uuid = call.parameters.extractAndValidateUUIDParameter()

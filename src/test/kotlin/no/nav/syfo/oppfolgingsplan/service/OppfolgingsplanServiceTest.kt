@@ -14,26 +14,26 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class OppfolginsplanServiceTest : DescribeSpec({
+class OppfolgingsplanServiceTest : DescribeSpec({
     describe("Extension function tests") {
-        it("toListOppfolginsplanVeiler should filter out items not delt with veileder") {
+        it("toListOppfolgingsplanVeileder should filter out items not delt with veileder") {
             // Arrange
-            val deltMedVeilder = defaultPersistedOppfolgingsplan().copy(
+            val deltMedVeileder = defaultPersistedOppfolgingsplan().copy(
                 deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
                 skalDelesMedVeileder = true
             )
-            val ikkeDeltMedVeilder = defaultPersistedOppfolgingsplan().copy(
+            val ikkeDeltMedVeileder = defaultPersistedOppfolgingsplan().copy(
                 deltMedVeilederTidspunkt = null,
                 skalDelesMedVeileder = false
             )
-            val oppfolgingsplaner = listOf(ikkeDeltMedVeilder, deltMedVeilder)
+            val oppfolgingsplaner = listOf(ikkeDeltMedVeileder, deltMedVeileder)
 
             // Act
             val filtered = oppfolgingsplaner.toListOppfolgingsplanVeileder()
             // Assert
 
             filtered.size shouldBe 1
-            filtered.first().uuid shouldBe deltMedVeilder.uuid
+            filtered.first().uuid shouldBe deltMedVeileder.uuid
         }
     }
     describe("public function tests") {

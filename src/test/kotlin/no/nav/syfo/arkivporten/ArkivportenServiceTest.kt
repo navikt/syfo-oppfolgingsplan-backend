@@ -60,7 +60,7 @@ class ArkivportenServiceTest : DescribeSpec({
 
             // Assert
             coVerify(exactly = 2) {
-                clientSpy.publishOppfolginsplan(any())
+                clientSpy.publishOppfolgingsplan(any())
             }
             coVerify(exactly = 1) {
                 pdfGenService.generatePdf(eq(unsendtPlans.first()))

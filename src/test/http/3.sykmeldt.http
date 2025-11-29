@@ -7,10 +7,10 @@ Authorization: Bearer {{token}}
     client.global.set("oppflgingsplanUuid", response.body.previousOppfolgingsplaner[0].uuid);
 %}
 
-### GET oppfolginsplan
+### GET oppfolgingsplan
 GET http://localhost:8080/api/v1/sykmeldt/oppfolgingsplaner/{{oppflgingsplanUuid}} HTTP/1.1
 Authorization: Bearer {{token}}
 
-### GET oppfolginsplan pdf
+### GET oppfolgingsplan pdf
 GET http://localhost:8080/api/v1/sykmeldt/oppfolgingsplaner/{{oppflgingsplanUuid}}/pdf HTTP/1.1
 Authorization: Bearer {{token}}

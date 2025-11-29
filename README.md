@@ -60,7 +60,7 @@ A general description of how can be found in the 'utvikling' repo [here](https:/
 ### Tweaks for the deployment
 There are a few tweaks we need to do to the deployment manifest [nais-dev.yaml](./nais/nais-dev.yaml)
 
-1. Add JAVA_TOOL_OPTIONS to open up for remote debug. Add the follogin under ```env:``` 
+1. Add JAVA_TOOL_OPTIONS to open up for remote debug. Add the following under ```env:``` 
 ```yaml
     - name: JAVA_TOOL_OPTIONS
       value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005

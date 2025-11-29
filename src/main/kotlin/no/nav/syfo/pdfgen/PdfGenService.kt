@@ -10,8 +10,8 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.client.InputField
-import no.nav.syfo.pdfgen.client.Oppfolginsplan
-import no.nav.syfo.pdfgen.client.OppfolginsplanPdfV1
+import no.nav.syfo.pdfgen.client.Oppfolgingsplan
+import no.nav.syfo.pdfgen.client.OppfolgingsplanPdfV1
 import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdfgen.client.Section
 import no.nav.syfo.util.logger
@@ -26,7 +26,7 @@ class PdfGenService(
     suspend fun generatePdf(persistedOppfolgingsplan: PersistedOppfolgingsplan): ByteArray? {
         return try {
             val planIncludingName = oppfolgingsplanService.getAndSetNarmestelederFullname(persistedOppfolgingsplan)
-            pdfGenClient.generatePdf(planIncludingName.toOppfolginsplanPdfV1())
+            pdfGenClient.generatePdf(planIncludingName.toOppfolgingsplanPdfV1())
         } catch (clientRequestException: ClientRequestException) {
             logger.error("Could not generate pdf for id ${persistedOppfolgingsplan.uuid}")
             throw RuntimeException("Error while generating pdf", clientRequestException)
@@ -36,10 +36,10 @@ class PdfGenService(
     }
 }
 
-fun PersistedOppfolgingsplan.toOppfolginsplanPdfV1(): OppfolginsplanPdfV1 {
+fun PersistedOppfolgingsplan.toOppfolgingsplanPdfV1(): OppfolgingsplanPdfV1 {
     val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
-    return OppfolginsplanPdfV1(
-        oppfolgingsplan = Oppfolginsplan(
+    return OppfolgingsplanPdfV1(
+        oppfolgingsplan = Oppfolgingsplan(
             createdDate = this.createdAt
                 .atZone(ZoneId.of("Europe/Oslo"))
                 .toLocalDate()

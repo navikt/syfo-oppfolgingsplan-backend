@@ -14,14 +14,14 @@ import no.nav.syfo.util.logger
 import org.slf4j.LoggerFactory
 
 interface IArkivportenClient {
-    suspend fun publishOppfolginsplan(document: Document)
+    suspend fun publishOppfolgingsplan(document: Document)
 }
 
 class FakeArkivportenClient : IArkivportenClient {
     val logger = logger()
-    override suspend fun publishOppfolginsplan(document: Document) {
+    override suspend fun publishOppfolgingsplan(document: Document) {
         logger.info(
-            "Publishing Oppfolginsplan: ${document.documentId}, ${document.title}, ${document.summary}"
+            "Publishing Oppfolgingsplan: ${document.documentId}, ${document.title}, ${document.summary}"
         )
     }
 }
@@ -34,7 +34,7 @@ class ArkivportenClient(
 ) : IArkivportenClient {
     private val logger = LoggerFactory.getLogger(ArkivportenClient::class.qualifiedName)
 
-    override suspend fun publishOppfolginsplan(document: Document) {
+    override suspend fun publishOppfolgingsplan(document: Document) {
         logger.info("Publishing document to Arkivporten: ${document.documentId}")
         val token = try {
             texasHttpClient.systemToken(IDENTITY_PROVIDER, TexasHttpClient.getTarget(scope)).accessToken

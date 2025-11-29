@@ -102,9 +102,9 @@ class OppfolgingsplanService(
 
     fun updateSkalDelesMedVeileder(
         uuid: UUID,
-        skalDelesMedVeilder: Boolean
+        skalDelesMedVeileder: Boolean
     ) {
-        database.updateSkalDelesMedVeileder(uuid, skalDelesMedVeilder)
+        database.updateSkalDelesMedVeileder(uuid, skalDelesMedVeileder)
     }
 
     fun setDeltMedLegeTidspunkt(

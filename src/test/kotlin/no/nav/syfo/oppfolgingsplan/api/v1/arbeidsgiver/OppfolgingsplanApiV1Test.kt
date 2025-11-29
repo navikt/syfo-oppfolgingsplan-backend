@@ -645,7 +645,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             val apiError = response.body<ApiError>()
             apiError.message shouldBe "Oppfolgingsplan not found for uuid: $uuid"
             coVerify(exactly = 0) {
-                dokarkivServiceMock.arkiverOppfolginsplan(any(), any())
+                dokarkivServiceMock.arkiverOppfolgingsplan(any(), any())
             }
         }
     }
@@ -675,7 +675,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             val apiError = response.body<ApiError>()
             apiError.message shouldBe "Oppfolgingsplan is already shared with Veileder"
             coVerify(exactly = 0) {
-                dokarkivServiceMock.arkiverOppfolginsplan(any(), any())
+                dokarkivServiceMock.arkiverOppfolgingsplan(any(), any())
             }
         }
     }
@@ -690,7 +690,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
 
             val randomJournalpostId = UUID.randomUUID().toString()
-            coEvery { dokarkivServiceMock.arkiverOppfolginsplan(any(), any()) } returns randomJournalpostId
+            coEvery { dokarkivServiceMock.arkiverOppfolgingsplan(any(), any()) } returns randomJournalpostId
 
             val uuid = testDb.persistOppfolgingsplan(
                 defaultPersistedOppfolgingsplan()
@@ -708,7 +708,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             plan.deltMedVeilederTidspunkt shouldNotBe null
             plan.journalpostId shouldBe randomJournalpostId
             coVerify(exactly = 1) {
-                dokarkivServiceMock.arkiverOppfolginsplan(any(), any())
+                dokarkivServiceMock.arkiverOppfolgingsplan(any(), any())
             }
         }
     }
@@ -722,7 +722,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
             coEvery { pdfGenServiceMock.generatePdf(any()) } returns generatedPdfStandin
 
-            coEvery { dokarkivServiceMock.arkiverOppfolginsplan(any(), any()) } throws Exception("exception")
+            coEvery { dokarkivServiceMock.arkiverOppfolgingsplan(any(), any()) } throws Exception("exception")
 
             val uuid = testDb.persistOppfolgingsplan(
                 defaultPersistedOppfolgingsplan()
@@ -739,7 +739,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             plan.skalDelesMedVeileder shouldBe true
             plan.deltMedVeilederTidspunkt shouldBe null
             coVerify(exactly = 1) {
-                dokarkivServiceMock.arkiverOppfolginsplan(any(), any())
+                dokarkivServiceMock.arkiverOppfolgingsplan(any(), any())
             }
         }
     }
