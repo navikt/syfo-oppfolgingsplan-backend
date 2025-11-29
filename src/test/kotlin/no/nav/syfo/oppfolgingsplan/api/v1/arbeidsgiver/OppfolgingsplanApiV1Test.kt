@@ -736,8 +736,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             // Assert
             response.status shouldBe HttpStatusCode.InternalServerError
             val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
-            plan.skalDelesMedVeileder shouldBe true
+            // When archiving fails, no updates should be made to the plan (transactional behavior)
+            plan.skalDelesMedVeileder shouldBe false
             plan.deltMedVeilederTidspunkt shouldBe null
+            plan.journalpostId shouldBe null
             coVerify(exactly = 1) {
                 dokarkivServiceMock.arkiverOppfolgingsplan(any(), any())
             }

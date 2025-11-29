@@ -19,6 +19,7 @@ import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.oppfolgingsplan.db.updateDeltMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
@@ -126,6 +127,17 @@ class OppfolgingsplanService(
         journalpostId: String,
     ) {
         database.setJournalpostId(uuid, journalpostId)
+    }
+
+    /**
+     * Marks an oppfolgingsplan as shared with veileder and sets journalpost ID.
+     * All updates are done in a single transaction to ensure consistency.
+     */
+    fun completeDeltMedVeileder(
+        uuid: UUID,
+        journalpostId: String,
+    ) {
+        database.updateDeltMedVeileder(uuid, Instant.now(), journalpostId)
     }
 
     fun getAktivplanForSykmeldt(sykmeldt: Sykmeldt): PersistedOppfolgingsplan? {

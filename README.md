@@ -1,5 +1,19 @@
 # syfo-oppfolgingsplan-backend
 
+Backend-tjeneste for oppfølgingsplaner i sykefraværsoppfølgingen. Tjenesten håndterer oppfølgingsplaner mellom sykmeldte og deres arbeidsgivere, og gir støtte for veiledere i NAV.
+
+## Funksjonalitet
+- **Arbeidsgiver API**: Opprette, redigere og dele oppfølgingsplaner med NAV og fastlege
+- **Sykmeldt API**: Se og godkjenne oppfølgingsplaner
+- **Veileder API**: Tilgang til oppfølgingsplaner for veiledning
+- **Arkivering**: Automatisk journalføring av planer til Joark og publisering til Arkivporten
+
+## Forutsetninger
+- **JDK 21** eller nyere
+- **Docker** og Docker Compose (for lokal utvikling)
+- **Gradle** (wrapper inkludert)
+- **Tilgang til NAV-miljø** (for dev-testing)
+
 ## Local Development
 - Build the project using `./gradlew build` to ensure all dependencies are resolved and the project is compiled.
 - Run `docker compose up` to start the local postgres database, texas and mock-oauth2-server which is required for development.
@@ -8,7 +22,14 @@
 The auth server will always return a token with the claims defined in docker-compose.yml.
 
 ## API Documentation (Swagger)
-When running the application locally (or in dev), Swagger UI is available at the following endpoints:
+
+### Local Development
+When running locally, Swagger UI is available at:
+- **Arbeidsgiver:** [http://localhost:8080/swagger/arbeidsgiver](http://localhost:8080/swagger/arbeidsgiver)
+- **Sykmeldt:** [http://localhost:8080/swagger/sykmeldt](http://localhost:8080/swagger/sykmeldt)
+- **Veileder:** [http://localhost:8080/swagger/veileder](http://localhost:8080/swagger/veileder)
+
+### Dev Environment
 - **Arbeidsgiver:** [https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/arbeidsgiver](https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/arbeidsgiver)
 - **Sykmeldt:** [https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/sykmeldt](https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/sykmeldt)
 - **Veileder:** [https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/veileder](https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/veileder)

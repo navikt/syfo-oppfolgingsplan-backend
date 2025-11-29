@@ -28,12 +28,16 @@ class ArkivportenService(
         .withZone(ZoneId.of("Europe/Oslo"))
 
     private val logger = logger()
+
     suspend fun findAndSendOppfolgingsplaner() {
-        try {
-            logger.info("Starting task for send documents to arkivporten")
-            val planer = database.findOppfolgingsplanserForArkivportenPublisering()
-            logger.info("Found ${planer.size} documents to send to arkivporten")
-            planer.forEach { oppfolgingsplan ->
+        logger.info("Starting task for send documents to arkivporten")
+        val planer = database.findOppfolgingsplanserForArkivportenPublisering()
+        logger.info("Found ${planer.size} documents to send to arkivporten")
+
+        val failedPlans = mutableListOf<Pair<UUID, Exception>>()
+
+        planer.forEach { oppfolgingsplan ->
+            try {
                 val planWithNarmestelederName = oppfolgingsplanService.getAndSetNarmestelederFullname(oppfolgingsplan)
                 val pdfByteArray = pdfGenService.generatePdf(planWithNarmestelederName)
                     ?: throw InternalServerErrorException("An error occurred while generating pdf")
@@ -41,9 +45,16 @@ class ArkivportenService(
                     oppfolgingsplan.toArkivportenDocument(pdfByteArray, dateFormatter),
                 )
                 database.setSendtTilArkivportenTidspunkt(planWithNarmestelederName.uuid, Instant.now())
+            } catch (ex: Exception) {
+                logger.error("Failed to send oppfolgingsplan ${oppfolgingsplan.uuid} to arkivporten", ex)
+                failedPlans.add(oppfolgingsplan.uuid to ex)
             }
-        } catch (ex: Exception) {
-            logger.error("Could not send document to arkivporten", ex)
+        }
+
+        if (failedPlans.isNotEmpty()) {
+            logger.warn("Failed to send ${failedPlans.size} of ${planer.size} oppfolgingsplaner to arkivporten")
+        } else if (planer.isNotEmpty()) {
+            logger.info("Successfully sent ${planer.size} oppfolgingsplaner to arkivporten")
         }
     }
 }

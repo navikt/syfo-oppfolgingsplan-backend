@@ -95,9 +95,11 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setString(1, sykmeldtFnr)
             preparedStatement.executeQuery().use { resultSet ->
-                generateSequence { if (resultSet.next()) resultSet else null }
-                    .map { it.mapToOppfolgingsplan() }
-                    .toList()
+                buildList {
+                    while (resultSet.next()) {
+                        add(resultSet.mapToOppfolgingsplan())
+                    }
+                }
             }
         }
     }
@@ -120,9 +122,11 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
             preparedStatement.setString(1, sykmeldtFnr)
             preparedStatement.setString(2, organisasjonsnummer)
             preparedStatement.executeQuery().use { resultSet ->
-                generateSequence { if (resultSet.next()) resultSet else null }
-                    .map { it.mapToOppfolgingsplan() }
-                    .toList()
+                buildList {
+                    while (resultSet.next()) {
+                        add(resultSet.mapToOppfolgingsplan())
+                    }
+                }
             }
         }
     }
@@ -271,6 +275,34 @@ fun DatabaseInterface.setNarmesteLederFullName(
     }
 }
 
+/**
+ * Updates all del-med-veileder related fields in a single transaction.
+ * This ensures database consistency if any step fails.
+ */
+fun DatabaseInterface.updateDeltMedVeileder(
+    uuid: UUID,
+    deltMedVeilederTidspunkt: Instant,
+    journalpostId: String,
+) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET skal_deles_med_veileder = true,
+            delt_med_veileder_tidspunkt = ?,
+            journalpost_id = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setTimestamp(1, Timestamp.from(deltMedVeilederTidspunkt))
+            preparedStatement.setString(2, journalpostId)
+            preparedStatement.setObject(3, uuid)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
+
 fun DatabaseInterface.findOppfolgingsplanserForArkivportenPublisering(
 ): List<PersistedOppfolgingsplan> {
     val statement = """
@@ -285,9 +317,11 @@ fun DatabaseInterface.findOppfolgingsplanserForArkivportenPublisering(
     return connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.executeQuery().use { resultSet ->
-                generateSequence { if (resultSet.next()) resultSet else null }
-                    .map { it.mapToOppfolgingsplan() }
-                    .toList()
+                buildList {
+                    while (resultSet.next()) {
+                        add(resultSet.mapToOppfolgingsplan())
+                    }
+                }
             }
         }
     }

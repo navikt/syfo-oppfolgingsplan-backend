@@ -197,13 +197,12 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 throw ConflictException("Oppfolgingsplan is already shared with Veileder")
             }
 
-            oppfolgingsplanService.updateSkalDelesMedVeileder(uuid, true)
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
             try {
                 val journalpostId = dokarkivService.arkiverOppfolgingsplan(oppfolgingsplan, pdfByteArray)
-                oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
-                oppfolgingsplanService.setJournalpostId(uuid, journalpostId)
+                // Update all del-med-veileder fields in a single transaction
+                oppfolgingsplanService.completeDeltMedVeileder(uuid, journalpostId)
                 call.respond(HttpStatusCode.OK)
             } catch (e: Exception) {
                 logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)

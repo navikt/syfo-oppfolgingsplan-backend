@@ -1,9 +1,5 @@
 package no.nav.syfo.plugins
 
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.jackson.jackson
 import io.ktor.server.application.Application
@@ -31,6 +27,7 @@ import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.application.exception.SykmeldtNotFoundException
 import no.nav.syfo.application.exception.UnauthorizedException
+import no.nav.syfo.util.applyStandardConfiguration
 import java.util.*
 
 const val NAV_CALL_ID_HEADER = "Nav-Call-Id"
@@ -38,10 +35,7 @@ const val NAV_CALL_ID_HEADER = "Nav-Call-Id"
 fun Application.installContentNegotiation() {
     install(ContentNegotiation) {
         jackson {
-            registerKotlinModule()
-            registerModule(JavaTimeModule())
-            configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            applyStandardConfiguration()
         }
     }
 }
