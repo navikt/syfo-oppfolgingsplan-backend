@@ -12,7 +12,7 @@ info:
     Innlogget bruker kan kun se oppfølgingsplaner som tilhører seg selv.
   version: "1.0.0"
   contact:
-    name: Team eSyfo
+    name: Kildekode (GitHub)
     url: https://github.com/navikt/syfo-oppfolgingsplan-backend
 servers:
   - url: http://localhost:8080
@@ -34,7 +34,7 @@ paths:
         Planer grupperes i aktive (evalueringsdato >= i dag) og tidligere planer.
       operationId: getSykmeldtOppfolgingsplanOversikt
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
       responses:
         '200':
           description: Oversikt over oppfølgingsplaner
@@ -59,7 +59,7 @@ paths:
         Planen må tilhøre innlogget bruker.
       operationId: getSykmeldtOppfolgingsplanById
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/OppfolgingsplanUuid'
       responses:
@@ -90,7 +90,7 @@ paths:
         Planen må tilhøre innlogget bruker.
       operationId: getSykmeldtOppfolgingsplanPdf
       security:
-        - bearerAuth: [ ]
+        - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/OppfolgingsplanUuid'
       responses:

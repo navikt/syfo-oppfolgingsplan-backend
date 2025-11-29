@@ -1,11 +1,11 @@
 package no.nav.syfo.application.valkey
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.valkey.DefaultJedisClientConfig
 import io.valkey.HostAndPort
 import io.valkey.JedisPool
 import io.valkey.JedisPoolConfig
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.util.configuredJacksonMapper
 import no.nav.syfo.util.logger
 
 class ValkeyCache(
@@ -13,6 +13,7 @@ class ValkeyCache(
 ) {
 
     private val logger = logger()
+    private val objectMapper = configuredJacksonMapper
 
     private val jedisPool = JedisPool(
         JedisPoolConfig(),
@@ -28,7 +29,7 @@ class ValkeyCache(
         return try {
             jedisPool.resource.use { jedis ->
                 jedis.get(key)?.let {
-                    jacksonObjectMapper().readValue(it, type)
+                    objectMapper.readValue(it, type)
                 }
             }
         } catch (e: Exception) {
@@ -40,7 +41,7 @@ class ValkeyCache(
     private fun <T> put(key: String, value: T, ttlSeconds: Long = CACHE_TTL_SECONDS) {
         try {
             jedisPool.resource.use { jedis ->
-                val json = jacksonObjectMapper().writeValueAsString(value)
+                val json = objectMapper.writeValueAsString(value)
                 jedis.setex(key, ttlSeconds, json)
             }
         } catch (e: Exception) {

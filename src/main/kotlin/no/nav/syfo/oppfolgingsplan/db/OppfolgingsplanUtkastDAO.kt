@@ -1,16 +1,16 @@
 package no.nav.syfo.oppfolgingsplan.db
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.util.configuredJacksonMapper
 import java.sql.ResultSet
 import java.sql.Types
 import java.util.*
 
-private val objectMapper = jacksonObjectMapper()
+private val objectMapper = configuredJacksonMapper
 
 fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     narmesteLederFnr: String,
