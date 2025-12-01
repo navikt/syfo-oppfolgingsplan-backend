@@ -26,7 +26,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
 ) {
     val logger = logger()
 
-    fun tryToGetPersistedOppfolgingsplanByUuid(
+    suspend fun tryToGetPersistedOppfolgingsplanByUuid(
         uuid: UUID,
     ): PersistedOppfolgingsplan =
         oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid) ?: run {

@@ -33,7 +33,7 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
     pdfGenService: PdfGenService,
 ) {
     route("/oppfolgingsplaner") {
-        fun tryToGetOppfolgingsplanByUuid(
+        suspend fun tryToGetOppfolgingsplanByUuid(
             uuid: UUID,
         ): PersistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid).let {
             if (it.deltMedVeilederTidspunkt == null) {
