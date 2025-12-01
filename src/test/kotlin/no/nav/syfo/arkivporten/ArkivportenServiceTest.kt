@@ -24,7 +24,7 @@ class ArkivportenServiceTest : DescribeSpec({
     val clientSpy = spyk(client)
     val pdfGenService = mockk<PdfGenService>()
     val testDb = TestDB.database
-    val oppfolginsplanService = OppfolgingsplanService(
+    val oppfolgingsplanService = OppfolgingsplanService(
         database = testDb,
         pdlService = mockk<PdlService>(relaxed = true),
         esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
@@ -52,7 +52,7 @@ class ArkivportenServiceTest : DescribeSpec({
                 arkivportenClient = clientSpy,
                 database = testDb,
                 pdfGenService = pdfGenService,
-                oppfolgingsplanService = oppfolginsplanService,
+                oppfolgingsplanService = oppfolgingsplanService,
             )
             // Act
             val unsendtPlans = testDb.findOppfolgingsplanserForArkivportenPublisering()
