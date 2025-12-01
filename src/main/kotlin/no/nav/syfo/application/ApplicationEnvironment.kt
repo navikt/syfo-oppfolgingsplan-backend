@@ -45,7 +45,7 @@ data class NaisEnvironment(
         tokenEndpoint = getEnvVar("NAIS_TOKEN_ENDPOINT"),
         exchangeTargetDineSykmeldte = "${getEnvVar("NAIS_CLUSTER_NAME")}:team-esyfo:dinesykmeldte-backend",
         exchangeTargetIsDialogmelding = "${getEnvVar("NAIS_CLUSTER_NAME")}:teamsykefravr:isdialogmelding",
-        exchangeTargetIsTilgangskontroll = "${getEnvVar("NAIS_CLUSTER_NAME")}:teamsykefravr:istilgangskontroll",
+        exchangeTargetIsTilgangskontroll = "${getEnvVar("NAIS_CLUSTER_NAME")}.teamsykefravr.istilgangskontroll",
     ),
     override val valkeyEnvironment: ValkeyEnvironment = ValkeyEnvironment(
         host = getEnvVar("VALKEY_HOST_SYFO_OPPFOLGINGSPLAN_BACKEND"),
