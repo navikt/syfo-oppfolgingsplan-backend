@@ -46,8 +46,7 @@ import java.util.*
  * Service for managing oppfølgingsplaner.
  *
  * All database operations are wrapped in withContext(Dispatchers.IO) to avoid blocking
- * Ktor's request handling threads. This is important for a high-traffic national application
- * to maintain good throughput and low latency under load.
+ * Ktor's request handling threads. This is important to maintain good throughput and low latency under load.
  */
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
