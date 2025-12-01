@@ -1,5 +1,7 @@
 package no.nav.syfo.arkivporten
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.arkivporten.client.Document
@@ -31,7 +33,9 @@ class ArkivportenService(
 
     suspend fun findAndSendOppfolgingsplaner() {
         logger.info("Starting task for send documents to arkivporten")
-        val planer = database.findOppfolgingsplanserForArkivportenPublisering()
+        val planer = withContext(Dispatchers.IO) {
+            database.findOppfolgingsplanserForArkivportenPublisering()
+        }
         logger.info("Found ${planer.size} documents to send to arkivporten")
 
         val failedPlans = mutableListOf<Pair<UUID, Exception>>()
@@ -44,7 +48,9 @@ class ArkivportenService(
                 arkivportenClient.publishOppfolgingsplan(
                     oppfolgingsplan.toArkivportenDocument(pdfByteArray, dateFormatter),
                 )
-                database.setSendtTilArkivportenTidspunkt(planWithNarmestelederName.uuid, Instant.now())
+                withContext(Dispatchers.IO) {
+                    database.setSendtTilArkivportenTidspunkt(planWithNarmestelederName.uuid, Instant.now())
+                }
             } catch (ex: Exception) {
                 logger.error("Failed to send oppfolgingsplan ${oppfolgingsplan.uuid} to arkivporten", ex)
                 failedPlans.add(oppfolgingsplan.uuid to ex)

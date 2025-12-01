@@ -1,6 +1,8 @@
 package no.nav.syfo.oppfolgingsplan.service
 
 import io.ktor.server.plugins.BadRequestException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
@@ -183,10 +185,12 @@ class OppfolgingsplanService(
             pdlService.getNameFor(
                 persistedOppfolgingsplan.narmesteLederFnr
             )?.let { narmesteLederName ->
-                database.setNarmesteLederFullName(
-                    persistedOppfolgingsplan.uuid,
-                    narmesteLederName
-                )
+                withContext(Dispatchers.IO) {
+                    database.setNarmesteLederFullName(
+                        persistedOppfolgingsplan.uuid,
+                        narmesteLederName
+                    )
+                }
                 persistedOppfolgingsplan.copy(narmesteLederFullName = narmesteLederName)
             } ?: persistedOppfolgingsplan
         } else persistedOppfolgingsplan
