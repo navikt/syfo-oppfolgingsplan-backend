@@ -1,55 +1,58 @@
 # syfo-oppfolgingsplan-backend
 
-Backend-tjeneste for oppfølgingsplaner i sykefraværsoppfølgingen. Tjenesten håndterer oppfølgingsplaner mellom sykmeldte og deres arbeidsgivere, og gir støtte for veiledere i NAV.
-
-## Funksjonalitet
-- **Arbeidsgiver API**: Opprette, redigere og dele oppfølgingsplaner med NAV og fastlege
-- **Sykmeldt API**: Se og godkjenne oppfølgingsplaner
-- **Veileder API**: Tilgang til oppfølgingsplaner for veiledning
-- **Arkivering**: Automatisk journalføring av planer til Joark og publisering til Arkivporten
+Backend-tjeneste for oppfølgingsplaner i sykefraværsoppfølgingen. Tjenesten håndterer oppfølgingsplaner mellom sykmeldte
+og deres arbeidsgivere, og lar veiledere i Nav hente planene.
 
 ## Forutsetninger
+
 - **JDK 21** eller nyere
-- **Docker** og Docker Compose (for lokal utvikling)
+- **Docker** for lokal utvikling
 - **Gradle** (wrapper inkludert)
-- **Tilgang til NAV-miljø** (for dev-testing)
 
-## Local Development
-- Build the project using `./gradlew build` to ensure all dependencies are resolved and the project is compiled.
-- Run `docker compose up` to start the local postgres database, texas and mock-oauth2-server which is required for development.
-- Run the application using `./gradlew run` to start the server locally.
-- If you need an access token for testing secured endpoints you can run `./fetch-token-for-local-dev.sh` to get a fake token.
-The auth server will always return a token with the claims defined in docker-compose.yml.
+## Lokal utvikling
 
-## API Documentation (Swagger)
+- Kjør `./gradlew build` for å bygge prosjektet og sikre at alle avhengigheter er på plass.
+- Start lokal Postgres, Texas og mock-oauth2-server med `docker compose up`.
+- Start applikasjonen lokalt med `./gradlew run`.
+- Trenger du et token for sikrede endepunkter, kjør `./fetch-token-for-local-dev.sh`. Auth-serveren returnerer alltid et
+  token med claimene definert i `docker-compose.yml`.
 
-### Local Development
-When running locally, Swagger UI is available at:
-- **Arbeidsgiver:** [http://localhost:8080/swagger/arbeidsgiver](http://localhost:8080/swagger/arbeidsgiver)
-- **Sykmeldt:** [http://localhost:8080/swagger/sykmeldt](http://localhost:8080/swagger/sykmeldt)
-- **Veileder:** [http://localhost:8080/swagger/veileder](http://localhost:8080/swagger/veileder)
+## API-dokumentasjon (Swagger)
 
-### Dev Environment
-- **Arbeidsgiver:** [https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/arbeidsgiver](https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/arbeidsgiver)
-- **Sykmeldt:** [https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/sykmeldt](https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/sykmeldt)
-- **Veileder:** [https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/veileder](https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/veileder)
+### Lokal utvikling
 
-The OpenAPI specifications can be found in `src/main/resources/openapi/`.
+Swagger UI er tilgjengelig på:
+
+- **Arbeidsgiver:** http://localhost:8080/swagger/arbeidsgiver
+- **Sykmeldt:** http://localhost:8080/swagger/sykmeldt
+- **Veileder:** http://localhost:8080/swagger/veileder
+
+### Dev-miljø
+
+- **Arbeidsgiver:** https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/arbeidsgiver
+- **Sykmeldt:** https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/sykmeldt
+- **Veileder:** https://syfo-oppfolgingsplan-backend.intern.dev.nav.no/swagger/veileder
+
+OpenAPI-spesifikasjonene finnes i `src/main/resources/openapi/`.
 
 ## Docker compose
-### Size of container platform
-In order to run kafka++ you will probably need to extend the default size of your container platform. (Rancher Desktop, Colima etc.)
 
-Suggestion for Colima
-```bash
-colima start --arch aarch64 --memory 8 --cpu 4 
+### Størrelse på containerplattform
+
+For å kjøre Kafka++ må containerplattformen (Rancher Desktop, Colima osv.) få utvidede ressurser.
+
+Forslag for Colima:
+
+```
+colima start --arch aarch64 --memory 8 --cpu 4
 ```
 
-We have a docker-compose.yml file to run a postgresql database, texas and a fake authserver.
-In addition, we have a docker-compose.kafka.yml that will run a kafka broker, schema registry and kafka-io
+Vi har en `docker-compose.yml` for Postgres, Texas og fake authserver, og en `docker-compose.kafka.yml` for
+Kafka-broker, schema registry og kafka-io.
 
-Start them both using
-```bash
+Start begge med:
+
+```
 docker-compose \
   -f docker-compose.yml \
   -f docker-compose.kafka.yml \
@@ -57,56 +60,66 @@ docker-compose \
   db authserver texas broker kafka-ui valkey \
   -d
 ```
-Stop them all again
-```bash
+
+Stopp dem med:
+
+```
 docker-compose \
   -f docker-compose.yml \
   -f docker-compose.kafka.yml \
   down
 ```
-You might also want to have access to the pdf generator locally.
-You can clone the [repo](https://github.com/navikt/syfooppdfgen) and follow instructions in the README to spin it up using docker-compose
 
-### Kafka-ui 
-You can use [kafka-ui](http://localhost:9000) to inspect your consumers and topics. You can also publish or read messages on the topics
+Du kan også kjøre pdf-generatoren lokalt ved å klone [syfooppdfgen-repoet](https://github.com/navikt/syfooppdfgen) og
+følge instruksjonene der.
 
-### Premade requests for testing
-We have some [HTTP requests](https://www.jetbrains.com/help/idea/http-client-in-product-code-editor.html) to help with 
-running and testing the api. They are described [here](./src/test/http/README.md)
+### Kafka-ui
 
-## Remote debug to app in nais-cluster
-It is possible to add remote debug capabilities to apps running in the nais-cluster
-A general description of how can be found in the 'utvikling' repo [here](https://github.com/navikt/utvikling/blob/main/docs/teknisk/Remote_debug_i_Intellij.md)
+Bruk http://localhost:9000 for å inspisere konsumere og topics, samt publisere eller lese meldinger.
 
-### Tweaks for the deployment
-There are a few tweaks we need to do to the deployment manifest [nais-dev.yaml](./nais/nais-dev.yaml)
+### Ferdiglagde API-forespørsler
 
-1. Add JAVA_TOOL_OPTIONS to open up for remote debug. Add the following under ```env:``` 
-```yaml
+Det finnes HTTP-forespørsler for testing beskrevet i `src/test/http/README.md`.
+
+## Fjern-debugging i nais-clusteret
+
+Det er mulig å aktivere fjern-debugging for apper i nais-clusteret. Generell beskrivelse finnes i repoet `utvikling`
+på https://github.com/navikt/utvikling/blob/main/docs/teknisk/Remote_debug_i_Intellij.md.
+
+### Justeringer i deployment
+
+I `nais/nais-dev.yaml` må du:
+
+1. Legge til `JAVA_TOOL_OPTIONS` under `env`:
+
+```
     - name: JAVA_TOOL_OPTIONS
       value: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
 ```
-2. Tweak the liveness probe to be more forgiving before forcibly restarting the pod. Change ```periodSeconds``` and/or ```failureThreshold``` to give yourself enough time to debug. E.g.
-```yaml
+
+2. Gjøre liveness-proben mer tilgivende for debugging ved å justere `periodSeconds` og/eller `failureThreshold`, f.eks.:
+
+```
   liveness:
     path: /internal/is_alive
     initialDelay: 10
     timeout: 5
     periodSeconds: 60
-    failureThreshold: 10 
+    failureThreshold: 10
 ```
 
-Then run the following to create a tunnel from the deployment to your machine on the debug port 5005
-```bash
+Opprett tunnel til port 5005 med:
+
+```
 kubectx dev-gcp
-kubectl port-forward deployment/syfo-oppfolgingsplan-backend  -n team-esyfo 5005:5005
+kubectl port-forward deployment/syfo-oppfolgingsplan-backend -n team-esyfo 5005:5005
 ```
 
+## Autentisering i dev
 
-## Authentication for dev
-In order to get a token for sykmeldt or nærmeste leder you can use the following url:
+Token for sykmeldt eller nærmeste leder:
 https://tokenx-token-generator.intern.dev.nav.no/api/obo?aud=dev-gcp:team-esyfo:syfo-oppfolgingsplan-backend
 
-In order to get a token for veileder, use the following url:
-https://azure-token-generator.intern.dev.nav.no/api/obo?aud=dev-gcp:team-esyfo:syfo-oppfolgingsplan-backend
-You will need to provide the credential for a user from Ida with veileder role.
+Token for veileder:
+https://azure-token-generator.intern.dev.nav.no/api/obo?aud=dev-gcp:team-esyfo:syfo-oppfolgingsplan-backend (krever
+veileder-bruker fra Ida).
