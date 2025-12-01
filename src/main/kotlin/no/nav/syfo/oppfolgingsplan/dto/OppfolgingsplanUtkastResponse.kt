@@ -16,6 +16,10 @@ data class OppfolgingsplanUtkastResponse(
     val utkast: UtkastResponseData?,
 )
 
-data class CreateUtkastRequest(
+data class LagreUtkastRequest(
     val content: Map<String, String?>,
+)
+
+data class LagreUtkastResponse(
+    val sistLagretTidspunkt: Instant,
 )

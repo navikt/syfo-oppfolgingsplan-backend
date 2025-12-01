@@ -356,7 +356,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
-                    createUtkastRequest = defaultUtkastRequest()
+                    lagreUtkastRequest = defaultUtkastRequest()
                 )
 
                 // Act
@@ -429,7 +429,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
-                    createUtkastRequest = defaultUtkastRequest()
+                    lagreUtkastRequest = defaultUtkastRequest()
                 )
 
                 val existingUtkast = testDb.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
@@ -476,7 +476,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             testDb.upsertOppfolgingsplanUtkast(
                 narmesteLederFnr = pidInnlogetBruker,
                 sykmeldt = sykmeldt,
-                createUtkastRequest = defaultUtkastRequest()
+                lagreUtkastRequest = defaultUtkastRequest()
             )
 
             val oppfolgingsplan = defaultOppfolgingsplan()

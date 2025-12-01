@@ -28,7 +28,8 @@ import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
-import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
+import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
@@ -75,14 +76,23 @@ class OppfolgingsplanService(
         return uuid
     }
 
-    suspend fun persistOppfolgingsplanUtkast(narmesteLederFnr: String, sykmeldt: Sykmeldt, utkast: CreateUtkastRequest) {
-        withContext(Dispatchers.IO) {
-            database.upsertOppfolgingsplanUtkast(
+    suspend fun persistOppfolgingsplanUtkast(
+        narmesteLederFnr: String,
+        sykmeldt: Sykmeldt,
+        utkast: LagreUtkastRequest
+    ): LagreUtkastResponse {
+        val updatedAt = withContext(Dispatchers.IO) {
+            val (_, updatedAt) = database.upsertOppfolgingsplanUtkast(
                 narmesteLederFnr,
                 sykmeldt,
                 utkast
             )
+            updatedAt
         }
+
+        return LagreUtkastResponse(
+            sistLagretTidspunkt = updatedAt
+        )
     }
 
     suspend fun deleteOppfolgingsplanUtkast(sykmeldt: Sykmeldt) {
