@@ -8,6 +8,17 @@ import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.util.configuredJacksonMapper
 import no.nav.syfo.util.logger
 
+/**
+ * Valkey (Redis-compatible) cache for reducing external API calls.
+ *
+ * Currently caches:
+ * - Sykmeldt data from dine-sykmeldte-backend (1 hour TTL)
+ *
+ * Not cached (by design):
+ * - PDL names: Stored permanently in database after first fetch
+ * - Tilgangskontroll: Authorization should be checked on each request
+ * - Token exchanges: Short-lived, Texas handles its own caching
+ */
 class ValkeyCache(
     valkeyEnvironment: ValkeyEnvironment,
 ) {
