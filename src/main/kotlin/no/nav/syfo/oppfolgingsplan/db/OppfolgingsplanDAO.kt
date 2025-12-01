@@ -275,11 +275,7 @@ fun DatabaseInterface.setNarmesteLederFullName(
     }
 }
 
-/**
- * Updates all del-med-veileder related fields in a single transaction.
- * This ensures database consistency if any step fails.
- */
-fun DatabaseInterface.updateDeltMedVeileder(
+fun DatabaseInterface.updateDelingAvPlanMedVeileder(
     uuid: UUID,
     deltMedVeilederTidspunkt: Instant,
     journalpostId: String,
