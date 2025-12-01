@@ -4,19 +4,13 @@ import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer
 import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import no.nav.syfo.util.configuredJacksonMapper
 import no.nav.syfo.util.logger
 
 private val logger = logger("no.nav.syfo.oppfolgingsplan.dto.FormSnapshotJSONConversion")
 
-private val formSnapshotObjectMapper: ObjectMapper = jacksonObjectMapper().apply {
-    registerModule(JavaTimeModule())
-    configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-}
+private val formSnapshotObjectMapper = configuredJacksonMapper
 
 class FieldSnapshotDeserializer : JsonDeserializer<FieldSnapshot>() {
     override fun deserialize(p: JsonParser, ctxt: DeserializationContext): FieldSnapshot {

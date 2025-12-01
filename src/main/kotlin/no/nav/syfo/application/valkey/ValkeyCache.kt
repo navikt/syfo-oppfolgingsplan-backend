@@ -1,18 +1,30 @@
 package no.nav.syfo.application.valkey
 
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.valkey.DefaultJedisClientConfig
 import io.valkey.HostAndPort
 import io.valkey.JedisPool
 import io.valkey.JedisPoolConfig
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.util.configuredJacksonMapper
 import no.nav.syfo.util.logger
 
+/**
+ * Valkey (Redis-compatible) cache for reducing external API calls.
+ *
+ * Currently caches:
+ * - Sykmeldt data from dine-sykmeldte-backend (1 hour TTL)
+ *
+ * Not cached (by design):
+ * - PDL names: Stored permanently in database after first fetch
+ * - Tilgangskontroll: Authorization should be checked on each request
+ * - Token exchanges: Short-lived, Texas handles its own caching
+ */
 class ValkeyCache(
     valkeyEnvironment: ValkeyEnvironment,
 ) {
 
     private val logger = logger()
+    private val objectMapper = configuredJacksonMapper
 
     private val jedisPool = JedisPool(
         JedisPoolConfig(),
@@ -25,29 +37,26 @@ class ValkeyCache(
     )
 
     private fun <T> get(key: String, type: Class<T>): T? {
-        try {
-            val jedis = jedisPool.resource
-            val json = jedis.get(key)
-            return json?.let {
-                jacksonObjectMapper().readValue(it, type)
+        return try {
+            jedisPool.resource.use { jedis ->
+                jedis.get(key)?.let {
+                    objectMapper.readValue(it, type)
+                }
             }
         } catch (e: Exception) {
             logger.error("Failed to get from cache", e)
-            return null
-        } finally {
-            jedisPool.resource.close()
+            null
         }
     }
 
     private fun <T> put(key: String, value: T, ttlSeconds: Long = CACHE_TTL_SECONDS) {
         try {
-            val jedis = jedisPool.resource
-            val json = jacksonObjectMapper().writeValueAsString(value)
-            jedis.setex(key, ttlSeconds, json)
+            jedisPool.resource.use { jedis ->
+                val json = objectMapper.writeValueAsString(value)
+                jedis.setex(key, ttlSeconds, json)
+            }
         } catch (e: Exception) {
             logger.error("Failed to put in cache", e)
-        } finally {
-            jedisPool.resource.close()
         }
     }
 

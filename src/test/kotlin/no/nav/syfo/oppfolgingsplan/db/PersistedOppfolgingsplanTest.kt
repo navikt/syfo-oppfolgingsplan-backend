@@ -12,12 +12,12 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
-import no.nav.syfo.pdfgen.toOppfolginsplanPdfV1
+import no.nav.syfo.pdfgen.toOppfolgingsplanPdfV1
 import java.time.Instant
 import java.time.LocalDate
 
 class PersistedOppfolgingsplanTest : DescribeSpec({
-    describe("PersistedOppfolgingsplan -> toOppfolginsplanPdfV1") {
+    describe("PersistedOppfolgingsplan -> toOppfolgingsplanPdfV1") {
         it("should map all fields and sections including radio group and duplicate text fields") {
             val createdAt = Instant.parse("2024-06-01T22:30:00Z") // converts to 2024-06-02 Europe/Oslo (CEST +02)
             val evalueringsdato = LocalDate.parse("2024-08-15")
@@ -42,7 +42,7 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
                 content = formSnapshot
             )
 
-            val pdf = plan.toOppfolginsplanPdfV1()
+            val pdf = plan.toOppfolgingsplanPdfV1()
 
             // Top level mapping
             pdf.version shouldBe "1.0"
@@ -105,7 +105,7 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             )
             val plan = defaultPersistedOppfolgingsplan().copy(content = formSnapshot)
 
-            val pdf = plan.toOppfolginsplanPdfV1()
+            val pdf = plan.toOppfolgingsplanPdfV1()
 
             val fields = pdf.oppfolgingsplan.sections[0].inputFields
             fields.shouldHaveSize(1)
@@ -121,20 +121,20 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             )
             val plan = defaultPersistedOppfolgingsplan().copy(content = formSnapshot)
 
-            val pdf = plan.toOppfolginsplanPdfV1()
+            val pdf = plan.toOppfolgingsplanPdfV1()
 
             pdf.oppfolgingsplan.sections.shouldHaveSize(0)
         }
 
         it("should throw when organisasjonsnavn is null") {
             val plan = defaultPersistedOppfolgingsplan().copy(organisasjonsnavn = null)
-            val ex = shouldThrow<RuntimeException> { plan.toOppfolginsplanPdfV1() }
+            val ex = shouldThrow<RuntimeException> { plan.toOppfolgingsplanPdfV1() }
             ex.message shouldBe "Organisasjonsnavn is null"
         }
 
         it("should throw when narmesteLederFullName is null") {
             val plan = defaultPersistedOppfolgingsplan().copy(narmesteLederFullName = null)
-            val ex = shouldThrow<RuntimeException> { plan.toOppfolginsplanPdfV1() }
+            val ex = shouldThrow<RuntimeException> { plan.toOppfolgingsplanPdfV1() }
             ex.message shouldBe "NarmesteLederName is null"
         }
 
@@ -160,7 +160,7 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             )
             val plan = defaultPersistedOppfolgingsplan().copy(content = formSnapshot)
 
-            val pdf = plan.toOppfolginsplanPdfV1()
+            val pdf = plan.toOppfolgingsplanPdfV1()
             val fields = pdf.oppfolgingsplan.sections[0].inputFields
             fields.shouldHaveSize(1)
             fields[0].id shouldBe "singlecb1"
@@ -193,7 +193,7 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             )
             val plan = defaultPersistedOppfolgingsplan().copy(content = formSnapshot)
 
-            val pdf = plan.toOppfolginsplanPdfV1()
+            val pdf = plan.toOppfolgingsplanPdfV1()
 
             val fields = pdf.oppfolgingsplan.sections[0].inputFields
             fields.shouldHaveSize(1)

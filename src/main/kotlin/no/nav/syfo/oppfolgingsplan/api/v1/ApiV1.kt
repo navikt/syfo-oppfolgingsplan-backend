@@ -11,7 +11,7 @@ import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanUtkastApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.registerSykmeldtOppfolgingsplanApiV1
-import no.nav.syfo.oppfolgingsplan.api.v1.veileder.registerVeilderOppfolgingsplanApiV1
+import no.nav.syfo.oppfolgingsplan.api.v1.veileder.registerVeilederOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.TexasAzureADAuthPlugin
@@ -70,7 +70,7 @@ fun Route.registerApiV1(
         install(ClientAuthorizationPlugin) {
             allowedClientId = environment.syfomodiapersonClientId
         }
-        registerVeilderOppfolgingsplanApiV1(
+        registerVeilederOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
             isTilgangskontrollService,

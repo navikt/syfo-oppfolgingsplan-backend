@@ -3,6 +3,7 @@ package no.nav.syfo.dinesykmeldte
 
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.http.HttpStatusCode
+import no.nav.syfo.application.valkey.COUNT_CACHE_MISS_DINE_SYKMELDTE
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.dinesykmeldte.client.IDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
@@ -23,6 +24,7 @@ class DineSykmeldteService(
         valkeyCache.getSykmeldt(lederFnr, narmestelederId)?.let { cachedSykmeldt ->
             return cachedSykmeldt
         }
+        COUNT_CACHE_MISS_DINE_SYKMELDTE.increment()
         return try {
             val sykmeldt = dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, accessToken)
             valkeyCache.putSykmeldt(lederFnr, narmestelederId, sykmeldt)

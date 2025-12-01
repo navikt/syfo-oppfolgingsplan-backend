@@ -21,7 +21,6 @@ import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.koin.ktor.ext.inject
-import registerPodApi
 
 fun Application.configureRouting() {
     val applicationState by inject<ApplicationState>()
@@ -41,7 +40,9 @@ fun Application.configureRouting() {
 
     routing {
         if (!isProdEnv()) {
-            swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml")
+            swaggerUI(path = "swagger/arbeidsgiver", swaggerFile = "openapi/arbeidsgiver.yaml")
+            swaggerUI(path = "swagger/sykmeldt", swaggerFile = "openapi/sykmeldt.yaml")
+            swaggerUI(path = "swagger/veileder", swaggerFile = "openapi/veileder.yaml")
         }
         registerPodApi(applicationState, database)
         registerMetricApi()

@@ -1,5 +1,7 @@
 package no.nav.syfo.arkivporten
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.arkivporten.client.Document
@@ -28,22 +30,37 @@ class ArkivportenService(
         .withZone(ZoneId.of("Europe/Oslo"))
 
     private val logger = logger()
+
     suspend fun findAndSendOppfolgingsplaner() {
-        try {
-            logger.info("Starting task for send documents to arkivporten")
-            val planer = database.findOppfolgingsplanserForArkivportenPublisering()
-            logger.info("Found ${planer.size} documents to send to arkivporten")
-            planer.forEach { oppfolgingsplan ->
+        logger.info("Starting task for send documents to arkivporten")
+        val planer = withContext(Dispatchers.IO) {
+            database.findOppfolgingsplanserForArkivportenPublisering()
+        }
+        logger.info("Found ${planer.size} documents to send to arkivporten")
+
+        val failedPlans = mutableListOf<Pair<UUID, Exception>>()
+
+        planer.forEach { oppfolgingsplan ->
+            try {
                 val planWithNarmestelederName = oppfolgingsplanService.getAndSetNarmestelederFullname(oppfolgingsplan)
                 val pdfByteArray = pdfGenService.generatePdf(planWithNarmestelederName)
                     ?: throw InternalServerErrorException("An error occurred while generating pdf")
-                arkivportenClient.publishOppfolginsplan(
+                arkivportenClient.publishOppfolgingsplan(
                     oppfolgingsplan.toArkivportenDocument(pdfByteArray, dateFormatter),
                 )
-                database.setSendtTilArkivportenTidspunkt(planWithNarmestelederName.uuid, Instant.now())
+                withContext(Dispatchers.IO) {
+                    database.setSendtTilArkivportenTidspunkt(planWithNarmestelederName.uuid, Instant.now())
+                }
+            } catch (ex: Exception) {
+                logger.error("Failed to send oppfolgingsplan ${oppfolgingsplan.uuid} to arkivporten", ex)
+                failedPlans.add(oppfolgingsplan.uuid to ex)
             }
-        } catch (ex: Exception) {
-            logger.error("Could not send document to arkivporten", ex)
+        }
+
+        if (failedPlans.isNotEmpty()) {
+            logger.warn("Failed to send ${failedPlans.size} of ${planer.size} oppfolgingsplaner to arkivporten")
+        } else if (planer.isNotEmpty()) {
+            logger.info("Successfully sent ${planer.size} oppfolgingsplaner to arkivporten")
         }
     }
 }

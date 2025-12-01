@@ -50,7 +50,7 @@ class ArkivportenClientTest : DescribeSpec({
         )
 
         // Act
-        client.publishOppfolginsplan(
+        client.publishOppfolgingsplan(
             Document(
                 documentId = UUID.randomUUID(),
                 title = "Test Dialog",

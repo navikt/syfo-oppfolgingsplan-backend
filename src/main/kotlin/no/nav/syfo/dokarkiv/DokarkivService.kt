@@ -12,21 +12,21 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 class DokarkivService(
     private val dokarkivClient: IDokarkivClient,
 ) {
-    suspend fun arkiverOppfolginsplan(
-        oppfolginsplan: PersistedOppfolgingsplan,
+    suspend fun arkiverOppfolgingsplan(
+        oppfolgingsplan: PersistedOppfolgingsplan,
         pdf: ByteArray,
     ): String {
         val avsenderMottaker = createAvsenderMottaker(
-            oppfolginsplan.organisasjonsnummer,
-            oppfolginsplan.organisasjonsnavn ?: "Arbeidsgiver"
+            oppfolgingsplan.organisasjonsnummer,
+            oppfolgingsplan.organisasjonsnavn ?: "Arbeidsgiver"
         )
 
         val journalpostRequest = createJournalpostRequest(
-            fnr = oppfolginsplan.sykmeldtFnr,
+            fnr = oppfolgingsplan.sykmeldtFnr,
             pdf = pdf,
-            arbeidsgiverNavn = oppfolginsplan.organisasjonsnavn ?: "Arbeidsgiver",
+            arbeidsgiverNavn = oppfolgingsplan.organisasjonsnavn ?: "Arbeidsgiver",
             avsenderMottaker = avsenderMottaker,
-            uuid = oppfolginsplan.uuid.toString(),
+            uuid = oppfolgingsplan.uuid.toString(),
         )
         return dokarkivClient.sendJournalpostRequestToDokarkiv(journalpostRequest)
     }

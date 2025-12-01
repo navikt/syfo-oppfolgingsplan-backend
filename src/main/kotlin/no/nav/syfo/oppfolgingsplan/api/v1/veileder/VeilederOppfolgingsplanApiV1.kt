@@ -26,14 +26,14 @@ import no.nav.syfo.texas.client.TexasHttpClient
 import java.util.*
 
 @Suppress("ThrowsCount")
-fun Route.registerVeilderOppfolgingsplanApiV1(
+fun Route.registerVeilederOppfolgingsplanApiV1(
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService,
     isTilgangskontrollService: IsTilgangskontrollService,
     pdfGenService: PdfGenService,
 ) {
     route("/oppfolgingsplaner") {
-        fun tryToGetOppfolgingsplanByUuid(
+        suspend fun tryToGetOppfolgingsplanByUuid(
             uuid: UUID,
         ): PersistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid).let {
             if (it.deltMedVeilederTidspunkt == null) {
@@ -58,7 +58,7 @@ fun Route.registerVeilderOppfolgingsplanApiV1(
             val innloggetBruker = call.principal<BrukerPrincipal>()
                 ?: throw UnauthorizedException("No user principal found in request")
             val sykmeldtFnr = try {
-                call.receive<OppfolginsplanerReadRequest>().sykmeldtFnr
+                call.receive<OppfolgingsplanerReadRequest>().sykmeldtFnr
             } catch (e: Exception) {
                 throw BadRequestException("Request is missing sykmeldtFnr: ${e.message}", e)
             }

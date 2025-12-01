@@ -98,7 +98,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
         }
 
         /**
-         * Gir en komplett aktiv oppfolginsplan.
+         * Gir en komplett aktiv oppfolgingsplan.
          */
         get("/aktiv-plan") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
@@ -117,7 +117,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
         }
 
         /**
-         * Gir en komplett oppfolginsplan.
+         * Gir en komplett oppfolgingsplan.
          */
         get("/{uuid}") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
@@ -197,13 +197,11 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 throw ConflictException("Oppfolgingsplan is already shared with Veileder")
             }
 
-            oppfolgingsplanService.updateSkalDelesMedVeileder(uuid, true)
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
             try {
-                val journalpostId = dokarkivService.arkiverOppfolginsplan(oppfolgingsplan, pdfByteArray)
-                oppfolgingsplanService.setDeltMedVeilederTidspunkt(uuid, Instant.now())
-                oppfolgingsplanService.setJournalpostId(uuid, journalpostId)
+                val journalpostId = dokarkivService.arkiverOppfolgingsplan(oppfolgingsplan, pdfByteArray)
+                oppfolgingsplanService.updateDelingAvPlanMedVeileder(uuid, journalpostId)
                 call.respond(HttpStatusCode.OK)
             } catch (e: Exception) {
                 logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)

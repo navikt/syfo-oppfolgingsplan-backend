@@ -12,6 +12,6 @@ Content-Type: application/json
     client.global.set("oppflgingsplanUuid", response.body[0].uuid);
 %}
 
-### GET veilder oppfolginsplan pdf
+### GET veileder oppfolgingsplan pdf
 GET http://localhost:8080/api/v1/veileder/oppfolgingsplaner/{{oppflgingsplanUuid}} HTTP/1.1
 Authorization: Bearer {{aad_token}}

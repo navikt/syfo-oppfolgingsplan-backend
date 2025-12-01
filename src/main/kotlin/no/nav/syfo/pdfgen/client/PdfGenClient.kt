@@ -18,13 +18,13 @@ class PdfGenClient(
         const val PDF_GEN_PATH = "api/v1/genpdf/oppfolgingsplan/oppfolgingsplan_v1"
     }
 
-    suspend fun generatePdf(oppfolginsplanPdfV1: OppfolginsplanPdfV1): ByteArray? {
+    suspend fun generatePdf(oppfolgingsplanPdfV1: OppfolgingsplanPdfV1): ByteArray? {
         val requestUrl = "${url}/$PDF_GEN_PATH"
         val response = client.post(requestUrl) {
             headers {
                 append(HttpHeaders.ContentType, ContentType.Application.Json)
             }
-            setBody(oppfolginsplanPdfV1)
+            setBody(oppfolgingsplanPdfV1)
         }
         return when (response.status) {
             HttpStatusCode.OK -> {

@@ -19,35 +19,35 @@ class DokarkivServiceTest : DescribeSpec({
     }
 
     describe("DokarkivService") {
-        it("arkiverOppfolginsplan should call dokarkivClient with correct parameters") {
+        it("arkiverOppfolgingsplan should call dokarkivClient with correct parameters") {
             // Arrange
-            val oppfolginsplan = defaultPersistedOppfolgingsplan()
+            val oppfolgingsplan = defaultPersistedOppfolgingsplan()
             val pdf = ByteArray(0) // Mock PDF content
             val expectedJournalpostId = UUID.randomUUID().toString()
             coEvery { dokarkivClient.sendJournalpostRequestToDokarkiv(any()) } returns expectedJournalpostId
 
             // Act
-            val journalpostId = dokarkivService.arkiverOppfolginsplan(oppfolginsplan, pdf)
+            val journalpostId = dokarkivService.arkiverOppfolgingsplan(oppfolgingsplan, pdf)
 
             // Assert
             journalpostId shouldBe expectedJournalpostId
             coVerify(exactly = 1) {
                 dokarkivClient.sendJournalpostRequestToDokarkiv(
                     withArg {
-                        it.tittel shouldBe "Oppfølgingsplan ${oppfolginsplan.organisasjonsnavn}"
+                        it.tittel shouldBe "Oppfølgingsplan ${oppfolgingsplan.organisasjonsnavn}"
                         it.kanal shouldBe DokarkivService.KANAL
                         it.journalpostType shouldBe DokarkivService.JOURNALPOST_TYPE
-                        it.eksternReferanseId shouldBe oppfolginsplan.uuid.toString()
+                        it.eksternReferanseId shouldBe oppfolgingsplan.uuid.toString()
                         it.dokumenter.size shouldBe 1
-                        it.dokumenter.first().tittel shouldBe "Oppfølgingsplan ${oppfolginsplan.organisasjonsnavn}"
+                        it.dokumenter.first().tittel shouldBe "Oppfølgingsplan ${oppfolgingsplan.organisasjonsnavn}"
 
-                        it.bruker.id shouldBe oppfolginsplan.sykmeldtFnr
+                        it.bruker.id shouldBe oppfolgingsplan.sykmeldtFnr
                         it.bruker.idType shouldBe DokarkivService.FNR_TYPE
 
                         it.dokumenter.first().dokumentvarianter.first().fysiskDokument shouldBe pdf
 
-                        it.avsenderMottaker.navn shouldBe oppfolginsplan.organisasjonsnavn
-                        it.avsenderMottaker.id shouldBe oppfolginsplan.organisasjonsnummer
+                        it.avsenderMottaker.navn shouldBe oppfolgingsplan.organisasjonsnavn
+                        it.avsenderMottaker.id shouldBe oppfolgingsplan.organisasjonsnummer
                         it.avsenderMottaker.idType shouldBe DokarkivService.ID_TYPE_ORGNR
                     }
                 )

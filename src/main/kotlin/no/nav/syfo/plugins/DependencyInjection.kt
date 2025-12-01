@@ -15,7 +15,7 @@ import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.arkivporten.ArkivportenService
-import no.nav.syfo.arkivporten.SendOppfolginsplanTask
+import no.nav.syfo.arkivporten.SendOppfolgingsplanTask
 import no.nav.syfo.arkivporten.client.ArkivportenClient
 import no.nav.syfo.arkivporten.client.FakeArkivportenClient
 import no.nav.syfo.arkivporten.client.IArkivportenClient
@@ -159,7 +159,7 @@ private fun servicesModule() = module {
     single { PdlService(get()) }
     single { OppfolgingsplanService(database = get(), esyfovarselProducer = get(), get()) }
     single { PdfGenService(get(), get()) }
-    single { SendOppfolginsplanTask(get(), get()) }
+    single { SendOppfolgingsplanTask(get(), get()) }
 }
 
 private fun Scope.env() = get<Environment>()
