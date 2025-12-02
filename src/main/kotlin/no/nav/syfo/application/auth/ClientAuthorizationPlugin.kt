@@ -31,7 +31,7 @@ private fun ApplicationCall.requireClient(allowedClientId: String) {
         ?: throw UnauthorizedException("No user principal found in request")
     val callerClientId = principal.clientId
         ?: throw UnauthorizedException("Missing azp claim in token")
-    val allowedClients = if(isProdEnv()) {
+    val allowedClients = if (isProdEnv()) {
         listOf(allowedClientId)
     } else {
         listOf(allowedClientId, "dev-gcp:nais:tokenx-token-generator", "dev-gcp:nais:azure-token-generator")
