@@ -47,7 +47,7 @@ val TexasAzureADAuthPlugin = createRouteScopedPlugin(
                 BrukerPrincipal(
                     ident = introspectionResponse.NAVident,
                     token = bearerToken,
-                    azp = introspectionResponse.azp
+                    clientId = introspectionResponse.clientId
                 )
             )
         }

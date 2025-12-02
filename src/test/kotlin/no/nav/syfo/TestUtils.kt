@@ -163,7 +163,7 @@ fun TexasHttpClient.defaultMocks(
         acr = acr,
         sub = UUID.randomUUID().toString(),
         NAVident = navident,
-        azp = azp
+        clientId = azp
     )
     coEvery {
         exchangeTokenForDineSykmeldte(any())

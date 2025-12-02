@@ -200,7 +200,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     } returns TexasIntrospectionResponse(
                         active = false,
                         sub = "user",
-                        azp = environment.syfoOppfolgingsplanFrontendClientId
+                        clientId = environment.syfoOppfolgingsplanFrontendClientId
                     )
 
                     // Act
