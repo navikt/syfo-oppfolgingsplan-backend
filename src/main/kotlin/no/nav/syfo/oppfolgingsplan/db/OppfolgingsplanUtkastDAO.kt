@@ -4,19 +4,20 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.util.configuredJacksonMapper
 import java.sql.ResultSet
 import java.sql.Types
 import java.util.*
+import java.time.Instant
 
 private val objectMapper = configuredJacksonMapper
 
 fun DatabaseInterface.upsertOppfolgingsplanUtkast(
     narmesteLederFnr: String,
     sykmeldt: Sykmeldt,
-    createUtkastRequest: CreateUtkastRequest,
-): UUID {
+    lagreUtkastRequest: LagreUtkastRequest,
+): Pair<UUID, Instant> {
     val statement =
         """
         INSERT INTO oppfolgingsplan_utkast (
@@ -34,7 +35,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             organisasjonsnummer = EXCLUDED.organisasjonsnummer,
             content = EXCLUDED.content,
             updated_at = NOW()
-        RETURNING uuid
+        RETURNING uuid, updated_at
         """.trimIndent()
 
     connection.use { connection ->
@@ -43,11 +44,20 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             preparedStatement.setString(2, sykmeldt.narmestelederId)
             preparedStatement.setString(3, narmesteLederFnr)
             preparedStatement.setString(4, sykmeldt.orgnummer)
-            preparedStatement.setObject(5, objectMapper.writeValueAsString(createUtkastRequest.content), Types.OTHER)
+            preparedStatement.setObject(
+                5,
+                objectMapper.writeValueAsString(lagreUtkastRequest.content),
+                Types.OTHER
+            )
+
             val resultSet = preparedStatement.executeQuery()
             connection.commit()
             resultSet.next()
-            return resultSet.getObject("uuid", UUID::class.java)
+
+            val uuid = resultSet.getObject("uuid", UUID::class.java)
+            val updatedAt = resultSet.getTimestamp("updated_at").toInstant()
+
+            return uuid to updatedAt
         }
     }
 }

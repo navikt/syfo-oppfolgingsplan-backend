@@ -158,7 +158,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
                 val initialUtkastRequest = defaultUtkastRequest { put("hvordanFolgeOpp", "initial value") }
                 val updatedUtkastRequest = defaultUtkastRequest { put("hvordanFolgeOpp", "updated value") }
 
-                val existingUUID = testDb.upsertOppfolgingsplanUtkast(
+                val (existingUUID, _) = testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
                     sykmeldt = sykmeldt,
                     initialUtkastRequest

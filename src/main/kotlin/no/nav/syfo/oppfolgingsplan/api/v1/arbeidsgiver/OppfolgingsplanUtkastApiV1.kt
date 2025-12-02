@@ -14,7 +14,7 @@ import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
-import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
 
@@ -34,20 +34,20 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
                 ?: throw UnauthorizedException("No user principal found in request")
 
             val utkast = try {
-                call.receive<CreateUtkastRequest>()
+                call.receive<LagreUtkastRequest>()
             } catch (e: Exception) {
                 throw BadRequestException("Invalid Oppfolgingsplan in request: ${e.message}", e)
             }
 
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
-            oppfolgingsplanService.persistOppfolgingsplanUtkast(
+            val lagreUtkastResponse = oppfolgingsplanService.persistOppfolgingsplanUtkast(
                 innloggetBruker.ident,
                 sykmeldt,
                 utkast
             )
 
-            call.respond(HttpStatusCode.OK)
+            call.respond(HttpStatusCode.OK, lagreUtkastResponse)
         }
 
         delete {

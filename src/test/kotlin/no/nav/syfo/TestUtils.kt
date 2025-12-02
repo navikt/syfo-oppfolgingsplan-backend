@@ -16,7 +16,7 @@ import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
-import no.nav.syfo.oppfolgingsplan.dto.CreateUtkastRequest
+import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldOption
@@ -44,8 +44,8 @@ fun defaultUtkastMap(): Map<String, String?> = mapOf(
     "denAnsatteHarIkkeMedvirketBegrunnelse" to ""
 )
 
-fun defaultUtkastRequest(mutate: MutableMap<String, String?>.() -> Unit = {}): CreateUtkastRequest =
-    CreateUtkastRequest(
+fun defaultUtkastRequest(mutate: MutableMap<String, String?>.() -> Unit = {}): LagreUtkastRequest =
+    LagreUtkastRequest(
         content = defaultUtkastMap().toMutableMap().apply(mutate),
     )
 
