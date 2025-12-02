@@ -121,7 +121,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
         it("PUT /oppfolgingsplaner/utkast creates a new draft if it does not exist") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -151,7 +151,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
         it("PUT /oppfolgingsplaner/utkast overwrite existing draft") {
             withTestApplication {
-                texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -191,7 +191,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/utkast should retrieve the current oppfolgingsplan utkast") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -217,7 +217,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
 
         it("PUT /oppfolgingsplaner/utkast should handle null values correctly") {
             withTestApplication {
-                texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val utkastWithNulls = defaultUtkastRequest {
@@ -248,7 +248,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
         it("DELETE /oppfolgingsplaner/utkast should delete existing draft") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 val utkast = defaultUtkastRequest()
@@ -278,7 +278,7 @@ class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
         it("DELETE /oppfolgingsplaner/utkast should return 400 when sykmeldt has no active sykmelding") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 val sykmeldtWithoutActiveSykmelding = sykmeldt.copy(aktivSykmelding = false)
                 coEvery {

@@ -157,7 +157,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/oversikt should respond with Forbidden when client is not allowed") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(azp = environment.syfomodiapersonClientId) // Wrong client!
+                texasClientMock.defaultMocks(azpName = environment.syfomodiapersonClientId) // Wrong client!
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 // Act
@@ -173,7 +173,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/oversikt should respond with OK when texas client gives active response") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
                 coEvery {
                     dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
                 } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
@@ -191,7 +191,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/oversikt should respond with Forbidden when texas acr claim is not Level4") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(acr = "Level3", azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(acr = "Level3", clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 // Act
                 val response = client.get {
@@ -226,7 +226,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/oversikt should respond with SYKMELDT_NOT_FOUND when dine sykmeldte returns not found") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.returnsNotFound(narmestelederId = narmestelederId)
 
@@ -245,7 +245,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -265,7 +265,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/{uuid} should respond with OK and return oppfolgingsplan when found and authorized") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -291,7 +291,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/aktiv-plan should respond with PLAN_NOT_FOUND if aktiv plan does not exist") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -311,7 +311,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/aktiv-plan should respond with OK and return oppfolgingsplan when found and authorized") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -337,7 +337,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("GET /oppfolgingsplaner/oversikt should respond with OK and return overview") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -376,7 +376,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("POST /oppfolgingsplaner should respond with 201 when oppfolgingsplan is created successfully") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -418,7 +418,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("POST /oppfolgingsplaner creates new oppfolgingsplan and deletes existing utkast for narmesteLederId") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -465,7 +465,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner still creates new oppfolgingsplan when kafka producer throws exception") {
         withTestApplication {
             // Arrange
-            texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+            texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
             dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -508,7 +508,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with NotFound if plan does not exist") {
         withTestApplication {
             // Arrange
-            texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+            texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
             dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -529,7 +529,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with LEGE_NOT_FOUND if couldnt send to lege") {
         withTestApplication {
             // Arrange
-            texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+            texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
             dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -562,7 +562,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with OK and update plan when authorized") {
         withTestApplication {
             // Arrange
-            texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+            texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
             dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -595,7 +595,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with NOT FOUND when isDialogmeldingClient throws LegeNotFoundException") {
         withTestApplication {
             // Arrange
-            texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+            texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
             dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -630,7 +630,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-veileder should respond with NotFound if plan does not exist") {
         withTestApplication {
             // Arrange
-            texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+            texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
             dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -653,7 +653,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-veileder should respond with Conflict if plan is already shared with Nav") {
         withTestApplication {
             // Arrange
-            texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+            texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
             dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -683,7 +683,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-veileder should respond with OK and update plan when authorized") {
         withTestApplication {
             // Arrange
-            texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+            texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
             dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -716,7 +716,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
     it("POST /oppfolgingsplaner/{uuid}/del-med-veileder should respond with 500 when archiving fails") {
         withTestApplication {
             // Arrange
-            texasClientMock.defaultMocks(pidInnlogetBruker, azp = environment.syfoOppfolgingsplanFrontendClientId)
+            texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
             dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
