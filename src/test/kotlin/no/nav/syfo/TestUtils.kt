@@ -155,7 +155,8 @@ fun TexasHttpClient.defaultMocks(
     pid: String = "userIdentifier",
     acr: String = "Level4",
     navident: String? = null,
-    azp: String = "dev-gcp:some:client"
+    azpName: String = "dev-gcp:some:client",
+    clientId: String = "dev-gcp:some:client"
 ) {
     coEvery { introspectToken(any(), any()) } returns TexasIntrospectionResponse(
         active = true,
@@ -163,7 +164,8 @@ fun TexasHttpClient.defaultMocks(
         acr = acr,
         sub = UUID.randomUUID().toString(),
         NAVident = navident,
-        azp = azp
+        clientId = clientId,
+        azpName = azpName,
     )
     coEvery {
         exchangeTokenForDineSykmeldte(any())

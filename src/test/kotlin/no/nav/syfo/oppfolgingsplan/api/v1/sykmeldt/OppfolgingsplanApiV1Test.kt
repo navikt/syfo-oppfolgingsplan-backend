@@ -146,7 +146,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     // Mock with WRONG client (syfomodiaperson trying to access sykmeldt route)
                     texasClientMock.defaultMocks(
                         pid = sykmeldtFnr,
-                        azp = environment.syfomodiapersonClientId
+                        clientId = environment.syfomodiapersonClientId
                     )
 
                     // Act
@@ -165,7 +165,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     val sykmeldtFnr = "12345678901"
                     texasClientMock.defaultMocks(
                         pid = sykmeldtFnr,
-                        azp = environment.syfoOppfolgingsplanFrontendClientId
+                        clientId = environment.syfoOppfolgingsplanFrontendClientId
                     )
 
                     // Act
@@ -180,7 +180,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             it("GET /oppfolgingsplaner/oversikt should respond with Forbidden when texas acr claim is not Level4") {
                 withTestApplication {
                     // Arrange
-                    texasClientMock.defaultMocks(acr = "Level3", azp = environment.syfoOppfolgingsplanFrontendClientId)
+                    texasClientMock.defaultMocks(acr = "Level3", clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                     // Act
                     val response = client.get {
@@ -200,7 +200,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     } returns TexasIntrospectionResponse(
                         active = false,
                         sub = "user",
-                        azp = environment.syfoOppfolgingsplanFrontendClientId
+                        clientId = environment.syfoOppfolgingsplanFrontendClientId
                     )
 
                     // Act
@@ -220,7 +220,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     // Arrange
                     texasClientMock.defaultMocks(
                         pid = sykmeldtFnr,
-                        azp = environment.syfoOppfolgingsplanFrontendClientId
+                        clientId = environment.syfoOppfolgingsplanFrontendClientId
                     )
 
                     val firstPlanUUID = testDb.persistOppfolgingsplan(
@@ -262,7 +262,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             withTestApplication {
                 // Arrange
                 val sykmeldtFnr = "12345678901"
-                texasClientMock.defaultMocks(pid = sykmeldtFnr, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(pid = sykmeldtFnr, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                 // Act
                 val response = client.get {
@@ -279,7 +279,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                 withTestApplication {
                     // Arrange
                     val sykmeldtFnr = "12345678901"
-                    texasClientMock.defaultMocks(sykmeldtFnr, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                    texasClientMock.defaultMocks(sykmeldtFnr, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                     val existingUUID = testDb.persistOppfolgingsplan(
                         defaultPersistedOppfolgingsplan()
@@ -302,7 +302,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     // Arrange
                     val sykmeldtFnr = "12345678901"
 
-                    texasClientMock.defaultMocks(sykmeldtFnr, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                    texasClientMock.defaultMocks(sykmeldtFnr, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                     val existingUUID = testDb.persistOppfolgingsplan(
                         defaultPersistedOppfolgingsplan()
@@ -327,7 +327,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     val sykmeldtFnr = "12345678901"
                     texasClientMock.defaultMocks(
                         pid = sykmeldtFnr,
-                        azp = environment.syfoOppfolgingsplanFrontendClientId
+                        clientId = environment.syfoOppfolgingsplanFrontendClientId
                     )
 
                     // Act
@@ -346,7 +346,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     // Arrange
                     val sykmeldtFnr = "12345678901"
 
-                    texasClientMock.defaultMocks(sykmeldtFnr, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                    texasClientMock.defaultMocks(sykmeldtFnr, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                     coEvery { pdfGenService.generatePdf(any()) } returns generatedPdfStandin
 
@@ -373,7 +373,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
                     // Arrange
                     val sykmeldtFnr = "12345678901"
 
-                    texasClientMock.defaultMocks(sykmeldtFnr, azp = environment.syfoOppfolgingsplanFrontendClientId)
+                    texasClientMock.defaultMocks(sykmeldtFnr, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                     coEvery { pdfGenService.generatePdf(any()) } throws RuntimeException("Forced")
 

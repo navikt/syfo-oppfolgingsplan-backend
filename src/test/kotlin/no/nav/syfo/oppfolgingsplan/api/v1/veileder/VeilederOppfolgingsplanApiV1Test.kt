@@ -155,7 +155,7 @@ class VeilederOppfolgingsplanApiV1Test : DescribeSpec({
                     texasClientMock.defaultMocks(
                         pid = "some-token",
                         navident = "some-navident",
-                        azp = environment.syfoOppfolgingsplanFrontendClientId
+                        azpName = environment.syfoOppfolgingsplanFrontendClientId
                     )
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
 
@@ -178,7 +178,7 @@ class VeilederOppfolgingsplanApiV1Test : DescribeSpec({
                     texasClientMock.defaultMocks(
                         pid = "some-veileder-token",
                         navident = "some-navident",
-                        azp = syfomodiapersonClientId
+                        azpName = syfomodiapersonClientId
                     )
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
 
@@ -204,7 +204,7 @@ class VeilederOppfolgingsplanApiV1Test : DescribeSpec({
                     texasClientMock.defaultMocks(
                         pid = "some-veileder-token",
                         navident = "some-navident",
-                        azp = syfomodiapersonClientId
+                        azpName = syfomodiapersonClientId
                     )
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns false
 
@@ -232,7 +232,7 @@ class VeilederOppfolgingsplanApiV1Test : DescribeSpec({
                     texasClientMock.defaultMocks(
                         pid = "some-veileder-token",
                         navident = "some-navident",
-                        azp = syfomodiapersonClientId
+                        azpName = syfomodiapersonClientId
                     )
                     coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
 
@@ -286,7 +286,7 @@ class VeilederOppfolgingsplanApiV1Test : DescribeSpec({
                 texasClientMock.defaultMocks(
                     pid = "some-veileder-token",
                     navident = "some-navident",
-                    azp = syfomodiapersonClientId
+                    azpName = syfomodiapersonClientId
                 )
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
                 coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
@@ -319,7 +319,7 @@ class VeilederOppfolgingsplanApiV1Test : DescribeSpec({
                 texasClientMock.defaultMocks(
                     pid = "some-veileder-token",
                     navident = "some-navident",
-                    azp = syfomodiapersonClientId
+                    azpName = syfomodiapersonClientId
                 )
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns false
                 val firstPlanUUID = testDb.persistOppfolgingsplan(
@@ -361,7 +361,7 @@ class VeilederOppfolgingsplanApiV1Test : DescribeSpec({
                 texasClientMock.defaultMocks(
                     pid = "some-veileder-token",
                     navident = "some-navident",
-                    azp = syfomodiapersonClientId
+                    azpName = syfomodiapersonClientId
                 )
                 coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
                 coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)

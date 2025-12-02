@@ -54,7 +54,7 @@ val TexasTokenXAuthPlugin = createRouteScopedPlugin(
                 BrukerPrincipal(
                     ident = introspectionResponse.pid,
                     token = bearerToken,
-                    azp = introspectionResponse.azp
+                    clientId = introspectionResponse.clientId
                 )
             )
         }

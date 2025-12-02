@@ -16,7 +16,10 @@ data class TexasIntrospectionResponse(
     val pid: String? = null,
     val acr: String? = null,
     val aud: String? = null,
-    val azp: String? = null,
+    @get:JsonProperty("client_id")
+    val clientId: String? = null,
+    @get:JsonProperty("azp_name")
+    val azpName: String? = null,
     val exp: Long? = null,
     val iat: Long? = null,
     val iss: String? = null,
