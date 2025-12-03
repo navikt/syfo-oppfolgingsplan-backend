@@ -31,7 +31,6 @@ import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewRespon
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastResponse
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
