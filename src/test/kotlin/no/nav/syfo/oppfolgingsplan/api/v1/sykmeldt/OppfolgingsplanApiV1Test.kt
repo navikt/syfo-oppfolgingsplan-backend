@@ -41,7 +41,7 @@ import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
-import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
+import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
@@ -251,10 +251,12 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                     // Assert
                     response.status shouldBe HttpStatusCode.OK
-                    val overview = response.body<SykmeldtOppfolgingsplanOverview>()
+                    val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
                     overview.aktiveOppfolgingsplaner.firstOrNull()?.id shouldBe latestPlanUUID
+                    overview.aktiveOppfolgingsplaner.first().organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
                     overview.tidligerePlaner.size shouldBe 1
                     overview.tidligerePlaner.first().id shouldBe firstPlanUUID
+                    overview.tidligerePlaner.first().organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
                 }
             }
         }

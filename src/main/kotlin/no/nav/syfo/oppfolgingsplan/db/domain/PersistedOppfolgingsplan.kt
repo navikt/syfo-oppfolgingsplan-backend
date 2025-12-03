@@ -5,6 +5,7 @@ import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponseData
+import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
 import java.time.LocalDate
@@ -38,6 +39,10 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadat
         deltMedLegeTidspunkt = deltMedLegeTidspunkt,
         deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
         ferdigstiltTidspunkt = createdAt,
+        organization = OrganizationDetails(
+            orgNumber = organisasjonsnummer,
+            orgName = organisasjonsnavn,
+        ),
     )
 }
 
@@ -60,5 +65,14 @@ fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanRe
             deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
             ferdigstiltTidspunkt = createdAt,
         ),
+    )
+}
+
+fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(): SykmeldtOppfolgingsplanOverviewResponse {
+    val (current, previous) = partition { it.evalueringsdato >= LocalDate.now() }
+
+    return SykmeldtOppfolgingsplanOverviewResponse(
+        aktiveOppfolgingsplaner = current.map { it.toOppfolgingsplanMetadata() },
+        tidligerePlaner = previous.map { it.toOppfolgingsplanMetadata() },
     )
 }

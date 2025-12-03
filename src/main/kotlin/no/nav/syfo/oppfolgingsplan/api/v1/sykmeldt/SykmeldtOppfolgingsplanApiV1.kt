@@ -11,9 +11,9 @@ import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
+import no.nav.syfo.oppfolgingsplan.db.domain.toSykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.oppfolgingsplan.service.toSykmeldtOppfolgingsplanOverview
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
@@ -29,9 +29,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
     suspend fun tryToGetPersistedOppfolgingsplanByUuid(
         uuid: UUID,
     ): PersistedOppfolgingsplan =
-        oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid) ?: run {
-            throw NotFoundException("Oppfolgingsplan not found for uuid: $uuid")
-        }
+        oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
 
     fun checkIfOppfolgingsplanBelongsToSykmeldt(
         oppfolgingsplan: PersistedOppfolgingsplan,
@@ -56,8 +54,8 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
             val brukerFnr = call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
             val oppfolgingsplaner =
                 oppfolgingsplanService
-                    .getOppfolgingsplanOverviewFor(brukerFnr.value)
-                    .toSykmeldtOppfolgingsplanOverview()
+                    .getPersistedOppfolgingsplanListBy(brukerFnr.value)
+                    .toSykmeldtOppfolgingsplanOverviewResponse()
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }
