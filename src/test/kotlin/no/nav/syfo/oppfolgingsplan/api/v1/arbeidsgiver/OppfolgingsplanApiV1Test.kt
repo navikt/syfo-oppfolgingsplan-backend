@@ -51,7 +51,7 @@ import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverviewResponse
+import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -367,7 +367,7 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                val overview = response.body<OppfolgingsplanOverviewResponse>().oversikt
+                val overview = response.body<ArbeidsgiverOppfolgingsplanOverviewResponse>().oversikt
                 overview.aktivPlan?.id shouldBe latestPlanUUID
                 overview.tidligerePlaner.size shouldBe 1
                 overview.tidligerePlaner.first().id shouldBe firstPlanUUID

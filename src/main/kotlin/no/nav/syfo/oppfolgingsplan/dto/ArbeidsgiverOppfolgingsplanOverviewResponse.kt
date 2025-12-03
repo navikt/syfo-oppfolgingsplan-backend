@@ -23,16 +23,17 @@ data class OppfolgingsplanMetadata(
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
     val ferdigstiltTidspunkt: Instant,
+    val organization: OrganizationDetails,
 )
 
-data class OppfolgingsplanOverviewResponse(
+data class ArbeidsgiverOppfolgingsplanOverviewResponse(
     val userHasEditAccess: Boolean,
     val organization: OrganizationDetails,
     val employee: EmployeeDetails,
     val oversikt: OversiktResponseData
 )
 
-data class SykmeldtOppfolgingsplanOverview(
+data class SykmeldtOppfolgingsplanOverviewResponse(
     val aktiveOppfolgingsplaner: List<OppfolgingsplanMetadata>,
     val tidligerePlaner: List<OppfolgingsplanMetadata>,
 )

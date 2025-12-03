@@ -27,20 +27,18 @@ import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
+import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastResponse
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
-import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverview
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
-import java.time.LocalDate
 import java.util.*
 
 /**
@@ -186,7 +184,7 @@ class OppfolgingsplanService(
         }.firstOrNull()
     }
 
-    suspend fun getOppfolgingsplanOverviewFor(sykmeldt: Sykmeldt): OppfolgingsplanOverviewResponse {
+    suspend fun getOppfolgingsplanOverviewFor(sykmeldt: Sykmeldt): ArbeidsgiverOppfolgingsplanOverviewResponse {
         val (utkast, oppfolgingsplaner) = withContext(Dispatchers.IO) {
             val utkast = database.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
                 ?.toUtkastMetadata()
@@ -195,7 +193,7 @@ class OppfolgingsplanService(
             utkast to oppfolgingsplaner
         }
 
-        return OppfolgingsplanOverviewResponse(
+        return ArbeidsgiverOppfolgingsplanOverviewResponse(
             userHasEditAccess = sykmeldt.aktivSykmelding == true,
             organization = OrganizationDetails(
                 orgNumber = sykmeldt.orgnummer,
@@ -212,11 +210,6 @@ class OppfolgingsplanService(
             )
         )
     }
-
-    suspend fun getOppfolgingsplanOverviewFor(sykmeldtFnr: String): List<OppfolgingsplanMetadata> =
-        withContext(Dispatchers.IO) {
-            database.findAllOppfolgingsplanerBy(sykmeldtFnr)
-        }.map { it.toOppfolgingsplanMetadata() }
 
     suspend fun getPersistedOppfolgingsplanListBy(sykmeldtFnr: String): List<PersistedOppfolgingsplan> =
         withContext(Dispatchers.IO) {
@@ -251,14 +244,6 @@ class OppfolgingsplanService(
         )
         esyfovarselProducer.sendVarselToEsyfovarsel(hendelse)
     }
-}
-
-fun List<OppfolgingsplanMetadata>.toSykmeldtOppfolgingsplanOverview(): SykmeldtOppfolgingsplanOverview {
-    val (current, previous) = this.partition { it.evalueringsDato >= LocalDate.now() }
-    return SykmeldtOppfolgingsplanOverview(
-        aktiveOppfolgingsplaner = current,
-        tidligerePlaner = previous,
-    )
 }
 
 fun List<PersistedOppfolgingsplan>.toListOppfolgingsplanVeileder(): List<OppfolgingsplanVeileder> =

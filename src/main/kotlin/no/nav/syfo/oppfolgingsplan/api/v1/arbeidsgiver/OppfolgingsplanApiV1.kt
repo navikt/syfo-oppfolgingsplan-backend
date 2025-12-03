@@ -132,7 +132,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 sykmeldt
             )
 
-            call.respond(HttpStatusCode.OK, persistedOppfolgingsplan.toResponse(sykmeldt.aktivSykmelding == true))
+            call.respond(
+                HttpStatusCode.OK,
+                persistedOppfolgingsplan.toResponse(sykmeldt.aktivSykmelding == true)
+            )
         }
 
         post("/{uuid}/del-med-lege") {
