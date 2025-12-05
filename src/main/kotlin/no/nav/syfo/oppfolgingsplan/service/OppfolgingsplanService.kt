@@ -19,11 +19,9 @@ import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
-import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
-import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
@@ -40,12 +38,7 @@ import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
 import java.util.*
 
-/**
- * Service for managing oppfølgingsplaner.
- *
- * All database operations are wrapped in withContext(Dispatchers.IO) to avoid blocking
- * Ktor's request handling threads. This is important to maintain good throughput and low latency under load.
- */
+
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
@@ -128,39 +121,42 @@ class OppfolgingsplanService(
         }
     }
 
-    suspend fun updateSkalDelesMedVeileder(
+    suspend fun getOppfolgingsplanWithUtkastStatus(
         uuid: UUID,
-        skalDelesMedVeileder: Boolean
-    ) {
-        withContext(Dispatchers.IO) {
-            database.updateSkalDelesMedVeileder(uuid, skalDelesMedVeileder)
+        sykmeldt: Sykmeldt
+    ): Pair<PersistedOppfolgingsplan, Boolean> {
+        return withContext(Dispatchers.IO) {
+            val oppfolgingsplan = database.findOppfolgingsplanBy(uuid)
+                ?: throw PlanNotFoundException("Oppfolgingsplan not found for uuid: $uuid")
+            val hasUtkast = database.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer) != null
+            oppfolgingsplan to hasUtkast
+        }
+    }
+
+    suspend fun getAktivPlanWithUtkastStatus(sykmeldt: Sykmeldt): Pair<PersistedOppfolgingsplan, Boolean>? {
+        return withContext(Dispatchers.IO) {
+            val oppfolgingsplan = database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer).firstOrNull()
+                ?: return@withContext null
+            val hasUtkast = database.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer) != null
+            oppfolgingsplan to hasUtkast
         }
     }
 
     suspend fun setDeltMedLegeTidspunkt(
         uuid: UUID,
-        deltMedLegeTidspunkt: Instant
+        tidspunkt: Instant
     ) {
         withContext(Dispatchers.IO) {
-            database.setDeltMedLegeTidspunkt(uuid, deltMedLegeTidspunkt)
+            database.setDeltMedLegeTidspunkt(uuid, tidspunkt)
         }
     }
 
     suspend fun setDeltMedVeilederTidspunkt(
         uuid: UUID,
-        deltMedVeilederTidspunkt: Instant
+        tidspunkt: Instant
     ) {
         withContext(Dispatchers.IO) {
-            database.setDeltMedVeilederTidspunkt(uuid, deltMedVeilederTidspunkt)
-        }
-    }
-
-    suspend fun setJournalpostId(
-        uuid: UUID,
-        journalpostId: String,
-    ) {
-        withContext(Dispatchers.IO) {
-            database.setJournalpostId(uuid, journalpostId)
+            database.setDeltMedVeilederTidspunkt(uuid, tidspunkt)
         }
     }
 
@@ -175,12 +171,6 @@ class OppfolgingsplanService(
         withContext(Dispatchers.IO) {
             database.updateDelingAvPlanMedVeileder(uuid, Instant.now(), journalpostId)
         }
-    }
-
-    suspend fun getAktivplanForSykmeldt(sykmeldt: Sykmeldt): PersistedOppfolgingsplan? {
-        return withContext(Dispatchers.IO) {
-            database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
-        }.firstOrNull()
     }
 
     suspend fun getOppfolgingsplanOverviewFor(sykmeldt: Sykmeldt): ArbeidsgiverOppfolgingsplanOverviewResponse {

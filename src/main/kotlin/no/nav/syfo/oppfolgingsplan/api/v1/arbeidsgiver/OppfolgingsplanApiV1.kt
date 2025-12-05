@@ -22,7 +22,7 @@ import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
-import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
+import no.nav.syfo.oppfolgingsplan.db.domain.toArbeidsgiverFerdigstiltPlanResponse
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -103,8 +103,8 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
         get("/aktiv-plan") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
-            val aktivPlan =
-                oppfolgingsplanService.getAktivplanForSykmeldt(sykmeldt)
+            val (aktivPlan, hasUtkast) =
+                oppfolgingsplanService.getAktivPlanWithUtkastStatus(sykmeldt)
                     ?: throw PlanNotFoundException("Aktiv plan not found")
 
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
@@ -113,7 +113,13 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 sykmeldt
             )
 
-            call.respond(HttpStatusCode.OK, aktivPlan.toResponse(sykmeldt.aktivSykmelding == true))
+            call.respond(
+                HttpStatusCode.OK,
+                aktivPlan.toArbeidsgiverFerdigstiltPlanResponse(
+                    canEditPlan = sykmeldt.aktivSykmelding == true,
+                    hasUtkast = hasUtkast
+                )
+            )
         }
 
         /**
@@ -121,10 +127,12 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
          */
         get("/{uuid}") {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
-
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
-            val persistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
+            val (persistedOppfolgingsplan, hasUtkast) = oppfolgingsplanService.getOppfolgingsplanWithUtkastStatus(
+                uuid,
+                sykmeldt
+            )
 
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 persistedOppfolgingsplan.sykmeldtFnr,
@@ -134,7 +142,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             call.respond(
                 HttpStatusCode.OK,
-                persistedOppfolgingsplan.toResponse(sykmeldt.aktivSykmelding == true)
+                persistedOppfolgingsplan.toArbeidsgiverFerdigstiltPlanResponse(
+                    canEditPlan = sykmeldt.aktivSykmelding == true,
+                    hasUtkast = hasUtkast
+                )
             )
         }
 
