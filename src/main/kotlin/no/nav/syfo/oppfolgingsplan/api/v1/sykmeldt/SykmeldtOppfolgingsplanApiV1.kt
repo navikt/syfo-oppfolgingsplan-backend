@@ -10,7 +10,7 @@ import io.ktor.server.routing.route
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
+import no.nav.syfo.oppfolgingsplan.db.domain.toSykmeldtFerdigstiltPlanResponse
 import no.nav.syfo.oppfolgingsplan.db.domain.toSykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
@@ -71,7 +71,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
             val brukerFnr = call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
             checkIfOppfolgingsplanBelongsToSykmeldt(persistedOppfolgingsplan, brukerFnr)
 
-            call.respond(HttpStatusCode.OK, persistedOppfolgingsplan.toResponse(false))
+            call.respond(HttpStatusCode.OK, persistedOppfolgingsplan.toSykmeldtFerdigstiltPlanResponse())
         }
 
         get("/{uuid}/pdf") {

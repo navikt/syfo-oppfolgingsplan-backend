@@ -27,7 +27,7 @@ fun PersistedOppfolgingsplanUtkast.toUtkastMetadata(): UtkastMetadata {
     )
 }
 
-fun PersistedOppfolgingsplanUtkast?.toResponse(sykmeldt: Sykmeldt): OppfolgingsplanUtkastResponse {
+fun PersistedOppfolgingsplanUtkast?.toArbeidsgiverFerdigstiltPlanResponse(sykmeldt: Sykmeldt): OppfolgingsplanUtkastResponse {
     return OppfolgingsplanUtkastResponse(
         userHasEditAccess = sykmeldt.aktivSykmelding == true,
         organization = OrganizationDetails(
