@@ -2,9 +2,11 @@ package no.nav.syfo.oppfolgingsplan.db.domain
 
 import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
+import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverFerdigstiltOppfolgingsplanResponse
+import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverFerdigstiltOppfolgingsplanResponseData
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponseData
+import no.nav.syfo.oppfolgingsplan.dto.SykmeldtFerdigstiltOppfolgingsplanResponse
+import no.nav.syfo.oppfolgingsplan.dto.SykmeldtFerdigstiltOppfolgingsplanResponseData
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
@@ -46,8 +48,11 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadat
     )
 }
 
-fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanResponse {
-    return OppfolgingsplanResponse(
+fun PersistedOppfolgingsplan.toArbeidsgiverFerdigstiltPlanResponse(
+    canEditPlan: Boolean,
+    hasUtkast: Boolean
+): ArbeidsgiverFerdigstiltOppfolgingsplanResponse {
+    return ArbeidsgiverFerdigstiltOppfolgingsplanResponse(
         userHasEditAccess = canEditPlan,
         organization = OrganizationDetails(
             orgNumber = organisasjonsnummer,
@@ -57,7 +62,25 @@ fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanRe
             fnr = sykmeldtFnr,
             name = sykmeldtFullName,
         ),
-        oppfolgingsplan = OppfolgingsplanResponseData(
+        oppfolgingsplan = ArbeidsgiverFerdigstiltOppfolgingsplanResponseData(
+            id = uuid,
+            content = content,
+            evalueringsDato = evalueringsdato,
+            deltMedLegeTidspunkt = deltMedLegeTidspunkt,
+            deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
+            ferdigstiltTidspunkt = createdAt,
+        ),
+        hasUtkast = hasUtkast,
+    )
+}
+
+fun PersistedOppfolgingsplan.toSykmeldtFerdigstiltPlanResponse(): SykmeldtFerdigstiltOppfolgingsplanResponse {
+    return SykmeldtFerdigstiltOppfolgingsplanResponse(
+        organization = OrganizationDetails(
+            orgNumber = organisasjonsnummer,
+            orgName = organisasjonsnavn,
+        ),
+        oppfolgingsplan = SykmeldtFerdigstiltOppfolgingsplanResponseData(
             id = uuid,
             content = content,
             evalueringsDato = evalueringsdato,
@@ -69,10 +92,21 @@ fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanRe
 }
 
 fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(): SykmeldtOppfolgingsplanOverviewResponse {
-    val (current, previous) = partition { it.evalueringsdato >= LocalDate.now() }
+    val (aktivePlaner, tidligerePlaner) = partitionByNewestPlanPerOrg()
 
     return SykmeldtOppfolgingsplanOverviewResponse(
-        aktiveOppfolgingsplaner = current.map { it.toOppfolgingsplanMetadata() },
-        tidligerePlaner = previous.map { it.toOppfolgingsplanMetadata() },
+        aktiveOppfolgingsplaner = aktivePlaner.map { it.toOppfolgingsplanMetadata() },
+        tidligerePlaner = tidligerePlaner.map { it.toOppfolgingsplanMetadata() },
     )
 }
+
+private fun List<PersistedOppfolgingsplan>.partitionByNewestPlanPerOrg(): Pair<List<PersistedOppfolgingsplan>, List<PersistedOppfolgingsplan>> {
+    val sortedPerOrg = groupBy { it.organisasjonsnummer }
+        .mapValues { (_, planer) -> planer.sortedByDescending { it.createdAt } }
+
+    val aktive = sortedPerOrg.values.mapNotNull { it.firstOrNull() }
+    val tidligere = sortedPerOrg.values.flatMap { it.drop(1) }
+
+    return aktive to tidligere
+}
+

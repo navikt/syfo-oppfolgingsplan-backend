@@ -13,7 +13,7 @@ import io.ktor.server.routing.route
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
+import no.nav.syfo.oppfolgingsplan.db.domain.toArbeidsgiverFerdigstiltPlanResponse
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -67,7 +67,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
 
             call.respond(
                 HttpStatusCode.OK,
-                persistedOppfolgingsplanUtkast.toResponse(sykmeldt)
+                persistedOppfolgingsplanUtkast.toArbeidsgiverFerdigstiltPlanResponse(sykmeldt)
             )
         }
     }

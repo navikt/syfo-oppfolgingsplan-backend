@@ -51,8 +51,8 @@ import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverFerdigstiltOppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewResponse
-import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
@@ -284,7 +284,41 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                response.body<OppfolgingsplanResponse>()
+                val body = response.body<ArbeidsgiverFerdigstiltOppfolgingsplanResponse>()
+                body.hasUtkast shouldBe false
+            }
+        }
+
+        it("GET /oppfolgingsplaner/{uuid} should return hasUtkast=true when utkast exists") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                val existingUUID = testDb.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                        )
+                )
+
+                testDb.upsertOppfolgingsplanUtkast(
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
+                    lagreUtkastRequest = defaultUtkastRequest()
+                )
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$existingUUID")
+                    bearerAuth("Bearer token")
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.OK
+                val body = response.body<ArbeidsgiverFerdigstiltOppfolgingsplanResponse>()
+                body.hasUtkast shouldBe true
             }
         }
 
@@ -330,7 +364,41 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
 
                 // Assert
                 response.status shouldBe HttpStatusCode.OK
-                response.body<OppfolgingsplanResponse>()
+                val body = response.body<ArbeidsgiverFerdigstiltOppfolgingsplanResponse>()
+                body.hasUtkast shouldBe false
+            }
+        }
+
+        it("GET /oppfolgingsplaner/aktiv-plan should return hasUtkast=true when utkast exists") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                testDb.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan()
+                        .copy(
+                            narmesteLederId = narmestelederId,
+                        )
+                )
+
+                testDb.upsertOppfolgingsplanUtkast(
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
+                    lagreUtkastRequest = defaultUtkastRequest()
+                )
+
+                // Act
+                val response = client.get {
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/aktiv-plan")
+                    bearerAuth("Bearer token")
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.OK
+                val body = response.body<ArbeidsgiverFerdigstiltOppfolgingsplanResponse>()
+                body.hasUtkast shouldBe true
             }
         }
 
@@ -376,7 +444,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("POST /oppfolgingsplaner should respond with 201 when oppfolgingsplan is created successfully") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(
+                    pidInnlogetBruker,
+                    clientId = environment.syfoOppfolgingsplanFrontendClientId
+                )
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -418,7 +489,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
         it("POST /oppfolgingsplaner creates new oppfolgingsplan and deletes existing utkast for narmesteLederId") {
             withTestApplication {
                 // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                texasClientMock.defaultMocks(
+                    pidInnlogetBruker,
+                    clientId = environment.syfoOppfolgingsplanFrontendClientId
+                )
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
