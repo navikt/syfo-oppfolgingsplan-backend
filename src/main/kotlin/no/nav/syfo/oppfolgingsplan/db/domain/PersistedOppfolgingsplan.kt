@@ -69,10 +69,20 @@ fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanRe
 }
 
 fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(): SykmeldtOppfolgingsplanOverviewResponse {
-    val (current, previous) = partition { it.evalueringsdato >= LocalDate.now() }
+    val (aktivePlaner, tidligerePlaner) = partitionByNewestPlanPerOrg()
 
     return SykmeldtOppfolgingsplanOverviewResponse(
-        aktiveOppfolgingsplaner = current.map { it.toOppfolgingsplanMetadata() },
-        tidligerePlaner = previous.map { it.toOppfolgingsplanMetadata() },
+        aktiveOppfolgingsplaner = aktivePlaner.map { it.toOppfolgingsplanMetadata() },
+        tidligerePlaner = tidligerePlaner.map { it.toOppfolgingsplanMetadata() },
     )
+}
+
+private fun List<PersistedOppfolgingsplan>.partitionByNewestPlanPerOrg(): Pair<List<PersistedOppfolgingsplan>, List<PersistedOppfolgingsplan>> {
+    val sortedPerOrg = groupBy { it.organisasjonsnummer }
+        .mapValues { (_, planer) -> planer.sortedByDescending { it.createdAt } }
+
+    val aktive = sortedPerOrg.values.mapNotNull { it.firstOrNull() }
+    val tidligere = sortedPerOrg.values.flatMap { it.drop(1) }
+
+    return aktive to tidligere
 }

@@ -2,10 +2,14 @@ package no.nav.syfo.oppfolgingsplan.db
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultPersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.domain.toSykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
@@ -15,6 +19,7 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
 import no.nav.syfo.pdfgen.toOppfolgingsplanPdfV1
 import java.time.Instant
 import java.time.LocalDate
+import java.util.*
 
 class PersistedOppfolgingsplanTest : DescribeSpec({
     describe("PersistedOppfolgingsplan -> toOppfolgingsplanPdfV1") {
@@ -200,6 +205,140 @@ class PersistedOppfolgingsplanTest : DescribeSpec({
             fields[0].id shouldBe "testDate"
             fields[0].title shouldBe "Test Date"
             fields[0].value shouldBe "25.11.2025"
+        }
+    }
+
+    describe("toSykmeldtOppfolgingsplanOverviewResponse") {
+        it("should return empty lists when no plans exist") {
+            val result = emptyList<PersistedOppfolgingsplan>()
+                .toSykmeldtOppfolgingsplanOverviewResponse()
+
+            result.aktiveOppfolgingsplaner.shouldBeEmpty()
+            result.tidligerePlaner.shouldBeEmpty()
+        }
+
+        it("should return single plan as active when only one plan exists") {
+            val plan = defaultPersistedOppfolgingsplan()
+            val result = listOf(plan).toSykmeldtOppfolgingsplanOverviewResponse()
+
+            result.aktiveOppfolgingsplaner shouldHaveSize 1
+            result.aktiveOppfolgingsplaner[0].id shouldBe plan.uuid
+            result.tidligerePlaner.shouldBeEmpty()
+        }
+
+        it("should return newest plan as active and older as tidligere for single org") {
+            val olderPlan = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                createdAt = Instant.parse("2024-01-01T10:00:00Z")
+            )
+            val newerPlan = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                createdAt = Instant.parse("2024-06-01T10:00:00Z")
+            )
+
+            val result = listOf(olderPlan, newerPlan).toSykmeldtOppfolgingsplanOverviewResponse()
+
+            result.aktiveOppfolgingsplaner shouldHaveSize 1
+            result.aktiveOppfolgingsplaner[0].id shouldBe newerPlan.uuid
+            result.tidligerePlaner shouldHaveSize 1
+            result.tidligerePlaner[0].id shouldBe olderPlan.uuid
+        }
+
+        it("should return newest plan per org as active when multiple orgs") {
+            val org1Plan1 = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org1",
+                createdAt = Instant.parse("2024-01-01T10:00:00Z")
+            )
+            val org1Plan2 = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org1",
+                createdAt = Instant.parse("2024-06-01T10:00:00Z")
+            )
+            val org2Plan1 = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org2",
+                createdAt = Instant.parse("2024-03-01T10:00:00Z")
+            )
+
+            val result = listOf(org1Plan1, org1Plan2, org2Plan1).toSykmeldtOppfolgingsplanOverviewResponse()
+
+            result.aktiveOppfolgingsplaner shouldHaveSize 2
+            result.aktiveOppfolgingsplaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
+                org1Plan2.uuid,
+                org2Plan1.uuid
+            )
+            result.tidligerePlaner shouldHaveSize 1
+            result.tidligerePlaner[0].id shouldBe org1Plan1.uuid
+        }
+
+        it("should handle multiple orgs with multiple plans each") {
+            val org1Oldest = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org1",
+                createdAt = Instant.parse("2023-01-01T10:00:00Z")
+            )
+            val org1Middle = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org1",
+                createdAt = Instant.parse("2024-01-01T10:00:00Z")
+            )
+            val org1Newest = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org1",
+                createdAt = Instant.parse("2024-06-01T10:00:00Z")
+            )
+            val org2Oldest = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org2",
+                createdAt = Instant.parse("2023-06-01T10:00:00Z")
+            )
+            val org2Newest = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org2",
+                createdAt = Instant.parse("2024-12-01T10:00:00Z")
+            )
+
+            val result = listOf(org1Oldest, org1Middle, org1Newest, org2Oldest, org2Newest)
+                .toSykmeldtOppfolgingsplanOverviewResponse()
+
+            result.aktiveOppfolgingsplaner shouldHaveSize 2
+            result.aktiveOppfolgingsplaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
+                org1Newest.uuid,
+                org2Newest.uuid
+            )
+
+            result.tidligerePlaner shouldHaveSize 3
+            result.tidligerePlaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
+                org1Oldest.uuid,
+                org1Middle.uuid,
+                org2Oldest.uuid
+            )
+        }
+
+        it("should handle single plan per multiple orgs - all should be active") {
+            val org1Plan = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org1"
+            )
+            val org2Plan = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org2"
+            )
+            val org3Plan = defaultPersistedOppfolgingsplan().copy(
+                uuid = UUID.randomUUID(),
+                organisasjonsnummer = "org3"
+            )
+
+            val result = listOf(org1Plan, org2Plan, org3Plan).toSykmeldtOppfolgingsplanOverviewResponse()
+
+            result.aktiveOppfolgingsplaner shouldHaveSize 3
+            result.aktiveOppfolgingsplaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
+                org1Plan.uuid,
+                org2Plan.uuid,
+                org3Plan.uuid
+            )
+            result.tidligerePlaner.shouldBeEmpty()
         }
     }
 })
