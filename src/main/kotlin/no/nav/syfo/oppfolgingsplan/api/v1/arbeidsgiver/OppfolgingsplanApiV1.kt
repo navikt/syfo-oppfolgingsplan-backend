@@ -14,6 +14,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.ConflictException
+import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.InternalServerErrorException
 import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.application.exception.UnauthorizedException
@@ -73,6 +74,12 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             }
 
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
+
+            if (sykmeldt.aktivSykmelding != true) {
+                throw ForbiddenException(
+                    "Cannot create oppfolgingsplan for sykmeldt without active sykmelding"
+                )
+            }
 
             val uuid = oppfolgingsplanService.createOppfolgingsplan(
                 innloggetBruker.ident,
