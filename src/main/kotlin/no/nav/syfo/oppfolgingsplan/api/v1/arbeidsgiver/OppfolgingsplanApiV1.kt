@@ -30,6 +30,9 @@ import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
 import java.time.Instant
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINSPLAN_CREATED
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINSPLAN_SHARED_WITH_GP
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINSPLAN_SHARED_WITH_NAV
 
 @Suppress("LongParameterList", "LongMethod", "ThrowsCount")
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
@@ -87,6 +90,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 oppfolgingsplan
             )
 
+            COUNT_OPPFOLGINSPLAN_CREATED.increment()
             call.response.headers.append(HttpHeaders.Location, call.request.path() + "/$uuid")
             call.respond(HttpStatusCode.Created)
         }
@@ -183,6 +187,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             )
 
             oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, Instant.now())
+            COUNT_OPPFOLGINSPLAN_SHARED_WITH_GP.increment()
             call.respond(HttpStatusCode.OK)
         }
 
@@ -212,6 +217,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             try {
                 val journalpostId = dokarkivService.arkiverOppfolgingsplan(oppfolgingsplan, pdfByteArray)
                 oppfolgingsplanService.updateDelingAvPlanMedVeileder(uuid, journalpostId)
+                COUNT_OPPFOLGINSPLAN_SHARED_WITH_NAV.increment()
                 call.respond(HttpStatusCode.OK)
             } catch (e: Exception) {
                 logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)
