@@ -15,5 +15,5 @@ val COUNT_OPPFOLGINGSPLAN_SHARED_WITH_GP: Counter = Counter.builder(OPPFOLGINGSP
     .description("Counts the number of oppfolgingsplans that are shared with a doctor")
     .register(METRICS_REGISTRY)
 val COUNT_OPPFOLGINGSPLAN_SHARED_WITH_NAV: Counter = Counter.builder(OPPFOLGINGSPLAN_SHARED_WITH_NAV)
-    .description("Counts the number of created oppfolgingsplans")
+    .description("Counts the number of created oppfolgingsplans that are shared with NAV")
     .register(METRICS_REGISTRY)
