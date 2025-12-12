@@ -12,6 +12,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import java.time.Instant
 import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.ConflictException
 import no.nav.syfo.application.exception.ForbiddenException
@@ -22,6 +23,9 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_CREATED
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_SHARED_WITH_GP
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_SHARED_WITH_NAV
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
@@ -29,7 +33,6 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
-import java.time.Instant
 
 @Suppress("LongParameterList", "LongMethod", "ThrowsCount")
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
@@ -87,6 +90,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 oppfolgingsplan
             )
 
+            COUNT_OPPFOLGINGSPLAN_CREATED.increment()
             call.response.headers.append(HttpHeaders.Location, call.request.path() + "/$uuid")
             call.respond(HttpStatusCode.Created)
         }
@@ -183,6 +187,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             )
 
             oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, Instant.now())
+            COUNT_OPPFOLGINGSPLAN_SHARED_WITH_GP.increment()
             call.respond(HttpStatusCode.OK)
         }
 
@@ -212,6 +217,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             try {
                 val journalpostId = dokarkivService.arkiverOppfolgingsplan(oppfolgingsplan, pdfByteArray)
                 oppfolgingsplanService.updateDelingAvPlanMedVeileder(uuid, journalpostId)
+                COUNT_OPPFOLGINGSPLAN_SHARED_WITH_NAV.increment()
                 call.respond(HttpStatusCode.OK)
             } catch (e: Exception) {
                 logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)
