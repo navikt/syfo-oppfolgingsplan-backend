@@ -29,7 +29,7 @@ data class PersistedOppfolgingsplan(
     val journalpostId: String? = null,
     val utkastCreatedAt: Instant? = null,
     val createdAt: Instant,
-    val sendtTilArkivportenTidspunkt: Instant? = null,
+    val sendtTilDokumentportenTidspunkt: Instant? = null,
 )
 
 fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadata {

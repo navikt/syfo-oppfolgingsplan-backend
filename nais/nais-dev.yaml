@@ -75,7 +75,7 @@ spec:
           namespace: teamsykefravr
     outbound:
       rules:
-        - application: arkivporten
+        - application: syfo-dokumentporten
         - application: syfooppdfgen
         - application: dinesykmeldte-backend
         - application: isdialogmelding
@@ -105,10 +105,10 @@ spec:
       value: https://dokarkiv-q2.dev-fss-pub.nais.io
     - name: DOKARKIV_SCOPE
       value: dev-fss.teamdokumenthandtering.dokarkiv
-    - name: ARKIVPORTEN_URL
-      value: http://arkivporten
-    - name: ARKIVPORTEN_SCOPE
-      value: dev-gcp.team-esyfo.arkivporten
+    - name: DOKUMENTPORTEN_URL
+      value: http://dokumentporten
+    - name: DOKUMENTPORTEN_SCOPE
+      value: dev-gcp.team-esyfo.syfo-dokumentporten
     - name: PDL_BASE_URL
       value: https://pdl-api.dev-fss-pub.nais.io/graphql
     - name: PDL_SCOPE

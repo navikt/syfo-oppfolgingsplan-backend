@@ -1,4 +1,4 @@
-package no.nav.syfo.arkivporten
+package no.nav.syfo.dokumentporten
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -9,14 +9,14 @@ import no.nav.syfo.util.logger
 
 class SendOppfolgingsplanTask(
     private val leaderElection: LeaderElection,
-    private val arkivportenService: ArkivportenService
+    private val dokumentportenService: DokumentportenService
     ) {
     private val logger = logger()
     suspend fun runTask() = coroutineScope {
         try {
             while (isActive) {
                 if (leaderElection.isLeader() && !isProdEnv()) {
-                    arkivportenService.findAndSendOppfolgingsplaner()
+                    dokumentportenService.findAndSendOppfolgingsplaner()
                 }
                 // Sleep for a while before checking again
                 delay(5 * 60 * 1000) // 5 minutes

@@ -1,4 +1,4 @@
-package no.nav.syfo.arkivporten.client
+package no.nav.syfo.dokumentporten.client
 
 import java.util.UUID
 

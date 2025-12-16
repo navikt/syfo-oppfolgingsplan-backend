@@ -1,15 +1,15 @@
-package no.nav.syfo.arkivporten
+package no.nav.syfo.dokumentporten
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.InternalServerErrorException
-import no.nav.syfo.arkivporten.client.Document
-import no.nav.syfo.arkivporten.client.DocumentType
-import no.nav.syfo.arkivporten.client.IArkivportenClient
+import no.nav.syfo.dokumentporten.client.Document
+import no.nav.syfo.dokumentporten.client.DocumentType
+import no.nav.syfo.dokumentporten.client.IDokumentportenClient
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForArkivportenPublisering
-import no.nav.syfo.oppfolgingsplan.db.setSendtTilArkivportenTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForDokumentportenPublisering
+import no.nav.syfo.oppfolgingsplan.db.setSendtTilDokumentportenTidspunkt
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.util.logger
@@ -18,8 +18,8 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
 
-class ArkivportenService(
-    private val arkivportenClient: IArkivportenClient,
+class DokumentportenService(
+    private val dokumentportenClient: IDokumentportenClient,
     private val database: DatabaseInterface,
     private val pdfGenService: PdfGenService,
     private val oppfolgingsplanService: OppfolgingsplanService,
@@ -32,11 +32,11 @@ class ArkivportenService(
     private val logger = logger()
 
     suspend fun findAndSendOppfolgingsplaner() {
-        logger.info("Starting task for send documents to arkivporten")
+        logger.info("Starting task for send documents to dokumentporten")
         val planer = withContext(Dispatchers.IO) {
-            database.findOppfolgingsplanserForArkivportenPublisering()
+            database.findOppfolgingsplanserForDokumentportenPublisering()
         }
-        logger.info("Found ${planer.size} documents to send to arkivporten")
+        logger.info("Found ${planer.size} documents to send to dokumentporten")
 
         val failedPlans = mutableListOf<Pair<UUID, Exception>>()
 
@@ -45,27 +45,27 @@ class ArkivportenService(
                 val planWithNarmestelederName = oppfolgingsplanService.getAndSetNarmestelederFullname(oppfolgingsplan)
                 val pdfByteArray = pdfGenService.generatePdf(planWithNarmestelederName)
                     ?: throw InternalServerErrorException("An error occurred while generating pdf")
-                arkivportenClient.publishOppfolgingsplan(
-                    oppfolgingsplan.toArkivportenDocument(pdfByteArray, dateFormatter),
+                dokumentportenClient.publishOppfolgingsplan(
+                    oppfolgingsplan.tortenDocument(pdfByteArray, dateFormatter),
                 )
                 withContext(Dispatchers.IO) {
-                    database.setSendtTilArkivportenTidspunkt(planWithNarmestelederName.uuid, Instant.now())
+                    database.setSendtTilDokumentportenTidspunkt(planWithNarmestelederName.uuid, Instant.now())
                 }
             } catch (ex: Exception) {
-                logger.error("Failed to send oppfolgingsplan ${oppfolgingsplan.uuid} to arkivporten", ex)
+                logger.error("Failed to send oppfolgingsplan ${oppfolgingsplan.uuid} to dokumentporten", ex)
                 failedPlans.add(oppfolgingsplan.uuid to ex)
             }
         }
 
         if (failedPlans.isNotEmpty()) {
-            logger.warn("Failed to send ${failedPlans.size} of ${planer.size} oppfolgingsplaner to arkivporten")
+            logger.warn("Failed to send ${failedPlans.size} of ${planer.size} oppfolgingsplaner to dokumentporten")
         } else if (planer.isNotEmpty()) {
-            logger.info("Successfully sent ${planer.size} oppfolgingsplaner to arkivporten")
+            logger.info("Successfully sent ${planer.size} oppfolgingsplaner to dokumentporten")
         }
     }
 }
 
-fun PersistedOppfolgingsplan.toArkivportenDocument(content: ByteArray, dateFormatter: DateTimeFormatter) = Document(
+fun PersistedOppfolgingsplan.tortenDocument(content: ByteArray, dateFormatter: DateTimeFormatter) = Document(
     documentId = this.uuid,
     orgNumber = this.organisasjonsnummer,
     content = content,

@@ -14,11 +14,11 @@ import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.valkey.ValkeyCache
-import no.nav.syfo.arkivporten.ArkivportenService
-import no.nav.syfo.arkivporten.SendOppfolgingsplanTask
-import no.nav.syfo.arkivporten.client.ArkivportenClient
-import no.nav.syfo.arkivporten.client.FakeArkivportenClient
-import no.nav.syfo.arkivporten.client.IArkivportenClient
+import no.nav.syfo.dokumentporten.DokumentportenService
+import no.nav.syfo.dokumentporten.SendOppfolgingsplanTask
+import no.nav.syfo.dokumentporten.client.DokumentportenClient
+import no.nav.syfo.dokumentporten.client.FakeDokumentportenClient
+import no.nav.syfo.dokumentporten.client.IDokumentportenClient
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -105,12 +105,12 @@ private fun clientsModule() = module {
         )
     }
     single {
-        if (isLocalEnv()) FakeArkivportenClient() else ArkivportenClient(
-            arkivportenBaseUrl = env().arkivportenBaseUrl,
+        if (isLocalEnv()) FakeDokumentportenClient() else DokumentportenClient(
+            dokumentportenBaseUrl = env().dokumentportenBaseUrl,
             texasHttpClient = get(),
-            scope = env().arkivportenScope,
+            scope = env().dokumentportenScope,
             httpClient = get()
-        ) as IArkivportenClient
+        ) as IDokumentportenClient
     }
     single {
         if (isLocalEnv()) FakeIsTilgangskontrollClient() else
@@ -150,7 +150,7 @@ private fun kafkeProducerModule() = module {
 }
 
 private fun servicesModule() = module {
-    single { ArkivportenService(get(), get(), get(), get()) }
+    single { DokumentportenService(get(), get(), get(), get()) }
     single { DineSykmeldteService(get(), get()) }
     single { DokarkivService(get()) }
     single { IsDialogmeldingService(get()) }
