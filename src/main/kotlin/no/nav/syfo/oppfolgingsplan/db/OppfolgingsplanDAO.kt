@@ -299,7 +299,7 @@ fun DatabaseInterface.updateDelingAvPlanMedVeileder(
     }
 }
 
-fun DatabaseInterface.findOppfolgingsplanserForDokumentportenPublisering(
+fun DatabaseInterface.findOppfolgingsplanerForDokumentportenPublisering(
 ): List<PersistedOppfolgingsplan> {
     val statement = """
         SELECT *

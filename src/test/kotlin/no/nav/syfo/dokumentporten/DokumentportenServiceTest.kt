@@ -11,7 +11,7 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.dokumentporten.client.FakeDokumentportenClient
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForDokumentportenPublisering
+import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -55,7 +55,7 @@ class DokumentportenServiceTest : DescribeSpec({
                 oppfolgingsplanService = oppfolgingsplanService,
             )
             // Act
-            val unsendtPlans = testDb.findOppfolgingsplanserForDokumentportenPublisering()
+            val unsendtPlans = testDb.findOppfolgingsplanerForDokumentportenPublisering()
             service.findAndSendOppfolgingsplaner()
 
             // Assert
@@ -67,7 +67,7 @@ class DokumentportenServiceTest : DescribeSpec({
                 pdfGenService.generatePdf(eq(unsendtPlans.last()))
             }
             // Should no longer be any unsent plans
-            testDb.findOppfolgingsplanserForDokumentportenPublisering().size shouldBe 0
+            testDb.findOppfolgingsplanerForDokumentportenPublisering().size shouldBe 0
         }
     }
 })

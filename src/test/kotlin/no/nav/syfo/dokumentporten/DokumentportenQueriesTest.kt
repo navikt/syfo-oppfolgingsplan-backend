@@ -7,7 +7,7 @@ import io.mockk.clearAllMocks
 import java.time.Instant
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForDokumentportenPublisering
+import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.setSendtTilDokumentportenTidspunkt
 import no.nav.syfo.persistOppfolgingsplan
 
@@ -26,7 +26,7 @@ class DokumentportenQueriesTest : DescribeSpec({
             val third = testDb.persistOppfolgingsplan(defaultPersistedOppfolgingsplan())
             testDb.setSendtTilDokumentportenTidspunkt(third, Instant.now())
             // Act
-            val unsendtPlans = testDb.findOppfolgingsplanserForDokumentportenPublisering()
+            val unsendtPlans = testDb.findOppfolgingsplanerForDokumentportenPublisering()
             unsendtPlans.size shouldBe 2
             unsendtPlans.find { it.uuid == first } shouldNotBe null
             unsendtPlans.find { it.uuid == second } shouldNotBe null

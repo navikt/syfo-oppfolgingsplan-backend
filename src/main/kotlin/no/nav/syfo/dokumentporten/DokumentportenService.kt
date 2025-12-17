@@ -8,7 +8,7 @@ import no.nav.syfo.dokumentporten.client.Document
 import no.nav.syfo.dokumentporten.client.DocumentType
 import no.nav.syfo.dokumentporten.client.IDokumentportenClient
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanserForDokumentportenPublisering
+import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.setSendtTilDokumentportenTidspunkt
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -34,7 +34,7 @@ class DokumentportenService(
     suspend fun findAndSendOppfolgingsplaner() {
         logger.info("Starting task for send documents to dokumentporten")
         val planer = withContext(Dispatchers.IO) {
-            database.findOppfolgingsplanserForDokumentportenPublisering()
+            database.findOppfolgingsplanerForDokumentportenPublisering()
         }
         logger.info("Found ${planer.size} documents to send to dokumentporten")
 
@@ -46,7 +46,7 @@ class DokumentportenService(
                 val pdfByteArray = pdfGenService.generatePdf(planWithNarmestelederName)
                     ?: throw InternalServerErrorException("An error occurred while generating pdf")
                 dokumentportenClient.publishOppfolgingsplan(
-                    oppfolgingsplan.tortenDocument(pdfByteArray, dateFormatter),
+                    oppfolgingsplan.toDocument(pdfByteArray, dateFormatter),
                 )
                 withContext(Dispatchers.IO) {
                     database.setSendtTilDokumentportenTidspunkt(planWithNarmestelederName.uuid, Instant.now())
@@ -65,7 +65,7 @@ class DokumentportenService(
     }
 }
 
-fun PersistedOppfolgingsplan.tortenDocument(content: ByteArray, dateFormatter: DateTimeFormatter) = Document(
+fun PersistedOppfolgingsplan.toDocument(content: ByteArray, dateFormatter: DateTimeFormatter) = Document(
     documentId = this.uuid,
     orgNumber = this.organisasjonsnummer,
     content = content,
