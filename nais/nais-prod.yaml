@@ -104,7 +104,7 @@ spec:
     - name: DOKUMENTPORTEN_URL
       value: http://syfo-dokumentporten
     - name: DOKUMENTPORTEN_SCOPE
-      value: dev-gcp.team-esyfo.syfo-dokumentporten
+      value: prod-gcp.team-esyfo.syfo-dokumentporten
     - name: PDL_BASE_URL
       value: https://pdl-api.prod-fss-pub.nais.io/graphql
     - name: PDL_SCOPE
