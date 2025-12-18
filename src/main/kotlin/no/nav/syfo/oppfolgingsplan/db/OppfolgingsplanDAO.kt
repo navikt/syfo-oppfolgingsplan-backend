@@ -299,14 +299,14 @@ fun DatabaseInterface.updateDelingAvPlanMedVeileder(
     }
 }
 
-fun DatabaseInterface.findOppfolgingsplanserForArkivportenPublisering(
+fun DatabaseInterface.findOppfolgingsplanerForDokumentportenPublisering(
 ): List<PersistedOppfolgingsplan> {
     val statement = """
         SELECT *
         FROM
             oppfolgingsplan
         WHERE
-            sendt_til_arkivporten_tidspunkt IS NULL
+            sendt_til_dokumentporten_tidspunkt IS NULL
         LIMIT 100
     """.trimIndent()
 
@@ -323,19 +323,19 @@ fun DatabaseInterface.findOppfolgingsplanserForArkivportenPublisering(
     }
 }
 
-fun DatabaseInterface.setSendtTilArkivportenTidspunkt(
+fun DatabaseInterface.setSendtTilDokumentportenTidspunkt(
     uuid: UUID,
-    publisertTilArkivportenTidspunkt: Instant,
+    publisertTilDokumentportenTidspunkt: Instant,
 ) {
     val statement = """
         UPDATE oppfolgingsplan
-        SET sendt_til_arkivporten_tidspunkt = ?
+        SET sendt_til_dokumentporten_tidspunkt = ?
         WHERE uuid = ?
     """.trimIndent()
 
     connection.use { connection ->
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setTimestamp(1, Timestamp.from(publisertTilArkivportenTidspunkt))
+            preparedStatement.setTimestamp(1, Timestamp.from(publisertTilDokumentportenTidspunkt))
             preparedStatement.setObject(2, uuid)
             preparedStatement.executeUpdate()
         }
@@ -362,6 +362,6 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
         deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
         utkastCreatedAt = this.getTimestamp("utkast_created_at")?.toInstant(),
         createdAt = getTimestamp("created_at").toInstant(),
-        sendtTilArkivportenTidspunkt = this.getTimestamp("sendt_til_arkivporten_tidspunkt")?.toInstant()
+        sendtTilDokumentportenTidspunkt = this.getTimestamp("sendt_til_dokumentporten_tidspunkt")?.toInstant()
     )
 }

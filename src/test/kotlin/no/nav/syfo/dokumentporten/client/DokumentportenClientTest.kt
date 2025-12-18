@@ -1,4 +1,4 @@
-package no.nav.syfo.arkivporten.client
+package no.nav.syfo.dokumentporten.client
 
 import io.kotest.core.spec.style.DescribeSpec
 import io.ktor.client.HttpClient
@@ -14,17 +14,17 @@ import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasResponse
 import no.nav.syfo.util.httpClientDefault
 
-class ArkivportenClientTest : DescribeSpec({
+class DokumentportenClientTest : DescribeSpec({
     val texasClient = mockk<TexasHttpClient>()
 
     beforeTest { clearAllMocks() }
 
-    describe("ArkivportenClient") {
+    describe("DokumentportenClient") {
         // Arrange
         it("acquires system token from Texas") {
             coEvery {
                 texasClient.systemToken(
-                    identityProvider = eq(ArkivportenClient.IDENTITY_PROVIDER),
+                    identityProvider = eq(DokumentportenClient.IDENTITY_PROVIDER),
                     target = any()
                 )
             } returns TexasResponse(
@@ -35,15 +35,15 @@ class ArkivportenClientTest : DescribeSpec({
         }
 
         val mockEngine = getMockEngine(
-            path = ArkivportenClient.ARKIVPORTEN_DOCUMENT_PATH,
-            status = HttpStatusCode.Companion.OK,
-            headers = Headers.Companion.build {
+            path = DokumentportenClient.DOKUMENTPORTEN_DOCUMENT_PATH,
+            status = HttpStatusCode.OK,
+            headers = Headers.build {
                 append("Content-Type", "application/json")
             },
             content = "{}",
         )
-        val client = ArkivportenClient(
-            arkivportenBaseUrl = "",
+        val client = DokumentportenClient(
+            dokumentportenBaseUrl = "",
             texasHttpClient = texasClient,
             scope = "scope",
             httpClient = httpClientDefault(HttpClient(mockEngine))
@@ -65,6 +65,6 @@ class ArkivportenClientTest : DescribeSpec({
         )
 
         // Assert
-        coVerify(exactly = 1) { texasClient.systemToken(eq(ArkivportenClient.IDENTITY_PROVIDER), any()) }
+        coVerify(exactly = 1) { texasClient.systemToken(eq(DokumentportenClient.IDENTITY_PROVIDER), any()) }
     }
 })

@@ -1,1 +1,1 @@
-CREATE DATABASE arkivporten_dev;
+CREATE DATABASE dokumentporten_dev;
