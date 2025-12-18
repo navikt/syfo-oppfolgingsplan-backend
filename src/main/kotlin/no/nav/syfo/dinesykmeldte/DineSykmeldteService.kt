@@ -27,7 +27,9 @@ class DineSykmeldteService(
         COUNT_CACHE_MISS_DINE_SYKMELDTE.increment()
         return try {
             val sykmeldt = dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, accessToken)
-            valkeyCache.putSykmeldt(lederFnr, narmestelederId, sykmeldt)
+            if (sykmeldt.aktivSykmelding == true) {
+                valkeyCache.putSykmeldt(lederFnr, narmestelederId, sykmeldt)
+            }
             return sykmeldt
         } catch (clientRequestException: ClientRequestException) {
             when (clientRequestException.response.status) {

@@ -73,7 +73,7 @@ class ValkeyCache(
     }
 
     companion object {
-        const val CACHE_TTL_SECONDS = 3600L
+        const val CACHE_TTL_SECONDS = 900L // 15 minutes
         const val DINE_SYKMELDTE_CACHE_KEY_PREFIX = "dinesykmeldte"
     }
 }
