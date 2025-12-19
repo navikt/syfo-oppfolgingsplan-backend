@@ -68,5 +68,28 @@ class DineSykmeldteServiceTest : DescribeSpec({
             coVerify(exactly = 1) { dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, token) }
             verify(exactly = 1) { valkeyCache.putSykmeldt(lederFnr, narmestelederId, fetched) }
         }
+
+        it("calls http client and does not cache result when aktivSykmelding = false") {
+            // Arrange
+            every { valkeyCache.getSykmeldt(lederFnr, narmestelederId) } returns null
+            val fetched = Sykmeldt(
+                narmestelederId = narmestelederId,
+                orgnummer = "123456789",
+                fnr = "01987654321",
+                navn = "Ola Testperson",
+                sykmeldinger = listOf(DineSykmeldteSykmelding(arbeidsgiver = "Firma AS")),
+                aktivSykmelding = false
+            )
+            coEvery { dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, token) } returns fetched
+            every { valkeyCache.putSykmeldt(lederFnr, narmestelederId, fetched) } returns Unit
+
+            // Act
+            val result = service.getSykmeldtForNarmesteleder(narmestelederId, lederFnr, token)
+
+            // Assert
+            result shouldBe fetched
+            coVerify(exactly = 1) { dineSykmeldteHttpClient.getSykmeldtForNarmesteLederId(narmestelederId, token) }
+            verify(exactly = 0) { valkeyCache.putSykmeldt(lederFnr, narmestelederId, fetched) }
+        }
     }
 })
