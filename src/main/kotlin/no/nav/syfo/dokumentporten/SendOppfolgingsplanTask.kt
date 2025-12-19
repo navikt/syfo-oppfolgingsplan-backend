@@ -15,7 +15,7 @@ class SendOppfolgingsplanTask(
     suspend fun runTask() = coroutineScope {
         try {
             while (isActive) {
-                if (leaderElection.isLeader() && !isProdEnv()) {
+                if (leaderElection.isLeader()) {
                     dokumentportenService.findAndSendOppfolgingsplaner()
                 }
                 // Sleep for a while before checking again
