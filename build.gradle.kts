@@ -2,7 +2,7 @@
 val dataFakerVersion="2.5.3"
 val flywayVersion="11.18.0"
 val hikariVersion="6.3.0"
-val kafkaVersion="3.9.1"
+val kafkaVersion="4.1.1"
 val koinVersion = "4.1.1"
 val kotestExtensionsVersion="2.0.0"
 val kotestVersion="6.0.7"
