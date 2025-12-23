@@ -12,7 +12,7 @@ val logstashEncoderVersion="8.1"
 val micrometerVersion="1.16.1"
 val mockkVersion="1.14.7"
 val postgresVersion="42.7.8"
-val testcontainersVersion="1.21.3"
+val testcontainersVersion="1.21.4"
 val valkeyVersion="5.5.0"
 
 plugins {
