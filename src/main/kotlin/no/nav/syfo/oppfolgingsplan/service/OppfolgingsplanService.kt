@@ -171,10 +171,14 @@ class OppfolgingsplanService(
     suspend fun updateDelingAvPlanMedVeileder(
         uuid: UUID,
         journalpostId: String,
-    ) {
+    ): Instant {
+        val deltMedVeilederTidspunkt = Instant.now()
+
         withContext(Dispatchers.IO) {
-            database.updateDelingAvPlanMedVeileder(uuid, Instant.now(), journalpostId)
+            database.updateDelingAvPlanMedVeileder(uuid, deltMedVeilederTidspunkt, journalpostId)
         }
+
+        return deltMedVeilederTidspunkt;
     }
 
     suspend fun getAktivplanForSykmeldt(sykmeldt: Sykmeldt): PersistedOppfolgingsplan? {

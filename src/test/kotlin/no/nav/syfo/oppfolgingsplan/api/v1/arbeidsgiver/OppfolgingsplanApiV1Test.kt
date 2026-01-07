@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.ktor.client.call.body
@@ -52,6 +53,8 @@ import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewResponse
+import no.nav.syfo.oppfolgingsplan.dto.DelMedLegeResponse
+import no.nav.syfo.oppfolgingsplan.dto.DelMedVeilederResponse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -586,6 +589,10 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             }
             // Assert
             response.status shouldBe HttpStatusCode.OK
+
+            val responseBody = response.body<DelMedLegeResponse>()
+            responseBody.deltMedLegeTidspunkt.shouldNotBeNull()
+
             val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
             plan.skalDelesMedLege shouldBe true
             plan.deltMedLegeTidspunkt shouldNotBe null
@@ -703,10 +710,15 @@ class OppfolgingsplanApiV1Test : DescribeSpec({
             }
             // Assert
             response.status shouldBe HttpStatusCode.OK
+
+            val responseBody = response.body<DelMedVeilederResponse>()
+            responseBody.deltMedVeilederTidspunkt.shouldNotBeNull()
+
             val plan = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer").first { it.uuid == uuid }
             plan.skalDelesMedVeileder shouldBe true
             plan.deltMedVeilederTidspunkt shouldNotBe null
             plan.journalpostId shouldBe randomJournalpostId
+
             coVerify(exactly = 1) {
                 dokarkivServiceMock.arkiverOppfolgingsplan(any(), any())
             }
