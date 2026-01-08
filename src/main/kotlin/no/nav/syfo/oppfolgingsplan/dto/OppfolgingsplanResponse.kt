@@ -27,3 +27,11 @@ data class CreateOppfolgingsplanRequest(
     val content: FormSnapshot,
     val evalueringsdato: LocalDate,
 )
+
+data class DelMedLegeResponse(
+    val deltMedLegeTidspunkt: Instant,
+)
+
+data class DelMedVeilederResponse(
+    val deltMedVeilederTidspunkt: Instant,
+)
