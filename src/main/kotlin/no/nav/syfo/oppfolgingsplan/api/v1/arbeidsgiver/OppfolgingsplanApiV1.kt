@@ -29,6 +29,8 @@ import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_SHARED_WITH_NAV
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
+import no.nav.syfo.oppfolgingsplan.dto.DelMedLegeResponse
+import no.nav.syfo.oppfolgingsplan.dto.DelMedVeilederResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -186,9 +188,12 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 pdfByteArray
             )
 
-            oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, Instant.now())
+            val deltMedLegeTidspunkt = Instant.now()
+
+            oppfolgingsplanService.setDeltMedLegeTidspunkt(uuid, deltMedLegeTidspunkt)
             COUNT_OPPFOLGINGSPLAN_SHARED_WITH_GP.increment()
-            call.respond(HttpStatusCode.OK)
+
+            call.respond(HttpStatusCode.OK, DelMedLegeResponse(deltMedLegeTidspunkt))
         }
 
         post("/{uuid}/del-med-veileder") {
@@ -216,9 +221,13 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 ?: throw InternalServerErrorException("An error occurred while generating pdf")
             try {
                 val journalpostId = dokarkivService.arkiverOppfolgingsplan(oppfolgingsplan, pdfByteArray)
-                oppfolgingsplanService.updateDelingAvPlanMedVeileder(uuid, journalpostId)
+                val deltMedVeilederTidspunkt = oppfolgingsplanService.updateDelingAvPlanMedVeileder(
+                    uuid, journalpostId
+                )
+
                 COUNT_OPPFOLGINGSPLAN_SHARED_WITH_NAV.increment()
-                call.respond(HttpStatusCode.OK)
+
+                call.respond(HttpStatusCode.OK, DelMedVeilederResponse(deltMedVeilederTidspunkt))
             } catch (e: Exception) {
                 logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)
                 throw InternalServerErrorException("An error occurred while archiving oppfolgingsplan")
