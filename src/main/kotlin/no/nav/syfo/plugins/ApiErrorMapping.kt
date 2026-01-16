@@ -33,11 +33,7 @@ internal fun NotFoundException.toApiError(path: String): ApiError = ApiError(
     path = path,
 )
 
-internal fun Throwable.rootCause(): Throwable {
-    var root: Throwable = this
-    while (root.cause != null && root.cause != root) {
-        root = root.cause!!
-    }
-    return root
-}
-
+internal fun Throwable.rootCause(): Throwable =
+    generateSequence(this) { current ->
+        current.cause?.takeIf { it !== current }
+    }.last()
