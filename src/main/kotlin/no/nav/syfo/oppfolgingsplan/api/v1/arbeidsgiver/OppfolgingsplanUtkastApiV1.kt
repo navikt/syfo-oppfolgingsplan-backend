@@ -53,6 +53,9 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
         }
 
         delete {
+            call.principal<BrukerPrincipal>()
+                ?: throw ApiErrorException.Unauthorized("No user principal found in request")
+
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             oppfolgingsplanService.deleteOppfolgingsplanUtkast(
