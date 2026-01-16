@@ -8,7 +8,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
-import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
 import org.slf4j.LoggerFactory
@@ -40,7 +40,7 @@ class DokumentportenClient(
             texasHttpClient.systemToken(IDENTITY_PROVIDER, TexasHttpClient.getTarget(scope)).accessToken
         } catch (e: ClientRequestException) {
             logger.error("Error while requesting systemToken", e)
-            throw InternalServerErrorException("Error while requesting systemToken")
+            throw ApiErrorException.InternalServerError("Error while requesting systemToken")
         }
         val requestUrl = dokumentportenBaseUrl + DOKUMENTPORTEN_DOCUMENT_PATH
         logger.info("Sending document to Dokumentporten at $requestUrl")

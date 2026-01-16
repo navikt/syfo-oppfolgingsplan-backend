@@ -3,7 +3,6 @@ package no.nav.syfo.oppfolgingsplan.api.v1.veileder
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
-import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -11,10 +10,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 import no.nav.syfo.application.auth.BrukerPrincipal
-import no.nav.syfo.application.exception.ForbiddenException
-import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.exception.PlanNotFoundException
-import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
@@ -50,17 +47,17 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
                 sykmeldtFnr, texasHttpClient.exchangeTokenForIsTilgangskontroll(token).accessToken
             )
             if (!tilgang) {
-                throw ForbiddenException("Veileder does not have access to sykmeldt")
+                throw ApiErrorException.Forbidden("Veileder does not have access to sykmeldt")
             }
         }
 
         post("/query") {
             val innloggetBruker = call.principal<BrukerPrincipal>()
-                ?: throw UnauthorizedException("No user principal found in request")
+                ?: throw ApiErrorException.Unauthorized("No user principal found in request")
             val sykmeldtFnr = try {
                 call.receive<OppfolgingsplanerReadRequest>().sykmeldtFnr
             } catch (e: Exception) {
-                throw BadRequestException("Request is missing sykmeldtFnr: ${e.message}", e)
+                throw ApiErrorException.BadRequest("Request is missing sykmeldtFnr: ${e.message}", e)
             }
             validateTilgangToSykmeldt(
                 sykmeldtFnr = Fodselsnummer(value = sykmeldtFnr),
@@ -75,7 +72,7 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
         get("/{uuid}") {
             val uuid = call.parameters.extractAndValidateUUIDParameter()
             val innloggetBruker = call.principal<BrukerPrincipal>()
-                ?: throw UnauthorizedException("No user principal found in request")
+                ?: throw ApiErrorException.Unauthorized("No user principal found in request")
 
             val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
             validateTilgangToSykmeldt(
@@ -83,7 +80,7 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
                 token = innloggetBruker.token,
             )
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
-                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+                ?: throw ApiErrorException.InternalServerError("Could not generate pdf")
 
             call.response.status(HttpStatusCode.OK)
             call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
