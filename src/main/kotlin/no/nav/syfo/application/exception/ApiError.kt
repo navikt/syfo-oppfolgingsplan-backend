@@ -13,43 +13,13 @@ enum class ErrorType {
     LEGE_NOT_FOUND,
     PLAN_NOT_FOUND,
     SYKMELDT_NOT_FOUND,
-    CONFLICT
+    CONFLICT,
 }
 
-open class ApiError(
+data class ApiError(
     val status: HttpStatusCode,
     val type: ErrorType,
-    open val message: String,
-    val timestamp: Instant,
-    open val path: String? = null,
-) {
-    data class NotFoundError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.NotFound, ErrorType.NOT_FOUND, message, Instant.now())
-
-    data class InternalServerError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.InternalServerError, ErrorType.INTERNAL_SERVER_ERROR, message, Instant.now())
-
-    data class IllegalArgumentError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.BadRequest, ErrorType.ILLEGAL_ARGUMENT, message, Instant.now())
-
-    data class BadRequestError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.BadRequest, ErrorType.BAD_REQUEST, message, Instant.now())
-
-    data class ConflictRequestError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.Conflict, ErrorType.CONFLICT, message, Instant.now())
-
-    data class AuthenticationError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.Unauthorized, ErrorType.AUTHENTICATION_ERROR, message, Instant.now())
-
-    data class AuthorizationError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.Forbidden, ErrorType.AUTHORIZATION_ERROR, message, Instant.now())
-
-    data class LegeNotFoundError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.NotFound, ErrorType.LEGE_NOT_FOUND, message, Instant.now())
-
-    data class PlanNotFoundError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.NotFound, ErrorType.PLAN_NOT_FOUND, message, Instant.now())
-
-    data class SykmeldtNotFoundError(override val message: String, override val path: String?) :
-        ApiError(HttpStatusCode.NotFound, ErrorType.SYKMELDT_NOT_FOUND, message, Instant.now())
-}
+    val message: String,
+    val path: String? = null,
+    val timestamp: Instant = Instant.now(),
+)

@@ -1,10 +1,10 @@
 package no.nav.syfo.texas
 
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.authentication
-import io.ktor.server.response.respondNullable
 import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.exception.ApiErrorException
+import no.nav.syfo.application.exception.ErrorType
 import no.nav.syfo.util.logger
 
 private val logger = logger("no.nav.syfo.texas.TexasTokenXAuthPlugin")
@@ -18,8 +18,7 @@ val TexasTokenXAuthPlugin = createRouteScopedPlugin(
             val bearerToken = call.bearerToken()
             if (bearerToken == null) {
                 call.application.environment.log.warn("No bearer token found in request")
-                call.respondNullable(HttpStatusCode.Unauthorized)
-                return@onCall
+                throw ApiErrorException.Unauthorized("No bearer token found in request")
             }
 
             val introspectionResponse = try {
@@ -27,8 +26,7 @@ val TexasTokenXAuthPlugin = createRouteScopedPlugin(
                     ?: error("TexasHttpClient is not configured")
             } catch (e: Exception) {
                 call.application.environment.log.error("Failed to introspect token: ${e.message}", e)
-                call.respondNullable(HttpStatusCode.Unauthorized)
-                return@onCall
+                throw ApiErrorException.Unauthorized("Failed to introspect token", e)
             }
 
             if (!introspectionResponse.active) {
@@ -36,19 +34,19 @@ val TexasTokenXAuthPlugin = createRouteScopedPlugin(
                     "" +
                             "Token is not active: ${introspectionResponse.error ?: "No error message"}"
                 )
-                call.respondNullable(HttpStatusCode.Unauthorized)
-                return@onCall
+                throw ApiErrorException.Unauthorized("Token is not active")
             }
             if (!introspectionResponse.acr.equals("Level4", ignoreCase = true)) {
                 call.application.environment.log.warn("User does not have Level4 access: ${introspectionResponse.acr}")
-                call.respondNullable(HttpStatusCode.Forbidden)
-                return@onCall
+                throw ApiErrorException.Forbidden(
+                    errorMessage = "User does not have Level4 access",
+                    type = ErrorType.AUTHORIZATION_ERROR,
+                )
             }
 
             if (introspectionResponse.pid == null) {
                 call.application.environment.log.warn("No pid in token claims")
-                call.respondNullable(HttpStatusCode.Unauthorized)
-                return@onCall
+                throw ApiErrorException.Unauthorized("No pid in token claims")
             }
             call.authentication.principal(
                 BrukerPrincipal(

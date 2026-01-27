@@ -4,8 +4,8 @@ import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.principal
 import io.ktor.util.AttributeKey
 import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
-import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.texas.client.TexasHttpClient
 
 class AddSykmeldtBrukerFnrAttributePluginConfiguration(
@@ -21,7 +21,7 @@ val AddSykmeldtBrukerFnrAttributePlugin = createRouteScopedPlugin(
     pluginConfig.apply {
         onCall { call ->
             val innloggetBruker = call.principal<BrukerPrincipal>()
-                ?: throw UnauthorizedException("No user principal found in request")
+                ?: throw ApiErrorException.Unauthorized("No user principal found in request")
 
             call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER] = Fodselsnummer(innloggetBruker.ident)
         }

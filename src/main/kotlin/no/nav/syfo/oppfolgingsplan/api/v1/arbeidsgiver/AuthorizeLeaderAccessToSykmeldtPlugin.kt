@@ -2,11 +2,10 @@ package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.principal
-import io.ktor.server.plugins.BadRequestException
 import io.ktor.util.AttributeKey
 import no.nav.syfo.application.auth.BrukerPrincipal
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.exception.SykmeldtNotFoundException
-import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -29,16 +28,20 @@ val AuthorizeLeaderAccessToSykmeldtPlugin = createRouteScopedPlugin(
     pluginConfig.apply {
         onCall { call ->
             val texasHttpClient = texasHttpClient
-                ?: throw throw IllegalStateException("TexasHttpClient must be provided in ValidateAccessToSykmeldtPlugin configuration")
+                ?: throw IllegalStateException(
+                    "TexasHttpClient must be provided in AuthorizeLeaderAccessToSykmeldtPlugin configuration"
+                )
 
             val dineSykmeldteService = dineSykmeldteService
-                ?: throw IllegalStateException("DineSykmeldteService must be provided in ValidateAccessToSykmeldtPlugin configuration")
+                ?: throw IllegalStateException(
+                    "DineSykmeldteService must be provided in AuthorizeLeaderAccessToSykmeldtPlugin configuration"
+                )
 
             val narmesteLederId = call.parameters["narmesteLederId"]
-                ?: throw BadRequestException("Missing narmesteLederId parameter in request")
+                ?: throw ApiErrorException.BadRequest("Missing narmesteLederId parameter in request")
 
             val innloggetBruker = call.principal<BrukerPrincipal>()
-                ?: throw UnauthorizedException("No user principal found in request")
+                ?: throw ApiErrorException.Unauthorized("No user principal found in request")
 
             val texasResponse = texasHttpClient.exchangeTokenForDineSykmeldte(innloggetBruker.token)
 
