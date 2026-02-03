@@ -1,9 +1,9 @@
 package no.nav.syfo.oppfolgingsplan.service
 
-import io.ktor.server.plugins.BadRequestException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
@@ -94,7 +94,7 @@ class OppfolgingsplanService(
 
     suspend fun deleteOppfolgingsplanUtkast(sykmeldt: Sykmeldt) {
         if (sykmeldt.aktivSykmelding != true) {
-            throw BadRequestException(
+            throw ApiErrorException.BadRequest(
                 "Cannot delete oppfolgingsplan utkast for sykmeldt without active sykmelding"
             )
         }

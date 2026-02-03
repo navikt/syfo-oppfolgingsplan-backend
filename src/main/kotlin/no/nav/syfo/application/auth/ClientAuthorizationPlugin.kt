@@ -4,8 +4,7 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.principal
 import io.ktor.server.request.uri
-import no.nav.syfo.application.exception.ForbiddenException
-import no.nav.syfo.application.exception.UnauthorizedException
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.util.logger
 
@@ -34,13 +33,13 @@ val ClientAuthorizationPlugin = createRouteScopedPlugin(
 
 private fun ApplicationCall.requireClient(allowedClients: List<String>) {
     val principal = principal<BrukerPrincipal>()
-        ?: throw UnauthorizedException("No user principal found in request")
+        ?: throw ApiErrorException.Unauthorized("No user principal found in request")
     val callerClientId = principal.clientId
-        ?: throw UnauthorizedException("Missing azp claim in token")
+        ?: throw ApiErrorException.Unauthorized("Missing azp claim in token")
     if (!allowedClients.contains(callerClientId)) {
         logger.error(
             "Client authorization failed - expected: $allowedClients, actual: $callerClientId, path: ${request.uri}"
         )
-        throw ForbiddenException("Caller is not authorized for this endpoint")
+        throw ApiErrorException.Forbidden("Caller is not authorized for this endpoint")
     }
 }

@@ -3,8 +3,6 @@ package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
-import io.ktor.server.plugins.BadRequestException
-import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.request.path
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -12,13 +10,9 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
-import java.time.Instant
 import no.nav.syfo.application.auth.BrukerPrincipal
-import no.nav.syfo.application.exception.ConflictException
-import no.nav.syfo.application.exception.ForbiddenException
-import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.exception.PlanNotFoundException
-import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dokarkiv.DokarkivService
@@ -35,6 +29,7 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
+import java.time.Instant
 
 @Suppress("LongParameterList", "LongMethod", "ThrowsCount")
 fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
@@ -61,7 +56,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 logger.error(
                     "Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}"
                 )
-                throw NotFoundException(
+                throw ApiErrorException.NotFound(
                     "Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}"
                 )
             }
@@ -69,20 +64,19 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
         post {
             val innloggetBruker = call.principal<BrukerPrincipal>()
-                ?: throw UnauthorizedException("No user principal found in request")
+                ?: throw ApiErrorException.Unauthorized("No user principal found in request")
 
             val oppfolgingsplan = try {
-                val plan = call.receive<CreateOppfolgingsplanRequest>()
-                plan
+                call.receive<CreateOppfolgingsplanRequest>()
             } catch (e: Exception) {
-                throw BadRequestException("Invalid Oppfolgingsplan in request: ${e.message}", e)
+                throw ApiErrorException.BadRequest("Invalid Oppfolgingsplan in request: ${e.message}", e)
             }
 
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             if (sykmeldt.aktivSykmelding != true) {
-                throw ForbiddenException(
-                    "Cannot create oppfolgingsplan for sykmeldt without active sykmelding"
+                throw ApiErrorException.Forbidden(
+                    "Cannot create oppfolgingsplan for sykmeldt without active sykmelding",
                 )
             }
 
@@ -155,13 +149,13 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             if (sykmeldt.aktivSykmelding != true) {
-                throw BadRequestException(
+                throw ApiErrorException.BadRequest(
                     "Cannot send oppfolgingsplan to general practitioner when there is no active sykmelding"
                 )
             }
 
             val innloggetBruker = call.principal<BrukerPrincipal>()
-                ?: throw UnauthorizedException("No user principal found in request")
+                ?: throw ApiErrorException.Unauthorized("No user principal found in request")
 
             val uuid = call.parameters.extractAndValidateUUIDParameter()
 
@@ -174,12 +168,12 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             )
 
             if (oppfolgingsplan.deltMedLegeTidspunkt != null) {
-                throw ConflictException("Oppfolgingsplan is already shared with general practitioner")
+                throw ApiErrorException.Conflict("Oppfolgingsplan is already shared with general practitioner")
             }
             oppfolgingsplanService.updateSkalDelesMedLege(uuid, true)
 
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
-                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+                ?: throw ApiErrorException.InternalServerError("An error occurred while generating pdf")
 
             val texasResponse = texasHttpClient.exchangeTokenForIsDialogmelding(innloggetBruker.token)
             isDialogmeldingService.sendOppfolgingsplanToGeneralPractitioner(
@@ -200,7 +194,9 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             if (sykmeldt.aktivSykmelding != true) {
-                throw BadRequestException("Cannot send oppfolgingsplan to Nav when there is no active sykmelding")
+                throw ApiErrorException.BadRequest(
+                    "Cannot send oppfolgingsplan to Nav when there is no active sykmelding"
+                )
             }
 
             val uuid = call.parameters.extractAndValidateUUIDParameter()
@@ -214,11 +210,11 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             )
 
             if (oppfolgingsplan.deltMedVeilederTidspunkt != null) {
-                throw ConflictException("Oppfolgingsplan is already shared with Veileder")
+                throw ApiErrorException.Conflict("Oppfolgingsplan is already shared with Veileder")
             }
 
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
-                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+                ?: throw ApiErrorException.InternalServerError("An error occurred while generating pdf")
             try {
                 val journalpostId = dokarkivService.arkiverOppfolgingsplan(oppfolgingsplan, pdfByteArray)
                 val deltMedVeilederTidspunkt = oppfolgingsplanService.updateDelingAvPlanMedVeileder(
@@ -230,7 +226,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
                 call.respond(HttpStatusCode.OK, DelMedVeilederResponse(deltMedVeilederTidspunkt))
             } catch (e: Exception) {
                 logger.error("Failed to archive oppfolgingsplan with uuid: $uuid", e)
-                throw InternalServerErrorException("An error occurred while archiving oppfolgingsplan")
+                throw ApiErrorException.InternalServerError("An error occurred while archiving oppfolgingsplan")
             }
         }
 
@@ -247,7 +243,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             )
 
             val pdfByteArray = pdfGenService.generatePdf(persistedOppfolgingsplan)
-                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+                ?: throw ApiErrorException.InternalServerError("An error occurred while generating pdf")
 
             call.response.status(HttpStatusCode.OK)
             call.response.headers.append(HttpHeaders.ContentType, "application/pdf")
