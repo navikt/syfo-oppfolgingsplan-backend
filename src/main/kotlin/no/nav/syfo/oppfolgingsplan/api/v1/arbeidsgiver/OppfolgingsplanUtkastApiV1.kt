@@ -14,6 +14,7 @@ import no.nav.syfo.application.auth.BrukerPrincipal
 import no.nav.syfo.application.exception.ForbiddenException
 import no.nav.syfo.application.exception.UnauthorizedException
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_DRAFT_MANUALLY_DELETED
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
@@ -61,6 +62,8 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
             oppfolgingsplanService.deleteOppfolgingsplanUtkast(
                 sykmeldt
             )
+
+            COUNT_OPPFOLGINGSPLAN_DRAFT_MANUALLY_DELETED.increment()
 
             call.respond(HttpStatusCode.NoContent)
         }
