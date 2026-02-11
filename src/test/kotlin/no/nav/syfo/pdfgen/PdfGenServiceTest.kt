@@ -1,5 +1,6 @@
 package no.nav.syfo.pdfgen
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -18,7 +19,6 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.util.httpClientDefault
-import org.junit.jupiter.api.assertThrows
 
 class PdfGenServiceTest : DescribeSpec({
 
@@ -83,7 +83,7 @@ class PdfGenServiceTest : DescribeSpec({
                 mockk(relaxed = true) // Mock OppfolgingsplanService, as it's not the focus
             )
             val persistedPlan = defaultPersistedOppfolgingsplan()
-            assertThrows<RuntimeException> {
+            shouldThrow<RuntimeException> {
                 myService.generatePdf(persistedPlan)
             }
         }

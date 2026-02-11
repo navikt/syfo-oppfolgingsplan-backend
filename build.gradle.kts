@@ -17,7 +17,7 @@ val valkeyVersion="5.5.0"
 
 plugins {
     kotlin("jvm") version "2.2.21"
-    id("io.ktor.plugin") version "3.3.3"
+    id("io.ktor.plugin") version "3.4.0"
     id("com.gradleup.shadow") version "8.3.9"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.2.21"
 }
@@ -45,7 +45,7 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-client-core")
     implementation("io.ktor:ktor-client-content-negotiation")
-    implementation("io.ktor:ktor-client-apache-jvm")
+    implementation("io.ktor:ktor-client-apache5-jvm")
     implementation("io.ktor:ktor-serialization-jackson")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.0")
     implementation("io.insert-koin:koin-ktor:$koinVersion")
