@@ -16,6 +16,7 @@ import io.ktor.server.response.respond
 import no.nav.syfo.application.exception.ApiError
 import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.exception.ErrorType
+import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.util.applyStandardConfiguration
 import java.util.*
 
@@ -66,7 +67,9 @@ private fun determineApiError(cause: Throwable, path: String): ApiError {
 fun Application.installStatusPages() {
     install(StatusPages) {
         exception<Throwable> { call, cause ->
-            logException(call, cause)
+            if (cause !is LegeNotFoundException) {
+                logException(call, cause)
+            }
             val apiError = determineApiError(cause, call.request.path())
             call.respond(apiError.status, apiError)
         }
