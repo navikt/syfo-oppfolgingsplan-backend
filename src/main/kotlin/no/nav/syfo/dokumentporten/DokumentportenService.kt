@@ -3,7 +3,7 @@ package no.nav.syfo.dokumentporten
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.dokumentporten.client.Document
 import no.nav.syfo.dokumentporten.client.DocumentType
 import no.nav.syfo.dokumentporten.client.IDokumentportenClient
@@ -44,7 +44,7 @@ class DokumentportenService(
             try {
                 val planWithNarmestelederName = oppfolgingsplanService.getAndSetNarmestelederFullname(oppfolgingsplan)
                 val pdfByteArray = pdfGenService.generatePdf(planWithNarmestelederName)
-                    ?: throw InternalServerErrorException("An error occurred while generating pdf")
+                    ?: throw ApiErrorException.InternalServerError("An error occurred while generating pdf")
                 dokumentportenClient.publishOppfolgingsplan(
                     oppfolgingsplan.toDocument(pdfByteArray, dateFormatter),
                 )
@@ -82,5 +82,14 @@ fun PersistedOppfolgingsplan.title(): String =
 
 fun PersistedOppfolgingsplan.summary(dateFormatter: DateTimeFormatter): String =
     this.narmesteLederFullName?.let {
-    "${this.narmesteLederFullName} har opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${dateFormatter.format(this.createdAt)}"
-} ?: "Det er opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${dateFormatter.format(this.createdAt)}"
+        "${this.narmesteLederFullName} har opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${
+            dateFormatter.format(
+                this.createdAt
+            )
+        }"
+    }
+        ?: "Det er opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${
+            dateFormatter.format(
+                this.createdAt
+            )
+        }"

@@ -2,12 +2,11 @@ package no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt
 
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.plugins.NotFoundException
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
-import no.nav.syfo.application.exception.InternalServerErrorException
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
@@ -37,7 +36,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
     ) {
         if (oppfolgingsplan.sykmeldtFnr != sykmeldtFnr.value) {
             logger.error("Oppfolgingsplan with uuid: ${oppfolgingsplan.uuid} does not belong to logged in user")
-            throw NotFoundException("Oppfolgingsplan not found")
+            throw ApiErrorException.NotFound("Oppfolgingsplan not found")
         }
     }
 
@@ -83,7 +82,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
             checkIfOppfolgingsplanBelongsToSykmeldt(oppfolgingsplan, brukerFnr)
 
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
-                ?: throw InternalServerErrorException("An error occurred while generating pdf")
+                ?: throw ApiErrorException.InternalServerError("An error occurred while generating pdf")
 
             call.response.status(HttpStatusCode.OK)
             call.response.headers.append(HttpHeaders.ContentType, "application/pdf")

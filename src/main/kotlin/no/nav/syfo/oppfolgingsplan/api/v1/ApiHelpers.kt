@@ -1,15 +1,13 @@
 package no.nav.syfo.oppfolgingsplan.api.v1
 
 import io.ktor.http.Parameters
-import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.ParameterConversionException
-import java.util.UUID
+import no.nav.syfo.application.exception.ApiErrorException
+import java.util.*
 
 fun Parameters.extractAndValidateUUIDParameter(): UUID {
     val uuid = get("uuid")
-    if (uuid == null) {
-        throw BadRequestException("Missing uuid parameter")
-    }
+        ?: throw ApiErrorException.BadRequest("Missing uuid parameter")
 
     return try {
         UUID.fromString(uuid)
