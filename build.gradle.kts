@@ -11,7 +11,7 @@ val logbackVersion="1.5.29"
 val logstashEncoderVersion="9.0"
 val micrometerVersion="1.16.3"
 val mockkVersion="1.14.9"
-val postgresVersion="42.7.9"
+val postgresVersion="42.7.10"
 val testcontainersVersion="1.21.4"
 val valkeyVersion="5.5.0"
 
