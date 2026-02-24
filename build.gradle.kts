@@ -19,7 +19,7 @@ plugins {
     kotlin("jvm") version "2.3.0"
     id("io.ktor.plugin") version "3.4.0"
     id("com.gradleup.shadow") version "9.3.1"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.0"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.10"
 }
 
 group = "no.nav.syfo"
