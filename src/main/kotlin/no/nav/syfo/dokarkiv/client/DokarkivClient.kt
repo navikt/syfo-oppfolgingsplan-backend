@@ -12,7 +12,7 @@ import io.ktor.http.HttpHeaders
 import net.datafaker.Faker
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.slf4j.LoggerFactory
-import java.util.*
+import java.util.Random
 
 interface IDokarkivClient {
     suspend fun sendJournalpostRequestToDokarkiv(journalpostRequest: JournalpostRequest): String

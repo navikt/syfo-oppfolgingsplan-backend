@@ -6,7 +6,7 @@ import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.serialization.StringSerializer
-import java.util.*
+import java.util.Properties
 
 const val JAVA_KEYSTORE = "JKS"
 const val PKCS12 = "PKCS12"

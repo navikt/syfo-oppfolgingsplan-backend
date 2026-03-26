@@ -4,7 +4,7 @@ import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 data class UtkastMetadata(
     val sistLagretTidspunkt: Instant,

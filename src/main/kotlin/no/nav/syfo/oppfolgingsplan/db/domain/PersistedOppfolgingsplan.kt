@@ -9,7 +9,7 @@ import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 data class PersistedOppfolgingsplan(
     val uuid: UUID,

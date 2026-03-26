@@ -18,7 +18,7 @@ import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.exception.ErrorType
 import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.util.applyStandardConfiguration
-import java.util.*
+import java.util.UUID
 
 const val NAV_CALL_ID_HEADER = "Nav-Call-Id"
 

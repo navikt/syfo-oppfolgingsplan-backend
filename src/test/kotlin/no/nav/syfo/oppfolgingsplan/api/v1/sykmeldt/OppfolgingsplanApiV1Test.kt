@@ -54,7 +54,7 @@ import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-import java.util.*
+import java.util.UUID
 
 class OppfolgingsplanApiV1Test :
     DescribeSpec({

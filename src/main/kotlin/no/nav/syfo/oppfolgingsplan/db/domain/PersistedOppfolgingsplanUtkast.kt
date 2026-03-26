@@ -8,7 +8,7 @@ import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.UtkastMetadata
 import no.nav.syfo.oppfolgingsplan.dto.UtkastResponseData
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 data class PersistedOppfolgingsplanUtkast(
     val uuid: UUID,

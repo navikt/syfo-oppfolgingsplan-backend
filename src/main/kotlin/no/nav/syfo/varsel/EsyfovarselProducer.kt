@@ -4,7 +4,7 @@ import no.nav.syfo.varsel.domain.EsyfovarselHendelse
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.slf4j.LoggerFactory
-import java.util.*
+import java.util.UUID
 
 class EsyfovarselProducer(private val producer: KafkaProducer<String, EsyfovarselHendelse>) {
     /**

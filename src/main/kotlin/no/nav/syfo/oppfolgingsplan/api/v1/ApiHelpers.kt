@@ -3,7 +3,7 @@ package no.nav.syfo.oppfolgingsplan.api.v1
 import io.ktor.http.Parameters
 import io.ktor.server.plugins.ParameterConversionException
 import no.nav.syfo.application.exception.ApiErrorException
-import java.util.*
+import java.util.UUID
 
 fun Parameters.extractAndValidateUUIDParameter(): UUID {
     val uuid = get("uuid")

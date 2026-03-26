@@ -14,7 +14,7 @@ import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy
 import java.sql.Connection
 import java.sql.Date
 import java.sql.Types
-import java.util.*
+import java.util.UUID
 
 private val objectMapper = jacksonObjectMapper()
 

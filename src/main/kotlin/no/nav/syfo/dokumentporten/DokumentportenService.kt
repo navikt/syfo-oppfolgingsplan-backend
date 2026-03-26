@@ -16,7 +16,8 @@ import no.nav.syfo.util.logger
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.Locale
+import java.util.UUID
 
 class DokumentportenService(
     private val dokumentportenClient: IDokumentportenClient,

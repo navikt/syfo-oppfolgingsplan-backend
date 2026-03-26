@@ -14,7 +14,7 @@ import java.sql.Timestamp
 import java.sql.Types
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr: String,

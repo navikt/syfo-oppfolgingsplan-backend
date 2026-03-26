@@ -38,7 +38,7 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 /**
  * Service for managing oppfølgingsplaner.

@@ -29,7 +29,7 @@ import no.nav.syfo.texas.client.TexasResponse
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-import java.util.*
+import java.util.UUID
 
 fun defaultUtkastMap(): Map<String, String?> = mapOf(
     "typiskArbeidshverdag" to "Dette skrev jeg forrige gang. Kjekt at det blir lagret i et utkast.",

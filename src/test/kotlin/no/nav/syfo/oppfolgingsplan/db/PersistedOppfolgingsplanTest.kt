@@ -19,7 +19,7 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
 import no.nav.syfo.pdfgen.toOppfolgingsplanPdfV1
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 class PersistedOppfolgingsplanTest :
     DescribeSpec({

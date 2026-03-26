@@ -3,7 +3,7 @@ package no.nav.syfo.oppfolgingsplan.api.v1.veileder
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 data class OppfolgingsplanVeileder(
     val uuid: UUID,

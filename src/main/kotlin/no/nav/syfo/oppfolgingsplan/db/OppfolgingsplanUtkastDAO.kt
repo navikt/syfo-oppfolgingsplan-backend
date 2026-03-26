@@ -9,7 +9,7 @@ import no.nav.syfo.util.configuredJacksonMapper
 import java.sql.ResultSet
 import java.sql.Types
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 private val objectMapper = configuredJacksonMapper
 

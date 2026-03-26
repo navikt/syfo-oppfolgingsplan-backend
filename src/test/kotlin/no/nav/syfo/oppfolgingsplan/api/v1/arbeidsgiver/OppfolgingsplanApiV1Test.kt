@@ -68,7 +68,7 @@ import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 class OppfolgingsplanApiV1Test :
     DescribeSpec({

@@ -16,7 +16,7 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
-import java.util.*
+import java.util.UUID
 
 fun Route.registerSykmeldtOppfolgingsplanApiV1(
     texasHttpClient: TexasHttpClient,

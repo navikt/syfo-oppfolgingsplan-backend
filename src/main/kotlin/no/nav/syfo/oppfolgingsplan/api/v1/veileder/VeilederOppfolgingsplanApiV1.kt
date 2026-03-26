@@ -20,7 +20,7 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.toListOppfolgingsplanVeileder
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
-import java.util.*
+import java.util.UUID
 
 @Suppress("ThrowsCount")
 fun Route.registerVeilederOppfolgingsplanApiV1(
