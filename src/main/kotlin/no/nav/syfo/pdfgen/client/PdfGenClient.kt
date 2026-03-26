@@ -19,7 +19,7 @@ class PdfGenClient(
     }
 
     suspend fun generatePdf(oppfolgingsplanPdfV1: OppfolgingsplanPdfV1): ByteArray? {
-        val requestUrl = "${url}/$PDF_GEN_PATH"
+        val requestUrl = "$url/$PDF_GEN_PATH"
         val response = client.post(requestUrl) {
             headers {
                 append(HttpHeaders.ContentType, ContentType.Application.Json)

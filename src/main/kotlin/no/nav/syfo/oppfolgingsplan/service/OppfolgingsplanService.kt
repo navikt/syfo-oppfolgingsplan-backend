@@ -56,7 +56,7 @@ class OppfolgingsplanService(
     suspend fun createOppfolgingsplan(
         narmesteLederFnr: String,
         sykmeldt: Sykmeldt,
-        createOppfolgingsplanRequest: CreateOppfolgingsplanRequest
+        createOppfolgingsplanRequest: CreateOppfolgingsplanRequest,
     ): UUID {
         val uuid = withContext(Dispatchers.IO) {
             database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederFnr, sykmeldt, createOppfolgingsplanRequest)
@@ -76,26 +76,26 @@ class OppfolgingsplanService(
     suspend fun persistOppfolgingsplanUtkast(
         narmesteLederFnr: String,
         sykmeldt: Sykmeldt,
-        utkast: LagreUtkastRequest
+        utkast: LagreUtkastRequest,
     ): LagreUtkastResponse {
         val updatedAt = withContext(Dispatchers.IO) {
             val (_, updatedAt) = database.upsertOppfolgingsplanUtkast(
                 narmesteLederFnr,
                 sykmeldt,
-                utkast
+                utkast,
             )
             updatedAt
         }
 
         return LagreUtkastResponse(
-            sistLagretTidspunkt = updatedAt
+            sistLagretTidspunkt = updatedAt,
         )
     }
 
     suspend fun deleteOppfolgingsplanUtkast(sykmeldt: Sykmeldt) {
         if (sykmeldt.aktivSykmelding != true) {
             throw ApiErrorException.BadRequest(
-                "Cannot delete oppfolgingsplan utkast for sykmeldt without active sykmelding"
+                "Cannot delete oppfolgingsplan utkast for sykmeldt without active sykmelding",
             )
         }
 
@@ -104,24 +104,20 @@ class OppfolgingsplanService(
         }
     }
 
-    suspend fun getPersistedOppfolgingsplanUtkast(sykmeldt: Sykmeldt): PersistedOppfolgingsplanUtkast? {
-        return withContext(Dispatchers.IO) {
-            database.findOppfolgingsplanUtkastBy(
-                sykmeldtFnr = sykmeldt.fnr,
-                organisasjonsnummer = sykmeldt.orgnummer
-            )
-        }
+    suspend fun getPersistedOppfolgingsplanUtkast(sykmeldt: Sykmeldt): PersistedOppfolgingsplanUtkast? = withContext(Dispatchers.IO) {
+        database.findOppfolgingsplanUtkastBy(
+            sykmeldtFnr = sykmeldt.fnr,
+            organisasjonsnummer = sykmeldt.orgnummer,
+        )
     }
 
-    suspend fun getPersistedOppfolgingsplanByUuid(uuid: UUID): PersistedOppfolgingsplan {
-        return withContext(Dispatchers.IO) {
-            database.findOppfolgingsplanBy(uuid)
-        } ?: throw PlanNotFoundException("Oppfolgingsplan not found for uuid: $uuid")
-    }
+    suspend fun getPersistedOppfolgingsplanByUuid(uuid: UUID): PersistedOppfolgingsplan = withContext(Dispatchers.IO) {
+        database.findOppfolgingsplanBy(uuid)
+    } ?: throw PlanNotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
     suspend fun updateSkalDelesMedLege(
         uuid: UUID,
-        skalDelesMedLege: Boolean
+        skalDelesMedLege: Boolean,
     ) {
         withContext(Dispatchers.IO) {
             database.updateSkalDelesMedLege(uuid, skalDelesMedLege)
@@ -130,7 +126,7 @@ class OppfolgingsplanService(
 
     suspend fun updateSkalDelesMedVeileder(
         uuid: UUID,
-        skalDelesMedVeileder: Boolean
+        skalDelesMedVeileder: Boolean,
     ) {
         withContext(Dispatchers.IO) {
             database.updateSkalDelesMedVeileder(uuid, skalDelesMedVeileder)
@@ -139,7 +135,7 @@ class OppfolgingsplanService(
 
     suspend fun setDeltMedLegeTidspunkt(
         uuid: UUID,
-        deltMedLegeTidspunkt: Instant
+        deltMedLegeTidspunkt: Instant,
     ) {
         withContext(Dispatchers.IO) {
             database.setDeltMedLegeTidspunkt(uuid, deltMedLegeTidspunkt)
@@ -148,7 +144,7 @@ class OppfolgingsplanService(
 
     suspend fun setDeltMedVeilederTidspunkt(
         uuid: UUID,
-        deltMedVeilederTidspunkt: Instant
+        deltMedVeilederTidspunkt: Instant,
     ) {
         withContext(Dispatchers.IO) {
             database.setDeltMedVeilederTidspunkt(uuid, deltMedVeilederTidspunkt)
@@ -178,14 +174,12 @@ class OppfolgingsplanService(
             database.updateDelingAvPlanMedVeileder(uuid, deltMedVeilederTidspunkt, journalpostId)
         }
 
-        return deltMedVeilederTidspunkt;
+        return deltMedVeilederTidspunkt
     }
 
-    suspend fun getAktivplanForSykmeldt(sykmeldt: Sykmeldt): PersistedOppfolgingsplan? {
-        return withContext(Dispatchers.IO) {
-            database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
-        }.firstOrNull()
-    }
+    suspend fun getAktivplanForSykmeldt(sykmeldt: Sykmeldt): PersistedOppfolgingsplan? = withContext(Dispatchers.IO) {
+        database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+    }.firstOrNull()
 
     suspend fun getOppfolgingsplanOverviewFor(sykmeldt: Sykmeldt): ArbeidsgiverOppfolgingsplanOverviewResponse {
         val (utkast, oppfolgingsplaner) = withContext(Dispatchers.IO) {
@@ -210,31 +204,30 @@ class OppfolgingsplanService(
                 utkast = utkast,
                 aktivPlan = oppfolgingsplaner.firstOrNull(),
                 tidligerePlaner = oppfolgingsplaner.drop(1),
-            )
+            ),
         )
     }
 
-    suspend fun getPersistedOppfolgingsplanListBy(sykmeldtFnr: String): List<PersistedOppfolgingsplan> =
-        withContext(Dispatchers.IO) {
-            database.findAllOppfolgingsplanerBy(sykmeldtFnr)
-        }
+    suspend fun getPersistedOppfolgingsplanListBy(sykmeldtFnr: String): List<PersistedOppfolgingsplan> = withContext(Dispatchers.IO) {
+        database.findAllOppfolgingsplanerBy(sykmeldtFnr)
+    }
 
     suspend fun getAndSetNarmestelederFullname(
-        persistedOppfolgingsplan: PersistedOppfolgingsplan
-    ): PersistedOppfolgingsplan {
-        return if (persistedOppfolgingsplan.narmesteLederFullName.isNullOrEmpty()) {
-            pdlService.getNameFor(
-                persistedOppfolgingsplan.narmesteLederFnr
-            )?.let { narmesteLederName ->
-                withContext(Dispatchers.IO) {
-                    database.setNarmesteLederFullName(
-                        persistedOppfolgingsplan.uuid,
-                        narmesteLederName
-                    )
-                }
-                persistedOppfolgingsplan.copy(narmesteLederFullName = narmesteLederName)
-            } ?: persistedOppfolgingsplan
-        } else persistedOppfolgingsplan
+        persistedOppfolgingsplan: PersistedOppfolgingsplan,
+    ): PersistedOppfolgingsplan = if (persistedOppfolgingsplan.narmesteLederFullName.isNullOrEmpty()) {
+        pdlService.getNameFor(
+            persistedOppfolgingsplan.narmesteLederFnr,
+        )?.let { narmesteLederName ->
+            withContext(Dispatchers.IO) {
+                database.setNarmesteLederFullName(
+                    persistedOppfolgingsplan.uuid,
+                    narmesteLederName,
+                )
+            }
+            persistedOppfolgingsplan.copy(narmesteLederFullName = narmesteLederName)
+        } ?: persistedOppfolgingsplan
+    } else {
+        persistedOppfolgingsplan
     }
 
     private fun produceOppfolgingsplanCreatedVarsel(sykmeldt: Sykmeldt) {
@@ -249,9 +242,8 @@ class OppfolgingsplanService(
     }
 }
 
-fun List<PersistedOppfolgingsplan>.toListOppfolgingsplanVeileder(): List<OppfolgingsplanVeileder> =
-    this.filter { it.deltMedVeilederTidspunkt != null }
-        .sortedByDescending { it.createdAt }
-        .map {
-            OppfolgingsplanVeileder.from(it)
-        }
+fun List<PersistedOppfolgingsplan>.toListOppfolgingsplanVeileder(): List<OppfolgingsplanVeileder> = this.filter { it.deltMedVeilederTidspunkt != null }
+    .sortedByDescending { it.createdAt }
+    .map {
+        OppfolgingsplanVeileder.from(it)
+    }

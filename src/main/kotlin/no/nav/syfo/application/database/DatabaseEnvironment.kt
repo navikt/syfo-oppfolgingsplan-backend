@@ -12,8 +12,11 @@ data class DatabaseEnvironment(
     val sslmode: String,
 ) {
     fun jdbcUrl(): String {
-        val sslsuffix = if (sslcert == null ) "" else
+        val sslsuffix = if (sslcert == null) {
+            ""
+        } else {
             "?ssl=on&sslrootcert=$sslrootcert&sslcert=$sslcert&sslmode=$sslmode&sslkey=$sslkey"
+        }
 
         val url = "jdbc:postgresql://$host:$port/$name$sslsuffix"
         return url

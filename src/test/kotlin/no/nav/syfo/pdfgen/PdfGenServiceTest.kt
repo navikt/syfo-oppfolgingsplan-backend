@@ -20,72 +20,75 @@ import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.util.httpClientDefault
 
-class PdfGenServiceTest : DescribeSpec({
+class PdfGenServiceTest :
+    DescribeSpec({
 
-    fun getMockEngine(status: HttpStatusCode, headers: Headers, content: String) = MockEngine { request ->
-        when (request.url.fullPath) {
-            "/api/v1/genpdf/oppfolgingsplan/oppfolgingsplan_v1" -> {
-                if (status.isSuccess()) {
-                    respond(
-                        status = status,
-                        headers = headers,
-                        content = content.toByteArray(Charsets.UTF_8),
-                    )
-                } else {
-                    respond(
-                        status = status,
-                        headers = headers,
-                        content = content,
-                    )
+        fun getMockEngine(status: HttpStatusCode, headers: Headers, content: String) = MockEngine { request ->
+            when (request.url.fullPath) {
+                "/api/v1/genpdf/oppfolgingsplan/oppfolgingsplan_v1" -> {
+                    if (status.isSuccess()) {
+                        respond(
+                            status = status,
+                            headers = headers,
+                            content = content.toByteArray(Charsets.UTF_8),
+                        )
+                    } else {
+                        respond(
+                            status = status,
+                            headers = headers,
+                            content = content,
+                        )
+                    }
+                }
+
+                else -> error("Unhandled request ${request.url.fullPath}")
+            }
+        }
+
+        beforeTest {
+            clearAllMocks()
+            TestDB.clearAllData()
+        }
+
+        describe("PdfGenService") {
+            it("generatePdf and outgoing call with client succeeds") {
+                val client = httpClientDefault(
+                    HttpClient(
+                        getMockEngine(
+                            HttpStatusCode.OK,
+                            headersOf(),
+                            content = "whatever",
+                        ),
+                    ),
+                )
+                val persistedPlan = defaultPersistedOppfolgingsplan()
+                val myService = PdfGenService(
+                    PdfGenClient(client, ""),
+                    mockk(relaxed = true), // Mock OppfolgingsplanService, as it's not the focus
+                )
+                val response = myService.generatePdf(persistedPlan)
+                response shouldNotBe null
+                response?.toString(Charsets.UTF_8) shouldBe "whatever"
+            }
+
+            it("generatePdf should throw RuntimeException when outgoing client call fails") {
+                val client = httpClientDefault(
+                    HttpClient(
+                        getMockEngine(
+                            HttpStatusCode.BadRequest,
+                            headersOf(HttpHeaders.ContentType, "text/plain"),
+                            content = "Forced Error",
+                        ),
+                    ),
+                )
+                val myService = PdfGenService(
+                    PdfGenClient(client, ""),
+                    mockk(relaxed = true), // Mock OppfolgingsplanService, as it's not the focus
+                )
+                val persistedPlan = defaultPersistedOppfolgingsplan()
+                shouldThrow<RuntimeException> {
+                    myService.generatePdf(persistedPlan)
                 }
             }
-
-            else -> error("Unhandled request ${request.url.fullPath}")
         }
-    }
-
-    beforeTest {
-        clearAllMocks()
-        TestDB.clearAllData()
-    }
-
-    describe("PdfGenService") {
-        it("generatePdf and outgoing call with client succeeds") {
-            val client = httpClientDefault(
-                HttpClient(
-                    getMockEngine(
-                        HttpStatusCode.OK, headersOf(), content = "whatever"
-                    )
-                )
-            )
-            val persistedPlan = defaultPersistedOppfolgingsplan()
-            val myService = PdfGenService(
-                PdfGenClient(client, ""),
-                mockk(relaxed = true) // Mock OppfolgingsplanService, as it's not the focus
-            )
-            val response = myService.generatePdf(persistedPlan)
-            response shouldNotBe null
-            response?.toString(Charsets.UTF_8) shouldBe "whatever"
-        }
-
-        it("generatePdf should throw RuntimeException when outgoing client call fails") {
-            val client = httpClientDefault(
-                HttpClient(
-                    getMockEngine(
-                        HttpStatusCode.BadRequest,
-                        headersOf(HttpHeaders.ContentType, "text/plain"),
-                        content = "Forced Error"
-                    )
-                )
-            )
-            val myService = PdfGenService(
-                PdfGenClient(client, ""),
-                mockk(relaxed = true) // Mock OppfolgingsplanService, as it's not the focus
-            )
-            val persistedPlan = defaultPersistedOppfolgingsplan()
-            shouldThrow<RuntimeException> {
-                myService.generatePdf(persistedPlan)
-            }
-        }
-    }
-})
+    })

@@ -18,27 +18,27 @@ class FieldSnapshotDeserializer : JsonDeserializer<FieldSnapshot>() {
         return when (val fieldType = node.get("fieldType").asText()) {
             FormSnapshotFieldType.TEXT.name -> ctxt.readTreeAsValue(
                 node,
-                TextFieldSnapshot::class.java
+                TextFieldSnapshot::class.java,
             )
 
             FormSnapshotFieldType.CHECKBOX_GROUP.name -> ctxt.readTreeAsValue(
                 node,
-                CheckboxGroupFieldSnapshot::class.java
+                CheckboxGroupFieldSnapshot::class.java,
             )
 
             FormSnapshotFieldType.RADIO_GROUP.name -> ctxt.readTreeAsValue(
                 node,
-                RadioGroupFieldSnapshot::class.java
+                RadioGroupFieldSnapshot::class.java,
             )
 
             FormSnapshotFieldType.CHECKBOX_SINGLE.name -> ctxt.readTreeAsValue(
                 node,
-                SingleCheckboxFieldSnapshot::class.java
+                SingleCheckboxFieldSnapshot::class.java,
             )
 
             FormSnapshotFieldType.DATE.name -> ctxt.readTreeAsValue(
                 node,
-                DateFieldSnapshot::class.java
+                DateFieldSnapshot::class.java,
             )
 
             else -> throw IllegalArgumentException("Unknown field type: $fieldType")
@@ -46,15 +46,11 @@ class FieldSnapshotDeserializer : JsonDeserializer<FieldSnapshot>() {
     }
 }
 
-fun FormSnapshot.toJsonString(): String {
-    return formSnapshotObjectMapper.writeValueAsString(this)
-}
+fun FormSnapshot.toJsonString(): String = formSnapshotObjectMapper.writeValueAsString(this)
 
-fun FormSnapshot.Companion.jsonToFormSnapshot(json: String): FormSnapshot {
-    return try {
-        formSnapshotObjectMapper.readValue(json)
-    } catch (e: Exception) {
-        logger.error("Failed to parse FormSnapshot JSON", e)
-        throw e
-    }
+fun FormSnapshot.Companion.jsonToFormSnapshot(json: String): FormSnapshot = try {
+    formSnapshotObjectMapper.readValue(json)
+} catch (e: Exception) {
+    logger.error("Failed to parse FormSnapshot JSON", e)
+    throw e
 }

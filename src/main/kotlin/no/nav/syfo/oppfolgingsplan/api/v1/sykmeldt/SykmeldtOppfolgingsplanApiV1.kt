@@ -27,8 +27,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
 
     suspend fun tryToGetPersistedOppfolgingsplanByUuid(
         uuid: UUID,
-    ): PersistedOppfolgingsplan =
-        oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
+    ): PersistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid)
 
     fun checkIfOppfolgingsplanBelongsToSykmeldt(
         oppfolgingsplan: PersistedOppfolgingsplan,

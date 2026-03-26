@@ -4,8 +4,8 @@ import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import java.util.Random
 import net.datafaker.Faker
+import java.util.Random
 
 fun interface IDineSykmeldteHttpClient {
     suspend fun getSykmeldtForNarmesteLederId(
@@ -21,13 +21,11 @@ class DineSykmeldteHttpClient(
     override suspend fun getSykmeldtForNarmesteLederId(
         narmestelederId: String,
         token: String,
-    ): Sykmeldt {
-        return httpClient
-            .get("$dineSykmeldteBaseUrl/api/v2/dinesykmeldte/$narmestelederId") {
-                header("Authorization", "Bearer $token")
-            }
-            .body<Sykmeldt>()
-    }
+    ): Sykmeldt = httpClient
+        .get("$dineSykmeldteBaseUrl/api/v2/dinesykmeldte/$narmestelederId") {
+            header("Authorization", "Bearer $token")
+        }
+        .body<Sykmeldt>()
 }
 
 class FakeDineSykmeldteHttpClient : IDineSykmeldteHttpClient {
@@ -43,10 +41,10 @@ class FakeDineSykmeldteHttpClient : IDineSykmeldteHttpClient {
             navn = faker.name().fullName(),
             sykmeldinger = listOf(
                 DineSykmeldteSykmelding(
-                    arbeidsgiver = faker.company().name()
-                )
+                    arbeidsgiver = faker.company().name(),
+                ),
             ),
-            aktivSykmelding = true
+            aktivSykmelding = true,
         )
     }
 }
@@ -65,6 +63,4 @@ data class DineSykmeldteSykmelding(
     val arbeidsgiver: String,
 )
 
-fun Sykmeldt.getOrganizationName(): String? {
-    return sykmeldinger?.firstOrNull()?.arbeidsgiver
-}
+fun Sykmeldt.getOrganizationName(): String? = sykmeldinger?.firstOrNull()?.arbeidsgiver

@@ -8,8 +8,8 @@ import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.util.configuredJacksonMapper
 import java.sql.ResultSet
 import java.sql.Types
-import java.util.*
 import java.time.Instant
+import java.util.*
 
 private val objectMapper = configuredJacksonMapper
 
@@ -47,7 +47,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
             preparedStatement.setObject(
                 5,
                 objectMapper.writeValueAsString(lagreUtkastRequest.content),
-                Types.OTHER
+                Types.OTHER,
             )
 
             val resultSet = preparedStatement.executeQuery()
@@ -63,7 +63,7 @@ fun DatabaseInterface.upsertOppfolgingsplanUtkast(
 }
 
 fun DatabaseInterface.deleteOppfolgingsplanUtkast(
-    sykmeldt: Sykmeldt
+    sykmeldt: Sykmeldt,
 ) {
     val statement =
         """
@@ -84,7 +84,7 @@ fun DatabaseInterface.deleteOppfolgingsplanUtkast(
 
 fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     sykmeldtFnr: String,
-    organisasjonsnummer: String
+    organisasjonsnummer: String,
 ): PersistedOppfolgingsplanUtkast? {
     val statement =
         """
@@ -108,15 +108,13 @@ fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     }
 }
 
-fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast {
-    return PersistedOppfolgingsplanUtkast(
-        uuid = getObject("uuid") as UUID,
-        sykmeldtFnr = getString("sykmeldt_fnr"),
-        narmesteLederId = getString("narmeste_leder_id"),
-        narmesteLederFnr = getString("narmeste_leder_fnr"),
-        organisasjonsnummer = getString("organisasjonsnummer"),
-        content = objectMapper.readValue(getString("content")),
-        createdAt = getTimestamp("created_at").toInstant(),
-        updatedAt = getTimestamp("updated_at").toInstant()
-    )
-}
+fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast = PersistedOppfolgingsplanUtkast(
+    uuid = getObject("uuid") as UUID,
+    sykmeldtFnr = getString("sykmeldt_fnr"),
+    narmesteLederId = getString("narmeste_leder_id"),
+    narmesteLederFnr = getString("narmeste_leder_fnr"),
+    organisasjonsnummer = getString("organisasjonsnummer"),
+    content = objectMapper.readValue(getString("content")),
+    createdAt = getTimestamp("created_at").toInstant(),
+    updatedAt = getTimestamp("updated_at").toInstant(),
+)

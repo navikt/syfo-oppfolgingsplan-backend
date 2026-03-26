@@ -32,7 +32,7 @@ val TexasTokenXAuthPlugin = createRouteScopedPlugin(
             if (!introspectionResponse.active) {
                 call.application.environment.log.warn(
                     "" +
-                            "Token is not active: ${introspectionResponse.error ?: "No error message"}"
+                        "Token is not active: ${introspectionResponse.error ?: "No error message"}",
                 )
                 throw ApiErrorException.Unauthorized("Token is not active")
             }
@@ -52,8 +52,8 @@ val TexasTokenXAuthPlugin = createRouteScopedPlugin(
                 BrukerPrincipal(
                     ident = introspectionResponse.pid,
                     token = bearerToken,
-                    clientId = introspectionResponse.clientId
-                )
+                    clientId = introspectionResponse.clientId,
+                ),
             )
         }
     }

@@ -39,7 +39,7 @@ class IsDialogmeldingClient(
                     OppfolgingsplanDialogmelding(
                         sykmeldtFnr = sykmeldtFnr,
                         oppfolgingsplanPdf = plansAsPdf,
-                    )
+                    ),
                 )
             }
         } catch (clientRequestException: ClientRequestException) {
@@ -54,11 +54,11 @@ class IsDialogmeldingClient(
                 else -> {
                     logger.error(
                         "Call to to send oppfolgingsplan to fastlege failed with status: " +
-                            "${clientRequestException.response.status}, response body: ${clientRequestException.response.bodyAsText()}"
+                            "${clientRequestException.response.status}, response body: ${clientRequestException.response.bodyAsText()}",
                     )
                     throw RuntimeException(
                         "Error while sending oppfolgingsplan to general practitioner",
-                        clientRequestException
+                        clientRequestException,
                     )
                 }
             }

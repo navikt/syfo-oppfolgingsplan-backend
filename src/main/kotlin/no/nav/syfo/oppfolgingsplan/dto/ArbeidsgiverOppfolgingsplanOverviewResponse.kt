@@ -6,7 +6,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.*
 
-
 data class UtkastMetadata(
     val sistLagretTidspunkt: Instant,
 )
@@ -30,7 +29,7 @@ data class ArbeidsgiverOppfolgingsplanOverviewResponse(
     val userHasEditAccess: Boolean,
     val organization: OrganizationDetails,
     val employee: EmployeeDetails,
-    val oversikt: OversiktResponseData
+    val oversikt: OversiktResponseData,
 )
 
 data class SykmeldtOppfolgingsplanOverviewResponse(

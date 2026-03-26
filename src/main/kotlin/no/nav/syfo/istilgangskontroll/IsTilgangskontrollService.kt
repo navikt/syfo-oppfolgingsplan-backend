@@ -9,10 +9,8 @@ class IsTilgangskontrollService(
     suspend fun harTilgangTilSykmeldt(
         sykmeldtFnr: Fodselsnummer,
         token: String,
-    ): Boolean {
-        return client.harTilgangTilSykmeldt(
-            token = token,
-            sykmeldtFnr = sykmeldtFnr,
-        )
-    }
+    ): Boolean = client.harTilgangTilSykmeldt(
+        token = token,
+        sykmeldtFnr = sykmeldtFnr,
+    )
 }

@@ -1,12 +1,12 @@
 package no.nav.syfo.application.kafka
 
-import java.util.*
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SslConfigs
 import org.apache.kafka.common.serialization.StringSerializer
+import java.util.*
 
 const val JAVA_KEYSTORE = "JKS"
 const val PKCS12 = "PKCS12"

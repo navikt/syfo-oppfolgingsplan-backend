@@ -8,30 +8,28 @@ data class KafkaEnv(
     val sslConfig: KafkaSslEnv?,
 ) {
     companion object {
-        fun createFromEnvVars() : KafkaEnv =
-            KafkaEnv(
-                brokerUrl = getEnvVar("KAFKA_BROKERS"),
-                schemaRegistry = KafkaSchemaRegistryEnv(
-                    url = getEnvVar("KAFKA_SCHEMA_REGISTRY"),
-                    username = getEnvVar("KAFKA_SCHEMA_REGISTRY_USER"),
-                    password = getEnvVar("KAFKA_SCHEMA_REGISTRY_PASSWORD"),
-                ),
-                sslConfig = KafkaSslEnv(
-                    truststoreLocation = getEnvVar("KAFKA_TRUSTSTORE_PATH"),
-                    keystoreLocation = getEnvVar("KAFKA_KEYSTORE_PATH"),
-                    credstorePassword = getEnvVar("KAFKA_CREDSTORE_PASSWORD"),
-                ),
-            )
-        fun createForLocal(): KafkaEnv =
-            KafkaEnv(
-                brokerUrl = "http://localhost:9092",
-                schemaRegistry = KafkaSchemaRegistryEnv(
-                    url = "http://localhost:8081",
-                    username = null,
-                    password = null,
-                ),
-                sslConfig = null
-            )
+        fun createFromEnvVars(): KafkaEnv = KafkaEnv(
+            brokerUrl = getEnvVar("KAFKA_BROKERS"),
+            schemaRegistry = KafkaSchemaRegistryEnv(
+                url = getEnvVar("KAFKA_SCHEMA_REGISTRY"),
+                username = getEnvVar("KAFKA_SCHEMA_REGISTRY_USER"),
+                password = getEnvVar("KAFKA_SCHEMA_REGISTRY_PASSWORD"),
+            ),
+            sslConfig = KafkaSslEnv(
+                truststoreLocation = getEnvVar("KAFKA_TRUSTSTORE_PATH"),
+                keystoreLocation = getEnvVar("KAFKA_KEYSTORE_PATH"),
+                credstorePassword = getEnvVar("KAFKA_CREDSTORE_PASSWORD"),
+            ),
+        )
+        fun createForLocal(): KafkaEnv = KafkaEnv(
+            brokerUrl = "http://localhost:9092",
+            schemaRegistry = KafkaSchemaRegistryEnv(
+                url = "http://localhost:8081",
+                username = null,
+                password = null,
+            ),
+            sslConfig = null,
+        )
     }
 }
 

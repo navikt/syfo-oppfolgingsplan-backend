@@ -1,19 +1,19 @@
 
-val dataFakerVersion="2.5.4"
-val flywayVersion="12.1.0"
-val hikariVersion="7.0.2"
-val kafkaVersion="4.2.0"
+val dataFakerVersion = "2.5.4"
+val flywayVersion = "12.1.0"
+val hikariVersion = "7.0.2"
+val kafkaVersion = "4.2.0"
 val koinVersion = "4.1.1"
-val kotestExtensionsVersion="2.0.0"
-val kotestVersion="6.1.7"
-val ktorVersion="3.4.1"
-val logbackVersion="1.5.32"
-val logstashEncoderVersion="9.0"
-val micrometerVersion="1.16.4"
-val mockkVersion="1.14.9"
-val postgresVersion="42.7.10"
-val testcontainersVersion="1.21.4"
-val valkeyVersion="5.5.0"
+val kotestExtensionsVersion = "2.0.0"
+val kotestVersion = "6.1.7"
+val ktorVersion = "3.4.1"
+val logbackVersion = "1.5.32"
+val logstashEncoderVersion = "9.0"
+val micrometerVersion = "1.16.4"
+val mockkVersion = "1.14.9"
+val postgresVersion = "42.7.10"
+val testcontainersVersion = "1.21.4"
+val valkeyVersion = "5.5.0"
 
 plugins {
     kotlin("jvm") version "2.3.20"
@@ -81,15 +81,15 @@ dependencies {
 
     // Testing
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
-    testImplementation("io.kotest:kotest-assertions-core:${kotestVersion}")
-    testImplementation("io.kotest:kotest-property:${kotestVersion}")
+    testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+    testImplementation("io.kotest:kotest-property:$kotestVersion")
     testImplementation("io.kotest.extensions:kotest-assertions-ktor:$kotestExtensionsVersion")
     testImplementation("io.mockk:mockk:$mockkVersion")
-    testImplementation("io.insert-koin:koin-test:${koinVersion}")
-    testImplementation("io.ktor:ktor-client-mock:${ktorVersion}")
+    testImplementation("io.insert-koin:koin-test:$koinVersion")
+    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
     testImplementation("io.kotest.extensions:kotest-extensions-koin:1.3.0")
-    testImplementation("org.testcontainers:testcontainers:${testcontainersVersion}")
-    testImplementation("org.testcontainers:postgresql:${testcontainersVersion}")
+    testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
+    testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
 }
 
 application {
@@ -126,4 +126,5 @@ tasks {
     }
     named("check") {
         dependsOn("ktlintCheck")
-    }}
+    }
+}

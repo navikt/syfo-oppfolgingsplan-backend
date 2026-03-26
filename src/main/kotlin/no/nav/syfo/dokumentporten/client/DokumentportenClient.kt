@@ -21,7 +21,7 @@ class FakeDokumentportenClient : IDokumentportenClient {
     val logger = logger()
     override suspend fun publishOppfolgingsplan(document: Document) {
         logger.info(
-            "Publishing Oppfolgingsplan: ${document.documentId}, ${document.title}, ${document.summary}"
+            "Publishing Oppfolgingsplan: ${document.documentId}, ${document.title}, ${document.summary}",
         )
     }
 }

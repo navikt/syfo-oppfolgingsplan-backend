@@ -41,10 +41,12 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
         }
 
         suspend fun validateTilgangToSykmeldt(
-            sykmeldtFnr: Fodselsnummer, token: String
+            sykmeldtFnr: Fodselsnummer,
+            token: String,
         ) {
             val tilgang = isTilgangskontrollService.harTilgangTilSykmeldt(
-                sykmeldtFnr, texasHttpClient.exchangeTokenForIsTilgangskontroll(token).accessToken
+                sykmeldtFnr,
+                texasHttpClient.exchangeTokenForIsTilgangskontroll(token).accessToken,
             )
             if (!tilgang) {
                 throw ApiErrorException.Forbidden("Veileder does not have access to sykmeldt")

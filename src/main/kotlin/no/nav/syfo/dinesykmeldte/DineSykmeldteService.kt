@@ -1,6 +1,5 @@
 package no.nav.syfo.dinesykmeldte
 
-
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.http.HttpStatusCode
 import no.nav.syfo.application.valkey.COUNT_CACHE_MISS_DINE_SYKMELDTE
@@ -9,17 +8,16 @@ import no.nav.syfo.dinesykmeldte.client.IDineSykmeldteHttpClient
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.util.logger
 
-
 class DineSykmeldteService(
     private val dineSykmeldteHttpClient: IDineSykmeldteHttpClient,
-    private val valkeyCache: ValkeyCache
+    private val valkeyCache: ValkeyCache,
 ) {
     private val logger = logger()
 
     suspend fun getSykmeldtForNarmesteleder(
         narmestelederId: String,
         lederFnr: String,
-        accessToken: String
+        accessToken: String,
     ): Sykmeldt? {
         valkeyCache.getSykmeldt(lederFnr, narmestelederId)?.let { cachedSykmeldt ->
             return cachedSykmeldt

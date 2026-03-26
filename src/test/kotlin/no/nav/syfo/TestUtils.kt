@@ -41,13 +41,12 @@ fun defaultUtkastMap(): Map<String, String?> = mapOf(
     "hvordanFolgeOpp" to "df",
     "evalueringsDato" to "2025-11-24T23:00:00.000Z",
     "harDenAnsatteMedvirket" to null,
-    "denAnsatteHarIkkeMedvirketBegrunnelse" to ""
+    "denAnsatteHarIkkeMedvirketBegrunnelse" to "",
 )
 
-fun defaultUtkastRequest(mutate: MutableMap<String, String?>.() -> Unit = {}): LagreUtkastRequest =
-    LagreUtkastRequest(
-        content = defaultUtkastMap().toMutableMap().apply(mutate),
-    )
+fun defaultUtkastRequest(mutate: MutableMap<String, String?>.() -> Unit = {}): LagreUtkastRequest = LagreUtkastRequest(
+    content = defaultUtkastMap().toMutableMap().apply(mutate),
+)
 
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
     content = defaultFormSnapshot(),
@@ -67,7 +66,7 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     uuid = UUID.randomUUID(),
     narmesteLederId = UUID.randomUUID().toString(),
     evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
-    createdAt = Instant.now()
+    createdAt = Instant.now(),
 )
 
 fun defaultPersistedOppfolgingsplanUtkast() = PersistedOppfolgingsplanUtkast(
@@ -90,7 +89,6 @@ fun defaultSykmeldt() = Sykmeldt(
     true,
 )
 
-
 fun defaultFormSnapshot() = FormSnapshot(
     formIdentifier = "oppfolgingsplan",
     formSemanticVersion = "1.0.0",
@@ -104,15 +102,15 @@ fun defaultFormSnapshot() = FormSnapshot(
                     fieldId = "vanligArbeidsdag",
                     value = "Jeg skriver litt om min vanlige arbeidsdag her",
                     label = "Hvordan ser en vanlig arbeidsdag ut?",
-                    description = "Beskriv en vanlig arbeidsdag og hvilke oppgaver arbeidstaker gjør på jobben"
+                    description = "Beskriv en vanlig arbeidsdag og hvilke oppgaver arbeidstaker gjør på jobben",
                 ),
                 TextFieldSnapshot(
                     fieldId = "ordinæreArbeidsoppgaver",
                     value = "Jeg skriver litt om mine ordinære arbeidsoppgaver her",
                     label = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?",
-                    description = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?"
+                    description = "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?",
                 ),
-            )
+            ),
         ),
         Section(
             sectionId = "tilpasninger",
@@ -137,16 +135,16 @@ fun defaultFormSnapshot() = FormSnapshot(
                         ),
                     ),
                     selectedOptionId = "option2",
-                    wasRequired = true
+                    wasRequired = true,
                 ),
                 DateFieldSnapshot(
                     fieldId = "evalueringsDato",
                     label = "Evalueringsdato",
                     value = LocalDate.now().plusDays(30),
                     description = "Dato for når oppfølgingsplanen skal evalueres",
-                    wasRequired = true
-                )
-            )
+                    wasRequired = true,
+                ),
+            ),
         ),
     ),
 )
@@ -156,7 +154,7 @@ fun TexasHttpClient.defaultMocks(
     acr: String = "Level4",
     navident: String? = null,
     azpName: String = "dev-gcp:some:client",
-    clientId: String = "dev-gcp:some:client"
+    clientId: String = "dev-gcp:some:client",
 ) {
     coEvery { introspectToken(any(), any()) } returns TexasIntrospectionResponse(
         active = true,
@@ -175,14 +173,14 @@ fun TexasHttpClient.defaultMocks(
     } returns TexasResponse(
         "token",
         111,
-        "tokenType"
+        "tokenType",
     )
     coEvery {
         exchangeTokenForIsTilgangskontroll(any())
     } returns TexasResponse(
         "token",
         111,
-        "tokenType"
+        "tokenType",
     )
 }
 
@@ -190,7 +188,7 @@ fun DineSykmeldteHttpClient.defaultMocks(narmestelederId: String) {
     coEvery {
         getSykmeldtForNarmesteLederId(
             narmestelederId,
-            "token"
+            "token",
         )
     } returns defaultSykmeldt().copy(narmestelederId = narmestelederId)
 }
@@ -199,38 +197,37 @@ fun DineSykmeldteHttpClient.returnsNotFound(narmestelederId: String) {
     coEvery {
         getSykmeldtForNarmesteLederId(
             narmestelederId,
-            "token"
+            "token",
         )
     } throws ClientRequestException(
         response = mockk {
             every { status } returns HttpStatusCode.NotFound
             every { call } returns mockk(relaxed = true)
         },
-        cachedResponseText = "Not Found"
+        cachedResponseText = "Not Found",
     )
 }
 
 val generatedPdfStandin = "whatever".toByteArray(Charsets.UTF_8)
 
-fun getMockEngine(path: String = "", status: HttpStatusCode, headers: Headers, content: String) =
-    MockEngine.Companion { request ->
-        when (request.url.fullPath) {
-            path -> {
-                if (status.isSuccess()) {
-                    respond(
-                        status = status,
-                        headers = headers,
-                        content = content.toByteArray(Charsets.UTF_8),
-                    )
-                } else {
-                    respond(
-                        status = status,
-                        headers = headers,
-                        content = content,
-                    )
-                }
+fun getMockEngine(path: String = "", status: HttpStatusCode, headers: Headers, content: String) = MockEngine.Companion { request ->
+    when (request.url.fullPath) {
+        path -> {
+            if (status.isSuccess()) {
+                respond(
+                    status = status,
+                    headers = headers,
+                    content = content.toByteArray(Charsets.UTF_8),
+                )
+            } else {
+                respond(
+                    status = status,
+                    headers = headers,
+                    content = content,
+                )
             }
-
-            else -> error("Unhandled request ${request.url.fullPath}")
         }
+
+        else -> error("Unhandled request ${request.url.fullPath}")
     }
+}

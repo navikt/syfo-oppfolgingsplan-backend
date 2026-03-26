@@ -18,12 +18,12 @@ data class OppfolgingsplanVeileder(
         fun from(item: PersistedOppfolgingsplan): OppfolgingsplanVeileder {
             with(item) {
                 require(deltMedVeilederTidspunkt != null) {
-                    "Oppfolgingsplan ${uuid} is not shared with veileder"
+                    "Oppfolgingsplan $uuid is not shared with veileder"
                 }
                 val sisteEndre = listOfNotNull(
                     createdAt,
                     deltMedVeilederTidspunkt,
-                    deltMedLegeTidspunkt
+                    deltMedLegeTidspunkt,
                 ).max()
                 return OppfolgingsplanVeileder(
                     uuid = uuid,

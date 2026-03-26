@@ -15,7 +15,7 @@ data class DatabaseConfig(
 )
 
 class Database(
-    private val config: DatabaseConfig
+    private val config: DatabaseConfig,
 ) : DatabaseInterface {
     override val connection: Connection
         get() = dataSource.connection
@@ -31,7 +31,7 @@ class Database(
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"
             metricRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
             validate()
-        }
+        },
     )
 
     init {

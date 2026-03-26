@@ -1,6 +1,5 @@
 package no.nav.syfo.plugins
 
-import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import no.nav.syfo.application.ApplicationState
@@ -14,25 +13,26 @@ import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.valkey.ValkeyCache
+import no.nav.syfo.dinesykmeldte.DineSykmeldteService
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
+import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
+import no.nav.syfo.dokarkiv.DokarkivService
+import no.nav.syfo.dokarkiv.client.DokarkivClient
+import no.nav.syfo.dokarkiv.client.FakeDokarkivClient
 import no.nav.syfo.dokumentporten.DokumentportenService
 import no.nav.syfo.dokumentporten.SendOppfolgingsplanTask
 import no.nav.syfo.dokumentporten.client.DokumentportenClient
 import no.nav.syfo.dokumentporten.client.FakeDokumentportenClient
 import no.nav.syfo.dokumentporten.client.IDokumentportenClient
-import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
-import no.nav.syfo.dinesykmeldte.client.FakeDineSykmeldteHttpClient
-import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.dokarkiv.client.DokarkivClient
-import no.nav.syfo.dokarkiv.client.FakeDokarkivClient
-import no.nav.syfo.dokarkiv.DokarkivService
-import no.nav.syfo.isdialogmelding.client.FakeIsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
+import no.nav.syfo.isdialogmelding.client.FakeIsDialogmeldingClient
+import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.pdl.client.FakePdlClient
 import no.nav.syfo.pdl.client.PdlClient
@@ -66,8 +66,11 @@ private fun applicationStateModule() = module { single { ApplicationState() } }
 
 private fun environmentModule(isLocalEnv: Boolean) = module {
     single {
-        if (isLocalEnv) LocalEnvironment()
-        else NaisEnvironment()
+        if (isLocalEnv) {
+            LocalEnvironment()
+        } else {
+            NaisEnvironment()
+        }
     }
 }
 
@@ -76,48 +79,70 @@ private fun clientsModule() = module {
     single { PdfGenClient(get(), env().pdfGenUrl) }
     single { TexasHttpClient(get(), env().texas) }
     single {
-        if (isLocalEnv()) FakeDokarkivClient() else DokarkivClient(
-            dokarkivBaseUrl = env().dokarkivBaseUrl,
-            texasHttpClient = get(),
-            scope = env().dokarkivScope,
-            httpClient = get()
-        )
+        if (isLocalEnv()) {
+            FakeDokarkivClient()
+        } else {
+            DokarkivClient(
+                dokarkivBaseUrl = env().dokarkivBaseUrl,
+                texasHttpClient = get(),
+                scope = env().dokarkivScope,
+                httpClient = get(),
+            )
+        }
     }
     single {
-        if (isLocalEnv()) FakePdlClient() else PdlClient(
-            httpClient = get(),
-            pdlBaseUrl = env().pdlBaseUrl,
-            texasHttpClient = get(),
-            scope = env().pdlScope
-        )
+        if (isLocalEnv()) {
+            FakePdlClient()
+        } else {
+            PdlClient(
+                httpClient = get(),
+                pdlBaseUrl = env().pdlBaseUrl,
+                texasHttpClient = get(),
+                scope = env().pdlScope,
+            )
+        }
     }
     single {
-        if (isLocalEnv()) FakeIsDialogmeldingClient() else
+        if (isLocalEnv()) {
+            FakeIsDialogmeldingClient()
+        } else {
             IsDialogmeldingClient(
                 get(),
-                env().isDialogmeldingBaseUrl
+                env().isDialogmeldingBaseUrl,
             )
+        }
     }
     single {
-        if (isLocalEnv()) FakeDineSykmeldteHttpClient() else DineSykmeldteHttpClient(
-            httpClient = get(),
-            dineSykmeldteBaseUrl = env().dineSykmeldteBaseUrl
-        )
+        if (isLocalEnv()) {
+            FakeDineSykmeldteHttpClient()
+        } else {
+            DineSykmeldteHttpClient(
+                httpClient = get(),
+                dineSykmeldteBaseUrl = env().dineSykmeldteBaseUrl,
+            )
+        }
     }
     single {
-        if (isLocalEnv()) FakeDokumentportenClient() else DokumentportenClient(
-            dokumentportenBaseUrl = env().dokumentportenBaseUrl,
-            texasHttpClient = get(),
-            scope = env().dokumentportenScope,
-            httpClient = get()
-        ) as IDokumentportenClient
+        if (isLocalEnv()) {
+            FakeDokumentportenClient()
+        } else {
+            DokumentportenClient(
+                dokumentportenBaseUrl = env().dokumentportenBaseUrl,
+                texasHttpClient = get(),
+                scope = env().dokumentportenScope,
+                httpClient = get(),
+            ) as IDokumentportenClient
+        }
     }
     single {
-        if (isLocalEnv()) FakeIsTilgangskontrollClient() else
+        if (isLocalEnv()) {
+            FakeIsTilgangskontrollClient()
+        } else {
             IsTilgangskontrollClient(
                 get(),
-                env().isTilgangskontrollBaseUrl
+                env().isTilgangskontrollBaseUrl,
             )
+        }
     }
 }
 
@@ -128,7 +153,7 @@ private fun databaseModule() = module {
                 jdbcUrl = env().database.jdbcUrl(),
                 username = env().database.username,
                 password = env().database.password,
-            )
+            ),
         )
     }
 }
@@ -143,8 +168,8 @@ private fun kafkeProducerModule() = module {
     single {
         EsyfovarselProducer(
             KafkaProducer<String, EsyfovarselHendelse>(
-                producerProperties(env().kafka)
-            )
+                producerProperties(env().kafka),
+            ),
         )
     }
 }

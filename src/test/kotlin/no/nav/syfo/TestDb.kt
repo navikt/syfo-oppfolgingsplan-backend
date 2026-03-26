@@ -48,13 +48,12 @@ class TestDatabase(
         runFlywayMigrations()
     }
 
-    private fun runFlywayMigrations() =
-        Flyway.configure().run {
-            locations("db")
-            configuration(mapOf("flyway.postgresql.transactional.lock" to "false"))
-            dataSource(connectionName, dbUsername, dbPassword)
-            load().migrate()
-        }
+    private fun runFlywayMigrations() = Flyway.configure().run {
+        locations("db")
+        configuration(mapOf("flyway.postgresql.transactional.lock" to "false"))
+        dataSource(connectionName, dbUsername, dbPassword)
+        load().migrate()
+    }
 }
 
 class TestDB private constructor() {
@@ -85,17 +84,16 @@ class TestDB private constructor() {
             }
         }
 
-        fun clearAllData() =
-            database.connection.use {
-                it
-                    .prepareStatement(
-                        """
+        fun clearAllData() = database.connection.use {
+            it
+                .prepareStatement(
+                    """
                     DELETE FROM oppfolgingsplan_utkast;
                     DELETE FROM oppfolgingsplan;
                 """,
-                    ).use { ps -> ps.executeUpdate() }
-                it.commit()
-            }
+                ).use { ps -> ps.executeUpdate() }
+            it.commit()
+        }
     }
 }
 
@@ -138,7 +136,7 @@ fun DatabaseInterface.persistOppfolgingsplan(
 }
 
 fun DatabaseInterface.persistOppfolgingsplanUtkast(
-    persistedOppfolgingsplanUtkast: PersistedOppfolgingsplanUtkast
+    persistedOppfolgingsplanUtkast: PersistedOppfolgingsplanUtkast,
 ) {
     val insertStatement = """
         INSERT INTO oppfolgingsplan_utkast (

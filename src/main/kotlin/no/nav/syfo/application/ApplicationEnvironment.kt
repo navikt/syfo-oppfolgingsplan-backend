@@ -51,7 +51,7 @@ data class NaisEnvironment(
         host = getEnvVar("VALKEY_HOST_SYFO_OPPFOLGINGSPLAN_BACKEND"),
         port = getEnvVar("VALKEY_PORT_SYFO_OPPFOLGINGSPLAN_BACKEND").toInt(),
         username = getEnvVar("VALKEY_USERNAME_SYFO_OPPFOLGINGSPLAN_BACKEND"),
-        password = getEnvVar("VALKEY_PASSWORD_SYFO_OPPFOLGINGSPLAN_BACKEND")
+        password = getEnvVar("VALKEY_PASSWORD_SYFO_OPPFOLGINGSPLAN_BACKEND"),
     ),
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
@@ -69,15 +69,11 @@ data class NaisEnvironment(
     override val syfoOppfolgingsplanFrontendClientId: String = getEnvVar("SYFO_OPPFOLGINGSPLAN_FRONTEND_CLIENT_ID"),
 ) : Environment
 
-fun getEnvVar(varName: String, defaultValue: String? = null) =
-    System.getenv(varName) ?: defaultValue ?: throw RuntimeException("Missing required variable \"$varName\"")
+fun getEnvVar(varName: String, defaultValue: String? = null) = System.getenv(varName) ?: defaultValue ?: throw RuntimeException("Missing required variable \"$varName\"")
 
+fun isLocalEnv(): Boolean = getEnvVar("NAIS_CLUSTER_NAME", "local") == "local"
 
-fun isLocalEnv(): Boolean =
-    getEnvVar("NAIS_CLUSTER_NAME", "local") == "local"
-
-fun isProdEnv(): Boolean =
-    getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-gcp"
+fun isProdEnv(): Boolean = getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-gcp"
 
 data class LocalEnvironment(
     override val database: DatabaseEnvironment = DatabaseEnvironment(
@@ -104,7 +100,7 @@ data class LocalEnvironment(
         port = 6379,
         username = "default",
         password = "test",
-        ssl = false
+        ssl = false,
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",

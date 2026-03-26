@@ -19,7 +19,7 @@ import java.util.*
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr: String,
     sykmeldt: Sykmeldt,
-    createOppfolgingsplanRequest: CreateOppfolgingsplanRequest
+    createOppfolgingsplanRequest: CreateOppfolgingsplanRequest,
 ): UUID {
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
@@ -107,7 +107,7 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
     sykmeldtFnr: String,
-    organisasjonsnummer: String
+    organisasjonsnummer: String,
 ): List<PersistedOppfolgingsplan> {
     val statement = """
         SELECT *
@@ -254,7 +254,6 @@ fun DatabaseInterface.setJournalpostId(
     }
 }
 
-
 fun DatabaseInterface.setNarmesteLederFullName(
     oppfolgingsplanUUID: UUID,
     narmesteLederFullName: String,
@@ -299,8 +298,7 @@ fun DatabaseInterface.updateDelingAvPlanMedVeileder(
     }
 }
 
-fun DatabaseInterface.findOppfolgingsplanerForDokumentportenPublisering(
-): List<PersistedOppfolgingsplan> {
+fun DatabaseInterface.findOppfolgingsplanerForDokumentportenPublisering(): List<PersistedOppfolgingsplan> {
     val statement = """
         SELECT *
         FROM
@@ -343,25 +341,23 @@ fun DatabaseInterface.setSendtTilDokumentportenTidspunkt(
     }
 }
 
-fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan {
-    return PersistedOppfolgingsplan(
-        uuid = getObject("uuid") as UUID,
-        sykmeldtFnr = this.getString("sykmeldt_fnr"),
-        sykmeldtFullName = this.getString("sykmeldt_full_name"),
-        narmesteLederId = this.getString("narmeste_leder_id"),
-        narmesteLederFnr = this.getString("narmeste_leder_fnr"),
-        narmesteLederFullName = this.getString("narmeste_leder_full_name"),
-        organisasjonsnummer = this.getString("organisasjonsnummer"),
-        organisasjonsnavn = this.getString("organisasjonsnavn"),
-        content = FormSnapshot.jsonToFormSnapshot(getString("content")),
-        evalueringsdato = LocalDate.parse(this.getString("evalueringsdato")),
-        skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
-        skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),
-        deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),
-        journalpostId = this.getString("journalpost_id"),
-        deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
-        utkastCreatedAt = this.getTimestamp("utkast_created_at")?.toInstant(),
-        createdAt = getTimestamp("created_at").toInstant(),
-        sendtTilDokumentportenTidspunkt = this.getTimestamp("sendt_til_dokumentporten_tidspunkt")?.toInstant()
-    )
-}
+fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfolgingsplan(
+    uuid = getObject("uuid") as UUID,
+    sykmeldtFnr = this.getString("sykmeldt_fnr"),
+    sykmeldtFullName = this.getString("sykmeldt_full_name"),
+    narmesteLederId = this.getString("narmeste_leder_id"),
+    narmesteLederFnr = this.getString("narmeste_leder_fnr"),
+    narmesteLederFullName = this.getString("narmeste_leder_full_name"),
+    organisasjonsnummer = this.getString("organisasjonsnummer"),
+    organisasjonsnavn = this.getString("organisasjonsnavn"),
+    content = FormSnapshot.jsonToFormSnapshot(getString("content")),
+    evalueringsdato = LocalDate.parse(this.getString("evalueringsdato")),
+    skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
+    skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),
+    deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),
+    journalpostId = this.getString("journalpost_id"),
+    deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
+    utkastCreatedAt = this.getTimestamp("utkast_created_at")?.toInstant(),
+    createdAt = getTimestamp("created_at").toInstant(),
+    sendtTilDokumentportenTidspunkt = this.getTimestamp("sendt_til_dokumentporten_tidspunkt")?.toInstant(),
+)
