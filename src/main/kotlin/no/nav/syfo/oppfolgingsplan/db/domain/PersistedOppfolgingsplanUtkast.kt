@@ -8,7 +8,7 @@ import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.UtkastMetadata
 import no.nav.syfo.oppfolgingsplan.dto.UtkastResponseData
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 data class PersistedOppfolgingsplanUtkast(
     val uuid: UUID,
@@ -21,28 +21,24 @@ data class PersistedOppfolgingsplanUtkast(
     val updatedAt: Instant,
 )
 
-fun PersistedOppfolgingsplanUtkast.toUtkastMetadata(): UtkastMetadata {
-    return UtkastMetadata(
-        sistLagretTidspunkt = updatedAt
-    )
-}
+fun PersistedOppfolgingsplanUtkast.toUtkastMetadata(): UtkastMetadata = UtkastMetadata(
+    sistLagretTidspunkt = updatedAt,
+)
 
-fun PersistedOppfolgingsplanUtkast?.toResponse(sykmeldt: Sykmeldt): OppfolgingsplanUtkastResponse {
-    return OppfolgingsplanUtkastResponse(
-        userHasEditAccess = sykmeldt.aktivSykmelding == true,
-        organization = OrganizationDetails(
-            orgNumber = sykmeldt.orgnummer,
-            orgName = sykmeldt.getOrganizationName(),
-        ),
-        employee = EmployeeDetails(
-            fnr = sykmeldt.fnr,
-            name = sykmeldt.navn,
-        ),
-        utkast = this?.let {
-            UtkastResponseData(
-                content = it.content,
-                sistLagretTidspunkt = it.updatedAt,
-            )
-        },
-    )
-}
+fun PersistedOppfolgingsplanUtkast?.toResponse(sykmeldt: Sykmeldt): OppfolgingsplanUtkastResponse = OppfolgingsplanUtkastResponse(
+    userHasEditAccess = sykmeldt.aktivSykmelding == true,
+    organization = OrganizationDetails(
+        orgNumber = sykmeldt.orgnummer,
+        orgName = sykmeldt.getOrganizationName(),
+    ),
+    employee = EmployeeDetails(
+        fnr = sykmeldt.fnr,
+        name = sykmeldt.navn,
+    ),
+    utkast = this?.let {
+        UtkastResponseData(
+            content = it.content,
+            sistLagretTidspunkt = it.updatedAt,
+        )
+    },
+)

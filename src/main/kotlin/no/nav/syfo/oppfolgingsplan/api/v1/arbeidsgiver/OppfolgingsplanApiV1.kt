@@ -38,7 +38,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService,
     pdfGenService: PdfGenService,
-    isDialogmeldingService: IsDialogmeldingService
+    isDialogmeldingService: IsDialogmeldingService,
 ) {
     val logger = logger()
 
@@ -54,10 +54,10 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
         ) {
             if (sykmeldtFnr != sykmeldt.fnr || orgnummer != sykmeldt.orgnummer) {
                 logger.error(
-                    "Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}"
+                    "Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}",
                 )
                 throw ApiErrorException.NotFound(
-                    "Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}"
+                    "Sykmeldt fnr or orgnummer does not match for narmestelederId: ${sykmeldt.narmestelederId}",
                 )
             }
         }
@@ -83,7 +83,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             val uuid = oppfolgingsplanService.createOppfolgingsplan(
                 innloggetBruker.ident,
                 sykmeldt,
-                oppfolgingsplan
+                oppfolgingsplan,
             )
 
             COUNT_OPPFOLGINGSPLAN_CREATED.increment()
@@ -117,7 +117,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 aktivPlan.sykmeldtFnr,
                 aktivPlan.organisasjonsnummer,
-                sykmeldt
+                sykmeldt,
             )
 
             call.respond(HttpStatusCode.OK, aktivPlan.toResponse(sykmeldt.aktivSykmelding == true))
@@ -136,12 +136,12 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 persistedOppfolgingsplan.sykmeldtFnr,
                 persistedOppfolgingsplan.organisasjonsnummer,
-                sykmeldt
+                sykmeldt,
             )
 
             call.respond(
                 HttpStatusCode.OK,
-                persistedOppfolgingsplan.toResponse(sykmeldt.aktivSykmelding == true)
+                persistedOppfolgingsplan.toResponse(sykmeldt.aktivSykmelding == true),
             )
         }
 
@@ -150,7 +150,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             if (sykmeldt.aktivSykmelding != true) {
                 throw ApiErrorException.BadRequest(
-                    "Cannot send oppfolgingsplan to general practitioner when there is no active sykmelding"
+                    "Cannot send oppfolgingsplan to general practitioner when there is no active sykmelding",
                 )
             }
 
@@ -164,7 +164,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 oppfolgingsplan.sykmeldtFnr,
                 oppfolgingsplan.organisasjonsnummer,
-                sykmeldt
+                sykmeldt,
             )
 
             if (oppfolgingsplan.deltMedLegeTidspunkt != null) {
@@ -179,7 +179,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             isDialogmeldingService.sendOppfolgingsplanToGeneralPractitioner(
                 texasResponse.accessToken,
                 sykmeldt.fnr,
-                pdfByteArray
+                pdfByteArray,
             )
 
             val deltMedLegeTidspunkt = Instant.now()
@@ -195,7 +195,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             if (sykmeldt.aktivSykmelding != true) {
                 throw ApiErrorException.BadRequest(
-                    "Cannot send oppfolgingsplan to Nav when there is no active sykmelding"
+                    "Cannot send oppfolgingsplan to Nav when there is no active sykmelding",
                 )
             }
 
@@ -206,7 +206,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 oppfolgingsplan.sykmeldtFnr,
                 oppfolgingsplan.organisasjonsnummer,
-                sykmeldt
+                sykmeldt,
             )
 
             if (oppfolgingsplan.deltMedVeilederTidspunkt != null) {
@@ -218,7 +218,8 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             try {
                 val journalpostId = dokarkivService.arkiverOppfolgingsplan(oppfolgingsplan, pdfByteArray)
                 val deltMedVeilederTidspunkt = oppfolgingsplanService.updateDelingAvPlanMedVeileder(
-                    uuid, journalpostId
+                    uuid,
+                    journalpostId,
                 )
 
                 COUNT_OPPFOLGINGSPLAN_SHARED_WITH_NAV.increment()
@@ -239,7 +240,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
             checkIfOppfolgingsplanPropertiesBelongsToSykmeldt(
                 persistedOppfolgingsplan.sykmeldtFnr,
                 persistedOppfolgingsplan.organisasjonsnummer,
-                sykmeldt
+                sykmeldt,
             )
 
             val pdfByteArray = pdfGenService.generatePdf(persistedOppfolgingsplan)

@@ -9,10 +9,10 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
-import java.util.*
 import net.datafaker.Faker
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.slf4j.LoggerFactory
+import java.util.Random
 
 interface IDokarkivClient {
     suspend fun sendJournalpostRequestToDokarkiv(journalpostRequest: JournalpostRequest): String
@@ -20,9 +20,7 @@ interface IDokarkivClient {
 
 class FakeDokarkivClient : IDokarkivClient {
     val faker = Faker(Random(System.currentTimeMillis()))
-    override suspend fun sendJournalpostRequestToDokarkiv(journalpostRequest: JournalpostRequest): String {
-        return faker.numerify("##########")
-    }
+    override suspend fun sendJournalpostRequestToDokarkiv(journalpostRequest: JournalpostRequest): String = faker.numerify("##########")
 }
 
 class DokarkivClient(

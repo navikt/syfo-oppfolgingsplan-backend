@@ -42,12 +42,12 @@ fun Route.registerApiV1(
             texasHttpClient,
             oppfolgingsplanService,
             pdfGenService,
-            isDialogmeldingService
+            isDialogmeldingService,
         )
         registerArbeidsgiverOppfolgingsplanUtkastApiV1(
             dineSykmeldteService,
             texasHttpClient,
-            oppfolgingsplanService
+            oppfolgingsplanService,
         )
     }
     route("/api/v1/sykmeldt") {
@@ -60,7 +60,7 @@ fun Route.registerApiV1(
         registerSykmeldtOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
-            pdfGenService
+            pdfGenService,
         )
     }
     route("/api/v1/veileder") {
@@ -74,7 +74,7 @@ fun Route.registerApiV1(
             texasHttpClient,
             oppfolgingsplanService,
             isTilgangskontrollService,
-            pdfGenService
+            pdfGenService,
         )
     }
 }

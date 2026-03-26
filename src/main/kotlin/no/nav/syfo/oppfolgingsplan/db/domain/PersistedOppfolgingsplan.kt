@@ -9,7 +9,7 @@ import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 data class PersistedOppfolgingsplan(
     val uuid: UUID,
@@ -32,41 +32,37 @@ data class PersistedOppfolgingsplan(
     val sendtTilDokumentportenTidspunkt: Instant? = null,
 )
 
-fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadata {
-    return OppfolgingsplanMetadata(
+fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadata = OppfolgingsplanMetadata(
+    id = uuid,
+    evalueringsDato = evalueringsdato,
+    deltMedLegeTidspunkt = deltMedLegeTidspunkt,
+    deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
+    ferdigstiltTidspunkt = createdAt,
+    organization = OrganizationDetails(
+        orgNumber = organisasjonsnummer,
+        orgName = organisasjonsnavn,
+    ),
+)
+
+fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanResponse = OppfolgingsplanResponse(
+    userHasEditAccess = canEditPlan,
+    organization = OrganizationDetails(
+        orgNumber = organisasjonsnummer,
+        orgName = organisasjonsnavn,
+    ),
+    employee = EmployeeDetails(
+        fnr = sykmeldtFnr,
+        name = sykmeldtFullName,
+    ),
+    oppfolgingsplan = OppfolgingsplanResponseData(
         id = uuid,
+        content = content,
         evalueringsDato = evalueringsdato,
         deltMedLegeTidspunkt = deltMedLegeTidspunkt,
         deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
         ferdigstiltTidspunkt = createdAt,
-        organization = OrganizationDetails(
-            orgNumber = organisasjonsnummer,
-            orgName = organisasjonsnavn,
-        ),
-    )
-}
-
-fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanResponse {
-    return OppfolgingsplanResponse(
-        userHasEditAccess = canEditPlan,
-        organization = OrganizationDetails(
-            orgNumber = organisasjonsnummer,
-            orgName = organisasjonsnavn,
-        ),
-        employee = EmployeeDetails(
-            fnr = sykmeldtFnr,
-            name = sykmeldtFullName,
-        ),
-        oppfolgingsplan = OppfolgingsplanResponseData(
-            id = uuid,
-            content = content,
-            evalueringsDato = evalueringsdato,
-            deltMedLegeTidspunkt = deltMedLegeTidspunkt,
-            deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
-            ferdigstiltTidspunkt = createdAt,
-        ),
-    )
-}
+    ),
+)
 
 fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(): SykmeldtOppfolgingsplanOverviewResponse {
     val (aktivePlaner, tidligerePlaner) = partitionByNewestPlanPerOrg()

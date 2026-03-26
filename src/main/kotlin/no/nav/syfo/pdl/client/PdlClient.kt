@@ -6,10 +6,10 @@ import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
-import java.util.Random
 import net.datafaker.Faker
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.intellij.lang.annotations.Language
+import java.util.Random
 
 private const val BEHANDLINGSNUMMER_DIGITAL_OPPFOLGINGSPLAN = "B426"
 private const val PDL_BEHANDLINGSNUMMER_HEADER = "behandlingsnummer"
@@ -42,12 +42,12 @@ class PdlClient(
     private val httpClient: HttpClient,
     private val pdlBaseUrl: String,
     private val texasHttpClient: TexasHttpClient,
-    private val scope: String
-): IPdlClient {
+    private val scope: String,
+) : IPdlClient {
     override suspend fun getPerson(fnr: String): GetPersonResponse {
         val token = texasHttpClient.systemToken(
             "azuread",
-            TexasHttpClient.getTarget(scope)
+            TexasHttpClient.getTarget(scope),
         ).accessToken
 
         val getPersonRequest =

@@ -18,7 +18,7 @@ import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.exception.ErrorType
 import no.nav.syfo.application.exception.LegeNotFoundException
 import no.nav.syfo.util.applyStandardConfiguration
-import java.util.*
+import java.util.UUID
 
 const val NAV_CALL_ID_HEADER = "Nav-Call-Id"
 
@@ -44,24 +44,22 @@ private fun logException(call: ApplicationCall, cause: Throwable) {
     call.application.log.error(logExceptionMessage, cause)
 }
 
-private fun determineApiError(cause: Throwable, path: String): ApiError {
-    return when (cause) {
-        is BadRequestException -> cause.toApiError(path)
-        is NotFoundException -> cause.toApiError(path)
-        is ApiErrorException -> cause.toApiError(path)
-        is IllegalArgumentException -> ApiErrorException.BadRequest(
-            errorMessage = cause.message ?: "Illegal argument",
-            type = ErrorType.ILLEGAL_ARGUMENT,
-            cause = cause,
-        ).toApiError(path)
+private fun determineApiError(cause: Throwable, path: String): ApiError = when (cause) {
+    is BadRequestException -> cause.toApiError(path)
+    is NotFoundException -> cause.toApiError(path)
+    is ApiErrorException -> cause.toApiError(path)
+    is IllegalArgumentException -> ApiErrorException.BadRequest(
+        errorMessage = cause.message ?: "Illegal argument",
+        type = ErrorType.ILLEGAL_ARGUMENT,
+        cause = cause,
+    ).toApiError(path)
 
-        else -> ApiError(
-            status = HttpStatusCode.InternalServerError,
-            type = ErrorType.INTERNAL_SERVER_ERROR,
-            message = cause.message ?: "Internal server error",
-            path = path,
-        )
-    }
+    else -> ApiError(
+        status = HttpStatusCode.InternalServerError,
+        type = ErrorType.INTERNAL_SERVER_ERROR,
+        message = cause.message ?: "Internal server error",
+        path = path,
+    )
 }
 
 fun Application.installStatusPages() {

@@ -6,28 +6,29 @@ import no.nav.syfo.defaultPersistedOppfolgingsplan
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class OppfolgingsplanVeilederTest : DescribeSpec({
-    describe("Extension function tests") {
-        it("from with OppfolgingsplanMetadata should pick sistEndret based in provided date") {
-            // Arrange
-            val deltMedVeilederLast = defaultPersistedOppfolgingsplan().copy(
-                deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
-                skalDelesMedVeileder = true,
-                deltMedLegeTidspunkt = Instant.now().plus(5, ChronoUnit.MINUTES),
-            )
-            val deletMedLegeLast = defaultPersistedOppfolgingsplan().copy(
-                deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
-                skalDelesMedVeileder = true,
-                deltMedLegeTidspunkt = Instant.now().plus(15, ChronoUnit.MINUTES),
-            )
+class OppfolgingsplanVeilederTest :
+    DescribeSpec({
+        describe("Extension function tests") {
+            it("from with OppfolgingsplanMetadata should pick sistEndret based in provided date") {
+                // Arrange
+                val deltMedVeilederLast = defaultPersistedOppfolgingsplan().copy(
+                    deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
+                    skalDelesMedVeileder = true,
+                    deltMedLegeTidspunkt = Instant.now().plus(5, ChronoUnit.MINUTES),
+                )
+                val deletMedLegeLast = defaultPersistedOppfolgingsplan().copy(
+                    deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
+                    skalDelesMedVeileder = true,
+                    deltMedLegeTidspunkt = Instant.now().plus(15, ChronoUnit.MINUTES),
+                )
 
-            // Act
-            val veilederLast = OppfolgingsplanVeileder.from(deltMedVeilederLast)
-            val legeLast = OppfolgingsplanVeileder.from(deletMedLegeLast)
+                // Act
+                val veilederLast = OppfolgingsplanVeileder.from(deltMedVeilederLast)
+                val legeLast = OppfolgingsplanVeileder.from(deletMedLegeLast)
 
-            // Assert
-            veilederLast.sistEndret shouldBe deltMedVeilederLast.deltMedVeilederTidspunkt
-            legeLast.sistEndret shouldBe deletMedLegeLast.deltMedLegeTidspunkt
+                // Assert
+                veilederLast.sistEndret shouldBe deltMedVeilederLast.deltMedVeilederTidspunkt
+                legeLast.sistEndret shouldBe deletMedLegeLast.deltMedLegeTidspunkt
+            }
         }
-    }
-})
+    })

@@ -16,7 +16,8 @@ import no.nav.syfo.util.logger
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.Locale
+import java.util.UUID
 
 class DokumentportenService(
     private val dokumentportenClient: IDokumentportenClient,
@@ -77,19 +78,17 @@ fun PersistedOppfolgingsplan.toDocument(content: ByteArray, dateFormatter: DateT
     fullName = this.sykmeldtFullName,
 )
 
-fun PersistedOppfolgingsplan.title(): String =
-    "Oppfølgingsplan for ${this.sykmeldtFullName}"
+fun PersistedOppfolgingsplan.title(): String = "Oppfølgingsplan for ${this.sykmeldtFullName}"
 
-fun PersistedOppfolgingsplan.summary(dateFormatter: DateTimeFormatter): String =
-    this.narmesteLederFullName?.let {
-        "${this.narmesteLederFullName} har opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${
-            dateFormatter.format(
-                this.createdAt
-            )
-        }"
-    }
-        ?: "Det er opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${
-            dateFormatter.format(
-                this.createdAt
-            )
-        }"
+fun PersistedOppfolgingsplan.summary(dateFormatter: DateTimeFormatter): String = this.narmesteLederFullName?.let {
+    "${this.narmesteLederFullName} har opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${
+        dateFormatter.format(
+            this.createdAt,
+        )
+    }"
+}
+    ?: "Det er opprettet en oppfølgingsplan for ${this.sykmeldtFullName} på \"Dine sykmeldte\" hos Nav opprettet den ${
+        dateFormatter.format(
+            this.createdAt,
+        )
+    }"

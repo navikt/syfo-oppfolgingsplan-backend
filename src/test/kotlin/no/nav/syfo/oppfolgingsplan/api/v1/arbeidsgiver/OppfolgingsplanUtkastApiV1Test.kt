@@ -52,257 +52,258 @@ import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
-import java.util.*
+import java.util.UUID
 
-class OppfolgingsplanUtkastApiV1Test : DescribeSpec({
+class OppfolgingsplanUtkastApiV1Test :
+    DescribeSpec({
 
-    val texasClientMock = mockk<TexasHttpClient>()
-    val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
-    val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
-    val testDb = TestDB.database
-    val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
-    val pdfGenClient = mockk<PdfGenClient>()
-    val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
-    val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
-    val dokarkivServiceMock = mockk<DokarkivService>()
-    val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
-    val pdlClientMock = mockk<PdlClient>()
-    val pdlService = PdlService(pdlClientMock)
-    val oppfolgingsplanService = OppfolgingsplanService(
-        database = testDb,
-        esyfovarselProducer = esyfovarselProducerMock,
-        pdlService = pdlService,
-    )
-    val narmestelederId = UUID.randomUUID().toString()
-    val pidInnlogetBruker = "10987654321"
-    val sykmeldt = defaultSykmeldt().copy(narmestelederId = narmestelederId)
-    val environment: Environment = LocalEnvironment()
+        val texasClientMock = mockk<TexasHttpClient>()
+        val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
+        val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
+        val testDb = TestDB.database
+        val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
+        val pdfGenClient = mockk<PdfGenClient>()
+        val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
+        val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
+        val dokarkivServiceMock = mockk<DokarkivService>()
+        val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
+        val pdlClientMock = mockk<PdlClient>()
+        val pdlService = PdlService(pdlClientMock)
+        val oppfolgingsplanService = OppfolgingsplanService(
+            database = testDb,
+            esyfovarselProducer = esyfovarselProducerMock,
+            pdlService = pdlService,
+        )
+        val narmestelederId = UUID.randomUUID().toString()
+        val pidInnlogetBruker = "10987654321"
+        val sykmeldt = defaultSykmeldt().copy(narmestelederId = narmestelederId)
+        val environment: Environment = LocalEnvironment()
 
-    beforeTest {
-        clearAllMocks()
-        TestDB.clearAllData()
-        every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
-    }
+        beforeTest {
+            clearAllMocks()
+            TestDB.clearAllData()
+            every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
+        }
 
-    fun withTestApplication(
-        fn: suspend ApplicationTestBuilder.() -> Unit
-    ) {
-        testApplication {
-            this.client = createClient {
-                install(ContentNegotiation) {
-                    jackson {
-                        registerKotlinModule()
-                        registerModule(JavaTimeModule())
-                        configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
-                        configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+        fun withTestApplication(
+            fn: suspend ApplicationTestBuilder.() -> Unit,
+        ) {
+            testApplication {
+                this.client = createClient {
+                    install(ContentNegotiation) {
+                        jackson {
+                            registerKotlinModule()
+                            registerModule(JavaTimeModule())
+                            configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false)
+                            configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                        }
+                    }
+                }
+                application {
+                    installContentNegotiation()
+                    installStatusPages()
+                    routing {
+                        registerApiV1(
+                            DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
+                            texasClientMock,
+                            oppfolgingsplanService = oppfolgingsplanService,
+                            pdfGenService = PdfGenService(pdfGenClient, oppfolgingsplanService),
+                            isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
+                            dokarkivService = dokarkivServiceMock,
+                            isTilgangskontrollService = isTilgangskontrollServiceMock,
+                            environment = environment,
+                        )
+                    }
+                }
+                fn(this)
+            }
+        }
+        describe("Oppfolgingsplan Utkast API V1") {
+            it("PUT /oppfolgingsplaner/utkast creates a new draft if it does not exist") {
+                withTestApplication {
+                    // Arrange
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val utkast = defaultUtkastRequest()
+
+                    // Act
+                    val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
+                        bearerAuth("Bearer token")
+                        contentType(ContentType.Application.Json)
+                        setBody(utkast)
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.OK
+
+                    val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
+                    persisted shouldNotBe null
+                    persisted?.let {
+                        it.sykmeldtFnr shouldBe "12345678901"
+                        it.narmesteLederId shouldBe narmestelederId
+                        it.narmesteLederFnr shouldBe pidInnlogetBruker
+                        it.organisasjonsnummer shouldBe "orgnummer"
+                        it.content shouldNotBe null
                     }
                 }
             }
-            application {
-                installContentNegotiation()
-                installStatusPages()
-                routing {
-                    registerApiV1(
-                        DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
-                        texasClientMock,
-                        oppfolgingsplanService = oppfolgingsplanService,
-                        pdfGenService = PdfGenService(pdfGenClient, oppfolgingsplanService),
-                        isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
-                        dokarkivService = dokarkivServiceMock,
-                        isTilgangskontrollService = isTilgangskontrollServiceMock,
-                        environment = environment,
+
+            it("PUT /oppfolgingsplaner/utkast overwrite existing draft") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val initialUtkastRequest = defaultUtkastRequest { put("hvordanFolgeOpp", "initial value") }
+                    val updatedUtkastRequest = defaultUtkastRequest { put("hvordanFolgeOpp", "updated value") }
+
+                    val (existingUUID, _) = testDb.upsertOppfolgingsplanUtkast(
+                        narmesteLederFnr = pidInnlogetBruker,
+                        sykmeldt = sykmeldt,
+                        initialUtkastRequest,
                     )
+
+                    val initialPersistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")!!
+                    initialPersistedUtkast.content shouldBe initialUtkastRequest.content
+                    initialPersistedUtkast.content["hvordanFolgeOpp"] shouldBe "initial value"
+
+                    val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
+                        bearerAuth("Bearer token")
+                        contentType(ContentType.Application.Json)
+                        setBody(updatedUtkastRequest)
+                    }
+
+                    response.status shouldBe HttpStatusCode.OK
+
+                    val updatedPersistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")!!
+                    updatedPersistedUtkast shouldNotBe null
+                    updatedPersistedUtkast.uuid shouldBe existingUUID
+                    updatedPersistedUtkast.sykmeldtFnr shouldBe sykmeldt.fnr
+                    updatedPersistedUtkast.narmesteLederId shouldBe narmestelederId
+                    updatedPersistedUtkast.narmesteLederFnr shouldBe pidInnlogetBruker
+                    updatedPersistedUtkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
+                    updatedPersistedUtkast.content shouldBe updatedUtkastRequest.content
+                    updatedPersistedUtkast.content["hvordanFolgeOpp"] shouldBe "updated value"
                 }
             }
-            fn(this)
-        }
-    }
-    describe("Oppfolgingsplan Utkast API V1") {
-        it("PUT /oppfolgingsplaner/utkast creates a new draft if it does not exist") {
-            withTestApplication {
-                // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
-                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+            it("GET /oppfolgingsplaner/utkast should retrieve the current oppfolgingsplan utkast") {
+                withTestApplication {
+                    // Arrange
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
-                val utkast = defaultUtkastRequest()
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
-                // Act
-                val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
-                    bearerAuth("Bearer token")
-                    contentType(ContentType.Application.Json)
-                    setBody(utkast)
-                }
-
-                // Assert
-                response.status shouldBe HttpStatusCode.OK
-
-                val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
-                persisted shouldNotBe null
-                persisted?.let {
-                    it.sykmeldtFnr shouldBe "12345678901"
-                    it.narmesteLederId shouldBe narmestelederId
-                    it.narmesteLederFnr shouldBe pidInnlogetBruker
-                    it.organisasjonsnummer shouldBe "orgnummer"
-                    it.content shouldNotBe null
-                }
-            }
-        }
-
-        it("PUT /oppfolgingsplaner/utkast overwrite existing draft") {
-            withTestApplication {
-                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
-
-                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
-
-                val initialUtkastRequest = defaultUtkastRequest { put("hvordanFolgeOpp", "initial value") }
-                val updatedUtkastRequest = defaultUtkastRequest { put("hvordanFolgeOpp", "updated value") }
-
-                val (existingUUID, _) = testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederFnr = pidInnlogetBruker,
-                    sykmeldt = sykmeldt,
-                    initialUtkastRequest
-                )
-
-                val initialPersistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")!!
-                initialPersistedUtkast.content shouldBe initialUtkastRequest.content
-                initialPersistedUtkast.content["hvordanFolgeOpp"] shouldBe "initial value"
-
-                val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
-                    bearerAuth("Bearer token")
-                    contentType(ContentType.Application.Json)
-                    setBody(updatedUtkastRequest)
-                }
-
-                response.status shouldBe HttpStatusCode.OK
-
-                val updatedPersistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")!!
-                updatedPersistedUtkast shouldNotBe null
-                updatedPersistedUtkast.uuid shouldBe existingUUID
-                updatedPersistedUtkast.sykmeldtFnr shouldBe sykmeldt.fnr
-                updatedPersistedUtkast.narmesteLederId shouldBe narmestelederId
-                updatedPersistedUtkast.narmesteLederFnr shouldBe pidInnlogetBruker
-                updatedPersistedUtkast.organisasjonsnummer shouldBe sykmeldt.orgnummer
-                updatedPersistedUtkast.content shouldBe updatedUtkastRequest.content
-                updatedPersistedUtkast.content["hvordanFolgeOpp"] shouldBe "updated value"
-            }
-        }
-
-        it("GET /oppfolgingsplaner/utkast should retrieve the current oppfolgingsplan utkast") {
-            withTestApplication {
-                // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
-
-                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
-
-                val requestUtkast = defaultUtkastRequest()
-                testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederFnr = pidInnlogetBruker,
-                    sykmeldt = sykmeldt,
-                    requestUtkast
-                )
-
-                // Act
-                val response = client.get("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
-                    bearerAuth("Bearer token")
-                }
-
-                // Assert
-                response.status shouldBe HttpStatusCode.OK
-                val utkastResponse = response.body<OppfolgingsplanUtkastResponse>()
-                utkastResponse shouldNotBe null
-                utkastResponse.utkast?.content shouldBe requestUtkast.content
-            }
-        }
-
-        it("PUT /oppfolgingsplaner/utkast should handle null values correctly") {
-            withTestApplication {
-                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
-                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
-
-                val utkastWithNulls = defaultUtkastRequest {
-                    put("evalueringsDato", null)
-                    put("harDenAnsatteMedvirket", null)
-                    put("arbeidsoppgaverSomIkkeKanUtfores", "")
-                    put("tidligereTilrettelegging", "")
-                }
-
-                val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
-                    bearerAuth("Bearer token")
-                    contentType(ContentType.Application.Json)
-                    setBody(utkastWithNulls)
-                }
-
-                response.status shouldBe HttpStatusCode.OK
-
-                val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")!!
-                persisted.content shouldBe utkastWithNulls.content
-                persisted.content["evalueringsDato"] shouldBe null
-                persisted.content["harDenAnsatteMedvirket"] shouldBe null
-                persisted.content["arbeidsoppgaverSomIkkeKanUtfores"] shouldBe ""
-                persisted.content["tidligereTilrettelegging"] shouldBe ""
-                persisted.content["typiskArbeidshverdag"] shouldBe "Dette skrev jeg forrige gang. Kjekt at det blir lagret i et utkast."
-            }
-        }
-
-        it("DELETE /oppfolgingsplaner/utkast should delete existing draft") {
-            withTestApplication {
-                // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
-                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
-
-                val utkast = defaultUtkastRequest()
-                testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederFnr = pidInnlogetBruker,
-                    sykmeldt = sykmeldt,
-                    utkast
-                )
-
-                // Verify draft exists
-                val existingUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
-                existingUtkast shouldNotBe null
-
-                // Act
-                val response = client.delete("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
-                    bearerAuth("Bearer token")
-                }
-
-                // Assert
-                response.status shouldBe HttpStatusCode.NoContent
-
-                val deletedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
-                deletedUtkast shouldBe null
-            }
-        }
-
-        it("DELETE /oppfolgingsplaner/utkast should return 400 when sykmeldt has no active sykmelding") {
-            withTestApplication {
-                // Arrange
-                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
-
-                val sykmeldtWithoutActiveSykmelding = sykmeldt.copy(aktivSykmelding = false)
-                coEvery {
-                    dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
-                        narmestelederId,
-                        "token"
+                    val requestUtkast = defaultUtkastRequest()
+                    testDb.upsertOppfolgingsplanUtkast(
+                        narmesteLederFnr = pidInnlogetBruker,
+                        sykmeldt = sykmeldt,
+                        requestUtkast,
                     )
-                } returns sykmeldtWithoutActiveSykmelding
 
-                val utkast = defaultUtkastRequest()
-                testDb.upsertOppfolgingsplanUtkast(
-                    narmesteLederFnr = pidInnlogetBruker,
-                    sykmeldt = sykmeldtWithoutActiveSykmelding,
-                    utkast
-                )
+                    // Act
+                    val response = client.get("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
+                        bearerAuth("Bearer token")
+                    }
 
-                // Act
-                val response = client.delete("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
-                    bearerAuth("Bearer token")
+                    // Assert
+                    response.status shouldBe HttpStatusCode.OK
+                    val utkastResponse = response.body<OppfolgingsplanUtkastResponse>()
+                    utkastResponse shouldNotBe null
+                    utkastResponse.utkast?.content shouldBe requestUtkast.content
                 }
+            }
 
-                // Assert
-                response.status shouldBe HttpStatusCode.BadRequest
+            it("PUT /oppfolgingsplaner/utkast should handle null values correctly") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val utkastWithNulls = defaultUtkastRequest {
+                        put("evalueringsDato", null)
+                        put("harDenAnsatteMedvirket", null)
+                        put("arbeidsoppgaverSomIkkeKanUtfores", "")
+                        put("tidligereTilrettelegging", "")
+                    }
+
+                    val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
+                        bearerAuth("Bearer token")
+                        contentType(ContentType.Application.Json)
+                        setBody(utkastWithNulls)
+                    }
+
+                    response.status shouldBe HttpStatusCode.OK
+
+                    val persisted = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")!!
+                    persisted.content shouldBe utkastWithNulls.content
+                    persisted.content["evalueringsDato"] shouldBe null
+                    persisted.content["harDenAnsatteMedvirket"] shouldBe null
+                    persisted.content["arbeidsoppgaverSomIkkeKanUtfores"] shouldBe ""
+                    persisted.content["tidligereTilrettelegging"] shouldBe ""
+                    persisted.content["typiskArbeidshverdag"] shouldBe "Dette skrev jeg forrige gang. Kjekt at det blir lagret i et utkast."
+                }
+            }
+
+            it("DELETE /oppfolgingsplaner/utkast should delete existing draft") {
+                withTestApplication {
+                    // Arrange
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val utkast = defaultUtkastRequest()
+                    testDb.upsertOppfolgingsplanUtkast(
+                        narmesteLederFnr = pidInnlogetBruker,
+                        sykmeldt = sykmeldt,
+                        utkast,
+                    )
+
+                    // Verify draft exists
+                    val existingUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
+                    existingUtkast shouldNotBe null
+
+                    // Act
+                    val response = client.delete("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
+                        bearerAuth("Bearer token")
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.NoContent
+
+                    val deletedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
+                    deletedUtkast shouldBe null
+                }
+            }
+
+            it("DELETE /oppfolgingsplaner/utkast should return 400 when sykmeldt has no active sykmelding") {
+                withTestApplication {
+                    // Arrange
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+
+                    val sykmeldtWithoutActiveSykmelding = sykmeldt.copy(aktivSykmelding = false)
+                    coEvery {
+                        dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                            narmestelederId,
+                            "token",
+                        )
+                    } returns sykmeldtWithoutActiveSykmelding
+
+                    val utkast = defaultUtkastRequest()
+                    testDb.upsertOppfolgingsplanUtkast(
+                        narmesteLederFnr = pidInnlogetBruker,
+                        sykmeldt = sykmeldtWithoutActiveSykmelding,
+                        utkast,
+                    )
+
+                    // Act
+                    val response = client.delete("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
+                        bearerAuth("Bearer token")
+                    }
+
+                    // Assert
+                    response.status shouldBe HttpStatusCode.BadRequest
+                }
             }
         }
-    }
-})
+    })

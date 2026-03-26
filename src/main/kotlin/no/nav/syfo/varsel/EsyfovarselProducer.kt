@@ -1,10 +1,10 @@
 package no.nav.syfo.varsel
 
-import java.util.*
 import no.nav.syfo.varsel.domain.EsyfovarselHendelse
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.slf4j.LoggerFactory
+import java.util.UUID
 
 class EsyfovarselProducer(private val producer: KafkaProducer<String, EsyfovarselHendelse>) {
     /**
@@ -22,7 +22,7 @@ class EsyfovarselProducer(private val producer: KafkaProducer<String, Esyfovarse
                     ESYFOVARSEL_TOPIC,
                     UUID.randomUUID().toString(),
                     esyfovarselHendelse,
-                )
+                ),
             ).get()
         } catch (e: Exception) {
             log.error("Exception was thrown when attempting to send hendelse esyfovarsel: ${e.message}")

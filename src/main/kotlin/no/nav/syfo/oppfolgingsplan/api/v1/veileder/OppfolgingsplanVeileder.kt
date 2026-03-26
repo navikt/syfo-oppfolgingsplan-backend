@@ -3,7 +3,7 @@ package no.nav.syfo.oppfolgingsplan.api.v1.veileder
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 data class OppfolgingsplanVeileder(
     val uuid: UUID,
@@ -18,12 +18,12 @@ data class OppfolgingsplanVeileder(
         fun from(item: PersistedOppfolgingsplan): OppfolgingsplanVeileder {
             with(item) {
                 require(deltMedVeilederTidspunkt != null) {
-                    "Oppfolgingsplan ${uuid} is not shared with veileder"
+                    "Oppfolgingsplan $uuid is not shared with veileder"
                 }
                 val sisteEndre = listOfNotNull(
                     createdAt,
                     deltMedVeilederTidspunkt,
-                    deltMedLegeTidspunkt
+                    deltMedLegeTidspunkt,
                 ).max()
                 return OppfolgingsplanVeileder(
                     uuid = uuid,

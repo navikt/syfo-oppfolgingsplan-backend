@@ -23,16 +23,14 @@ class PdfGenService(
     private val oppfolgingsplanService: OppfolgingsplanService,
 ) {
     val logger = logger()
-    suspend fun generatePdf(persistedOppfolgingsplan: PersistedOppfolgingsplan): ByteArray? {
-        return try {
-            val planIncludingName = oppfolgingsplanService.getAndSetNarmestelederFullname(persistedOppfolgingsplan)
-            pdfGenClient.generatePdf(planIncludingName.toOppfolgingsplanPdfV1())
-        } catch (clientRequestException: ClientRequestException) {
-            logger.error("Could not generate pdf for id ${persistedOppfolgingsplan.uuid}")
-            throw RuntimeException("Error while generating pdf", clientRequestException)
-        } catch (serverResponseException: ServerResponseException) {
-            throw RuntimeException("Error while generating pdf", serverResponseException)
-        }
+    suspend fun generatePdf(persistedOppfolgingsplan: PersistedOppfolgingsplan): ByteArray? = try {
+        val planIncludingName = oppfolgingsplanService.getAndSetNarmestelederFullname(persistedOppfolgingsplan)
+        pdfGenClient.generatePdf(planIncludingName.toOppfolgingsplanPdfV1())
+    } catch (clientRequestException: ClientRequestException) {
+        logger.error("Could not generate pdf for id ${persistedOppfolgingsplan.uuid}")
+        throw RuntimeException("Error while generating pdf", clientRequestException)
+    } catch (serverResponseException: ServerResponseException) {
+        throw RuntimeException("Error while generating pdf", serverResponseException)
     }
 }
 
@@ -64,24 +62,26 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanPdfV1(): OppfolgingsplanPdfV1 {
                                 description = fieldSnapshot.description,
                                 value = when (fieldSnapshot) {
                                     is TextFieldSnapshot -> fieldSnapshot.value
-                                    is RadioGroupFieldSnapshot -> fieldSnapshot.options
-                                        .firstOrNull { it.optionId == fieldSnapshot.selectedOptionId }?.optionLabel
-                                        ?: ""
+                                    is RadioGroupFieldSnapshot ->
+                                        fieldSnapshot.options
+                                            .firstOrNull { it.optionId == fieldSnapshot.selectedOptionId }?.optionLabel
+                                            ?: ""
 
                                     is SingleCheckboxFieldSnapshot -> if (fieldSnapshot.value) "Ja" else "Nei"
-                                    is CheckboxGroupFieldSnapshot -> fieldSnapshot.options
-                                        .filter { it.wasSelected }
-                                        .joinToString("\n") { it.optionLabel }
-                                        .ifEmpty { "" }
+                                    is CheckboxGroupFieldSnapshot ->
+                                        fieldSnapshot.options
+                                            .filter { it.wasSelected }
+                                            .joinToString("\n") { it.optionLabel }
+                                            .ifEmpty { "" }
 
                                     is DateFieldSnapshot -> fieldSnapshot.value?.format(formatter) ?: ""
 
                                     else -> throw IllegalArgumentException("Unknown field type: ${fieldSnapshot.fieldType}")
-                                }
+                                },
                             )
-                        }
+                        },
                 )
-            }
-        )
+            },
+        ),
     )
 }

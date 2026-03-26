@@ -1,0 +1,62 @@
+[tasks.docker-up]
+description = "Spin up dependency services using Docker Compose. Postgres, Kafka etc."
+run = '''
+docker-compose \
+  -f docker-compose.yml \
+  -f docker-compose.kafka.yml \
+  up \
+  db authserver texas broker kafka-ui valkey \
+  -d
+'''
+
+[tasks.docker-down]
+description = "Tear down dependency services running in Docker Compose."
+run = '''
+docker-compose \
+  -f docker-compose.yml \
+  -f docker-compose.kafka.yml \
+  down
+'''
+
+[tasks.build]
+description = "Run build with gradle"
+run = './gradlew build'
+
+[tasks.start]
+description = "Run app using gradle"
+run = './gradlew run'
+
+[tasks.test]
+description = "Run tests with gradle"
+run = './gradlew test'
+
+[tasks.lint]
+description = "Run check with gradle"
+run = './gradlew ktlintCheck'
+
+[tasks.format]
+description = "Run ktlintFormat with gradle"
+run = './gradlew ktlintFormat'
+
+[tasks.flyway-repair]
+description = "Run flyway repair using Gradle"
+usage = '''
+flag "--username <username>" help="database username" default="username"
+flag "--password <password>" help="database password" default="password"
+flag "--url <url>" help="database url" default="jdbc:postgresql://localhost:5432/esyfo-narmesteleder_dev"
+'''
+run = './gradlew --no-configuration-cache -Dflyway.user=${usage_username?} -Dflyway.password=${usage_password?} -Dflyway.url=${usage_url?} flywayRepair'
+
+
+[tasks.flyway-info]
+description = "Run flyway info using gradle"
+usage = '''
+flag "--username <username>" help="database username" default="username"
+flag "--password <password>" help="database password" default="password"
+flag "--url <url>" help="database url" default="jdbc:postgresql://localhost:5432/esyfo-narmesteleder_dev"
+'''
+run = './gradlew --no-configuration-cache -Dflyway.user=${usage_username?} -Dflyway.password=${usage_password?} -Dflyway.url=${usage_url?} flywayInfo'
+
+[tasks.add-lint-check-as-pre-commit-hook]
+description = "Add ktlint check as pre-commit hook to git"
+run = './gradlew addKtlintCheckGitPreCommitHook'

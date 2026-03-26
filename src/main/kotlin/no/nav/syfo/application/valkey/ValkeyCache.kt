@@ -33,20 +33,18 @@ class ValkeyCache(
             .ssl(valkeyEnvironment.ssl)
             .user(valkeyEnvironment.username)
             .password(valkeyEnvironment.password)
-            .build()
+            .build(),
     )
 
-    private fun <T> get(key: String, type: Class<T>): T? {
-        return try {
-            jedisPool.resource.use { jedis ->
-                jedis.get(key)?.let {
-                    objectMapper.readValue(it, type)
-                }
+    private fun <T> get(key: String, type: Class<T>): T? = try {
+        jedisPool.resource.use { jedis ->
+            jedis.get(key)?.let {
+                objectMapper.readValue(it, type)
             }
-        } catch (e: Exception) {
-            logger.error("Failed to get from cache", e)
-            null
         }
+    } catch (e: Exception) {
+        logger.error("Failed to get from cache", e)
+        null
     }
 
     private fun <T> put(key: String, value: T, ttlSeconds: Long = CACHE_TTL_SECONDS) {

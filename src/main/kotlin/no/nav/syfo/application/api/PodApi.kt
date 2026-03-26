@@ -1,16 +1,16 @@
 package no.nav.syfo.application.api
 
-import io.ktor.http.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Routing
+import io.ktor.server.routing.get
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.database.DatabaseInterface
 
 fun Routing.registerPodApi(
     applicationState: ApplicationState,
-    database: DatabaseInterface
+    database: DatabaseInterface,
 ) {
-
     get("/internal/is_alive") {
         if (applicationState.alive) {
             call.respondText("I'm alive! :)")
@@ -27,16 +27,12 @@ fun Routing.registerPodApi(
     }
 }
 
-private fun isReady(applicationState: ApplicationState, database: DatabaseInterface): Boolean {
-    return applicationState.ready && database.isOk()
-}
+private fun isReady(applicationState: ApplicationState, database: DatabaseInterface): Boolean = applicationState.ready && database.isOk()
 
-private fun DatabaseInterface.isOk(): Boolean {
-    return try {
-        connection.use {
-            it.isValid(1)
-        }
-    } catch (ex: Exception) {
-        false
+private fun DatabaseInterface.isOk(): Boolean = try {
+    connection.use {
+        it.isValid(1)
     }
+} catch (ex: Exception) {
+    false
 }

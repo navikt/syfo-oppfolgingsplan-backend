@@ -18,7 +18,7 @@ class DokarkivService(
     ): String {
         val avsenderMottaker = createAvsenderMottaker(
             oppfolgingsplan.organisasjonsnummer,
-            oppfolgingsplan.organisasjonsnavn ?: "Arbeidsgiver"
+            oppfolgingsplan.organisasjonsnavn ?: "Arbeidsgiver",
         )
 
         val journalpostRequest = createJournalpostRequest(
@@ -80,9 +80,9 @@ class DokarkivService(
                     filtype = FILE_TYPE_PDFA,
                     variantformat = FORMAT_TYPE_ARKIV,
                     fysiskDokument = dokumentPdf,
-                )
-            )
-        )
+                ),
+            ),
+        ),
     )
 
     companion object {

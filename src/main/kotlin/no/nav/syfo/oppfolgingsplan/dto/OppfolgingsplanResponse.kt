@@ -5,7 +5,7 @@ import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
+import java.util.UUID
 
 data class OppfolgingsplanResponseData(
     val id: UUID,

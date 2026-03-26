@@ -29,12 +29,12 @@ val AuthorizeLeaderAccessToSykmeldtPlugin = createRouteScopedPlugin(
         onCall { call ->
             val texasHttpClient = texasHttpClient
                 ?: throw IllegalStateException(
-                    "TexasHttpClient must be provided in AuthorizeLeaderAccessToSykmeldtPlugin configuration"
+                    "TexasHttpClient must be provided in AuthorizeLeaderAccessToSykmeldtPlugin configuration",
                 )
 
             val dineSykmeldteService = dineSykmeldteService
                 ?: throw IllegalStateException(
-                    "DineSykmeldteService must be provided in AuthorizeLeaderAccessToSykmeldtPlugin configuration"
+                    "DineSykmeldteService must be provided in AuthorizeLeaderAccessToSykmeldtPlugin configuration",
                 )
 
             val narmesteLederId = call.parameters["narmesteLederId"]
@@ -48,7 +48,7 @@ val AuthorizeLeaderAccessToSykmeldtPlugin = createRouteScopedPlugin(
             val sykmeldt = dineSykmeldteService.getSykmeldtForNarmesteleder(
                 narmesteLederId,
                 innloggetBruker.ident,
-                texasResponse.accessToken
+                texasResponse.accessToken,
             )
                 ?: throw SykmeldtNotFoundException("Sykmeldt not found for narmestelederId: $narmesteLederId")
 

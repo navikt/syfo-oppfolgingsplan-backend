@@ -28,27 +28,24 @@ class IsTilgangskontrollClient(
 ) : IIsTilgangskontrollClient {
     private val logger = logger()
 
-    override suspend fun harTilgangTilSykmeldt(sykmeldtFnr: Fodselsnummer, token: String): Boolean {
-        return try {
-            val tilgang = httpClient.get("${isTilganskontrollBaseUrl}/api/tilgang/navident/person") {
-                header("Authorization", "Bearer $token")
-                header(NAV_PERSONIDENT_HEADER, sykmeldtFnr.value)
-                accept(ContentType.Application.Json)
-            }
-            COUNT_CALL_TILGANGSKONTROLL_PERSON_SUCCESS.increment()
-            tilgang.body<Tilgang>().erGodkjent
-        } catch (e: ClientRequestException) {
-            if (e.response.status == HttpStatusCode.Forbidden) {
-                COUNT_CALL_TILGANGSKONTROLL_PERSON_FORBIDDEN.increment()
-            } else {
-                handleUnexpectedResponseException(e.response)
-            }
-            false
-        } catch (e: ServerResponseException) {
-            handleUnexpectedResponseException(e.response)
-            false
+    override suspend fun harTilgangTilSykmeldt(sykmeldtFnr: Fodselsnummer, token: String): Boolean = try {
+        val tilgang = httpClient.get("$isTilganskontrollBaseUrl/api/tilgang/navident/person") {
+            header("Authorization", "Bearer $token")
+            header(NAV_PERSONIDENT_HEADER, sykmeldtFnr.value)
+            accept(ContentType.Application.Json)
         }
-
+        COUNT_CALL_TILGANGSKONTROLL_PERSON_SUCCESS.increment()
+        tilgang.body<Tilgang>().erGodkjent
+    } catch (e: ClientRequestException) {
+        if (e.response.status == HttpStatusCode.Forbidden) {
+            COUNT_CALL_TILGANGSKONTROLL_PERSON_FORBIDDEN.increment()
+        } else {
+            handleUnexpectedResponseException(e.response)
+        }
+        false
+    } catch (e: ServerResponseException) {
+        handleUnexpectedResponseException(e.response)
+        false
     }
 
     private fun handleUnexpectedResponseException(

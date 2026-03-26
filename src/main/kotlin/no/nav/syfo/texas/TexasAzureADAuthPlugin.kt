@@ -30,7 +30,7 @@ val TexasAzureADAuthPlugin = createRouteScopedPlugin(
 
             if (!introspectionResponse.active) {
                 call.application.environment.log.warn(
-                    "Token is not active: ${introspectionResponse.error ?: "No error message"}"
+                    "Token is not active: ${introspectionResponse.error ?: "No error message"}",
                 )
                 throw ApiErrorException.Unauthorized("Token is not active")
             }
@@ -42,8 +42,8 @@ val TexasAzureADAuthPlugin = createRouteScopedPlugin(
                 BrukerPrincipal(
                     ident = introspectionResponse.NAVident,
                     token = bearerToken,
-                    clientId = introspectionResponse.azpName
-                )
+                    clientId = introspectionResponse.azpName,
+                ),
             )
         }
     }

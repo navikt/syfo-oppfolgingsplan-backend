@@ -21,7 +21,7 @@ import no.nav.syfo.texas.client.TexasHttpClient
 fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
-    oppfolgingsplanService: OppfolgingsplanService
+    oppfolgingsplanService: OppfolgingsplanService,
 ) {
     route("/{narmesteLederId}/oppfolgingsplaner/utkast") {
         install(AuthorizeLeaderAccessToSykmeldtPlugin) {
@@ -47,7 +47,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
             val lagreUtkastResponse = oppfolgingsplanService.persistOppfolgingsplanUtkast(
                 innloggetBruker.ident,
                 sykmeldt,
-                utkast
+                utkast,
             )
 
             call.respond(HttpStatusCode.OK, lagreUtkastResponse)
@@ -60,7 +60,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
             oppfolgingsplanService.deleteOppfolgingsplanUtkast(
-                sykmeldt
+                sykmeldt,
             )
 
             COUNT_OPPFOLGINGSPLAN_DRAFT_MANUALLY_DELETED.increment()
@@ -75,7 +75,7 @@ fun Route.registerArbeidsgiverOppfolgingsplanUtkastApiV1(
 
             call.respond(
                 HttpStatusCode.OK,
-                persistedOppfolgingsplanUtkast.toResponse(sykmeldt)
+                persistedOppfolgingsplanUtkast.toResponse(sykmeldt),
             )
         }
     }

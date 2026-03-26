@@ -4,8 +4,7 @@ import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import java.time.Instant
 import java.time.LocalDate
-import java.util.*
-
+import java.util.UUID
 
 data class UtkastMetadata(
     val sistLagretTidspunkt: Instant,
@@ -30,7 +29,7 @@ data class ArbeidsgiverOppfolgingsplanOverviewResponse(
     val userHasEditAccess: Boolean,
     val organization: OrganizationDetails,
     val employee: EmployeeDetails,
-    val oversikt: OversiktResponseData
+    val oversikt: OversiktResponseData,
 )
 
 data class SykmeldtOppfolgingsplanOverviewResponse(

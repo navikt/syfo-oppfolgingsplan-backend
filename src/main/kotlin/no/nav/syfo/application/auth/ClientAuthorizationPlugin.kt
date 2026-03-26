@@ -38,7 +38,7 @@ private fun ApplicationCall.requireClient(allowedClients: List<String>) {
         ?: throw ApiErrorException.Unauthorized("Missing azp claim in token")
     if (!allowedClients.contains(callerClientId)) {
         logger.error(
-            "Client authorization failed - expected: $allowedClients, actual: $callerClientId, path: ${request.uri}"
+            "Client authorization failed - expected: $allowedClients, actual: $callerClientId, path: ${request.uri}",
         )
         throw ApiErrorException.Forbidden("Caller is not authorized for this endpoint")
     }

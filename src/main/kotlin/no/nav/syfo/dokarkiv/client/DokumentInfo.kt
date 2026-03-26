@@ -1,7 +1,7 @@
 package no.nav.syfo.dokarkiv.client
 
-data class DokumentInfo (
+data class DokumentInfo(
     var brevkode: String?,
     var dokumentInfoId: Int?,
-    var tittel: String?
+    var tittel: String?,
 )
