@@ -1,26 +1,113 @@
 ---
-description: Sett opp Kafka-topic og consumer for team-esyfo — topicconfig, consumer, feilhåndtering
+name: kafka-topic
+description: Sett opp Kafka-topic, consumer og producer — mønstre, idempotens, feilhåndtering, NAIS-konfig og testing
 ---
-<!-- Managed by esyfo-cli. Do not edit manually. Changes will be overwritten.
-     For repo-specific customizations, create your own files without this header. -->
 
-# Kafka-topic og consumer
+# Kafka — Topic, Consumer og Producer
 
-Bruk denne skillen når du skal sette opp en ny Kafka-topic-konfigurasjon og en consumer for team-esyfo.
+Nav-team bruker typisk **plain Apache Kafka clients** på NAIS Kafka — ikke Rapids & Rivers.
 
 ## Fremgangsmåte
 
-1. Les eksisterende NAIS-manifest for å finne Kafka pool-konfigurasjon som allerede brukes i repoet.
-2. Søk i kodebasen etter eksisterende Kafka-consumere og følg etablerte mønstre for struktur, oppsett og navngivning.
-3. Sjekk `build.gradle.kts` for Kafka-avhengigheter, og se også på eksisterende consumer- og producer-implementasjoner før du skriver noe nytt.
+1. Les NAIS-manifest for Kafka pool-konfigurasjon
+2. Søk i kodebasen etter eksisterende consumere/producere og følg samme mønstre
+3. Sjekk `build.gradle.kts` for Kafka-avhengigheter
+
+## NAIS Kafka-konfigurasjon
+
+```yaml
+# nais.yaml
+spec:
+  kafka:
+    pool: nav-dev  # eller nav-prod
+```
+
+### SSL (NAIS-injiserte env vars)
+NAIS injiserer automatisk SSL-konfigurasjon:
+- `KAFKA_BROKERS` — bootstrap servers
+- `KAFKA_TRUSTSTORE_PATH` — truststore-fil
+- `KAFKA_KEYSTORE_PATH` — keystore-fil
+- `KAFKA_CREDSTORE_PASSWORD` — passord for begge
+
+## Consumer-mønster (Kotlin)
+
+```kotlin
+while (running) {
+    val records = consumer.poll(Duration.ofMillis(1000))
+    records.forEach { record ->
+        try {
+            processRecord(record)
+        } catch (e: Exception) {
+            logger.error("Feil ved prosessering av melding", kv("topic", record.topic()), kv("partition", record.partition()), kv("offset", record.offset()), e)
+            // håndter feil — ikke svelg stille
+        }
+    }
+    consumer.commitSync()
+}
+```
+
+## Producer-mønster (Kotlin)
+
+```kotlin
+producer.send(ProducerRecord(topic, key, value)) { metadata, exception ->
+    if (exception != null) {
+        logger.error("Feil ved sending til Kafka", kv("topic", topic), exception)
+    }
+}
+```
+
+## Spring Kafka
+
+### Consumer med @KafkaListener
+```kotlin
+@KafkaListener(topics = ["\${kafka.topic.name}"], groupId = "\${kafka.consumer.group-id}")
+fun consume(record: ConsumerRecord<String, String>) {
+    processRecord(record)
+}
+```
+
+### Producer med KafkaTemplate
+```kotlin
+kafkaTemplate.send(topic, key, value)
+```
+
+### Spring Kafka SSL-konfig (application.yml)
+```yaml
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS}
+    properties:
+      security.protocol: SSL
+      ssl.truststore.location: ${KAFKA_TRUSTSTORE_PATH}
+      ssl.truststore.password: ${KAFKA_CREDSTORE_PASSWORD}
+      ssl.keystore.location: ${KAFKA_KEYSTORE_PATH}
+      ssl.keystore.password: ${KAFKA_CREDSTORE_PASSWORD}
+```
+
+## Idempotens
+
+Implementer dedup med event-ID der det er nødvendig:
+
+```kotlin
+fun processRecord(record: ConsumerRecord<String, String>) {
+    val eventId = extractEventId(record)
+    if (alreadyProcessed(eventId)) return
+    // prosesser...
+    markProcessed(eventId)
+}
+```
+
+## Event-konvensjoner
+
+- Navngi events i **fortid** og **snake_case**: `vedtak_fattet`, `soknad_sendt`
+- Key: bruker-ID eller entitet-ID
+- Value: JSON med event-data
 
 ## Sjekkliste
 
-- [ ] Legg til Kafka pool i NAIS-manifestet hvis den ikke allerede finnes
-- [ ] Opprett consumer-klassen etter etablerte mønstre i repoet
-- [ ] Definer message payload- og key-typer som matcher topic-skjemaet
-- [ ] Implementer idempotent behandling der det er nødvendig
-- [ ] Legg inn feilhåndtering og logging som er konsistent med eksisterende consumere
-- [ ] Legg til metrikker for antall prosesserte events og tidsbruk for prosessering
-- [ ] Bruk strukturert logging med relevante identifikatorer — aldri logg sensitive data (fødselsnummer, tokens, personnavn)
-- [ ] Skriv tester etter eksisterende Kafka-testmønstre i repoet
+- [ ] Kafka pool i NAIS-manifest
+- [ ] Consumer/producer følger eksisterende mønstre i repoet
+- [ ] Idempotent behandling der nødvendig
+- [ ] Feilhåndtering og strukturert logging (aldri PII)
+- [ ] Metrikker for prosesserte events
+- [ ] Tester etter eksisterende Kafka-testmønstre

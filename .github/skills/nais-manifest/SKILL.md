@@ -1,16 +1,15 @@
 ---
+name: nais-manifest
 description: Generer og vedlikehold NAIS-manifest — spec, database, Kafka, auth, accessPolicy, ressurser
 ---
-<!-- Managed by esyfo-cli. Do not edit manually. Changes will be overwritten.
-     For repo-specific customizations, create your own files without this header. -->
 
 # NAIS-manifest
 
-Bruk denne skillen når du skal lage eller oppdatere et komplett NAIS-manifest for en applikasjon i team-esyfo.
+Bruk denne skillen når du skal lage eller oppdatere et komplett NAIS-manifest.
 
 ## Fremgangsmåte
 
-1. Les eksisterende NAIS-manifester i `.nais/` eller `nais/` for å forstå hvordan applikasjonen er satt opp i dag.
+1. **Les eksisterende NAIS-manifester** i `.nais/` eller `nais/` for å forstå hvordan applikasjonen er satt opp i dag. Bruk eksisterende `namespace` og `labels.team` — ikke anta verdier.
 2. Avklar om applikasjonen er backend (Kotlin) eller frontend (Node.js), siden port, health paths og observability-oppsett kan variere.
 3. Kartlegg hvilke ressurser applikasjonen trenger, for eksempel database, Kafka, auth, ingress og scaling.
 4. Gjenbruk eksisterende stier for health, readiness og metrics fra nåværende manifester.
@@ -25,9 +24,9 @@ apiVersion: nais.io/v1alpha1
 kind: Application
 metadata:
   name: {app-name}
-  namespace: team-esyfo
+  namespace: {team-namespace}  # Read from existing manifest
   labels:
-    team: team-esyfo
+    team: {team-namespace}
 spec:
   image: {{ image }}
   port: 8080  # Check existing manifests — varies per repo (for example 3000 for frontend)
