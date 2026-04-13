@@ -1,8 +1,8 @@
 ---
-description: Dockerfile-standarder for Nav — Chainguard base images, multi-stage builds og sikkerhet
+description: "Dockerfile-standarder for Nav — Chainguard base images, multi-stage builds og sikkerhet"
+applyTo: "**/Dockerfile*, **/.dockerignore"
 ---
-<!-- Managed by esyfo-cli. Do not edit manually. Changes will be overwritten.
-     For repo-specific customizations, create your own files without this header. -->
+
 # Docker — Nav
 
 Standarder for Dockerfile i Nav: Chainguard base images, multi-stage builds og sikkerhetspraksis.
@@ -176,19 +176,19 @@ jobs:
 
 ## Grenser
 
-### ✅ Alltid
+### Alltid
 - Chainguard base images fra Navs registry (JVM/Node/Python) eller `cgr.dev` (Go/nginx)
 - Multi-stage builds
 - `.dockerignore`-fil
 - Kopier avhengigheter separat for layer caching
 - `nais/docker-build-push` for CI
 
-### ⚠️ Spør først
+### Spør først
 - Custom base images
 - `--privileged` eller ekstra Linux capabilities
 - Mounting secrets i build
 
-### 🚫 Aldri
+### Aldri
 - `COPY . .` i final stage
 - Root-bruker i produksjon
 - Secrets i Dockerfile (`ENV SECRET=...`, `ARG PASSWORD=...`)
