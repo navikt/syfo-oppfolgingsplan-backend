@@ -38,7 +38,7 @@ class AaregService(
 
         return matchendeDetaljer.firstOrNull()?.let { detalj ->
             Stillingsinformasjon(
-                stillingstittel = detalj.yrke?.beskrivelse,
+                stillingstittel = detalj.yrke?.beskrivelse?.takeIf { it.isNotBlank() },
                 stillingsprosent = detalj.avtaltStillingsprosent,
             )
         }

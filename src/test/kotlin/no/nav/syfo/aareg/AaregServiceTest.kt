@@ -70,6 +70,35 @@ class AaregServiceTest :
                 service.getStillingsinformasjon("12345678901", "999999999").shouldBeNull()
             }
 
+            it("returns null stillingstittel when yrke beskrivelse is blank") {
+                coEvery { aaregClient.getArbeidsforhold("12345678901") } returns listOf(
+                    Arbeidsforhold(
+                        arbeidssted = Arbeidssted(
+                            identer = listOf(
+                                Ident(type = "ORGANISASJONSNUMMER", ident = "999999999"),
+                            ),
+                        ),
+                        ansettelsesperiode = Ansettelsesperiode(sluttdato = null),
+                        ansettelsesdetaljer = listOf(
+                            Ansettelsesdetaljer(
+                                rapporteringsmaaneder = Rapporteringsperiode(
+                                    fra = YearMonth.of(2020, 1),
+                                    til = null,
+                                ),
+                                yrke = Kodeverksentitet(beskrivelse = "   "),
+                                avtaltStillingsprosent = BigDecimal("80.50"),
+                            ),
+                        ),
+                    ),
+                )
+
+                val result = service.getStillingsinformasjon("12345678901", "999999999")
+
+                result shouldNotBe null
+                result?.stillingstittel.shouldBeNull()
+                result?.stillingsprosent shouldBe BigDecimal("80.50")
+            }
+
             it("uses first match when multiple active arbeidsforhold match virksomhetsnummer") {
                 coEvery { aaregClient.getArbeidsforhold("12345678901") } returns listOf(
                     Arbeidsforhold(
