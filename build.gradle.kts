@@ -48,7 +48,7 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-apache5-jvm")
     implementation("io.ktor:ktor-serialization-jackson")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.1")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.2")
     implementation("io.insert-koin:koin-ktor:$koinVersion")
     implementation("io.insert-koin:koin-logger-slf4j:$koinVersion")
     implementation("io.ktor:ktor-server-netty")
