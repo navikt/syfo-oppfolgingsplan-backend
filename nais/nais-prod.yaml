@@ -81,7 +81,7 @@ spec:
       external:
         - host: dokarkiv.prod-fss-pub.nais.io
         - host: pdl-api.prod-fss-pub.nais.io
-        - host: aareg-services-nais.prod-fss-pub.nais.io
+        - host: aareg-services.prod-fss-pub.nais.io
   kafka:
     pool: nav-prod
   valkey:
@@ -111,7 +111,7 @@ spec:
     - name: PDL_SCOPE
       value: prod-fss.pdl.pdl-api
     - name: AAREG_BASE_URL
-      value: https://aareg-services-nais.prod-fss-pub.nais.io
+      value: https://aareg-services.prod-fss-pub.nais.io
     - name: AAREG_SCOPE
       value: prod-fss.arbeidsforhold.aareg-services-nais
     - name: SYFOMODIAPERSON_CLIENT_ID
