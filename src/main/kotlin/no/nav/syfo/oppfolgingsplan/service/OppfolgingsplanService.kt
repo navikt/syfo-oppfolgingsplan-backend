@@ -1,5 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.service
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.syfo.aareg.AaregService
@@ -65,6 +66,8 @@ class OppfolgingsplanService(
                 fnr = sykmeldt.fnr,
                 virksomhetsnummer = sykmeldt.orgnummer,
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             logger.warn(
                 "Kunne ikke hente stillingsinformasjon fra Aareg",
@@ -87,6 +90,8 @@ class OppfolgingsplanService(
             withContext(Dispatchers.IO) {
                 produceOppfolgingsplanCreatedVarsel(sykmeldt)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             logger.error("Error when producing kafka message", e)
         }

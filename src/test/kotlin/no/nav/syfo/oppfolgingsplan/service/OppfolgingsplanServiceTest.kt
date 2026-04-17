@@ -1,5 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.service
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
@@ -7,6 +8,7 @@ import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import no.nav.syfo.TestDB
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.aareg.Stillingsinformasjon
@@ -154,6 +156,27 @@ class OppfolgingsplanServiceTest :
                     val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
                     persisted.stillingstittel.shouldBeNull()
                     persisted.stillingsprosent.shouldBeNull()
+                }
+
+                it("should rethrow cancellation exception from aareg") {
+                    val aaregService = mockk<AaregService>()
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        aaregService = aaregService,
+                    )
+                    coEvery {
+                        aaregService.getStillingsinformasjon("12345678901", "orgnummer")
+                    } throws CancellationException("cancelled")
+
+                    shouldThrow<CancellationException> {
+                        service.createOppfolgingsplan(
+                            narmesteLederFnr = "10987654321",
+                            sykmeldt = defaultSykmeldt(),
+                            createOppfolgingsplanRequest = defaultOppfolgingsplan(),
+                        )
+                    }
                 }
             }
         }

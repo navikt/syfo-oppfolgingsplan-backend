@@ -17,6 +17,8 @@ import io.mockk.mockk
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasResponse
 import no.nav.syfo.util.httpClientDefault
+import java.time.LocalDate
+import java.time.YearMonth
 
 class AaregClientTest :
     DescribeSpec({
@@ -69,12 +71,13 @@ class AaregClientTest :
                                           ]
                                         },
                                         "ansettelsesperiode": {
+                                          "startdato": "2014-01-01",
                                           "sluttdato": null
                                         },
                                         "ansettelsesdetaljer": [
                                           {
                                             "rapporteringsmaaneder": {
-                                              "fra": "2024-01-01",
+                                              "fra": "2024-01",
                                               "til": null
                                             },
                                             "yrke": {
@@ -102,6 +105,8 @@ class AaregClientTest :
 
                 arbeidsforhold.shouldHaveSize(1)
                 arbeidsforhold.first().arbeidssted.identer.first().ident shouldBe "999999999"
+                arbeidsforhold.first().ansettelsesperiode.startdato shouldBe LocalDate.parse("2014-01-01")
+                arbeidsforhold.first().ansettelsesdetaljer.first().rapporteringsmaaneder.fra shouldBe YearMonth.of(2024, 1)
                 arbeidsforhold.first().ansettelsesdetaljer.first().yrke?.beskrivelse shouldBe "Systemutvikler"
                 arbeidsforhold.first().ansettelsesdetaljer.first().avtaltStillingsprosent.toString() shouldBe "100.00"
                 coVerify(exactly = 1) {

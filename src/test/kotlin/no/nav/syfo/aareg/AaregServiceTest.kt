@@ -8,6 +8,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import no.nav.syfo.aareg.client.IAaregClient
 import java.math.BigDecimal
+import java.time.YearMonth
 
 class AaregServiceTest :
     DescribeSpec({
@@ -23,10 +24,13 @@ class AaregServiceTest :
                                 Ident(type = "ORGANISASJONSNUMMER", ident = "999999999"),
                             ),
                         ),
-                        ansettelsesperiode = Periode(sluttdato = null),
+                        ansettelsesperiode = Ansettelsesperiode(sluttdato = null),
                         ansettelsesdetaljer = listOf(
                             Ansettelsesdetaljer(
-                                rapporteringsmaaneder = Periode(til = null),
+                                rapporteringsmaaneder = Rapporteringsperiode(
+                                    fra = YearMonth.of(2020, 1),
+                                    til = null,
+                                ),
                                 yrke = Kodeverksentitet(beskrivelse = "Systemutvikler"),
                                 avtaltStillingsprosent = BigDecimal("80.50"),
                             ),
@@ -49,10 +53,13 @@ class AaregServiceTest :
                                 Ident(type = "ORGANISASJONSNUMMER", ident = "111111111"),
                             ),
                         ),
-                        ansettelsesperiode = Periode(sluttdato = null),
+                        ansettelsesperiode = Ansettelsesperiode(sluttdato = null),
                         ansettelsesdetaljer = listOf(
                             Ansettelsesdetaljer(
-                                rapporteringsmaaneder = Periode(til = null),
+                                rapporteringsmaaneder = Rapporteringsperiode(
+                                    fra = YearMonth.of(2020, 1),
+                                    til = null,
+                                ),
                                 yrke = Kodeverksentitet(beskrivelse = "Sykepleier"),
                                 avtaltStillingsprosent = BigDecimal("50.00"),
                             ),
@@ -71,10 +78,13 @@ class AaregServiceTest :
                                 Ident(type = "ORGANISASJONSNUMMER", ident = "999999999"),
                             ),
                         ),
-                        ansettelsesperiode = Periode(sluttdato = null),
+                        ansettelsesperiode = Ansettelsesperiode(sluttdato = null),
                         ansettelsesdetaljer = listOf(
                             Ansettelsesdetaljer(
-                                rapporteringsmaaneder = Periode(til = null),
+                                rapporteringsmaaneder = Rapporteringsperiode(
+                                    fra = YearMonth.of(2020, 1),
+                                    til = null,
+                                ),
                                 yrke = Kodeverksentitet(beskrivelse = "Første stilling"),
                                 avtaltStillingsprosent = BigDecimal("100.00"),
                             ),
@@ -86,10 +96,13 @@ class AaregServiceTest :
                                 Ident(type = "ORGANISASJONSNUMMER", ident = "999999999"),
                             ),
                         ),
-                        ansettelsesperiode = Periode(sluttdato = null),
+                        ansettelsesperiode = Ansettelsesperiode(sluttdato = null),
                         ansettelsesdetaljer = listOf(
                             Ansettelsesdetaljer(
-                                rapporteringsmaaneder = Periode(til = null),
+                                rapporteringsmaaneder = Rapporteringsperiode(
+                                    fra = YearMonth.of(2020, 2),
+                                    til = null,
+                                ),
                                 yrke = Kodeverksentitet(beskrivelse = "Andre stilling"),
                                 avtaltStillingsprosent = BigDecimal("20.00"),
                             ),
