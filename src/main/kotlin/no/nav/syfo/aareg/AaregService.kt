@@ -32,7 +32,7 @@ class AaregService(
 
         if (matchendeArbeidsforhold.size > 1) {
             logger.warn(
-                "Fant flere matchende arbeidsforhold i Aareg for virksomhetsnummer $virksomhetsnummer, bruker første treff",
+                "Fant flere matchende arbeidsforhold i Aareg, bruker første treff",
             )
         }
 

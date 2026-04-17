@@ -67,7 +67,7 @@ class OppfolgingsplanService(
             )
         } catch (e: Exception) {
             logger.warn(
-                "Kunne ikke hente stillingsinformasjon fra Aareg for virksomhetsnummer ${sykmeldt.orgnummer}",
+                "Kunne ikke hente stillingsinformasjon fra Aareg",
                 e,
             )
             null
