@@ -7,6 +7,7 @@ import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponseData
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -20,6 +21,8 @@ data class PersistedOppfolgingsplan(
     val narmesteLederFullName: String?,
     val organisasjonsnummer: String,
     val organisasjonsnavn: String?,
+    val stillingstittel: String? = null,
+    val stillingsprosent: BigDecimal? = null,
     val content: FormSnapshot,
     val evalueringsdato: LocalDate,
     val skalDelesMedLege: Boolean,
@@ -38,6 +41,8 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanMetadata(): OppfolgingsplanMetadat
     deltMedLegeTidspunkt = deltMedLegeTidspunkt,
     deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
     ferdigstiltTidspunkt = createdAt,
+    stillingstittel = stillingstittel,
+    stillingsprosent = stillingsprosent,
     organization = OrganizationDetails(
         orgNumber = organisasjonsnummer,
         orgName = organisasjonsnavn,
@@ -61,6 +66,8 @@ fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanRe
         deltMedLegeTidspunkt = deltMedLegeTidspunkt,
         deltMedVeilederTidspunkt = deltMedVeilederTidspunkt,
         ferdigstiltTidspunkt = createdAt,
+        stillingstittel = stillingstittel,
+        stillingsprosent = stillingsprosent,
     ),
 )
 

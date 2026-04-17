@@ -107,12 +107,16 @@ fun DatabaseInterface.persistOppfolgingsplan(
             narmeste_leder_id,
             narmeste_leder_fnr,
             organisasjonsnummer,
+            organisasjonsnavn,
+            narmeste_leder_full_name,
+            stillingstittel,
+            stillingsprosent,
             content,
             evalueringsdato,
             skal_deles_med_lege,
             skal_deles_med_veileder,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         RETURNING uuid
     """.trimIndent()
 
@@ -123,10 +127,14 @@ fun DatabaseInterface.persistOppfolgingsplan(
             it.setString(3, persistedOppfolgingsplan.narmesteLederId)
             it.setString(4, persistedOppfolgingsplan.narmesteLederFnr)
             it.setString(5, persistedOppfolgingsplan.organisasjonsnummer)
-            it.setObject(6, persistedOppfolgingsplan.content.toJsonString(), Types.OTHER)
-            it.setDate(7, Date.valueOf(persistedOppfolgingsplan.evalueringsdato.toString()))
-            it.setBoolean(8, persistedOppfolgingsplan.skalDelesMedLege)
-            it.setBoolean(9, persistedOppfolgingsplan.skalDelesMedVeileder)
+            it.setString(6, persistedOppfolgingsplan.organisasjonsnavn)
+            it.setString(7, persistedOppfolgingsplan.narmesteLederFullName)
+            it.setString(8, persistedOppfolgingsplan.stillingstittel)
+            it.setBigDecimal(9, persistedOppfolgingsplan.stillingsprosent)
+            it.setObject(10, persistedOppfolgingsplan.content.toJsonString(), Types.OTHER)
+            it.setDate(11, Date.valueOf(persistedOppfolgingsplan.evalueringsdato.toString()))
+            it.setBoolean(12, persistedOppfolgingsplan.skalDelesMedLege)
+            it.setBoolean(13, persistedOppfolgingsplan.skalDelesMedVeileder)
             val resultSet = it.executeQuery()
             connection.commit()
             resultSet.next()

@@ -26,6 +26,7 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.texas.client.TexasResponse
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -60,6 +61,8 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     narmesteLederFullName = "Narmesteleder",
     organisasjonsnummer = "orgnummer",
     organisasjonsnavn = "Test AS",
+    stillingstittel = "Systemutvikler",
+    stillingsprosent = BigDecimal("100.00"),
     content = defaultFormSnapshot(),
     skalDelesMedLege = false,
     skalDelesMedVeileder = false,

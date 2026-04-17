@@ -12,6 +12,8 @@ data class Oppfolgingsplan(
     val sykmeldtFnr: String,
     val organisasjonsnavn: String,
     val organisasjonsnummer: String,
+    val stillingstittel: String? = null,
+    val stillingsprosent: String? = null,
     val narmesteLederName: String,
     val sections: List<Section>,
 )
