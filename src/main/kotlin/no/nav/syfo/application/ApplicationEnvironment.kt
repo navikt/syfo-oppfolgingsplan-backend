@@ -19,6 +19,8 @@ interface Environment {
     val pdfGenUrl: String
     val isDialogmeldingBaseUrl: String
     val isTilgangskontrollBaseUrl: String
+    val aaregBaseUrl: String
+    val aaregScope: String
     val pdlBaseUrl: String
     val pdlScope: String
     val kafka: KafkaEnv
@@ -61,6 +63,8 @@ data class NaisEnvironment(
     override val dokumentportenScope: String = getEnvVar("DOKUMENTPORTEN_SCOPE"),
     override val isDialogmeldingBaseUrl: String = getEnvVar("ISDIALOGMELDING_BASE_URL"),
     override val isTilgangskontrollBaseUrl: String = getEnvVar("ISTILGANGSKONTROLL_URL"),
+    override val aaregBaseUrl: String = getEnvVar("AAREG_BASE_URL"),
+    override val aaregScope: String = getEnvVar("AAREG_SCOPE"),
     override val pdlBaseUrl: String = getEnvVar("PDL_BASE_URL"),
     override val pdlScope: String = getEnvVar("PDL_SCOPE"),
     override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars(),
@@ -109,6 +113,8 @@ data class LocalEnvironment(
     override val dokumentportenScope: String = "dokumentporten",
     override val isDialogmeldingBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val isTilgangskontrollBaseUrl: String = "https://istilgangskontroll.intern.dev.nav.no",
+    override val aaregBaseUrl: String = "https://aareg-services-nais-q2.dev-fss-pub.nais.io",
+    override val aaregScope: String = "dev-fss.arbeidsforhold.aareg-services-nais",
     override val pdfGenUrl: String = "http://localhost:9091",
     override val pdlBaseUrl: String = "https://pdl-api.dev.intern.nav.no",
     override val pdlScope: String = "pdl",

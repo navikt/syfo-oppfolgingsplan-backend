@@ -27,6 +27,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.syfo.TestDB
+import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.LocalEnvironment
 import no.nav.syfo.application.valkey.ValkeyCache
@@ -101,6 +102,7 @@ class VeilederOppfolgingsplanApiV1Test :
                                 database = testDb,
                                 esyfovarselProducer = esyfovarselProducerMock,
                                 pdlService = mockk(relaxed = true),
+                                aaregService = mockk<AaregService>(relaxed = true),
                             ),
                             pdfGenService = pdfGenService,
                             isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),

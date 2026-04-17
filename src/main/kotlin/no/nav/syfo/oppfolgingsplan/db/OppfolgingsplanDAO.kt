@@ -8,6 +8,7 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
+import java.math.BigDecimal
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Timestamp
@@ -20,6 +21,8 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr: String,
     sykmeldt: Sykmeldt,
     createOppfolgingsplanRequest: CreateOppfolgingsplanRequest,
+    stillingstittel: String?,
+    stillingsprosent: BigDecimal?,
 ): UUID {
     val insertStatement = """
         INSERT INTO oppfolgingsplan (
@@ -29,13 +32,15 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             narmeste_leder_fnr,
             organisasjonsnummer,
             organisasjonsnavn,
+            stillingstittel,
+            stillingsprosent,
             content,
             evalueringsdato,
             skal_deles_med_lege,
             skal_deles_med_veileder,
             utkast_created_at,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         RETURNING uuid
     """.trimIndent()
 
@@ -63,14 +68,16 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.setString(4, narmesteLederFnr)
             it.setString(5, sykmeldt.orgnummer)
             it.setString(6, sykmeldt.getOrganizationName())
-            it.setObject(7, createOppfolgingsplanRequest.content.toJsonString(), Types.OTHER)
-            it.setDate(8, Date.valueOf(createOppfolgingsplanRequest.evalueringsdato.toString()))
-            it.setBoolean(9, false)
-            it.setBoolean(10, false)
+            it.setString(7, stillingstittel)
+            it.setBigDecimal(8, stillingsprosent)
+            it.setObject(9, createOppfolgingsplanRequest.content.toJsonString(), Types.OTHER)
+            it.setDate(10, Date.valueOf(createOppfolgingsplanRequest.evalueringsdato.toString()))
+            it.setBoolean(11, false)
+            it.setBoolean(12, false)
             if (utkastCreatedAt != null) {
-                it.setTimestamp(11, Timestamp.from(utkastCreatedAt))
+                it.setTimestamp(13, Timestamp.from(utkastCreatedAt))
             } else {
-                it.setNull(11, Types.TIMESTAMP)
+                it.setNull(13, Types.TIMESTAMP)
             }
             val resultSet = it.executeQuery()
             resultSet.next()
@@ -350,6 +357,8 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfol
     narmesteLederFullName = this.getString("narmeste_leder_full_name"),
     organisasjonsnummer = this.getString("organisasjonsnummer"),
     organisasjonsnavn = this.getString("organisasjonsnavn"),
+    stillingstittel = this.getString("stillingstittel"),
+    stillingsprosent = this.getBigDecimal("stillingsprosent"),
     content = FormSnapshot.jsonToFormSnapshot(getString("content")),
     evalueringsdato = LocalDate.parse(this.getString("evalueringsdato")),
     skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),

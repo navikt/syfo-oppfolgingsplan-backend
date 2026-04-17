@@ -25,6 +25,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.syfo.TestDB
+import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.LocalEnvironment
 import no.nav.syfo.application.valkey.ValkeyCache
@@ -72,6 +73,7 @@ class OppfolgingsplanApiV1Test :
         val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
         val pdlServiceMock = mockk<PdlService>(relaxed = true)
         val environment: Environment = LocalEnvironment()
+        val aaregServiceMock = mockk<AaregService>(relaxed = true)
 
         beforeTest {
             clearAllMocks()
@@ -104,6 +106,7 @@ class OppfolgingsplanApiV1Test :
                                 database = testDb,
                                 esyfovarselProducer = esyfovarselProducerMock,
                                 pdlService = pdlServiceMock,
+                                aaregService = aaregServiceMock,
                             ),
                             pdfGenService = pdfGenService,
                             isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),

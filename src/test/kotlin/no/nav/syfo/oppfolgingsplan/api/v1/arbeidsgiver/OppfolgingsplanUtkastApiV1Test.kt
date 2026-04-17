@@ -26,6 +26,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.syfo.TestDB
+import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.LocalEnvironment
 import no.nav.syfo.application.valkey.ValkeyCache
@@ -73,6 +74,7 @@ class OppfolgingsplanUtkastApiV1Test :
             database = testDb,
             esyfovarselProducer = esyfovarselProducerMock,
             pdlService = pdlService,
+            aaregService = mockk<AaregService>(relaxed = true),
         )
         val narmestelederId = UUID.randomUUID().toString()
         val pidInnlogetBruker = "10987654321"

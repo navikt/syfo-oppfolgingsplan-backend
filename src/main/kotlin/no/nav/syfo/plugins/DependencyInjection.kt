@@ -2,6 +2,10 @@ package no.nav.syfo.plugins
 
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import no.nav.syfo.aareg.AaregService
+import no.nav.syfo.aareg.client.AaregClient
+import no.nav.syfo.aareg.client.FakeAaregClient
+import no.nav.syfo.aareg.client.IAaregClient
 import no.nav.syfo.application.ApplicationState
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.LocalEnvironment
@@ -78,6 +82,18 @@ private fun clientsModule() = module {
     single { httpClientDefault() }
     single { PdfGenClient(get(), env().pdfGenUrl) }
     single { TexasHttpClient(get(), env().texas) }
+    single<IAaregClient> {
+        if (isLocalEnv()) {
+            FakeAaregClient()
+        } else {
+            AaregClient(
+                httpClient = get(),
+                aaregBaseUrl = env().aaregBaseUrl,
+                texasHttpClient = get(),
+                scope = env().aaregScope,
+            )
+        }
+    }
     single {
         if (isLocalEnv()) {
             FakeDokarkivClient()
@@ -182,7 +198,8 @@ private fun servicesModule() = module {
     single { IsTilgangskontrollService(get()) }
     single { LeaderElection(get(), env().electorPath) }
     single { PdlService(get()) }
-    single { OppfolgingsplanService(database = get(), esyfovarselProducer = get(), get()) }
+    single { AaregService(get()) }
+    single { OppfolgingsplanService(database = get(), esyfovarselProducer = get(), pdlService = get(), aaregService = get()) }
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
 }

@@ -2,6 +2,7 @@ package no.nav.syfo.oppfolgingsplan.dto
 
 import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
@@ -22,6 +23,8 @@ data class OppfolgingsplanMetadata(
     val deltMedLegeTidspunkt: Instant? = null,
     val deltMedVeilederTidspunkt: Instant? = null,
     val ferdigstiltTidspunkt: Instant,
+    val stillingstittel: String? = null,
+    val stillingsprosent: BigDecimal? = null,
     val organization: OrganizationDetails,
 )
 

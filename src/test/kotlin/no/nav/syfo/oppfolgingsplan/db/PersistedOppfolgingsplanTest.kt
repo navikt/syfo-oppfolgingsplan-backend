@@ -58,6 +58,8 @@ class PersistedOppfolgingsplanTest :
                 pdf.oppfolgingsplan.sykmeldtFnr shouldBe plan.sykmeldtFnr
                 pdf.oppfolgingsplan.organisasjonsnavn shouldBe plan.organisasjonsnavn
                 pdf.oppfolgingsplan.organisasjonsnummer shouldBe plan.organisasjonsnummer
+                pdf.oppfolgingsplan.stillingstittel shouldBe plan.stillingstittel
+                pdf.oppfolgingsplan.stillingsprosent shouldBe plan.stillingsprosent?.toPlainString()
                 pdf.oppfolgingsplan.narmesteLederName shouldBe plan.narmesteLederFullName
 
                 // Sections

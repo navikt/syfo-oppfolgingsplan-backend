@@ -1,7 +1,9 @@
 package no.nav.syfo.oppfolgingsplan.service
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.exception.PlanNotFoundException
@@ -50,6 +52,7 @@ class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
     private val pdlService: PdlService,
+    private val aaregService: AaregService,
 ) {
     private val logger = logger()
 
@@ -58,14 +61,37 @@ class OppfolgingsplanService(
         sykmeldt: Sykmeldt,
         createOppfolgingsplanRequest: CreateOppfolgingsplanRequest,
     ): UUID {
+        val stillingsinformasjon = try {
+            aaregService.getStillingsinformasjon(
+                fnr = sykmeldt.fnr,
+                virksomhetsnummer = sykmeldt.orgnummer,
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.warn(
+                "Kunne ikke hente stillingsinformasjon fra Aareg",
+                e,
+            )
+            null
+        }
+
         val uuid = withContext(Dispatchers.IO) {
-            database.persistOppfolgingsplanAndDeleteUtkast(narmesteLederFnr, sykmeldt, createOppfolgingsplanRequest)
+            database.persistOppfolgingsplanAndDeleteUtkast(
+                narmesteLederFnr = narmesteLederFnr,
+                sykmeldt = sykmeldt,
+                createOppfolgingsplanRequest = createOppfolgingsplanRequest,
+                stillingstittel = stillingsinformasjon?.stillingstittel,
+                stillingsprosent = stillingsinformasjon?.stillingsprosent,
+            )
         }
 
         try {
             withContext(Dispatchers.IO) {
                 produceOppfolgingsplanCreatedVarsel(sykmeldt)
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             logger.error("Error when producing kafka message", e)
         }

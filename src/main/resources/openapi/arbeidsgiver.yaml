@@ -611,6 +611,12 @@ components:
         ferdigstiltTidspunkt:
           type: string
           format: date-time
+        stillingstittel:
+          type: string
+          nullable: true
+        stillingsprosent:
+          type: number
+          nullable: true
 
     OppfolgingsplanUtkastResponse:
       type: object
@@ -668,6 +674,12 @@ components:
         ferdigstiltTidspunkt:
           type: string
           format: date-time
+        stillingstittel:
+          type: string
+          nullable: true
+        stillingsprosent:
+          type: number
+          nullable: true
 
     UtkastMetadata:
       type: object

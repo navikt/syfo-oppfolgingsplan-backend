@@ -29,6 +29,8 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import no.nav.syfo.TestDB
+import no.nav.syfo.aareg.AaregService
+import no.nav.syfo.aareg.Stillingsinformasjon
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.LocalEnvironment
 import no.nav.syfo.application.exception.ApiError
@@ -67,6 +69,7 @@ import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
+import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
 
@@ -82,6 +85,7 @@ class OppfolgingsplanApiV1Test :
         val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
         val pdfGenServiceMock = mockk<PdfGenService>()
         val pdlServiceMock = mockk<PdlService>(relaxed = true)
+        val aaregServiceMock = mockk<AaregService>()
 
         val narmestelederId = UUID.randomUUID().toString()
         val pidInnlogetBruker = "10987654321"
@@ -94,11 +98,16 @@ class OppfolgingsplanApiV1Test :
             clearAllMocks()
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
+            coEvery { aaregServiceMock.getStillingsinformasjon(any(), any()) } returns Stillingsinformasjon(
+                stillingstittel = "Systemutvikler",
+                stillingsprosent = BigDecimal("100.00"),
+            )
         }
         val oppfolgingsplanService = OppfolgingsplanService(
             database = testDb,
             esyfovarselProducer = esyfovarselProducerMock,
             pdlService = pdlServiceMock,
+            aaregService = aaregServiceMock,
         )
         val environment: Environment = LocalEnvironment()
 
@@ -288,7 +297,9 @@ class OppfolgingsplanApiV1Test :
 
                     // Assert
                     response.status shouldBe HttpStatusCode.OK
-                    response.body<OppfolgingsplanResponse>()
+                    val oppfolgingsplanResponse = response.body<OppfolgingsplanResponse>()
+                    oppfolgingsplanResponse.oppfolgingsplan.stillingstittel shouldBe "Systemutvikler"
+                    oppfolgingsplanResponse.oppfolgingsplan.stillingsprosent shouldBe BigDecimal("100.00")
                 }
             }
 
@@ -373,6 +384,8 @@ class OppfolgingsplanApiV1Test :
                     response.status shouldBe HttpStatusCode.OK
                     val overview = response.body<ArbeidsgiverOppfolgingsplanOverviewResponse>().oversikt
                     overview.aktivPlan?.id shouldBe latestPlanUUID
+                    overview.aktivPlan?.stillingstittel shouldBe "Systemutvikler"
+                    overview.aktivPlan?.stillingsprosent shouldBe BigDecimal("100.00")
                     overview.tidligerePlaner.size shouldBe 1
                     overview.tidligerePlaner.first().id shouldBe firstPlanUUID
                 }
@@ -410,6 +423,8 @@ class OppfolgingsplanApiV1Test :
                     persisted.first().evalueringsdato.toString() shouldBe oppfolgingsplan.evalueringsdato.toString()
                     persisted.first().sykmeldtFullName shouldBe "Navn Sykmeldt"
                     persisted.first().organisasjonsnavn shouldBe "Test AS"
+                    persisted.first().stillingstittel shouldBe "Systemutvikler"
+                    persisted.first().stillingsprosent shouldBe BigDecimal("100.00")
                     verify(exactly = 1) {
                         esyfovarselProducerMock.sendVarselToEsyfovarsel(
                             withArg {
@@ -455,6 +470,8 @@ class OppfolgingsplanApiV1Test :
                     val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
                     persistedOppfolgingsplaner.size shouldBe 1
                     persistedOppfolgingsplaner.first().utkastCreatedAt shouldBe existingUtkast?.createdAt
+                    persistedOppfolgingsplaner.first().stillingstittel shouldBe "Systemutvikler"
+                    persistedOppfolgingsplaner.first().stillingsprosent shouldBe BigDecimal("100.00")
 
                     val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
                     persistedUtkast shouldBe null
@@ -513,6 +530,36 @@ class OppfolgingsplanApiV1Test :
                         },
                     )
                 }
+            }
+        }
+        it("POST /oppfolgingsplaner should persist null stillingssnapshot when aareg fails") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                coEvery {
+                    aaregServiceMock.getStillingsinformasjon("12345678901", "orgnummer")
+                } throws RuntimeException("boom")
+                coEvery {
+                    esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
+                } returns Unit
+
+                // Act
+                val response = client.post {
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
+                    bearerAuth("Bearer token")
+                    contentType(ContentType.Application.Json)
+                    setBody(defaultOppfolgingsplan())
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.Created
+                val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
+                persistedOppfolgingsplaner.size shouldBe 1
+                persistedOppfolgingsplaner.first().stillingstittel shouldBe null
+                persistedOppfolgingsplaner.first().stillingsprosent shouldBe null
             }
         }
         it("POST /oppfolgingsplaner/{uuid}/del-med-lege should respond with NotFound if plan does not exist") {

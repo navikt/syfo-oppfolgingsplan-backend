@@ -1,16 +1,24 @@
 package no.nav.syfo.oppfolgingsplan.service
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import no.nav.syfo.TestDB
+import no.nav.syfo.aareg.AaregService
+import no.nav.syfo.aareg.Stillingsinformasjon
+import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
+import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.varsel.EsyfovarselProducer
+import java.math.BigDecimal
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -51,6 +59,7 @@ class OppfolgingsplanServiceTest :
                         database = TestDB.database,
                         pdlService = pdlServive,
                         esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
+                        aaregService = mockk(relaxed = true),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
                     val plan = defaultPersistedOppfolgingsplan().copy(
@@ -78,6 +87,7 @@ class OppfolgingsplanServiceTest :
                         database = TestDB.database,
                         pdlService = pdlServive,
                         esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
+                        aaregService = mockk(relaxed = true),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
                     val plan = defaultPersistedOppfolgingsplan()
@@ -91,6 +101,82 @@ class OppfolgingsplanServiceTest :
                     // Assert
                     result.narmesteLederFullName shouldBe plan.narmesteLederFullName
                     coVerify(exactly = 0) { pdlServive.getNameFor(any()) }
+                }
+            }
+            describe("createOppfolgingsplan") {
+                afterTest {
+                    TestDB.clearAllData()
+                    clearAllMocks()
+                }
+
+                it("should persist stillingssnapshot from aareg") {
+                    val aaregService = mockk<AaregService>()
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        aaregService = aaregService,
+                    )
+                    coEvery {
+                        aaregService.getStillingsinformasjon("12345678901", "orgnummer")
+                    } returns Stillingsinformasjon(
+                        stillingstittel = "Systemutvikler",
+                        stillingsprosent = BigDecimal("80.50"),
+                    )
+
+                    val uuid = service.createOppfolgingsplan(
+                        narmesteLederFnr = "10987654321",
+                        sykmeldt = defaultSykmeldt(),
+                        createOppfolgingsplanRequest = defaultOppfolgingsplan(),
+                    )
+
+                    val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
+                    persisted.stillingstittel shouldBe "Systemutvikler"
+                    persisted.stillingsprosent shouldBe BigDecimal("80.50")
+                }
+
+                it("should persist null stillingssnapshot when aareg fails") {
+                    val aaregService = mockk<AaregService>()
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        aaregService = aaregService,
+                    )
+                    coEvery {
+                        aaregService.getStillingsinformasjon("12345678901", "orgnummer")
+                    } throws RuntimeException("boom")
+
+                    val uuid = service.createOppfolgingsplan(
+                        narmesteLederFnr = "10987654321",
+                        sykmeldt = defaultSykmeldt(),
+                        createOppfolgingsplanRequest = defaultOppfolgingsplan(),
+                    )
+
+                    val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
+                    persisted.stillingstittel.shouldBeNull()
+                    persisted.stillingsprosent.shouldBeNull()
+                }
+
+                it("should rethrow cancellation exception from aareg") {
+                    val aaregService = mockk<AaregService>()
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        aaregService = aaregService,
+                    )
+                    coEvery {
+                        aaregService.getStillingsinformasjon("12345678901", "orgnummer")
+                    } throws CancellationException("cancelled")
+
+                    shouldThrow<CancellationException> {
+                        service.createOppfolgingsplan(
+                            narmesteLederFnr = "10987654321",
+                            sykmeldt = defaultSykmeldt(),
+                            createOppfolgingsplanRequest = defaultOppfolgingsplan(),
+                        )
+                    }
                 }
             }
         }

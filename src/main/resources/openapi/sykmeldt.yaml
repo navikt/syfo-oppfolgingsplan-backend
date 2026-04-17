@@ -298,6 +298,12 @@ components:
         ferdigstiltTidspunkt:
           type: string
           format: date-time
+        stillingstittel:
+          type: string
+          nullable: true
+        stillingsprosent:
+          type: number
+          nullable: true
 
     OppfolgingsplanMetadata:
       type: object
@@ -323,6 +329,12 @@ components:
         ferdigstiltTidspunkt:
           type: string
           format: date-time
+        stillingstittel:
+          type: string
+          nullable: true
+        stillingsprosent:
+          type: number
+          nullable: true
 
     OrganizationDetails:
       type: object

@@ -8,6 +8,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.spyk
 import no.nav.syfo.TestDB
+import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.dokumentporten.client.FakeDokumentportenClient
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
@@ -29,6 +30,7 @@ class DokumentportenServiceTest :
             database = testDb,
             pdlService = mockk<PdlService>(relaxed = true),
             esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
+            aaregService = mockk<AaregService>(relaxed = true),
         )
 
         beforeTest {

@@ -49,6 +49,8 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanPdfV1(): OppfolgingsplanPdfV1 {
             // dine-sykmeldte-backend even though all rows in the database currently have a value
             organisasjonsnavn = this.organisasjonsnavn ?: throw RuntimeException("Organisasjonsnavn is null"),
             organisasjonsnummer = this.organisasjonsnummer,
+            stillingstittel = this.stillingstittel,
+            stillingsprosent = this.stillingsprosent?.toPlainString(),
             narmesteLederName = this.narmesteLederFullName ?: throw RuntimeException("NarmesteLederName is null"),
             sections = content.sections.map { section ->
                 Section(

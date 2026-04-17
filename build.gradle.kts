@@ -88,6 +88,7 @@ dependencies {
     testImplementation("io.insert-koin:koin-test:$koinVersion")
     testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
     testImplementation("io.kotest.extensions:kotest-extensions-koin:1.3.0")
+    testImplementation("org.wiremock:wiremock:3.13.1")
     testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
     testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
 }
