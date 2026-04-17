@@ -14,7 +14,7 @@ class AaregService(
     ): Stillingsinformasjon? {
         val arbeidsforhold = aaregClient.getArbeidsforhold(fnr)
 
-        val matchendeArbeidsforhold = arbeidsforhold
+        val matchendeDetaljer = arbeidsforhold
             .asSequence()
             .filter { arbeidsforhold ->
                 arbeidsforhold.arbeidssted.identer.any { ident ->
@@ -30,13 +30,13 @@ class AaregService(
             }
             .toList()
 
-        if (matchendeArbeidsforhold.size > 1) {
+        if (matchendeDetaljer.size > 1) {
             logger.warn(
-                "Fant flere matchende arbeidsforhold i Aareg, bruker første treff",
+                "Fant flere matchende ansettelsesdetaljer i Aareg, bruker første treff",
             )
         }
 
-        return matchendeArbeidsforhold.firstOrNull()?.let { detalj ->
+        return matchendeDetaljer.firstOrNull()?.let { detalj ->
             Stillingsinformasjon(
                 stillingstittel = detalj.yrke?.beskrivelse,
                 stillingsprosent = detalj.avtaltStillingsprosent,
