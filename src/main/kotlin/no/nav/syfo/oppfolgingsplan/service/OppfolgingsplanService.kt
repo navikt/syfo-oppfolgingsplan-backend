@@ -11,7 +11,6 @@ import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkastUpdatedBefore
 import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
@@ -42,6 +41,7 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 
 const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
@@ -138,20 +138,25 @@ class OppfolgingsplanService(
     suspend fun deleteExpiredOppfolgingsplanUtkast(
         retentionMonths: Int = OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS,
         batchSize: Int = DEFAULT_UTKAST_CLEANUP_BATCH_SIZE,
-        updatedBefore: Instant? = null,
+    ): Int = deleteExpiredOppfolgingsplanUtkast(
+        retentionCutoff = Instant.now()
+            .atZone(ZoneOffset.UTC)
+            .minusMonths(retentionMonths.toLong())
+            .toInstant(),
+        batchSize = batchSize,
+    )
+
+    internal suspend fun deleteExpiredOppfolgingsplanUtkast(
+        retentionCutoff: Instant,
+        batchSize: Int,
     ): Int = withContext(Dispatchers.IO) {
         var totalDeleted = 0
         try {
             var deletedInBatch: Int
 
             do {
-                deletedInBatch = updatedBefore?.let {
-                    database.deleteExpiredOppfolgingsplanUtkastUpdatedBefore(
-                        updatedBefore = it,
-                        limit = batchSize,
-                    )
-                } ?: database.deleteExpiredOppfolgingsplanUtkast(
-                    retentionMonths = retentionMonths,
+                deletedInBatch = database.deleteExpiredOppfolgingsplanUtkast(
+                    retentionCutoff = retentionCutoff,
                     limit = batchSize,
                 )
 

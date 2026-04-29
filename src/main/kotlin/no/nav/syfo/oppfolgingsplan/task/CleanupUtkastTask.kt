@@ -20,27 +20,33 @@ class CleanupUtkastTask(
 ) {
     private val logger = logger()
 
+    internal suspend fun runCleanup(): Int = try {
+        if (!leaderElection.isLeader()) {
+            return 0
+        }
+
+        val deletedDrafts = oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(
+            retentionMonths = OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS,
+            batchSize = DEFAULT_UTKAST_CLEANUP_BATCH_SIZE,
+        )
+
+        if (deletedDrafts > 0) {
+            COUNT_OPPFOLGINGSPLAN_DRAFT_AUTO_DELETED.increment(deletedDrafts.toDouble())
+            logger.info("Deleted $deletedDrafts expired oppfolgingsplan drafts")
+        }
+
+        deletedDrafts
+    } catch (exception: CancellationException) {
+        throw exception
+    } catch (exception: Exception) {
+        logger.error("Failed to cleanup expired oppfolgingsplan drafts", exception)
+        0
+    }
+
     suspend fun runTask() = coroutineScope {
         try {
             while (isActive) {
-                try {
-                    if (leaderElection.isLeader()) {
-                        val deletedDrafts = oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(
-                            retentionMonths = OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS,
-                            batchSize = DEFAULT_UTKAST_CLEANUP_BATCH_SIZE,
-                        )
-
-                        if (deletedDrafts > 0) {
-                            COUNT_OPPFOLGINGSPLAN_DRAFT_AUTO_DELETED.increment(deletedDrafts.toDouble())
-                            logger.info("Deleted $deletedDrafts expired oppfolgingsplan drafts")
-                        }
-                    }
-                } catch (exception: CancellationException) {
-                    throw exception
-                } catch (exception: Exception) {
-                    logger.error("Failed to cleanup expired oppfolgingsplan drafts", exception)
-                }
-
+                runCleanup()
                 delay(delayMillis)
             }
         } catch (exception: CancellationException) {

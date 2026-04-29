@@ -225,8 +225,8 @@ class OppfolgingsplanServiceTest :
                     )
 
                     val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast(
+                        retentionCutoff = cutoff,
                         batchSize = 2,
-                        updatedBefore = cutoff,
                     )
 
                     deletedDrafts shouldBe 1
@@ -260,15 +260,15 @@ class OppfolgingsplanServiceTest :
                     }
 
                     val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast(
+                        retentionCutoff = cutoff,
                         batchSize = 2,
-                        updatedBefore = cutoff,
                     )
 
                     deletedDrafts shouldBe 3
                     TestDB.database.countOppfolgingsplanUtkast() shouldBe 0
                 }
 
-                it("should delete expired drafts using retentionMonths SQL path when updatedBefore is null") {
+                it("should calculate retention cutoff from retentionMonths before deleting expired drafts") {
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),

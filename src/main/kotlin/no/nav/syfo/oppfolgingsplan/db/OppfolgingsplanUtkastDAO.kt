@@ -84,38 +84,22 @@ fun DatabaseInterface.deleteOppfolgingsplanUtkast(
 }
 
 fun DatabaseInterface.deleteExpiredOppfolgingsplanUtkast(
-    retentionMonths: Int,
+    retentionCutoff: Instant,
     limit: Int,
 ): Int = executeDeleteExpiredOppfolgingsplanUtkast(
     statement = """
         DELETE FROM oppfolgingsplan_utkast
-        WHERE uuid IN (
-            SELECT uuid FROM oppfolgingsplan_utkast
-            WHERE updated_at < NOW() - make_interval(months => ?)
-            ORDER BY updated_at
-            LIMIT ?
+        WHERE ctid = ANY(
+            ARRAY(
+                SELECT ctid FROM oppfolgingsplan_utkast
+                WHERE updated_at < ?
+                ORDER BY updated_at
+                LIMIT ?
+            )
         )
     """.trimIndent(),
 ) { preparedStatement ->
-    preparedStatement.setInt(1, retentionMonths)
-    preparedStatement.setInt(2, limit)
-}
-
-fun DatabaseInterface.deleteExpiredOppfolgingsplanUtkastUpdatedBefore(
-    updatedBefore: Instant,
-    limit: Int,
-): Int = executeDeleteExpiredOppfolgingsplanUtkast(
-    statement = """
-        DELETE FROM oppfolgingsplan_utkast
-        WHERE uuid IN (
-            SELECT uuid FROM oppfolgingsplan_utkast
-            WHERE updated_at < ?
-            ORDER BY updated_at
-            LIMIT ?
-        )
-    """.trimIndent(),
-) { preparedStatement ->
-    preparedStatement.setTimestamp(1, Timestamp.from(updatedBefore))
+    preparedStatement.setTimestamp(1, Timestamp.from(retentionCutoff))
     preparedStatement.setInt(2, limit)
 }
 
