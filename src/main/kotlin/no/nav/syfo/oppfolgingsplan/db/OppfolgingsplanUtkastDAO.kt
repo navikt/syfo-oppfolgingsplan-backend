@@ -7,6 +7,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.util.configuredJacksonMapper
 import java.sql.ResultSet
+import java.sql.Timestamp
 import java.sql.Types
 import java.time.Instant
 import java.util.UUID
@@ -82,6 +83,42 @@ fun DatabaseInterface.deleteOppfolgingsplanUtkast(
     }
 }
 
+fun DatabaseInterface.deleteExpiredOppfolgingsplanUtkast(
+    retentionMonths: Int,
+    limit: Int,
+): Int = executeDeleteExpiredOppfolgingsplanUtkast(
+    statement = """
+        DELETE FROM oppfolgingsplan_utkast
+        WHERE uuid IN (
+            SELECT uuid FROM oppfolgingsplan_utkast
+            WHERE updated_at < NOW() - make_interval(months => ?)
+            ORDER BY updated_at
+            LIMIT ?
+        )
+    """.trimIndent(),
+) { preparedStatement ->
+    preparedStatement.setInt(1, retentionMonths)
+    preparedStatement.setInt(2, limit)
+}
+
+fun DatabaseInterface.deleteExpiredOppfolgingsplanUtkastUpdatedBefore(
+    updatedBefore: Instant,
+    limit: Int,
+): Int = executeDeleteExpiredOppfolgingsplanUtkast(
+    statement = """
+        DELETE FROM oppfolgingsplan_utkast
+        WHERE uuid IN (
+            SELECT uuid FROM oppfolgingsplan_utkast
+            WHERE updated_at < ?
+            ORDER BY updated_at
+            LIMIT ?
+        )
+    """.trimIndent(),
+) { preparedStatement ->
+    preparedStatement.setTimestamp(1, Timestamp.from(updatedBefore))
+    preparedStatement.setInt(2, limit)
+}
+
 fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     sykmeldtFnr: String,
     organisasjonsnummer: String,
@@ -104,6 +141,20 @@ fun DatabaseInterface.findOppfolgingsplanUtkastBy(
             } else {
                 null
             }
+        }
+    }
+}
+
+private fun DatabaseInterface.executeDeleteExpiredOppfolgingsplanUtkast(
+    statement: String,
+    setParameters: (java.sql.PreparedStatement) -> Unit,
+): Int {
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            setParameters(preparedStatement)
+            val deletedRows = preparedStatement.executeUpdate()
+            connection.commit()
+            return deletedRows
         }
     }
 }

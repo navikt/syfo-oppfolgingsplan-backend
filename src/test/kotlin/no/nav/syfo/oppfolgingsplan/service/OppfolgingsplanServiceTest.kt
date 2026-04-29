@@ -12,14 +12,21 @@ import kotlinx.coroutines.CancellationException
 import no.nav.syfo.TestDB
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.aareg.Stillingsinformasjon
+import no.nav.syfo.countOppfolgingsplanUtkast
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
+import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
+import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
+import no.nav.syfo.persistOppfolgingsplanUtkast
+import no.nav.syfo.setOppfolgingsplanUtkastUpdatedAt
 import no.nav.syfo.varsel.EsyfovarselProducer
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
 class OppfolgingsplanServiceTest :
@@ -177,6 +184,124 @@ class OppfolgingsplanServiceTest :
                             createOppfolgingsplanRequest = defaultOppfolgingsplan(),
                         )
                     }
+                }
+            }
+
+            describe("deleteExpiredOppfolgingsplanUtkast") {
+                afterTest {
+                    TestDB.clearAllData()
+                    clearAllMocks()
+                }
+
+                it("should delete drafts older than four months and keep exact cutoff and newer drafts") {
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        aaregService = mockk(relaxed = true),
+                    )
+                    val referenceTime = ZonedDateTime.of(2025, 8, 15, 12, 0, 0, 0, ZoneOffset.UTC)
+                    val cutoff = referenceTime.minusMonths(4).toInstant()
+
+                    val expiredDraft = defaultPersistedOppfolgingsplanUtkast().copy(
+                        narmesteLederId = "leder-expired",
+                    )
+                    val exactCutoffDraft = defaultPersistedOppfolgingsplanUtkast().copy(
+                        narmesteLederId = "leder-cutoff",
+                    )
+                    val freshDraft = defaultPersistedOppfolgingsplanUtkast().copy(
+                        narmesteLederId = "leder-fresh",
+                    )
+
+                    TestDB.database.persistOppfolgingsplanUtkast(expiredDraft)
+                    TestDB.database.persistOppfolgingsplanUtkast(exactCutoffDraft)
+                    TestDB.database.persistOppfolgingsplanUtkast(freshDraft)
+
+                    TestDB.database.setOppfolgingsplanUtkastUpdatedAt(expiredDraft.uuid, cutoff.minus(1, ChronoUnit.DAYS))
+                    TestDB.database.setOppfolgingsplanUtkastUpdatedAt(exactCutoffDraft.uuid, cutoff)
+                    TestDB.database.setOppfolgingsplanUtkastUpdatedAt(
+                        freshDraft.uuid,
+                        referenceTime.minusMonths(3).minusDays(29).toInstant(),
+                    )
+
+                    val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast(
+                        batchSize = 2,
+                        updatedBefore = cutoff,
+                    )
+
+                    deletedDrafts shouldBe 1
+                    TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(expiredDraft.narmesteLederId).shouldBeNull()
+                    TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(exactCutoffDraft.narmesteLederId)
+                        ?.uuid shouldBe exactCutoffDraft.uuid
+                    TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(freshDraft.narmesteLederId)
+                        ?.uuid shouldBe freshDraft.uuid
+                }
+
+                it("should delete expired drafts in batches until no rows remain") {
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        aaregService = mockk(relaxed = true),
+                    )
+                    val referenceTime = ZonedDateTime.of(2025, 8, 15, 12, 0, 0, 0, ZoneOffset.UTC)
+                    val cutoff = referenceTime.minusMonths(4).toInstant()
+
+                    val draftOne = defaultPersistedOppfolgingsplanUtkast().copy(narmesteLederId = "leder-batch-1")
+                    val draftTwo = defaultPersistedOppfolgingsplanUtkast().copy(narmesteLederId = "leder-batch-2")
+                    val draftThree = defaultPersistedOppfolgingsplanUtkast().copy(narmesteLederId = "leder-batch-3")
+
+                    listOf(draftOne, draftTwo, draftThree).forEach { draft ->
+                        TestDB.database.persistOppfolgingsplanUtkast(draft)
+                        TestDB.database.setOppfolgingsplanUtkastUpdatedAt(
+                            draft.uuid,
+                            cutoff.minus(2, ChronoUnit.DAYS),
+                        )
+                    }
+
+                    val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast(
+                        batchSize = 2,
+                        updatedBefore = cutoff,
+                    )
+
+                    deletedDrafts shouldBe 3
+                    TestDB.database.countOppfolgingsplanUtkast() shouldBe 0
+                }
+
+                it("should delete expired drafts using retentionMonths SQL path when updatedBefore is null") {
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        aaregService = mockk(relaxed = true),
+                    )
+                    val expiredDraft = defaultPersistedOppfolgingsplanUtkast().copy(
+                        narmesteLederId = "leder-expired-default-path",
+                    )
+                    val freshDraft = defaultPersistedOppfolgingsplanUtkast().copy(
+                        narmesteLederId = "leder-fresh-default-path",
+                    )
+
+                    TestDB.database.persistOppfolgingsplanUtkast(expiredDraft)
+                    TestDB.database.persistOppfolgingsplanUtkast(freshDraft)
+
+                    TestDB.database.setOppfolgingsplanUtkastUpdatedAt(
+                        expiredDraft.uuid,
+                        Instant.now().minus(180, ChronoUnit.DAYS),
+                    )
+                    TestDB.database.setOppfolgingsplanUtkastUpdatedAt(
+                        freshDraft.uuid,
+                        Instant.now().minus(30, ChronoUnit.DAYS),
+                    )
+
+                    val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast(
+                        batchSize = 10,
+                    )
+
+                    deletedDrafts shouldBe 1
+                    TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(expiredDraft.narmesteLederId).shouldBeNull()
+                    TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(freshDraft.narmesteLederId)
+                        ?.uuid shouldBe freshDraft.uuid
                 }
             }
         }

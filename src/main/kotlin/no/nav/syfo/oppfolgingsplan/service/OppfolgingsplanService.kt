@@ -10,6 +10,8 @@ import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
+import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkastUpdatedBefore
 import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
@@ -41,6 +43,9 @@ import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
 import java.util.UUID
+
+const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
+const val DEFAULT_UTKAST_CLEANUP_BATCH_SIZE = 100
 
 /**
  * Service for managing oppfølgingsplaner.
@@ -127,6 +132,38 @@ class OppfolgingsplanService(
 
         withContext(Dispatchers.IO) {
             database.deleteOppfolgingsplanUtkast(sykmeldt)
+        }
+    }
+
+    suspend fun deleteExpiredOppfolgingsplanUtkast(
+        retentionMonths: Int = OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS,
+        batchSize: Int = DEFAULT_UTKAST_CLEANUP_BATCH_SIZE,
+        updatedBefore: Instant? = null,
+    ): Int = withContext(Dispatchers.IO) {
+        var totalDeleted = 0
+        try {
+            var deletedInBatch: Int
+
+            do {
+                deletedInBatch = updatedBefore?.let {
+                    database.deleteExpiredOppfolgingsplanUtkastUpdatedBefore(
+                        updatedBefore = it,
+                        limit = batchSize,
+                    )
+                } ?: database.deleteExpiredOppfolgingsplanUtkast(
+                    retentionMonths = retentionMonths,
+                    limit = batchSize,
+                )
+
+                totalDeleted += deletedInBatch
+            } while (deletedInBatch != 0)
+
+            totalDeleted
+        } catch (exception: CancellationException) {
+            throw exception
+        } catch (exception: Exception) {
+            logger.error("Cleanup failed after deleting $totalDeleted oppfolgingsplan utkast", exception)
+            throw exception
         }
     }
 
