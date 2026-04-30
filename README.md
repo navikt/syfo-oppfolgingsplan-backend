@@ -37,9 +37,9 @@ OpenAPI-spesifikasjonene finnes i `src/main/resources/openapi/`.
 
 ## Utkast-cleanup
 
-- Oppfølgingsplanutkast hard-slettes av en bakgrunnstask én gang i døgnet når utkastet er eldre enn 4 måneder.
-- Slettingen kjøres i batcher for å redusere låsetid i databasen.
-- API-responsene for utkast eksponerer `utkastUtloperDato` i UTC. Feltet er informativt og er en best-effort-beregning basert på `updated_at`.
+- Oppfølgingsplanutkast hard-slettes av en daglig bakgrunnstask (`CleanupUtkastTask`) når utkastet er eldre enn 4 måneder.
+- Begge bakgrunnstaskene (`CleanupUtkastTask` og `SendOppfolgingsplanTask`) bruker `RecurringTask`-baseklassen med leader election, feilhåndtering og graceful shutdown.
+- API-responsene for utkast eksponerer `utkastUtloperDato` (Europe/Oslo). Feltet er informativt og beregnes fra `updated_at`.
 
 ## Docker compose
 
