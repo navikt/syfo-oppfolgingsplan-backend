@@ -12,17 +12,18 @@ import java.time.Instant
 class PersistedOppfolgingsplanUtkastTest :
     DescribeSpec({
         describe("PersistedOppfolgingsplanUtkast") {
-            it("should calculate utkastUtloperDato in UTC from updatedAt") {
+            it("should calculate utkastUtloperDato in Norwegian time from updatedAt") {
                 val updatedAt = Instant.parse("2025-01-15T10:30:00Z")
                 val utkast = defaultPersistedOppfolgingsplanUtkast().copy(updatedAt = updatedAt)
 
-                utkast.utkastUtloperDato() shouldBe Instant.parse("2025-05-15T10:30:00Z")
+                // 10:30 UTC = 11:30 CET → +4 months → 11:30 CEST = 09:30 UTC
+                utkast.utkastUtloperDato() shouldBe Instant.parse("2025-05-15T09:30:00Z")
             }
 
             it("should expose utkastUtloperDato in metadata and response dto") {
                 val updatedAt = Instant.parse("2025-01-15T10:30:00Z")
                 val utkast = defaultPersistedOppfolgingsplanUtkast().copy(updatedAt = updatedAt)
-                val expectedExpiry = Instant.parse("2025-05-15T10:30:00Z")
+                val expectedExpiry = Instant.parse("2025-05-15T09:30:00Z")
 
                 utkast.toUtkastMetadata().utkastUtloperDato shouldBe expectedExpiry
                 utkast.toResponse(defaultSykmeldt()).utkast?.utkastUtloperDato shouldBe expectedExpiry

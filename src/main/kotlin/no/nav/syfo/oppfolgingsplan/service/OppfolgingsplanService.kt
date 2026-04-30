@@ -41,7 +41,7 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
-import java.time.ZoneOffset
+import java.time.ZoneId
 import java.util.UUID
 
 const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
@@ -140,7 +140,7 @@ class OppfolgingsplanService(
         batchSize: Int = DEFAULT_UTKAST_CLEANUP_BATCH_SIZE,
     ): Int = deleteExpiredOppfolgingsplanUtkast(
         retentionCutoff = Instant.now()
-            .atZone(ZoneOffset.UTC)
+            .atZone(ZoneId.of("Europe/Oslo"))
             .minusMonths(retentionMonths.toLong())
             .toInstant(),
         batchSize = batchSize,

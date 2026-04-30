@@ -9,7 +9,7 @@ import no.nav.syfo.oppfolgingsplan.dto.UtkastMetadata
 import no.nav.syfo.oppfolgingsplan.dto.UtkastResponseData
 import no.nav.syfo.oppfolgingsplan.service.OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS
 import java.time.Instant
-import java.time.ZoneOffset
+import java.time.ZoneId
 import java.util.UUID
 
 data class PersistedOppfolgingsplanUtkast(
@@ -28,7 +28,7 @@ fun PersistedOppfolgingsplanUtkast.toUtkastMetadata(): UtkastMetadata = UtkastMe
     utkastUtloperDato = utkastUtloperDato(),
 )
 
-fun PersistedOppfolgingsplanUtkast.utkastUtloperDato(): Instant = updatedAt.atZone(ZoneOffset.UTC)
+fun PersistedOppfolgingsplanUtkast.utkastUtloperDato(): Instant = updatedAt.atZone(ZoneId.of("Europe/Oslo"))
     .plusMonths(OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS.toLong())
     .toInstant()
 
