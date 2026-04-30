@@ -85,22 +85,20 @@ fun DatabaseInterface.deleteOppfolgingsplanUtkast(
 
 fun DatabaseInterface.deleteExpiredOppfolgingsplanUtkast(
     retentionCutoff: Instant,
-    limit: Int,
-): Int = executeDeleteExpiredOppfolgingsplanUtkast(
-    statement = """
+): Int {
+    val statement = """
         DELETE FROM oppfolgingsplan_utkast
-        WHERE ctid = ANY(
-            ARRAY(
-                SELECT ctid FROM oppfolgingsplan_utkast
-                WHERE updated_at < ?
-                ORDER BY updated_at
-                LIMIT ?
-            )
-        )
-    """.trimIndent(),
-) { preparedStatement ->
-    preparedStatement.setTimestamp(1, Timestamp.from(retentionCutoff))
-    preparedStatement.setInt(2, limit)
+        WHERE updated_at < ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setTimestamp(1, Timestamp.from(retentionCutoff))
+            val deletedRows = preparedStatement.executeUpdate()
+            connection.commit()
+            return deletedRows
+        }
+    }
 }
 
 fun DatabaseInterface.findOppfolgingsplanUtkastBy(
@@ -129,19 +127,7 @@ fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     }
 }
 
-private fun DatabaseInterface.executeDeleteExpiredOppfolgingsplanUtkast(
-    statement: String,
-    setParameters: (java.sql.PreparedStatement) -> Unit,
-): Int {
-    connection.use { connection ->
-        connection.prepareStatement(statement).use { preparedStatement ->
-            setParameters(preparedStatement)
-            val deletedRows = preparedStatement.executeUpdate()
-            connection.commit()
-            return deletedRows
-        }
-    }
-}
+
 
 fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast = PersistedOppfolgingsplanUtkast(
     uuid = getObject("uuid") as UUID,

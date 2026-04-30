@@ -6,8 +6,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_DRAFT_AUTO_DELETED
-import no.nav.syfo.oppfolgingsplan.service.DEFAULT_UTKAST_CLEANUP_BATCH_SIZE
-import no.nav.syfo.oppfolgingsplan.service.OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.util.logger
 
@@ -25,10 +23,7 @@ class CleanupUtkastTask(
             return 0
         }
 
-        val deletedDrafts = oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(
-            retentionMonths = OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS,
-            batchSize = DEFAULT_UTKAST_CLEANUP_BATCH_SIZE,
-        )
+        val deletedDrafts = oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast()
 
         if (deletedDrafts > 0) {
             COUNT_OPPFOLGINGSPLAN_DRAFT_AUTO_DELETED.increment(deletedDrafts.toDouble())

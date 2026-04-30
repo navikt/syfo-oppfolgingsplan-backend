@@ -12,12 +12,12 @@ import kotlinx.coroutines.CancellationException
 import no.nav.syfo.TestDB
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.aareg.Stillingsinformasjon
-import no.nav.syfo.countOppfolgingsplanUtkast
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
+import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.persistOppfolgingsplanUtkast
@@ -193,13 +193,7 @@ class OppfolgingsplanServiceTest :
                     clearAllMocks()
                 }
 
-                it("should delete drafts older than four months and keep exact cutoff and newer drafts") {
-                    val service = OppfolgingsplanService(
-                        database = TestDB.database,
-                        pdlService = mockk(relaxed = true),
-                        esyfovarselProducer = mockk(relaxed = true),
-                        aaregService = mockk(relaxed = true),
-                    )
+                it("should delete drafts older than cutoff and keep exact cutoff and newer drafts") {
                     val referenceTime = ZonedDateTime.of(2025, 8, 15, 12, 0, 0, 0, ZoneOffset.UTC)
                     val cutoff = referenceTime.minusMonths(4).toInstant()
 
@@ -224,9 +218,8 @@ class OppfolgingsplanServiceTest :
                         referenceTime.minusMonths(3).minusDays(29).toInstant(),
                     )
 
-                    val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast(
+                    val deletedDrafts = TestDB.database.deleteExpiredOppfolgingsplanUtkast(
                         retentionCutoff = cutoff,
-                        batchSize = 2,
                     )
 
                     deletedDrafts shouldBe 1
@@ -235,37 +228,6 @@ class OppfolgingsplanServiceTest :
                         ?.uuid shouldBe exactCutoffDraft.uuid
                     TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(freshDraft.narmesteLederId)
                         ?.uuid shouldBe freshDraft.uuid
-                }
-
-                it("should delete expired drafts in batches until no rows remain") {
-                    val service = OppfolgingsplanService(
-                        database = TestDB.database,
-                        pdlService = mockk(relaxed = true),
-                        esyfovarselProducer = mockk(relaxed = true),
-                        aaregService = mockk(relaxed = true),
-                    )
-                    val referenceTime = ZonedDateTime.of(2025, 8, 15, 12, 0, 0, 0, ZoneOffset.UTC)
-                    val cutoff = referenceTime.minusMonths(4).toInstant()
-
-                    val draftOne = defaultPersistedOppfolgingsplanUtkast().copy(narmesteLederId = "leder-batch-1")
-                    val draftTwo = defaultPersistedOppfolgingsplanUtkast().copy(narmesteLederId = "leder-batch-2")
-                    val draftThree = defaultPersistedOppfolgingsplanUtkast().copy(narmesteLederId = "leder-batch-3")
-
-                    listOf(draftOne, draftTwo, draftThree).forEach { draft ->
-                        TestDB.database.persistOppfolgingsplanUtkast(draft)
-                        TestDB.database.setOppfolgingsplanUtkastUpdatedAt(
-                            draft.uuid,
-                            cutoff.minus(2, ChronoUnit.DAYS),
-                        )
-                    }
-
-                    val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast(
-                        retentionCutoff = cutoff,
-                        batchSize = 2,
-                    )
-
-                    deletedDrafts shouldBe 3
-                    TestDB.database.countOppfolgingsplanUtkast() shouldBe 0
                 }
 
                 it("should calculate retention cutoff from retentionMonths before deleting expired drafts") {
@@ -294,9 +256,7 @@ class OppfolgingsplanServiceTest :
                         Instant.now().minus(30, ChronoUnit.DAYS),
                     )
 
-                    val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast(
-                        batchSize = 10,
-                    )
+                    val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast()
 
                     deletedDrafts shouldBe 1
                     TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(expiredDraft.narmesteLederId).shouldBeNull()

@@ -45,7 +45,6 @@ import java.time.ZoneId
 import java.util.UUID
 
 const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
-const val DEFAULT_UTKAST_CLEANUP_BATCH_SIZE = 100
 
 /**
  * Service for managing oppfølgingsplaner.
@@ -137,38 +136,14 @@ class OppfolgingsplanService(
 
     suspend fun deleteExpiredOppfolgingsplanUtkast(
         retentionMonths: Int = OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS,
-        batchSize: Int = DEFAULT_UTKAST_CLEANUP_BATCH_SIZE,
-    ): Int = deleteExpiredOppfolgingsplanUtkast(
-        retentionCutoff = Instant.now()
+    ): Int {
+        val retentionCutoff = Instant.now()
             .atZone(ZoneId.of("Europe/Oslo"))
             .minusMonths(retentionMonths.toLong())
-            .toInstant(),
-        batchSize = batchSize,
-    )
+            .toInstant()
 
-    internal suspend fun deleteExpiredOppfolgingsplanUtkast(
-        retentionCutoff: Instant,
-        batchSize: Int,
-    ): Int = withContext(Dispatchers.IO) {
-        var totalDeleted = 0
-        try {
-            var deletedInBatch: Int
-
-            do {
-                deletedInBatch = database.deleteExpiredOppfolgingsplanUtkast(
-                    retentionCutoff = retentionCutoff,
-                    limit = batchSize,
-                )
-
-                totalDeleted += deletedInBatch
-            } while (deletedInBatch != 0)
-
-            totalDeleted
-        } catch (exception: CancellationException) {
-            throw exception
-        } catch (exception: Exception) {
-            logger.error("Cleanup failed after deleting $totalDeleted oppfolgingsplan utkast", exception)
-            throw exception
+        return withContext(Dispatchers.IO) {
+            database.deleteExpiredOppfolgingsplanUtkast(retentionCutoff)
         }
     }
 

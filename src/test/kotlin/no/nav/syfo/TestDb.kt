@@ -222,15 +222,3 @@ fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
     }
 }
 
-fun DatabaseInterface.countOppfolgingsplanUtkast(): Int = connection.use { connection ->
-    connection.prepareStatement(
-        """
-        SELECT COUNT(*) AS count
-        FROM oppfolgingsplan_utkast
-        """.trimIndent(),
-    ).use {
-        val resultSet = it.executeQuery()
-        resultSet.next()
-        resultSet.getInt("count")
-    }
-}

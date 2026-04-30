@@ -17,7 +17,7 @@ class CleanupUtkastTaskTest :
 
                 coEvery { leaderElection.isLeader() } returns true
                 coEvery {
-                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(any<Int>(), any<Int>())
+                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(any<Int>())
                 } throws RuntimeException("boom") andThen 0 andThen 0
 
                 val cleanupUtkastTask = CleanupUtkastTask(
@@ -32,7 +32,7 @@ class CleanupUtkastTaskTest :
                 }
 
                 coVerify(exactly = 2) {
-                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(any<Int>(), any<Int>())
+                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(any<Int>())
                 }
             }
 
@@ -42,7 +42,7 @@ class CleanupUtkastTaskTest :
 
                 coEvery { leaderElection.isLeader() } returns true
                 coEvery {
-                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(any<Int>(), any<Int>())
+                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(any<Int>())
                 } returns 0
 
                 val cleanupUtkastTask = CleanupUtkastTask(
@@ -56,7 +56,7 @@ class CleanupUtkastTaskTest :
                 }
 
                 coVerify(exactly = 1) {
-                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(4, 100)
+                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(4)
                 }
             }
         }
