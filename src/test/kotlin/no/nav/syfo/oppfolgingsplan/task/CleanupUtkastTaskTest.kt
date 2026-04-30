@@ -4,39 +4,36 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
-import kotlinx.coroutines.runBlocking
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import kotlin.time.Duration.Companion.days
 
 class CleanupUtkastTaskTest :
     DescribeSpec({
-        describe("runCleanup") {
-            it("should continue next iteration after exception in cleanup") {
+        describe("execute") {
+            it("should delete expired drafts and increment counter") {
                 val leaderElection = mockk<LeaderElection>()
                 val oppfolgingsplanService = mockk<OppfolgingsplanService>()
 
                 coEvery { leaderElection.isLeader() } returns true
                 coEvery {
                     oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(any<Int>())
-                } throws RuntimeException("boom") andThen 0 andThen 0
+                } returns 3
 
-                val cleanupUtkastTask = CleanupUtkastTask(
+                val task = CleanupUtkastTask(
                     leaderElection = leaderElection,
                     oppfolgingsplanService = oppfolgingsplanService,
-                    delayMillis = 10,
+                    interval = 1.days,
                 )
 
-                runBlocking {
-                    cleanupUtkastTask.runCleanup()
-                    cleanupUtkastTask.runCleanup()
-                }
+                task.execute()
 
-                coVerify(exactly = 2) {
-                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(any<Int>())
+                coVerify(exactly = 1) {
+                    oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(4)
                 }
             }
 
-            it("should call cleanup with configured retention months and batch size") {
+            it("should call cleanup with default retention months") {
                 val leaderElection = mockk<LeaderElection>()
                 val oppfolgingsplanService = mockk<OppfolgingsplanService>()
 
@@ -45,15 +42,13 @@ class CleanupUtkastTaskTest :
                     oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(any<Int>())
                 } returns 0
 
-                val cleanupUtkastTask = CleanupUtkastTask(
+                val task = CleanupUtkastTask(
                     leaderElection = leaderElection,
                     oppfolgingsplanService = oppfolgingsplanService,
-                    delayMillis = 10,
+                    interval = 1.days,
                 )
 
-                runBlocking {
-                    cleanupUtkastTask.runCleanup()
-                }
+                task.execute()
 
                 coVerify(exactly = 1) {
                     oppfolgingsplanService.deleteExpiredOppfolgingsplanUtkast(4)
