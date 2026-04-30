@@ -7,7 +7,9 @@ import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.UtkastMetadata
 import no.nav.syfo.oppfolgingsplan.dto.UtkastResponseData
+import no.nav.syfo.oppfolgingsplan.service.OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS
 import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 
 data class PersistedOppfolgingsplanUtkast(
@@ -23,7 +25,12 @@ data class PersistedOppfolgingsplanUtkast(
 
 fun PersistedOppfolgingsplanUtkast.toUtkastMetadata(): UtkastMetadata = UtkastMetadata(
     sistLagretTidspunkt = updatedAt,
+    utkastUtloperDato = utkastUtloperDato(),
 )
+
+fun PersistedOppfolgingsplanUtkast.utkastUtloperDato(): Instant = updatedAt.atZone(ZoneId.of("Europe/Oslo"))
+    .plusMonths(OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS.toLong())
+    .toInstant()
 
 fun PersistedOppfolgingsplanUtkast?.toResponse(sykmeldt: Sykmeldt): OppfolgingsplanUtkastResponse = OppfolgingsplanUtkastResponse(
     userHasEditAccess = sykmeldt.aktivSykmelding == true,
@@ -39,6 +46,7 @@ fun PersistedOppfolgingsplanUtkast?.toResponse(sykmeldt: Sykmeldt): Oppfolgingsp
         UtkastResponseData(
             content = it.content,
             sistLagretTidspunkt = it.updatedAt,
+            utkastUtloperDato = it.utkastUtloperDato(),
         )
     },
 )

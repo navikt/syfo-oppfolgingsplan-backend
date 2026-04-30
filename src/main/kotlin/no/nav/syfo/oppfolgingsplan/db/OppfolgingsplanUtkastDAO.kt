@@ -7,6 +7,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.util.configuredJacksonMapper
 import java.sql.ResultSet
+import java.sql.Timestamp
 import java.sql.Types
 import java.time.Instant
 import java.util.UUID
@@ -82,6 +83,24 @@ fun DatabaseInterface.deleteOppfolgingsplanUtkast(
     }
 }
 
+fun DatabaseInterface.deleteExpiredOppfolgingsplanUtkast(
+    retentionCutoff: Instant,
+): Int {
+    val statement = """
+        DELETE FROM oppfolgingsplan_utkast
+        WHERE updated_at < ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setTimestamp(1, Timestamp.from(retentionCutoff))
+            val deletedRows = preparedStatement.executeUpdate()
+            connection.commit()
+            return deletedRows
+        }
+    }
+}
+
 fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     sykmeldtFnr: String,
     organisasjonsnummer: String,
@@ -107,6 +126,8 @@ fun DatabaseInterface.findOppfolgingsplanUtkastBy(
         }
     }
 }
+
+
 
 fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast = PersistedOppfolgingsplanUtkast(
     uuid = getObject("uuid") as UUID,

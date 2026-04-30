@@ -35,6 +35,12 @@ Swagger UI er tilgjengelig på:
 
 OpenAPI-spesifikasjonene finnes i `src/main/resources/openapi/`.
 
+## Utkast-cleanup
+
+- Oppfølgingsplanutkast hard-slettes av en daglig bakgrunnstask (`CleanupUtkastTask`) når utkastet er eldre enn 4 måneder.
+- Begge bakgrunnstaskene (`CleanupUtkastTask` og `SendOppfolgingsplanTask`) bruker `RecurringTask`-baseklassen med leader election, feilhåndtering og graceful shutdown.
+- API-responsene for utkast eksponerer `utkastUtloperDato` (Europe/Oslo). Feltet er informativt og beregnes fra `updated_at`.
+
 ## Docker compose
 
 ### Størrelse på containerplattform

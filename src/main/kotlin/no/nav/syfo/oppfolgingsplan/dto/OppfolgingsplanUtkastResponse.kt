@@ -7,6 +7,7 @@ import java.time.Instant
 data class UtkastResponseData(
     val content: Map<String, String?>,
     val sistLagretTidspunkt: Instant,
+    val utkastUtloperDato: Instant,
 )
 
 data class OppfolgingsplanUtkastResponse(

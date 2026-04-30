@@ -6,6 +6,7 @@ import com.zaxxer.hikari.HikariDataSource
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.db.toOppfolgingsplanUtkastDTO
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import org.flywaydb.core.Flyway
 import org.slf4j.LoggerFactory
@@ -13,7 +14,9 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy
 import java.sql.Connection
 import java.sql.Date
+import java.sql.Timestamp
 import java.sql.Types
+import java.time.Instant
 import java.util.UUID
 
 private val objectMapper = jacksonObjectMapper()
@@ -148,6 +151,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
 ) {
     val insertStatement = """
         INSERT INTO oppfolgingsplan_utkast (
+            uuid,
             sykmeldt_fnr,
             narmeste_leder_id,
             narmeste_leder_fnr,
@@ -155,7 +159,7 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
             content,
             created_at,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
         ON CONFLICT (narmeste_leder_id) DO UPDATE SET
             sykmeldt_fnr = EXCLUDED.sykmeldt_fnr,
             narmeste_leder_fnr = EXCLUDED.narmeste_leder_fnr,
@@ -166,13 +170,55 @@ fun DatabaseInterface.persistOppfolgingsplanUtkast(
 
     connection.use { connection ->
         connection.prepareStatement(insertStatement).use {
-            it.setString(1, persistedOppfolgingsplanUtkast.sykmeldtFnr)
-            it.setString(2, persistedOppfolgingsplanUtkast.narmesteLederId)
-            it.setString(3, persistedOppfolgingsplanUtkast.narmesteLederFnr)
-            it.setString(4, persistedOppfolgingsplanUtkast.organisasjonsnummer)
-            it.setObject(5, objectMapper.writeValueAsString(persistedOppfolgingsplanUtkast.content), Types.OTHER)
+            it.setObject(1, persistedOppfolgingsplanUtkast.uuid)
+            it.setString(2, persistedOppfolgingsplanUtkast.sykmeldtFnr)
+            it.setString(3, persistedOppfolgingsplanUtkast.narmesteLederId)
+            it.setString(4, persistedOppfolgingsplanUtkast.narmesteLederFnr)
+            it.setString(5, persistedOppfolgingsplanUtkast.organisasjonsnummer)
+            it.setObject(6, objectMapper.writeValueAsString(persistedOppfolgingsplanUtkast.content), Types.OTHER)
             it.executeUpdate()
         }
         connection.commit()
     }
 }
+
+fun DatabaseInterface.setOppfolgingsplanUtkastUpdatedAt(
+    uuid: UUID,
+    updatedAt: Instant,
+) {
+    connection.use { connection ->
+        connection.prepareStatement(
+            """
+            UPDATE oppfolgingsplan_utkast
+            SET updated_at = ?
+            WHERE uuid = ?
+            """.trimIndent(),
+        ).use {
+            it.setTimestamp(1, Timestamp.from(updatedAt))
+            it.setObject(2, uuid)
+            it.executeUpdate()
+        }
+        connection.commit()
+    }
+}
+
+fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
+    narmesteLederId: String,
+): PersistedOppfolgingsplanUtkast? = connection.use { connection ->
+    connection.prepareStatement(
+        """
+        SELECT *
+        FROM oppfolgingsplan_utkast
+        WHERE narmeste_leder_id = ?
+        """.trimIndent(),
+    ).use {
+        it.setString(1, narmesteLederId)
+        val resultSet = it.executeQuery()
+        if (resultSet.next()) {
+            resultSet.toOppfolgingsplanUtkastDTO()
+        } else {
+            null
+        }
+    }
+}
+

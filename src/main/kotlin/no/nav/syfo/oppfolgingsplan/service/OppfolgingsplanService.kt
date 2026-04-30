@@ -10,6 +10,7 @@ import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
+import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
@@ -40,7 +41,10 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
+
+const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
 
 /**
  * Service for managing oppfølgingsplaner.
@@ -127,6 +131,19 @@ class OppfolgingsplanService(
 
         withContext(Dispatchers.IO) {
             database.deleteOppfolgingsplanUtkast(sykmeldt)
+        }
+    }
+
+    suspend fun deleteExpiredOppfolgingsplanUtkast(
+        retentionMonths: Int = OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS,
+    ): Int {
+        val retentionCutoff = Instant.now()
+            .atZone(ZoneId.of("Europe/Oslo"))
+            .minusMonths(retentionMonths.toLong())
+            .toInstant()
+
+        return withContext(Dispatchers.IO) {
+            database.deleteExpiredOppfolgingsplanUtkast(retentionCutoff)
         }
     }
 

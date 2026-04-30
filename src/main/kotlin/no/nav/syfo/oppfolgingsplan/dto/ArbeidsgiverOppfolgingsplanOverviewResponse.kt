@@ -9,6 +9,7 @@ import java.util.UUID
 
 data class UtkastMetadata(
     val sistLagretTidspunkt: Instant,
+    val utkastUtloperDato: Instant,
 )
 
 data class OversiktResponseData(

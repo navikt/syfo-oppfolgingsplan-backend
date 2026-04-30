@@ -640,6 +640,7 @@ components:
       required:
         - content
         - sistLagretTidspunkt
+        - utkastUtloperDato
       properties:
         content:
           type: object
@@ -649,6 +650,10 @@ components:
         sistLagretTidspunkt:
           type: string
           format: date-time
+        utkastUtloperDato:
+          type: string
+          format: date-time
+          description: "Beregnet utløpsdato for utkastet (informativt). Utkast slettes automatisk etter denne datoen."
 
     OppfolgingsplanMetadata:
       type: object
@@ -685,10 +690,15 @@ components:
       type: object
       required:
         - sistLagretTidspunkt
+        - utkastUtloperDato
       properties:
         sistLagretTidspunkt:
           type: string
           format: date-time
+        utkastUtloperDato:
+          type: string
+          format: date-time
+          description: "Beregnet utløpsdato for utkastet (informativt). Utkast slettes automatisk etter denne datoen."
 
     OrganizationDetails:
       type: object
