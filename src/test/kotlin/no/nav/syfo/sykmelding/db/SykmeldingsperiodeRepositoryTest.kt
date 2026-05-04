@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import no.nav.syfo.TestDB
+import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import java.time.LocalDate
 
 class SykmeldingsperiodeRepositoryTest :

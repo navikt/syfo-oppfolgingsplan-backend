@@ -1,31 +1,12 @@
 package no.nav.syfo.sykmelding.db
 
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.sykmelding.db.domain.PersistedSykmeldingsperiode
+import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Statement
-import java.time.Instant
-import java.time.LocalDate
 import java.util.UUID
-
-data class SykmeldingsperiodeToStore(
-    val sykmeldtFnr: String,
-    val organisasjonsnummer: String,
-    val sykmeldingId: String,
-    val fom: LocalDate,
-    val tom: LocalDate,
-)
-
-data class PersistedSykmeldingsperiode(
-    val id: UUID,
-    val sykmeldtFnr: String,
-    val organisasjonsnummer: String,
-    val sykmeldingId: String,
-    val fom: LocalDate,
-    val tom: LocalDate,
-    val invalidatedAt: Instant?,
-    val createdAt: Instant,
-)
 
 class SykmeldingsperiodeRepository(
     private val database: DatabaseInterface,

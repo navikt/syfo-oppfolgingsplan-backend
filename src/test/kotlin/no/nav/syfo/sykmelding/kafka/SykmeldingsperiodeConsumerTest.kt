@@ -9,7 +9,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import no.nav.syfo.application.kafka.KafkaEnv
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
-import no.nav.syfo.sykmelding.db.SykmeldingsperiodeToStore
+import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.sykmelding.kafka.model.Arbeidsgiver
 import no.nav.syfo.sykmelding.kafka.model.ArbeidsgiverSykmelding
 import no.nav.syfo.sykmelding.kafka.model.Event
