@@ -44,7 +44,7 @@ val COUNT_SYKMELDING_ERROR: Counter = Counter.builder(SYKMELDING_ERROR_TOTAL)
 class SykmeldingsperiodeConsumer(
     private val sykmeldingsperiodeRepository: SykmeldingsperiodeRepository,
     private val kafkaEnv: KafkaEnv,
-    private val clock: Clock = Clock.systemUTC(),
+    private val clock: Clock = Clock.system(ZONE_OSLO),
 ) {
     private val log = logger()
 
@@ -55,18 +55,21 @@ class SykmeldingsperiodeConsumer(
     private var consumer: KafkaConsumer<String, String>? = null
 
     suspend fun runConsumer() = withContext(Dispatchers.IO) {
-        while (currentCoroutineContext().isActive && running) {
-            val kafkaConsumer = KafkaConsumer<String, String>(
-                consumerProperties(
-                    env = kafkaEnv,
-                    groupId = SYKMELDINGSPERIODE_CONSUMER_GROUP,
-                ),
-            )
-            consumer = kafkaConsumer
+        var consecutiveFailures = 0
 
+        while (currentCoroutineContext().isActive && running) {
+            var kafkaConsumer: KafkaConsumer<String, String>? = null
             try {
+                kafkaConsumer = KafkaConsumer(
+                    consumerProperties(
+                        env = kafkaEnv,
+                        groupId = SYKMELDINGSPERIODE_CONSUMER_GROUP,
+                    ),
+                )
+                consumer = kafkaConsumer
                 kafkaConsumer.subscribe(listOf(SYKMELDINGSPERIODE_TOPIC))
                 log.info("Subscribed to Kafka topic $SYKMELDINGSPERIODE_TOPIC")
+                consecutiveFailures = 0
 
                 while (currentCoroutineContext().isActive && running) {
                     val records = kafkaConsumer.poll(POLL_DURATION)
@@ -81,15 +84,16 @@ class SykmeldingsperiodeConsumer(
             } catch (ex: WakeupException) {
                 if (running && currentCoroutineContext().isActive) {
                     log.warn("Kafka consumer woke up unexpectedly, recreating consumer")
-                    delay(RETRY_DELAY)
                 }
             } catch (ex: Exception) {
                 COUNT_SYKMELDING_ERROR.increment()
-                log.error("Error while consuming sykmeldingsperioder from Kafka, recreating consumer", ex)
-                delay(RETRY_DELAY)
+                consecutiveFailures++
+                val backoff = retryDelay(consecutiveFailures)
+                log.error("Error while consuming sykmeldingsperioder from Kafka (attempt $consecutiveFailures, retrying in $backoff)", ex)
+                delay(backoff)
             } finally {
                 consumer = null
-                kafkaConsumer.close()
+                kafkaConsumer?.close()
             }
         }
     }
@@ -169,7 +173,14 @@ class SykmeldingsperiodeConsumer(
     }
 
     private companion object {
+        val ZONE_OSLO: java.time.ZoneId = java.time.ZoneId.of("Europe/Oslo")
         val POLL_DURATION: Duration = Duration.ofSeconds(10)
-        val RETRY_DELAY = 10.seconds
+        val MAX_RETRY_DELAY = 300.seconds
+        val BASE_RETRY_DELAY = 10.seconds
+
+        fun retryDelay(consecutiveFailures: Int): kotlin.time.Duration {
+            val delaySeconds = BASE_RETRY_DELAY.inWholeSeconds * (1L shl (consecutiveFailures - 1).coerceAtMost(5))
+            return delaySeconds.seconds.coerceAtMost(MAX_RETRY_DELAY)
+        }
     }
 }

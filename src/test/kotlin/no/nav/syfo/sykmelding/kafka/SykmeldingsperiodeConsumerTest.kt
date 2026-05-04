@@ -22,12 +22,12 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.OffsetDateTime
-import java.time.ZoneOffset
+import java.time.ZoneId
 
 class SykmeldingsperiodeConsumerTest :
     DescribeSpec({
         val repository = mockk<SykmeldingsperiodeRepository>()
-        val fixedClock = Clock.fixed(Instant.parse("2025-06-01T00:00:00Z"), ZoneOffset.UTC)
+        val fixedClock = Clock.fixed(Instant.parse("2025-06-01T00:00:00Z"), ZoneId.of("Europe/Oslo"))
         val consumer = SykmeldingsperiodeConsumer(
             sykmeldingsperiodeRepository = repository,
             kafkaEnv = KafkaEnv.createForLocal(),
@@ -137,6 +137,38 @@ class SykmeldingsperiodeConsumerTest :
 
                 verify(exactly = 1) {
                     repository.invalidateSykmelding("sykmelding-3")
+                }
+            }
+
+            it("includes period with tom exactly at the 2-year boundary") {
+                every { repository.storeSykmeldingsperioder(any()) } returns 1
+
+                // Clock is 2025-06-01, cutoff is 2023-06-01, tom = 2023-06-01 should be INCLUDED
+                consumer.processRecord(
+                    ConsumerRecord(
+                        SYKMELDINGSPERIODE_TOPIC,
+                        0,
+                        0L,
+                        "sykmelding-boundary",
+                        kafkaMessage(
+                            sykmeldingId = "sykmelding-boundary",
+                            perioder = listOf(
+                                SykmeldingsperiodeAGDTO(
+                                    fom = LocalDate.of(2023, 5, 1),
+                                    tom = LocalDate.of(2023, 6, 1),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+
+                verify(exactly = 1) {
+                    repository.storeSykmeldingsperioder(
+                        withArg { sykmeldingsperioder ->
+                            sykmeldingsperioder.shouldHaveSize(1)
+                            sykmeldingsperioder.single().tom shouldBe LocalDate.of(2023, 6, 1)
+                        },
+                    )
                 }
             }
 

@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: syfo-oppfolgingsplan-backend-alerts
+  namespace: team-esyfo
+  labels:
+    team: team-esyfo
+spec:
+  groups:
+    - name: syfo-oppfolgingsplan-backend
+      rules:
+        - alert: SykmeldingConsumerHighErrorRate
+          expr: rate(syfo_oppfolgingsplan_sykmelding_error_total{namespace="team-esyfo"}[5m]) > 0.1
+          for: 5m
+          annotations:
+            consequence: Kafka consumer for sykmeldingsperioder forkaster meldinger. Mulig schema-endring fra teamsykmelding.
+            action: "Sjekk logger for deserialization errors. Verifiser at SendtSykmeldingKafkaMessage-modellen matcher topic-kontrakten."
+            summary: Høy feilrate i sykmelding Kafka consumer — meldinger forkastes permanent.
+          labels:
+            namespace: team-esyfo
+            severity: warning
+        - alert: SykmeldingConsumerNotConsuming
+          expr: changes(syfo_oppfolgingsplan_sykmelding_consumed_total{namespace="team-esyfo"}[30m]) == 0
+          for: 30m
+          annotations:
+            consequence: Kafka consumer for sykmeldingsperioder har ikke prosessert meldinger på 30 minutter.
+            action: "Sjekk om consumeren kjører (`kubectl logs`). Sjekk om topic har trafikk. Sjekk Kafka consumer group lag."
+            summary: Sykmelding Kafka consumer har stoppet å konsumere.
+          labels:
+            namespace: team-esyfo
+            severity: critical
