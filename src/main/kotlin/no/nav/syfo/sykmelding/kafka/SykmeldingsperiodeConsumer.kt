@@ -24,7 +24,7 @@ import java.time.LocalDate
 import kotlin.time.Duration.Companion.seconds
 
 const val SYKMELDINGSPERIODE_TOPIC = "teamsykmelding.syfo-sendt-sykmelding"
-const val SYKMELDINGSPERIODE_CONSUMER_GROUP = "syfo-oppfolgingsplan-backend-sykmeldingsperiode"
+const val SYKMELDINGSPERIODE_CONSUMER_GROUP = "syfo-oppfolgingsplan-backend-sykmeldingsperiode-v2"
 
 class SykmeldingsperiodeConsumer(
     private val sykmeldingsperiodeRepository: SykmeldingsperiodeRepository,
