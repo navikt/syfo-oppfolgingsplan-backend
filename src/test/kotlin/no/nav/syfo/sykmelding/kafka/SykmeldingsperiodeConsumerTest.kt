@@ -1,5 +1,7 @@
 package no.nav.syfo.sykmelding.kafka
 
+import com.fasterxml.jackson.core.JsonProcessingException
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -171,16 +173,18 @@ class SykmeldingsperiodeConsumerTest :
                 }
             }
 
-            it("skips invalid JSON without touching the repository") {
-                consumer.processRecord(
-                    ConsumerRecord(
-                        SYKMELDINGSPERIODE_TOPIC,
-                        0,
-                        0L,
-                        "sykmelding-4",
-                        "{invalid-json}",
-                    ),
-                )
+            it("throws on invalid JSON so offsets are not committed") {
+                shouldThrow<JsonProcessingException> {
+                    consumer.processRecord(
+                        ConsumerRecord(
+                            SYKMELDINGSPERIODE_TOPIC,
+                            0,
+                            0L,
+                            "sykmelding-4",
+                            "{invalid-json}",
+                        ),
+                    )
+                }
 
                 verify(exactly = 0) { repository.storeSykmeldingsperioder(any()) }
                 verify(exactly = 0) { repository.invalidateSykmelding(any()) }

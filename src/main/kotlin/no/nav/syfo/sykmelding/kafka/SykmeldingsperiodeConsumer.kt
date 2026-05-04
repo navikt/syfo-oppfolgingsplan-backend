@@ -1,6 +1,5 @@
 package no.nav.syfo.sykmelding.kafka
 
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.module.kotlin.readValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -97,21 +96,11 @@ class SykmeldingsperiodeConsumer(
             return
         }
 
-        val kafkaMessage = try {
-            configuredJacksonMapper.readValue<SendtSykmeldingKafkaMessage>(recordValue)
-        } catch (ex: JsonProcessingException) {
-            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
-            log.error(
-                "Failed to deserialize sykmelding Kafka message at topic=${record.topic()}, partition=${record.partition()}, offset=${record.offset()}",
-                ex,
-            )
-            return
-        }
+        val kafkaMessage = configuredJacksonMapper.readValue<SendtSykmeldingKafkaMessage>(recordValue)
 
         val sykmeldingId = record.key()
         val organisasjonsnummer = kafkaMessage.event.arbeidsgiver?.orgnummer
         if (organisasjonsnummer == null) {
-            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
             log.warn(
                 "Skipping sykmelding Kafka message without arbeidsgiver for sykmeldingId=$sykmeldingId",
             )
