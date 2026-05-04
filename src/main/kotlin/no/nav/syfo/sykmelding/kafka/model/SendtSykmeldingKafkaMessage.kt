@@ -26,9 +26,8 @@ data class SykmeldingsperiodeAGDTO(
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Event(
     val sykmeldingId: String,
-    val timestamp: OffsetDateTime,
+    val timestamp: OffsetDateTime? = null,
     val arbeidsgiver: Arbeidsgiver? = null,
-    val brukerSvar: BrukerSvar? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -36,11 +35,6 @@ data class Arbeidsgiver(
     val orgnummer: String,
     val juridiskOrgnummer: String? = null,
     val orgNavn: String? = null,
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class BrukerSvar(
-    val erOpplysningeneRiktige: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

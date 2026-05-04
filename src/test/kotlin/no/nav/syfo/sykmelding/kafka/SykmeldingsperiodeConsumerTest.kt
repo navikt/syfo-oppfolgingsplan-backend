@@ -212,7 +212,7 @@ private fun kafkaMessage(
                 juridiskOrgnummer = null,
                 orgNavn = "Test AS",
             ),
-            brukerSvar = null,
+
         ),
     ),
 )
