@@ -6,6 +6,7 @@ import java.time.LocalDate
 /**
  * Minimal DTO for teamsykmelding.syfo-sendt-sykmelding topic.
  * Only fields actually used by this consumer are modeled.
+ * Note: sykmeldingId is taken from the Kafka record key, not from the JSON payload.
  * All classes use @JsonIgnoreProperties(ignoreUnknown = true) to safely ignore
  * any fields added by the producer without breaking deserialization.
  */

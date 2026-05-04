@@ -50,7 +50,6 @@ class SykmeldingsperiodeConsumerTest :
                         0L,
                         "sykmelding-1",
                         kafkaMessage(
-                            sykmeldingId = "sykmelding-1",
                             perioder = listOf(
                                 SykmeldingsperiodeAGDTO(
                                     fom = LocalDate.of(2025, 1, 1),
@@ -98,7 +97,6 @@ class SykmeldingsperiodeConsumerTest :
                         0L,
                         "sykmelding-2",
                         kafkaMessage(
-                            sykmeldingId = "sykmelding-2",
                             perioder = listOf(
                                 SykmeldingsperiodeAGDTO(
                                     fom = LocalDate.of(2023, 4, 1),
@@ -152,7 +150,6 @@ class SykmeldingsperiodeConsumerTest :
                         0L,
                         "sykmelding-boundary",
                         kafkaMessage(
-                            sykmeldingId = "sykmelding-boundary",
                             perioder = listOf(
                                 SykmeldingsperiodeAGDTO(
                                     fom = LocalDate.of(2023, 5, 1),
@@ -252,7 +249,6 @@ class SykmeldingsperiodeConsumerTest :
     })
 
 private fun kafkaMessage(
-    sykmeldingId: String,
     perioder: List<SykmeldingsperiodeAGDTO>,
 ): String = configuredJacksonMapper.writeValueAsString(
     SendtSykmeldingKafkaMessage(

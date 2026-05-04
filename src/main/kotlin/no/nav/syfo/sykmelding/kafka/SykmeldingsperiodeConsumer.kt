@@ -1,5 +1,6 @@
 package no.nav.syfo.sykmelding.kafka
 
+import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.module.kotlin.readValue
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +58,24 @@ class SykmeldingsperiodeConsumer(
 
                 while (currentCoroutineContext().isActive && running) {
                     val records = kafkaConsumer.poll(POLL_DURATION)
-                    records.forEach { processRecord(it) }
+                    var deserializationErrors = 0
+
+                    records.forEach { record ->
+                        try {
+                            processRecord(record)
+                        } catch (ex: JsonProcessingException) {
+                            deserializationErrors++
+                            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
+                            log.error(
+                                "Failed to deserialize sykmelding at partition=${record.partition()}, offset=${record.offset()}",
+                                ex,
+                            )
+                        }
+                    }
+
+                    if (deserializationErrors > 0 && deserializationErrors >= records.count()) {
+                        error("All ${records.count()} records failed deserialization — likely a systematic DTO mismatch")
+                    }
 
                     if (!records.isEmpty) {
                         kafkaConsumer.commitSync()
