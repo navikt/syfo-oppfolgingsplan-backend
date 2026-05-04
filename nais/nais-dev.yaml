@@ -88,7 +88,6 @@ spec:
         - host: aareg-services-q2.dev-fss-pub.nais.io
   kafka:
     pool: nav-dev
-    # Topic owner teamsykmelding must grant ACL access to teamsykmelding.syfo-sendt-sykmelding.
   valkey:
     - instance: syfo-oppfolgingsplan-backend
       access: readwrite
