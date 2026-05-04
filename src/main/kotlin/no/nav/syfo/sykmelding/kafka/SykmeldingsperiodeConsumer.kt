@@ -24,7 +24,7 @@ import java.time.LocalDate
 import kotlin.time.Duration.Companion.seconds
 
 const val SYKMELDINGSPERIODE_TOPIC = "teamsykmelding.syfo-sendt-sykmelding"
-const val SYKMELDINGSPERIODE_CONSUMER_GROUP = "syfo-oppfolgingsplan-backend-sykmeldingsperiode"
+const val SYKMELDINGSPERIODE_CONSUMER_GROUP = "syfo-oppfolgingsplan-backend-sykmeldingsperiode-v2"
 
 class SykmeldingsperiodeConsumer(
     private val sykmeldingsperiodeRepository: SykmeldingsperiodeRepository,
@@ -58,7 +58,24 @@ class SykmeldingsperiodeConsumer(
 
                 while (currentCoroutineContext().isActive && running) {
                     val records = kafkaConsumer.poll(POLL_DURATION)
-                    records.forEach { processRecord(it) }
+                    var deserializationErrors = 0
+
+                    records.forEach { record ->
+                        try {
+                            processRecord(record)
+                        } catch (ex: JsonProcessingException) {
+                            deserializationErrors++
+                            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
+                            log.warn(
+                                "Failed to deserialize sykmelding at partition=${record.partition()}, offset=${record.offset()}",
+                                ex,
+                            )
+                        }
+                    }
+
+                    if (deserializationErrors > 0 && deserializationErrors >= records.count()) {
+                        error("All ${records.count()} records failed deserialization — likely a systematic DTO mismatch")
+                    }
 
                     if (!records.isEmpty) {
                         kafkaConsumer.commitSync()
@@ -97,21 +114,11 @@ class SykmeldingsperiodeConsumer(
             return
         }
 
-        val kafkaMessage = try {
-            configuredJacksonMapper.readValue<SendtSykmeldingKafkaMessage>(recordValue)
-        } catch (ex: JsonProcessingException) {
-            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
-            log.error(
-                "Failed to deserialize sykmelding Kafka message at topic=${record.topic()}, partition=${record.partition()}, offset=${record.offset()}",
-                ex,
-            )
-            return
-        }
+        val kafkaMessage = configuredJacksonMapper.readValue<SendtSykmeldingKafkaMessage>(recordValue)
 
         val sykmeldingId = record.key()
         val organisasjonsnummer = kafkaMessage.event.arbeidsgiver?.orgnummer
         if (organisasjonsnummer == null) {
-            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
             log.warn(
                 "Skipping sykmelding Kafka message without arbeidsgiver for sykmeldingId=$sykmeldingId",
             )

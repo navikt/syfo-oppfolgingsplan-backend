@@ -2,8 +2,14 @@ package no.nav.syfo.sykmelding.kafka.model
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import java.time.LocalDate
-import java.time.OffsetDateTime
 
+/**
+ * Minimal DTO for teamsykmelding.syfo-sendt-sykmelding topic.
+ * Only fields actually used by this consumer are modeled.
+ * Note: sykmeldingId is taken from the Kafka record key, not from the JSON payload.
+ * All classes use @JsonIgnoreProperties(ignoreUnknown = true) to safely ignore
+ * any fields added by the producer without breaking deserialization.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class SendtSykmeldingKafkaMessage(
     val sykmelding: ArbeidsgiverSykmelding,
@@ -14,7 +20,6 @@ data class SendtSykmeldingKafkaMessage(
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ArbeidsgiverSykmelding(
     val sykmeldingsperioder: List<SykmeldingsperiodeAGDTO>,
-    val syketilfelleStartDato: LocalDate?,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -25,28 +30,15 @@ data class SykmeldingsperiodeAGDTO(
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Event(
-    val sykmeldingId: String,
-    val timestamp: OffsetDateTime,
     val arbeidsgiver: Arbeidsgiver? = null,
-    val brukerSvar: BrukerSvar? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Arbeidsgiver(
     val orgnummer: String,
-    val juridiskOrgnummer: String? = null,
-    val orgNavn: String? = null,
-)
-
-@JsonIgnoreProperties(ignoreUnknown = true)
-data class BrukerSvar(
-    val erOpplysningeneRiktige: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class KafkaMetadata(
-    val sykmeldingId: String,
-    val timestamp: OffsetDateTime? = null,
     val fnr: String,
-    val source: String? = null,
 )
