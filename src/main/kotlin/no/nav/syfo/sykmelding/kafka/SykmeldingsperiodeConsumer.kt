@@ -66,7 +66,7 @@ class SykmeldingsperiodeConsumer(
                         } catch (ex: JsonProcessingException) {
                             deserializationErrors++
                             COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
-                            log.error(
+                            log.warn(
                                 "Failed to deserialize sykmelding at partition=${record.partition()}, offset=${record.offset()}",
                                 ex,
                             )
