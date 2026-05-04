@@ -5,6 +5,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.config.SaslConfigs
 import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import java.util.Properties
 
@@ -42,4 +43,17 @@ fun producerProperties(env: KafkaEnv): Properties {
         put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
         put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonKafkaSerializer::class.java)
     }
+}
+
+fun consumerProperties(env: KafkaEnv, groupId: String): Properties {
+    val props = commonProperties(env)
+    props.apply {
+        put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
+        put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java)
+        put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java)
+        put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+        put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
+        put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "500")
+    }
+    return props
 }

@@ -41,6 +41,8 @@ import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.pdl.client.FakePdlClient
 import no.nav.syfo.pdl.client.PdlClient
+import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
+import no.nav.syfo.sykmelding.kafka.SykmeldingsperiodeConsumer
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.httpClientDefault
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -204,6 +206,8 @@ private fun servicesModule() = module {
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }
+    single { SykmeldingsperiodeRepository(get()) }
+    single { SykmeldingsperiodeConsumer(get(), env().kafka) }
 }
 
 private fun Scope.env() = get<Environment>()

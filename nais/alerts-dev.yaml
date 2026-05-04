@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: syfo-oppfolgingsplan-backend-alerts
+  namespace: team-esyfo
+  labels:
+    team: team-esyfo
+spec:
+  groups:
+    - name: syfo-oppfolgingsplan-backend
+      rules:
+        - alert: SykmeldingConsumerDeserializationErrors
+          expr: rate(syfo_oppfolgingsplan_backend_sykmelding_deserialization_error_total{namespace="team-esyfo"}[5m]) > 0.1
+          for: 5m
+          annotations:
+            consequence: Kafka consumer for sykmeldingsperioder forkaster meldinger permanent. Mulig schema-endring fra teamsykmelding.
+            action: "Sjekk logger for deserialization errors. Verifiser at SendtSykmeldingKafkaMessage-modellen matcher topic-kontrakten."
+            summary: Sykmelding Kafka consumer forkaster meldinger (poison pills).
+          labels:
+            namespace: team-esyfo
+            severity: warning
+        - alert: SykmeldingConsumerRuntimeErrors
+          expr: rate(syfo_oppfolgingsplan_backend_sykmelding_runtime_error_total{namespace="team-esyfo"}[5m]) > 0.05
+          for: 10m
+          annotations:
+            consequence: Kafka consumer opplever gjentatte transiente feil (connection, commit, etc). Consumer kjører med backoff.
+            action: "Sjekk logger for exceptions. Verifiser Kafka-tilkobling, database-tilgang og nettverkspolicyer."
+            summary: Sykmelding Kafka consumer har transiente runtime-feil.
+          labels:
+            namespace: team-esyfo
+            severity: warning

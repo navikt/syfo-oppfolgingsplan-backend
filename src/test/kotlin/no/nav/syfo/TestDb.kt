@@ -91,6 +91,7 @@ class TestDB private constructor() {
             it
                 .prepareStatement(
                     """
+                    DELETE FROM sykmeldingsperiode;
                     DELETE FROM oppfolgingsplan_utkast;
                     DELETE FROM oppfolgingsplan;
                 """,
@@ -221,4 +222,3 @@ fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
         }
     }
 }
-
