@@ -127,8 +127,6 @@ fun DatabaseInterface.findOppfolgingsplanUtkastBy(
     }
 }
 
-
-
 fun ResultSet.toOppfolgingsplanUtkastDTO(): PersistedOppfolgingsplanUtkast = PersistedOppfolgingsplanUtkast(
     uuid = getObject("uuid") as UUID,
     sykmeldtFnr = getString("sykmeldt_fnr"),
