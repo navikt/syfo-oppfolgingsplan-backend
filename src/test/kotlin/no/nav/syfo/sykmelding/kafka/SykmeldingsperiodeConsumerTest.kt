@@ -21,7 +21,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
-import java.time.OffsetDateTime
 import java.time.ZoneId
 
 class SykmeldingsperiodeConsumerTest :
@@ -186,6 +185,65 @@ class SykmeldingsperiodeConsumerTest :
                 verify(exactly = 0) { repository.storeSykmeldingsperioder(any()) }
                 verify(exactly = 0) { repository.invalidateSykmelding(any()) }
             }
+
+            it("deserializes realistic raw Kafka JSON with unknown fields like brukerSvar") {
+                every { repository.storeSykmeldingsperioder(any()) } returns 1
+
+                val rawJson = """
+                    {
+                      "sykmelding": {
+                        "id": "sykmelding-raw",
+                        "sykmeldingsperioder": [
+                          {"fom": "2025-01-10", "tom": "2025-01-20", "type": "AKTIVITET_IKKE_MULIG", "gradert": null, "behandlingsdager": null}
+                        ],
+                        "syketilfelleStartDato": "2025-01-10",
+                        "mottattTidspunkt": "2025-01-10T08:00:00Z",
+                        "behandletTidspunkt": "2025-01-10T09:00:00Z",
+                        "arbeidsgiver": {"orgnummer": "111222333", "orgNavn": "Foo AS"},
+                        "merknader": null
+                      },
+                      "kafkaMetadata": {
+                        "sykmeldingId": "sykmelding-raw",
+                        "timestamp": "2025-01-10T10:00:00Z",
+                        "fnr": "99887766554",
+                        "source": "syfosmregister"
+                      },
+                      "event": {
+                        "sykmeldingId": "sykmelding-raw",
+                        "timestamp": "2025-01-10T10:00:00Z",
+                        "statusEvent": "SENDT",
+                        "arbeidsgiver": {"orgnummer": "111222333", "juridiskOrgnummer": "111222333", "orgNavn": "Foo AS"},
+                        "brukerSvar": {
+                          "erOpplysningeneRiktige": {"svar": true, "sporsmaltekst": "Er opplysningene riktige?", "svartekster": null},
+                          "arbeidssituasjon": {"svar": "ARBEIDSTAKER", "sporsmaltekst": "Hva er din arbeidssituasjon?", "svartekster": null}
+                        },
+                        "tidligereArbeidsgiver": null
+                      }
+                    }
+                """.trimIndent()
+
+                consumer.processRecord(
+                    ConsumerRecord(
+                        SYKMELDINGSPERIODE_TOPIC,
+                        0,
+                        0L,
+                        "sykmelding-raw",
+                        rawJson,
+                    ),
+                )
+
+                verify(exactly = 1) {
+                    repository.storeSykmeldingsperioder(
+                        withArg { perioder ->
+                            perioder.shouldHaveSize(1)
+                            perioder.single().sykmeldtFnr shouldBe "99887766554"
+                            perioder.single().organisasjonsnummer shouldBe "111222333"
+                            perioder.single().fom shouldBe LocalDate.of(2025, 1, 10)
+                            perioder.single().tom shouldBe LocalDate.of(2025, 1, 20)
+                        },
+                    )
+                }
+            }
         }
     })
 
@@ -196,23 +254,14 @@ private fun kafkaMessage(
     SendtSykmeldingKafkaMessage(
         sykmelding = ArbeidsgiverSykmelding(
             sykmeldingsperioder = perioder,
-            syketilfelleStartDato = null,
         ),
         kafkaMetadata = KafkaMetadata(
-            sykmeldingId = sykmeldingId,
-            timestamp = OffsetDateTime.parse("2025-05-01T12:00:00Z"),
             fnr = "12345678901",
-            source = "syfosmregister",
         ),
         event = Event(
-            sykmeldingId = sykmeldingId,
-            timestamp = OffsetDateTime.parse("2025-05-01T12:00:00Z"),
             arbeidsgiver = Arbeidsgiver(
                 orgnummer = "987654321",
-                juridiskOrgnummer = null,
-                orgNavn = "Test AS",
             ),
-
         ),
     ),
 )
