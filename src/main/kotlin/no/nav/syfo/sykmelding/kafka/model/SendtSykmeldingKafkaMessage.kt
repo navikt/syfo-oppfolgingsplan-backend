@@ -35,7 +35,7 @@ data class Event(
 data class Arbeidsgiver(
     val orgnummer: String,
     val juridiskOrgnummer: String? = null,
-    val orgNavn: String,
+    val orgNavn: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -46,7 +46,7 @@ data class BrukerSvar(
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class KafkaMetadata(
     val sykmeldingId: String,
-    val timestamp: OffsetDateTime,
+    val timestamp: OffsetDateTime? = null,
     val fnr: String,
-    val source: String,
+    val source: String? = null,
 )

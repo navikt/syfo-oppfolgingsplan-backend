@@ -11,6 +11,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import no.nav.syfo.application.kafka.KafkaEnv
 import no.nav.syfo.application.kafka.consumerProperties
+import no.nav.syfo.application.metric.METRICS_NS
 import no.nav.syfo.application.metric.METRICS_REGISTRY
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeToStore
@@ -27,18 +28,18 @@ import kotlin.time.Duration.Companion.seconds
 
 const val SYKMELDINGSPERIODE_TOPIC = "teamsykmelding.syfo-sendt-sykmelding"
 const val SYKMELDINGSPERIODE_CONSUMER_GROUP = "syfo-oppfolgingsplan-backend-sykmeldingsperiode"
-const val SYKMELDING_CONSUMED_TOTAL = "syfo_oppfolgingsplan_sykmelding_consumed_total"
-const val SYKMELDING_TOMBSTONE_TOTAL = "syfo_oppfolgingsplan_sykmelding_tombstone_total"
-const val SYKMELDING_ERROR_TOTAL = "syfo_oppfolgingsplan_sykmelding_error_total"
 
-val COUNT_SYKMELDING_CONSUMED: Counter = Counter.builder(SYKMELDING_CONSUMED_TOTAL)
+val COUNT_SYKMELDING_CONSUMED: Counter = Counter.builder("${METRICS_NS}_sykmelding_consumed")
     .description("Counts the number of sykmeldingsperioder stored from Kafka")
     .register(METRICS_REGISTRY)
-val COUNT_SYKMELDING_TOMBSTONE: Counter = Counter.builder(SYKMELDING_TOMBSTONE_TOTAL)
+val COUNT_SYKMELDING_TOMBSTONE: Counter = Counter.builder("${METRICS_NS}_sykmelding_tombstone")
     .description("Counts the number of sykmelding tombstones processed from Kafka")
     .register(METRICS_REGISTRY)
-val COUNT_SYKMELDING_ERROR: Counter = Counter.builder(SYKMELDING_ERROR_TOTAL)
-    .description("Counts the number of sykmelding Kafka consumer errors")
+val COUNT_SYKMELDING_DESERIALIZATION_ERROR: Counter = Counter.builder("${METRICS_NS}_sykmelding_deserialization_error")
+    .description("Counts the number of sykmelding Kafka messages that failed deserialization (poison pills)")
+    .register(METRICS_REGISTRY)
+val COUNT_SYKMELDING_RUNTIME_ERROR: Counter = Counter.builder("${METRICS_NS}_sykmelding_runtime_error")
+    .description("Counts transient consumer runtime errors (connection, commit, etc.)")
     .register(METRICS_REGISTRY)
 
 class SykmeldingsperiodeConsumer(
@@ -86,7 +87,7 @@ class SykmeldingsperiodeConsumer(
                     log.warn("Kafka consumer woke up unexpectedly, recreating consumer")
                 }
             } catch (ex: Exception) {
-                COUNT_SYKMELDING_ERROR.increment()
+                COUNT_SYKMELDING_RUNTIME_ERROR.increment()
                 consecutiveFailures++
                 val backoff = retryDelay(consecutiveFailures)
                 log.error("Error while consuming sykmeldingsperioder from Kafka (attempt $consecutiveFailures, retrying in $backoff)", ex)
@@ -115,7 +116,7 @@ class SykmeldingsperiodeConsumer(
         val kafkaMessage = try {
             configuredJacksonMapper.readValue<SendtSykmeldingKafkaMessage>(recordValue)
         } catch (ex: JsonProcessingException) {
-            COUNT_SYKMELDING_ERROR.increment()
+            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
             log.error(
                 "Failed to deserialize sykmelding Kafka message at topic=${record.topic()}, partition=${record.partition()}, offset=${record.offset()}",
                 ex,
@@ -123,11 +124,12 @@ class SykmeldingsperiodeConsumer(
             return
         }
 
+        val sykmeldingId = record.key()
         val organisasjonsnummer = kafkaMessage.event.arbeidsgiver?.orgnummer
         if (organisasjonsnummer == null) {
-            COUNT_SYKMELDING_ERROR.increment()
+            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
             log.warn(
-                "Skipping sykmelding Kafka message without arbeidsgiver for sykmeldingId=${kafkaMessage.event.sykmeldingId}",
+                "Skipping sykmelding Kafka message without arbeidsgiver for sykmeldingId=$sykmeldingId",
             )
             return
         }
@@ -139,14 +141,14 @@ class SykmeldingsperiodeConsumer(
                 SykmeldingsperiodeToStore(
                     sykmeldtFnr = kafkaMessage.kafkaMetadata.fnr,
                     organisasjonsnummer = organisasjonsnummer,
-                    sykmeldingId = kafkaMessage.event.sykmeldingId,
+                    sykmeldingId = sykmeldingId,
                     fom = sykmeldingsperiode.fom,
                     tom = sykmeldingsperiode.tom,
                 )
             }
 
         if (sykmeldingsperioderToStore.isEmpty()) {
-            log.debug("Skipping historical sykmeldingId=${kafkaMessage.event.sykmeldingId} because all periods are older than retention")
+            log.debug("Skipping historical sykmeldingId=$sykmeldingId because all periods are older than retention")
             return
         }
 
@@ -161,7 +163,7 @@ class SykmeldingsperiodeConsumer(
     ) {
         val sykmeldingId = record.key()
         if (sykmeldingId.isNullOrBlank()) {
-            COUNT_SYKMELDING_ERROR.increment()
+            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
             log.warn(
                 "Skipping sykmelding tombstone without key at topic=${record.topic()}, partition=${record.partition()}, offset=${record.offset()}",
             )
