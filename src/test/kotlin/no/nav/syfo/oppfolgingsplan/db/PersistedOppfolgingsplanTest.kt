@@ -14,8 +14,11 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldOption
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.RadioGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.pdfgen.toOppfolgingsplanPdfV1
 import java.time.Instant
 import java.time.LocalDate
@@ -208,6 +211,109 @@ class PersistedOppfolgingsplanTest :
                 fields[0].id shouldBe "testDate"
                 fields[0].title shouldBe "Test Date"
                 fields[0].value shouldBe "25.11.2025"
+            }
+
+            it("should remove zero width no-break space from content before PDF generation") {
+                val formSnapshot = FormSnapshot(
+                    formIdentifier = "oppfolgingsplan",
+                    formSemanticVersion = "1.0.0",
+                    formSnapshotVersion = "2.0.0",
+                    sections = listOf(
+                        Section(
+                            sectionId = "arbeidsoppgaver",
+                            sectionTitle = "Arbeidsoppgaver",
+                            fields = listOf(
+                                TextFieldSnapshot(
+                                    fieldId = "vanligArbeidsdag",
+                                    label = "Hvordan ser en vanlig arbeidsdag ut?",
+                                    description = "Beskriv arbeidsdagen",
+                                    value = "Tekst med\uFEFF usynlig tegn",
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+                val plan = defaultPersistedOppfolgingsplan().copy(content = formSnapshot)
+
+                val pdf = plan.toOppfolgingsplanPdfV1()
+
+                val fields = pdf.oppfolgingsplan.sections[0].inputFields
+                fields.shouldHaveSize(1)
+                fields[0].value shouldBe "Tekst med usynlig tegn"
+            }
+
+            it("should sanitize all newly mapped string fields before PDF generation") {
+                val dirty = "A\uFEFFB\uFFFEC"
+                val formSnapshot = FormSnapshot(
+                    formIdentifier = "oppfolgingsplan",
+                    formSemanticVersion = "1.0.0",
+                    formSnapshotVersion = "2.0.0",
+                    sections = listOf(
+                        Section(
+                            sectionId = "section-1",
+                            sectionTitle = "Section $dirty",
+                            fields = listOf(
+                                TextFieldSnapshot(
+                                    fieldId = "text-1",
+                                    label = "Label $dirty",
+                                    description = "Description $dirty",
+                                    value = "Text value $dirty",
+                                ),
+                                RadioGroupFieldSnapshot(
+                                    fieldId = "radio-1",
+                                    label = "Radio label $dirty",
+                                    description = "Radio description $dirty",
+                                    options = listOf(
+                                        RadioGroupFieldOption(optionId = "1", optionLabel = "Option 1"),
+                                        RadioGroupFieldOption(optionId = "2", optionLabel = "Selected $dirty"),
+                                    ),
+                                    selectedOptionId = "2",
+                                ),
+                                CheckboxGroupFieldSnapshot(
+                                    fieldId = "checkbox-1",
+                                    label = "Checkbox label $dirty",
+                                    description = "Checkbox description $dirty",
+                                    options = listOf(
+                                        CheckboxGroupFieldOption(optionId = "a", optionLabel = "A $dirty", wasSelected = true),
+                                        CheckboxGroupFieldOption(optionId = "b", optionLabel = "B $dirty", wasSelected = true),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+
+                val plan = defaultPersistedOppfolgingsplan().copy(
+                    sykmeldtFullName = "Sykmeldt $dirty",
+                    sykmeldtFnr = "Fnr$dirty",
+                    organisasjonsnavn = "Org navn $dirty",
+                    organisasjonsnummer = "Org nr $dirty",
+                    stillingstittel = "Stilling $dirty",
+                    narmesteLederFullName = "Leder $dirty",
+                    content = formSnapshot,
+                )
+
+                val pdf = plan.toOppfolgingsplanPdfV1()
+                val cleaned = "ABC"
+
+                pdf.oppfolgingsplan.sykmeldtName shouldBe "Sykmeldt $cleaned"
+                pdf.oppfolgingsplan.sykmeldtFnr shouldBe "Fnr$cleaned"
+                pdf.oppfolgingsplan.organisasjonsnavn shouldBe "Org navn $cleaned"
+                pdf.oppfolgingsplan.organisasjonsnummer shouldBe "Org nr $cleaned"
+                pdf.oppfolgingsplan.stillingstittel shouldBe "Stilling $cleaned"
+                pdf.oppfolgingsplan.narmesteLederName shouldBe "Leder $cleaned"
+
+                val section = pdf.oppfolgingsplan.sections[0]
+                section.title shouldBe "Section $cleaned"
+                section.inputFields[0].title shouldBe "Label $cleaned"
+                section.inputFields[0].description shouldBe "Description $cleaned"
+                section.inputFields[0].value shouldBe "Text value $cleaned"
+                section.inputFields[1].title shouldBe "Radio label $cleaned"
+                section.inputFields[1].description shouldBe "Radio description $cleaned"
+                section.inputFields[1].value shouldBe "Selected $cleaned"
+                section.inputFields[2].title shouldBe "Checkbox label $cleaned"
+                section.inputFields[2].description shouldBe "Checkbox description $cleaned"
+                section.inputFields[2].value shouldBe "A $cleaned\nB $cleaned"
             }
         }
 
