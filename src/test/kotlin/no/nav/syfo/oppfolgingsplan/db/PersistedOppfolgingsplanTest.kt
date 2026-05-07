@@ -16,6 +16,7 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.Section
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.SingleCheckboxFieldSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.TextFieldSnapshot
 import no.nav.syfo.pdfgen.toOppfolgingsplanPdfV1
 import java.time.Instant
 import java.time.LocalDate
@@ -208,6 +209,35 @@ class PersistedOppfolgingsplanTest :
                 fields[0].id shouldBe "testDate"
                 fields[0].title shouldBe "Test Date"
                 fields[0].value shouldBe "25.11.2025"
+            }
+
+            it("should remove zero width no-break space from content before PDF generation") {
+                val formSnapshot = FormSnapshot(
+                    formIdentifier = "oppfolgingsplan",
+                    formSemanticVersion = "1.0.0",
+                    formSnapshotVersion = "2.0.0",
+                    sections = listOf(
+                        Section(
+                            sectionId = "arbeidsoppgaver",
+                            sectionTitle = "Arbeidsoppgaver",
+                            fields = listOf(
+                                TextFieldSnapshot(
+                                    fieldId = "vanligArbeidsdag",
+                                    label = "Hvordan ser en vanlig arbeidsdag ut?",
+                                    description = "Beskriv arbeidsdagen",
+                                    value = "Tekst med\uFEFF usynlig tegn",
+                                ),
+                            ),
+                        ),
+                    ),
+                )
+                val plan = defaultPersistedOppfolgingsplan().copy(content = formSnapshot)
+
+                val pdf = plan.toOppfolgingsplanPdfV1()
+
+                val fields = pdf.oppfolgingsplan.sections[0].inputFields
+                fields.shouldHaveSize(1)
+                fields[0].value shouldBe "Tekst med usynlig tegn"
             }
         }
 

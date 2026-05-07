@@ -43,37 +43,41 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanPdfV1(): OppfolgingsplanPdfV1 {
                 .toLocalDate()
                 .format(formatter),
             evaluationDate = this.evalueringsdato.format(formatter),
-            sykmeldtName = this.sykmeldtFullName,
-            sykmeldtFnr = this.sykmeldtFnr,
+            sykmeldtName = this.sykmeldtFullName.sanitizePdfText(),
+            sykmeldtFnr = this.sykmeldtFnr.sanitizePdfText(),
             // organisasjonsnavn should always be set, but it is nullable in the response we get from
             // dine-sykmeldte-backend even though all rows in the database currently have a value
-            organisasjonsnavn = this.organisasjonsnavn ?: throw RuntimeException("Organisasjonsnavn is null"),
-            organisasjonsnummer = this.organisasjonsnummer,
-            stillingstittel = this.stillingstittel,
+            organisasjonsnavn = this.organisasjonsnavn?.sanitizePdfText()
+                ?: throw RuntimeException("Organisasjonsnavn is null"),
+            organisasjonsnummer = this.organisasjonsnummer.sanitizePdfText(),
+            stillingstittel = this.stillingstittel.sanitizePdfTextOrNull(),
             stillingsprosent = this.stillingsprosent?.toPlainString(),
-            narmesteLederName = this.narmesteLederFullName ?: throw RuntimeException("NarmesteLederName is null"),
+            narmesteLederName = this.narmesteLederFullName?.sanitizePdfText()
+                ?: throw RuntimeException("NarmesteLederName is null"),
             sections = content.sections.map { section ->
                 Section(
                     id = section.sectionId,
-                    title = section.sectionTitle,
+                    title = section.sectionTitle.sanitizePdfText(),
                     inputFields = section.fields
                         .map { fieldSnapshot ->
                             InputField(
                                 id = fieldSnapshot.fieldId,
-                                title = fieldSnapshot.label,
-                                description = fieldSnapshot.description,
+                                title = fieldSnapshot.label.sanitizePdfText(),
+                                description = fieldSnapshot.description.sanitizePdfTextOrNull(),
                                 value = when (fieldSnapshot) {
-                                    is TextFieldSnapshot -> fieldSnapshot.value
+                                    is TextFieldSnapshot -> fieldSnapshot.value.sanitizePdfText()
                                     is RadioGroupFieldSnapshot ->
                                         fieldSnapshot.options
-                                            .firstOrNull { it.optionId == fieldSnapshot.selectedOptionId }?.optionLabel
+                                            .firstOrNull { it.optionId == fieldSnapshot.selectedOptionId }
+                                            ?.optionLabel
+                                            ?.sanitizePdfText()
                                             ?: ""
 
                                     is SingleCheckboxFieldSnapshot -> if (fieldSnapshot.value) "Ja" else "Nei"
                                     is CheckboxGroupFieldSnapshot ->
                                         fieldSnapshot.options
                                             .filter { it.wasSelected }
-                                            .joinToString("\n") { it.optionLabel }
+                                            .joinToString("\n") { it.optionLabel.sanitizePdfText() }
                                             .ifEmpty { "" }
 
                                     is DateFieldSnapshot -> fieldSnapshot.value?.format(formatter) ?: ""
@@ -87,3 +91,7 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanPdfV1(): OppfolgingsplanPdfV1 {
         ),
     )
 }
+
+private fun String.sanitizePdfText(): String = replace("\uFEFF", "").replace("\uFFFE", "")
+
+private fun String?.sanitizePdfTextOrNull(): String? = this?.sanitizePdfText()
