@@ -76,6 +76,8 @@ class SoftDeleteOppfolgingsplanerTaskTest :
 
                 coEvery { leaderElection.isLeader() } returns true
                 coEvery { oppfolgingsplanService.softDeleteExpiredOppfolgingsplaner() } returns 0
+                val originalLevel = logger.level
+                logger.level = Level.DEBUG
                 logger.addAppender(appender)
 
                 try {
@@ -91,6 +93,7 @@ class SoftDeleteOppfolgingsplanerTaskTest :
                         it.level == Level.DEBUG && it.formattedMessage == "No expired oppfolgingsplaner to soft-delete"
                     } shouldBe true
                 } finally {
+                    logger.level = originalLevel
                     logger.detachAppender(appender)
                     appender.stop()
                 }
