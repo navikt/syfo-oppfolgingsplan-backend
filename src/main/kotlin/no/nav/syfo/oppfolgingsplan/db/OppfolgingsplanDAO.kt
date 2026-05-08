@@ -397,18 +397,19 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
         )
     """.trimIndent()
 
-    return connection.use { connection ->
-        val updatedUsingSykmeldingsperioder = connection.prepareStatement(softDeleteUsingSykmeldingsperioderStatement).use {
+    val updatedUsingSykmeldingsperioder = connection.use { connection ->
+        connection.prepareStatement(softDeleteUsingSykmeldingsperioderStatement).use {
             it.setInt(1, batchSize)
             it.executeUpdate()
-        }
-        val updatedUsingCreatedAt = connection.prepareStatement(softDeleteUsingCreatedAtStatement).use {
-            it.setInt(1, batchSize)
-            it.executeUpdate()
-        }
-        connection.commit()
-        updatedUsingSykmeldingsperioder + updatedUsingCreatedAt
+        }.also { connection.commit() }
     }
+    val updatedUsingCreatedAt = connection.use { connection ->
+        connection.prepareStatement(softDeleteUsingCreatedAtStatement).use {
+            it.setInt(1, batchSize)
+            it.executeUpdate()
+        }.also { connection.commit() }
+    }
+    return updatedUsingSykmeldingsperioder + updatedUsingCreatedAt
 }
 
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfolgingsplan(
