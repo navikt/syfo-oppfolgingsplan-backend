@@ -70,6 +70,7 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     narmesteLederId = UUID.randomUUID().toString(),
     evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
     createdAt = Instant.now(),
+    skjultFra = null,
 )
 
 fun defaultPersistedOppfolgingsplanUtkast() = PersistedOppfolgingsplanUtkast(

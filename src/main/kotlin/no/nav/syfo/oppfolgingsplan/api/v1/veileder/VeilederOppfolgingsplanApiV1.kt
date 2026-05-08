@@ -32,7 +32,10 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
     route("/oppfolgingsplaner") {
         suspend fun tryToGetOppfolgingsplanByUuid(
             uuid: UUID,
-        ): PersistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(uuid).let {
+        ): PersistedOppfolgingsplan = oppfolgingsplanService.getPersistedOppfolgingsplanByUuid(
+            uuid = uuid,
+            inkluderSkjulte = true,
+        ).let {
             if (it.deltMedVeilederTidspunkt == null) {
                 throw PlanNotFoundException("Oppfolgingsplan not found for uuid: $uuid")
             } else {
@@ -65,8 +68,10 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
                 sykmeldtFnr = Fodselsnummer(value = sykmeldtFnr),
                 token = innloggetBruker.token,
             )
-            val oppfolgingsplaner =
-                oppfolgingsplanService.getPersistedOppfolgingsplanListBy(sykmeldtFnr).toListOppfolgingsplanVeileder()
+            val oppfolgingsplaner = oppfolgingsplanService.getPersistedOppfolgingsplanListBy(
+                sykmeldtFnr = sykmeldtFnr,
+                inkluderSkjulte = true,
+            ).toListOppfolgingsplanVeileder()
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }

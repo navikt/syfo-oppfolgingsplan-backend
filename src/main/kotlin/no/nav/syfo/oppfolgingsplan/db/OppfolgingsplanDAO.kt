@@ -90,11 +90,14 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
     sykmeldtFnr: String,
+    inkluderSkjulte: Boolean = false,
 ): List<PersistedOppfolgingsplan> {
+    val skjultFilter = if (!inkluderSkjulte) "AND skjult_fra IS NULL" else ""
     val statement = """
         SELECT *
         FROM oppfolgingsplan
         WHERE sykmeldt_fnr = ?
+        $skjultFilter
         ORDER BY created_at DESC
     """.trimIndent()
 
@@ -121,6 +124,7 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
         FROM oppfolgingsplan
         WHERE sykmeldt_fnr = ?
         AND organisasjonsnummer = ?
+        AND skjult_fra IS NULL
         ORDER BY created_at DESC
     """.trimIndent()
 
@@ -141,11 +145,14 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
 
 fun DatabaseInterface.findOppfolgingsplanBy(
     uuid: UUID,
+    inkluderSkjulte: Boolean = false,
 ): PersistedOppfolgingsplan? {
+    val skjultFilter = if (!inkluderSkjulte) "AND skjult_fra IS NULL" else ""
     val statement = """
         SELECT *
         FROM oppfolgingsplan
         WHERE uuid = ?
+        $skjultFilter
     """.trimIndent()
 
     connection.use { connection ->
@@ -348,6 +355,62 @@ fun DatabaseInterface.setSendtTilDokumentportenTidspunkt(
     }
 }
 
+fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
+    batchSize: Int = 1000,
+): Int {
+    val softDeleteUsingSykmeldingsperioderStatement = """
+        UPDATE oppfolgingsplan SET skjult_fra = NOW()
+        WHERE uuid IN (
+            SELECT op.uuid FROM oppfolgingsplan op
+            WHERE op.skjult_fra IS NULL
+            AND EXISTS (
+                SELECT 1 FROM sykmeldingsperiode sp
+                WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
+                AND sp.organisasjonsnummer = op.organisasjonsnummer
+                AND sp.invalidated_at IS NULL
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM sykmeldingsperiode sp
+                WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
+                AND sp.organisasjonsnummer = op.organisasjonsnummer
+                AND sp.invalidated_at IS NULL
+                AND sp.tom > NOW() - INTERVAL '6 months'
+            )
+            ORDER BY op.uuid
+            LIMIT ?
+        )
+    """.trimIndent()
+    val softDeleteUsingCreatedAtStatement = """
+        UPDATE oppfolgingsplan SET skjult_fra = NOW()
+        WHERE uuid IN (
+            SELECT op.uuid FROM oppfolgingsplan op
+            WHERE op.skjult_fra IS NULL
+            AND NOT EXISTS (
+                SELECT 1 FROM sykmeldingsperiode sp
+                WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
+                AND sp.organisasjonsnummer = op.organisasjonsnummer
+                AND sp.invalidated_at IS NULL
+            )
+            AND op.created_at < NOW() - INTERVAL '6 months'
+            ORDER BY op.uuid
+            LIMIT ?
+        )
+    """.trimIndent()
+
+    return connection.use { connection ->
+        val updatedUsingSykmeldingsperioder = connection.prepareStatement(softDeleteUsingSykmeldingsperioderStatement).use {
+            it.setInt(1, batchSize)
+            it.executeUpdate()
+        }
+        val updatedUsingCreatedAt = connection.prepareStatement(softDeleteUsingCreatedAtStatement).use {
+            it.setInt(1, batchSize)
+            it.executeUpdate()
+        }
+        connection.commit()
+        updatedUsingSykmeldingsperioder + updatedUsingCreatedAt
+    }
+}
+
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfolgingsplan(
     uuid = getObject("uuid") as UUID,
     sykmeldtFnr = this.getString("sykmeldt_fnr"),
@@ -368,5 +431,6 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfol
     deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
     utkastCreatedAt = this.getTimestamp("utkast_created_at")?.toInstant(),
     createdAt = getTimestamp("created_at").toInstant(),
+    skjultFra = this.getTimestamp("skjult_fra")?.toInstant(),
     sendtTilDokumentportenTidspunkt = this.getTimestamp("sendt_til_dokumentporten_tidspunkt")?.toInstant(),
 )

@@ -24,6 +24,7 @@ import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
@@ -154,8 +155,14 @@ class OppfolgingsplanService(
         )
     }
 
-    suspend fun getPersistedOppfolgingsplanByUuid(uuid: UUID): PersistedOppfolgingsplan = withContext(Dispatchers.IO) {
-        database.findOppfolgingsplanBy(uuid)
+    suspend fun getPersistedOppfolgingsplanByUuid(
+        uuid: UUID,
+        inkluderSkjulte: Boolean = false,
+    ): PersistedOppfolgingsplan = withContext(Dispatchers.IO) {
+        database.findOppfolgingsplanBy(
+            uuid = uuid,
+            inkluderSkjulte = inkluderSkjulte,
+        )
     } ?: throw PlanNotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
     suspend fun updateSkalDelesMedLege(
@@ -251,8 +258,26 @@ class OppfolgingsplanService(
         )
     }
 
-    suspend fun getPersistedOppfolgingsplanListBy(sykmeldtFnr: String): List<PersistedOppfolgingsplan> = withContext(Dispatchers.IO) {
-        database.findAllOppfolgingsplanerBy(sykmeldtFnr)
+    suspend fun getPersistedOppfolgingsplanListBy(
+        sykmeldtFnr: String,
+        inkluderSkjulte: Boolean = false,
+    ): List<PersistedOppfolgingsplan> = withContext(Dispatchers.IO) {
+        database.findAllOppfolgingsplanerBy(
+            sykmeldtFnr = sykmeldtFnr,
+            inkluderSkjulte = inkluderSkjulte,
+        )
+    }
+
+    suspend fun softDeleteExpiredOppfolgingsplaner(): Int = withContext(Dispatchers.IO) {
+        var total = 0
+        var count: Int
+
+        do {
+            count = database.softDeleteExpiredOppfolgingsplaner()
+            total += count
+        } while (count > 0)
+
+        total
     }
 
     suspend fun getAndSetNarmestelederFullname(
