@@ -19,6 +19,7 @@ import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_SOFT_DELETED
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
+import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
@@ -41,6 +42,22 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             pdlService = mockk(relaxed = true),
             aaregService = mockk(relaxed = true),
         )
+
+        fun softDeleteAll(batchSize: Int): Pair<Int, Int> {
+            var total = 0
+            var iterations = 0
+            var count: Int
+
+            do {
+                count = testDb.softDeleteExpiredOppfolgingsplaner(batchSize)
+                if (count > 0) {
+                    iterations++
+                }
+                total += count
+            } while (count > 0)
+
+            return total to iterations
+        }
 
         beforeTest {
             clearAllMocks()
@@ -141,6 +158,46 @@ class SoftDeleteOppfolgingsplanerTaskTest :
                 testDb.findOppfolgingsplanBy(planUuid, inkluderSkjulte = true)?.skjultFra.shouldBeNull()
             }
 
+            it("does not soft-delete plan with last tom exactly 6 months ago") {
+                val plan = defaultPersistedOppfolgingsplan()
+                val planUuid = testDb.persistOppfolgingsplan(plan)
+                sykmeldingsperiodeRepository.storeSykmeldingsperioder(
+                    listOf(
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = plan.sykmeldtFnr,
+                            organisasjonsnummer = plan.organisasjonsnummer,
+                            sykmeldingId = "sykmelding-boundary-1",
+                            fom = LocalDate.now().minusMonths(6).minusDays(14),
+                            tom = LocalDate.now().minusMonths(6),
+                        ),
+                    ),
+                )
+
+                service().softDeleteExpiredOppfolgingsplaner() shouldBe 0
+
+                testDb.findOppfolgingsplanBy(planUuid, inkluderSkjulte = true)?.skjultFra.shouldBeNull()
+            }
+
+            it("soft-deletes plan with last tom exactly 6 months and 1 day ago") {
+                val plan = defaultPersistedOppfolgingsplan()
+                val planUuid = testDb.persistOppfolgingsplan(plan)
+                sykmeldingsperiodeRepository.storeSykmeldingsperioder(
+                    listOf(
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = plan.sykmeldtFnr,
+                            organisasjonsnummer = plan.organisasjonsnummer,
+                            sykmeldingId = "sykmelding-boundary-2",
+                            fom = LocalDate.now().minusMonths(6).minusDays(15),
+                            tom = LocalDate.now().minusMonths(6).minusDays(1),
+                        ),
+                    ),
+                )
+
+                service().softDeleteExpiredOppfolgingsplaner() shouldBe 1
+
+                testDb.findOppfolgingsplanBy(planUuid, inkluderSkjulte = true)?.skjultFra.shouldNotBeNull()
+            }
+
             it("does not soft-delete plan when newer sykmeldingsperiode resets cutoff") {
                 val plan = defaultPersistedOppfolgingsplan()
                 val planUuid = testDb.persistOppfolgingsplan(plan)
@@ -190,6 +247,29 @@ class SoftDeleteOppfolgingsplanerTaskTest :
                 testDb.findOppfolgingsplanBy(planUuid, inkluderSkjulte = true)?.skjultFra.shouldBeNull()
             }
 
+            it("soft-deletes old plan when only invalidated sykmeldingsperioder exist") {
+                val plan = defaultPersistedOppfolgingsplan().copy(
+                    createdAt = Instant.now().minus(210, ChronoUnit.DAYS),
+                )
+                val planUuid = testDb.persistOppfolgingsplan(plan)
+                sykmeldingsperiodeRepository.storeSykmeldingsperioder(
+                    listOf(
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = plan.sykmeldtFnr,
+                            organisasjonsnummer = plan.organisasjonsnummer,
+                            sykmeldingId = "sykmelding-invalidated-fallback",
+                            fom = LocalDate.now().minusMonths(8),
+                            tom = LocalDate.now().minusMonths(7),
+                        ),
+                    ),
+                )
+                sykmeldingsperiodeRepository.invalidateSykmelding("sykmelding-invalidated-fallback")
+
+                service().softDeleteExpiredOppfolgingsplaner() shouldBe 1
+
+                testDb.findOppfolgingsplanBy(planUuid, inkluderSkjulte = true)?.skjultFra.shouldNotBeNull()
+            }
+
             it("ignores invalidated sykmeldingsperioder") {
                 val plan = defaultPersistedOppfolgingsplan().copy(
                     createdAt = Instant.now().minus(150, ChronoUnit.DAYS),
@@ -211,6 +291,28 @@ class SoftDeleteOppfolgingsplanerTaskTest :
                 service().softDeleteExpiredOppfolgingsplaner() shouldBe 0
 
                 testDb.findOppfolgingsplanBy(planUuid, inkluderSkjulte = true)?.skjultFra.shouldBeNull()
+            }
+
+            it("soft-deletes all expired plans across multiple batches") {
+                val sykmeldtFnr = "12345678901"
+                val planUuids = (1..5).map { index ->
+                    testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            uuid = java.util.UUID.randomUUID(),
+                            sykmeldtFnr = sykmeldtFnr,
+                            organisasjonsnummer = "12345678$index",
+                            createdAt = Instant.now().minus(210, ChronoUnit.DAYS),
+                        ),
+                    )
+                }
+
+                val (softDeletedCount, iterations) = softDeleteAll(batchSize = 2)
+
+                softDeletedCount shouldBe 5
+                iterations shouldBe 3
+                planUuids.forEach { planUuid ->
+                    testDb.findOppfolgingsplanBy(planUuid, inkluderSkjulte = true)?.skjultFra.shouldNotBeNull()
+                }
             }
         }
 

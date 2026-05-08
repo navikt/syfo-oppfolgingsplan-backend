@@ -374,7 +374,7 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
                 WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
                 AND sp.organisasjonsnummer = op.organisasjonsnummer
                 AND sp.invalidated_at IS NULL
-                AND sp.tom > NOW() - INTERVAL '6 months'
+                AND sp.tom >= CURRENT_DATE - INTERVAL '6 months'
             )
             ORDER BY op.uuid
             LIMIT ?
