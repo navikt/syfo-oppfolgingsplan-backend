@@ -5,6 +5,7 @@ data class TexasEnvironment(
     val tokenEndpoint: String,
     val tokenExchangeEndpoint: String,
     val exchangeTargetDineSykmeldte: String,
+    val exchangeTargetIsnarmesteleder: String,
     val exchangeTargetIsDialogmelding: String,
     val exchangeTargetIsTilgangskontroll: String,
 )

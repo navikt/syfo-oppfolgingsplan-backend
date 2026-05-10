@@ -36,6 +36,7 @@ import no.nav.syfo.defaultUtkastRequest
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
+import no.nav.syfo.foresporsel.ForesporselService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
@@ -68,6 +69,7 @@ class OppfolgingsplanUtkastApiV1Test :
         val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
         val dokarkivServiceMock = mockk<DokarkivService>()
         val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
+        val foresporselServiceMock = mockk<ForesporselService>(relaxed = true)
         val pdlClientMock = mockk<PdlClient>()
         val pdlService = PdlService(pdlClientMock)
         val oppfolgingsplanService = OppfolgingsplanService(
@@ -113,6 +115,7 @@ class OppfolgingsplanUtkastApiV1Test :
                             isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                             dokarkivService = dokarkivServiceMock,
                             isTilgangskontrollService = isTilgangskontrollServiceMock,
+                            foresporselService = foresporselServiceMock,
                             environment = environment,
                         )
                     }

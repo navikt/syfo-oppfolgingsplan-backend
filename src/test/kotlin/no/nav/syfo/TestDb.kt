@@ -91,6 +91,7 @@ class TestDB private constructor() {
             it
                 .prepareStatement(
                     """
+                    DELETE FROM foresporsel_oppfolgingsplan;
                     DELETE FROM sykmeldingsperiode;
                     DELETE FROM oppfolgingsplan_utkast;
                     DELETE FROM oppfolgingsplan;

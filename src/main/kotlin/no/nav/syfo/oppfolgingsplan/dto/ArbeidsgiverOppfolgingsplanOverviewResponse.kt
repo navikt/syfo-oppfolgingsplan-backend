@@ -1,5 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.dto
 
+import no.nav.syfo.foresporsel.domain.SykmeldtArbeidsforhold
 import no.nav.syfo.oppfolgingsplan.domain.EmployeeDetails
 import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import java.math.BigDecimal
@@ -39,4 +40,5 @@ data class ArbeidsgiverOppfolgingsplanOverviewResponse(
 data class SykmeldtOppfolgingsplanOverviewResponse(
     val aktiveOppfolgingsplaner: List<OppfolgingsplanMetadata>,
     val tidligerePlaner: List<OppfolgingsplanMetadata>,
+    val sykmeldteArbeidsforhold: List<SykmeldtArbeidsforhold> = emptyList(),
 )

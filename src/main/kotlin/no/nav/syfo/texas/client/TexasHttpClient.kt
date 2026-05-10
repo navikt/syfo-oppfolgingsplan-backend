@@ -25,6 +25,8 @@ class TexasHttpClient(
 
     suspend fun exchangeTokenForDineSykmeldte(token: String): TexasResponse = exchangeToken(IDENTITY_PROVIDER_TOKENX, environment.exchangeTargetDineSykmeldte, token)
 
+    suspend fun exchangeTokenForIsnarmesteleder(token: String): TexasResponse = exchangeToken(IDENTITY_PROVIDER_TOKENX, environment.exchangeTargetIsnarmesteleder, token)
+
     suspend fun exchangeTokenForIsDialogmelding(token: String): TexasResponse = exchangeToken(IDENTITY_PROVIDER_TOKENX, environment.exchangeTargetIsDialogmelding, token)
 
     suspend fun exchangeTokenForIsTilgangskontroll(token: String): TexasResponse = exchangeToken(

@@ -12,6 +12,7 @@ interface Environment {
     val texas: TexasEnvironment
     val valkeyEnvironment: ValkeyEnvironment
     val dineSykmeldteBaseUrl: String
+    val isnarmestelederBaseUrl: String
     val dokarkivBaseUrl: String
     val dokarkivScope: String
     val dokumentportenBaseUrl: String
@@ -46,6 +47,7 @@ data class NaisEnvironment(
         tokenExchangeEndpoint = getEnvVar("NAIS_TOKEN_EXCHANGE_ENDPOINT"),
         tokenEndpoint = getEnvVar("NAIS_TOKEN_ENDPOINT"),
         exchangeTargetDineSykmeldte = "${getEnvVar("NAIS_CLUSTER_NAME")}:team-esyfo:dinesykmeldte-backend",
+        exchangeTargetIsnarmesteleder = getEnvVar("ISNARMESTELEDER_SCOPE"),
         exchangeTargetIsDialogmelding = "${getEnvVar("NAIS_CLUSTER_NAME")}:teamsykefravr:isdialogmelding",
         exchangeTargetIsTilgangskontroll = "${getEnvVar("NAIS_CLUSTER_NAME")}.teamsykefravr.istilgangskontroll",
     ),
@@ -57,6 +59,7 @@ data class NaisEnvironment(
     ),
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
+    override val isnarmestelederBaseUrl: String = getEnvVar("ISNARMESTELEDER_BASE_URL"),
     override val dokarkivBaseUrl: String = getEnvVar("DOKARKIV_URL"),
     override val dokarkivScope: String = getEnvVar("DOKARKIV_SCOPE"),
     override val dokumentportenBaseUrl: String = getEnvVar("DOKUMENTPORTEN_URL"),
@@ -96,6 +99,7 @@ data class LocalEnvironment(
         tokenExchangeEndpoint = "http://localhost:3000/api/v1/token/exchange",
         tokenEndpoint = "http://localhost:3000/api/v1/token",
         exchangeTargetDineSykmeldte = "dev-gcp:team-esyfo:dinesykmeldte-backend",
+        exchangeTargetIsnarmesteleder = "dev-gcp:teamsykefravr:isnarmesteleder",
         exchangeTargetIsDialogmelding = "dev-gcp:teamsykefravr:isdialogmelding",
         exchangeTargetIsTilgangskontroll = "dev-gcp:teamsykefravr:istilgangskontroll",
     ),
@@ -107,6 +111,7 @@ data class LocalEnvironment(
         ssl = false,
     ),
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
+    override val isnarmestelederBaseUrl: String = "http://isnarmesteleder.teamsykefravr",
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
     override val dokumentportenBaseUrl: String = "http://localhost:8090",

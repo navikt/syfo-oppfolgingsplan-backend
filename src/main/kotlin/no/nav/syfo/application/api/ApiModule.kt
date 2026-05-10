@@ -10,6 +10,7 @@ import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.metric.registerMetricApi
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
+import no.nav.syfo.foresporsel.ForesporselService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
@@ -31,6 +32,7 @@ fun Application.configureRouting() {
     val isDialogmeldingService by inject<IsDialogmeldingService>()
     val isTilgangskontrollService by inject<IsTilgangskontrollService>()
     val dokarkivService by inject<DokarkivService>()
+    val foresporselService by inject<ForesporselService>()
     val environment by inject<Environment>()
 
     installCallId()
@@ -53,6 +55,7 @@ fun Application.configureRouting() {
             isDialogmeldingService = isDialogmeldingService,
             isTilgangskontrollService = isTilgangskontrollService,
             dokarkivService = dokarkivService,
+            foresporselService = foresporselService,
             environment = environment,
         )
     }

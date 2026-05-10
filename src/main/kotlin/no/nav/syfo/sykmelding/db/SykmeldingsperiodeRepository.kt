@@ -8,6 +8,8 @@ import java.sql.ResultSet
 import java.sql.Statement
 import java.util.UUID
 
+const val FORESPORSEL_GRACE_PERIOD_DAYS = 16L
+
 class SykmeldingsperiodeRepository(
     private val database: DatabaseInterface,
 ) {
@@ -86,6 +88,33 @@ class SykmeldingsperiodeRepository(
                     buildList {
                         while (resultSet.next()) {
                             add(resultSet.toPersistedSykmeldingsperiode())
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fun findOrganisasjonerMedAktivSykmeldingsperiode(
+        sykmeldtFnr: String,
+    ): List<String> {
+        val statement = """
+            SELECT DISTINCT organisasjonsnummer
+            FROM sykmeldingsperiode
+            WHERE sykmeldt_fnr = ?
+              AND fom <= CURRENT_DATE
+              AND tom + (? * INTERVAL '1 day') >= CURRENT_DATE
+              AND invalidated_at IS NULL
+        """.trimIndent()
+
+        return database.connection.use { connection ->
+            connection.prepareStatement(statement).use { preparedStatement ->
+                preparedStatement.setString(1, sykmeldtFnr)
+                preparedStatement.setLong(2, FORESPORSEL_GRACE_PERIOD_DAYS)
+                preparedStatement.executeQuery().use { resultSet ->
+                    buildList {
+                        while (resultSet.next()) {
+                            add(resultSet.getString("organisasjonsnummer"))
                         }
                     }
                 }

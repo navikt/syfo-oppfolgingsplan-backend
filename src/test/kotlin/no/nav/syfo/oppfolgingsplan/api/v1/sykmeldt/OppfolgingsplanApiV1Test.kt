@@ -5,14 +5,19 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.shouldBe
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.request.url
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.HttpStatusCode.Companion.InternalServerError
 import io.ktor.http.contentType
@@ -22,12 +27,14 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.syfo.TestDB
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.LocalEnvironment
+import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultPersistedOppfolgingsplan
@@ -35,6 +42,9 @@ import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
+import no.nav.syfo.foresporsel.ForesporselService
+import no.nav.syfo.foresporsel.domain.ForesporselStatus
+import no.nav.syfo.foresporsel.domain.SykmeldtArbeidsforhold
 import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
@@ -74,11 +84,13 @@ class OppfolgingsplanApiV1Test :
         val pdlServiceMock = mockk<PdlService>(relaxed = true)
         val environment: Environment = LocalEnvironment()
         val aaregServiceMock = mockk<AaregService>(relaxed = true)
+        val foresporselServiceMock = mockk<ForesporselService>(relaxed = true)
 
         beforeTest {
             clearAllMocks()
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
+            coEvery { foresporselServiceMock.getSykmeldteArbeidsforhold(any(), any(), any()) } returns emptyList()
         }
 
         fun withTestApplication(
@@ -112,6 +124,7 @@ class OppfolgingsplanApiV1Test :
                             isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                             dokarkivService = dokarkivServiceMock,
                             isTilgangskontrollService = isTilgangskontrollServiceMock,
+                            foresporselService = foresporselServiceMock,
                             environment = environment,
                         )
                     }
@@ -261,6 +274,123 @@ class OppfolgingsplanApiV1Test :
                         overview.tidligerePlaner.size shouldBe 1
                         overview.tidligerePlaner.first().id shouldBe firstPlanUUID
                         overview.tidligerePlaner.first().organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
+                        overview.sykmeldteArbeidsforhold shouldBe emptyList()
+                    }
+                }
+
+                it("GET /oppfolgingsplaner/oversikt should include sykmeldte arbeidsforhold and strip bearer prefix") {
+                    val sykmeldtFnr = "12345678901"
+                    val arbeidsforhold = listOf(
+                        SykmeldtArbeidsforhold(
+                            organisasjonsnummer = "111111111",
+                            organisasjonsnavn = "Plan AS",
+                            narmesteLederNavn = "Plan Leder",
+                            foresporselStatus = ForesporselStatus.CAN_REQUEST,
+                            foresporselTidspunkt = null,
+                        ),
+                    )
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = sykmeldtFnr,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+                        coEvery {
+                            foresporselServiceMock.getSykmeldteArbeidsforhold(sykmeldtFnr, "user-token", any())
+                        } returns arbeidsforhold
+
+                        val response = client.get {
+                            url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                            header(HttpHeaders.Authorization, "Bearer user-token")
+                        }
+
+                        response.status shouldBe HttpStatusCode.OK
+                        val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
+                        overview.sykmeldteArbeidsforhold.shouldContainExactly(arbeidsforhold)
+                    }
+                }
+            }
+            describe("Be om plan") {
+                it("POST /oppfolgingsplaner/be-om-plan should respond with Created and call service") {
+                    val sykmeldtFnr = "12345678901"
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = sykmeldtFnr,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+                        coEvery {
+                            foresporselServiceMock.beOmPlan(sykmeldtFnr, "111111111", "user-token")
+                        } returns Unit
+
+                        val response = client.post("/api/v1/sykmeldt/oppfolgingsplaner/be-om-plan") {
+                            header(HttpHeaders.Authorization, "Bearer user-token")
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"organisasjonsnummer":"111111111"}""")
+                        }
+
+                        response.status shouldBe HttpStatusCode.Created
+                        coVerify {
+                            foresporselServiceMock.beOmPlan(sykmeldtFnr, "111111111", "user-token")
+                        }
+                    }
+                }
+
+                it("POST /oppfolgingsplaner/be-om-plan should respond with NotFound when no nearest leader exists") {
+                    val sykmeldtFnr = "12345678901"
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = sykmeldtFnr,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+                        coEvery {
+                            foresporselServiceMock.beOmPlan(sykmeldtFnr, "111111111", "user-token")
+                        } throws ApiErrorException.NotFound("Fant ingen aktiv nærmeste leder-relasjon for virksomheten")
+
+                        val response = client.post("/api/v1/sykmeldt/oppfolgingsplaner/be-om-plan") {
+                            header(HttpHeaders.Authorization, "Bearer user-token")
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"organisasjonsnummer":"111111111"}""")
+                        }
+
+                        response.status shouldBe HttpStatusCode.NotFound
+                    }
+                }
+
+                it("POST /oppfolgingsplaner/be-om-plan should respond with Conflict when request was sent recently") {
+                    val sykmeldtFnr = "12345678901"
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = sykmeldtFnr,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+                        coEvery {
+                            foresporselServiceMock.beOmPlan(sykmeldtFnr, "111111111", "user-token")
+                        } throws ApiErrorException.Conflict("Forespørsel om oppfølgingsplan er allerede sendt nylig")
+
+                        val response = client.post("/api/v1/sykmeldt/oppfolgingsplaner/be-om-plan") {
+                            header(HttpHeaders.Authorization, "Bearer user-token")
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"organisasjonsnummer":"111111111"}""")
+                        }
+
+                        response.status shouldBe HttpStatusCode.Conflict
+                    }
+                }
+
+                it("POST /oppfolgingsplaner/be-om-plan should respond with BadRequest for invalid organisasjonsnummer") {
+                    val sykmeldtFnr = "12345678901"
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = sykmeldtFnr,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+
+                        val response = client.post("/api/v1/sykmeldt/oppfolgingsplaner/be-om-plan") {
+                            header(HttpHeaders.Authorization, "Bearer user-token")
+                            contentType(ContentType.Application.Json)
+                            setBody("""{"organisasjonsnummer":"123"}""")
+                        }
+
+                        response.status shouldBe HttpStatusCode.BadRequest
                     }
                 }
             }
