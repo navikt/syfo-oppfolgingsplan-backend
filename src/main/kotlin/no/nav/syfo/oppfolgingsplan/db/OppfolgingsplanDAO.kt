@@ -315,6 +315,8 @@ fun DatabaseInterface.updateDelingAvPlanMedVeileder(
 }
 
 fun DatabaseInterface.findOppfolgingsplanerForDokumentportenPublisering(): List<PersistedOppfolgingsplan> {
+    // Intentionally no filter on skjult_fra: hiding applies to SM/AG surfaces, while
+    // Dokumentporten publication should still include plans hidden from those surfaces.
     val statement = """
         SELECT *
         FROM

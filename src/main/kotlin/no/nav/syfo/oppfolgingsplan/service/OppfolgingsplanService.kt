@@ -46,6 +46,7 @@ import java.time.ZoneId
 import java.util.UUID
 
 const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
+const val OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS = 1000
 
 /**
  * Service for managing oppfølgingsplaner.
@@ -269,15 +270,34 @@ class OppfolgingsplanService(
     }
 
     suspend fun softDeleteExpiredOppfolgingsplaner(): Int = withContext(Dispatchers.IO) {
+        runSoftDeleteExpiredOppfolgingsplanerLoop(
+            maxBatchIterations = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
+        ) {
+            database.softDeleteExpiredOppfolgingsplaner()
+        }
+    }
+
+    internal fun runSoftDeleteExpiredOppfolgingsplanerLoop(
+        maxBatchIterations: Int = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
+        softDeleteBatch: () -> Int,
+    ): Int {
+        require(maxBatchIterations > 0) {
+            "maxBatchIterations must be greater than 0"
+        }
+
         var total = 0
-        var count: Int
-
-        do {
-            count = database.softDeleteExpiredOppfolgingsplaner()
+        repeat(maxBatchIterations) { _ ->
+            val count = softDeleteBatch()
             total += count
-        } while (count > 0)
+            if (count == 0) {
+                return total
+            }
+        }
 
-        total
+        logger.warn(
+            "Stopped soft-delete loop after reaching safeguard of $maxBatchIterations batches; total soft-deleted so far: $total",
+        )
+        return total
     }
 
     suspend fun getAndSetNarmestelederFullname(
