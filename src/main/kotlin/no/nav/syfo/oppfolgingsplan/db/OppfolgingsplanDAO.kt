@@ -362,60 +362,35 @@ fun DatabaseInterface.setSendtTilDokumentportenTidspunkt(
 fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
     batchSize: Int = 1000,
 ): Int {
-    val softDeleteUsingSykmeldingsperioderStatement = """
-        UPDATE oppfolgingsplan SET skjult_fra = NOW()
-        WHERE uuid IN (
-            SELECT op.uuid FROM oppfolgingsplan op
+    val statement = """
+        WITH candidates AS (
+            SELECT op.uuid
+            FROM oppfolgingsplan op
+            JOIN LATERAL (
+                SELECT MAX(sp.tom) AS siste_tom
+                FROM sykmeldingsperiode sp
+                WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
+                  AND sp.organisasjonsnummer = op.organisasjonsnummer
+                  AND sp.invalidated_at IS NULL
+            ) siste ON true
             WHERE op.skjult_fra IS NULL
-            AND EXISTS (
-                SELECT 1 FROM sykmeldingsperiode sp
-                WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
-                AND sp.organisasjonsnummer = op.organisasjonsnummer
-                AND sp.invalidated_at IS NULL
-            )
-            AND NOT EXISTS (
-                SELECT 1 FROM sykmeldingsperiode sp
-                WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
-                AND sp.organisasjonsnummer = op.organisasjonsnummer
-                AND sp.invalidated_at IS NULL
-                AND sp.tom >= CURRENT_DATE - CAST(? AS INTERVAL)
-            )
+              AND siste.siste_tom < CURRENT_DATE - CAST(? AS INTERVAL)
             ORDER BY op.uuid
             LIMIT ?
         )
-    """.trimIndent()
-    val softDeleteUsingCreatedAtStatement = """
-        UPDATE oppfolgingsplan SET skjult_fra = NOW()
-        WHERE uuid IN (
-            SELECT op.uuid FROM oppfolgingsplan op
-            WHERE op.skjult_fra IS NULL
-            AND NOT EXISTS (
-                SELECT 1 FROM sykmeldingsperiode sp
-                WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
-                AND sp.organisasjonsnummer = op.organisasjonsnummer
-                AND sp.invalidated_at IS NULL
-            )
-            AND op.created_at < NOW() - CAST(? AS INTERVAL)
-            ORDER BY op.uuid
-            LIMIT ?
-        )
+        UPDATE oppfolgingsplan op
+        SET skjult_fra = NOW()
+        FROM candidates
+        WHERE op.uuid = candidates.uuid
     """.trimIndent()
 
-    val updatedUsingSykmeldingsperioder = connection.use { connection ->
-        connection.prepareStatement(softDeleteUsingSykmeldingsperioderStatement).use {
+    return connection.use { connection ->
+        connection.prepareStatement(statement).use {
             it.setString(1, OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL)
             it.setInt(2, batchSize)
             it.executeUpdate()
         }.also { connection.commit() }
     }
-    val updatedUsingCreatedAt = connection.use { connection ->
-        connection.prepareStatement(softDeleteUsingCreatedAtStatement).use {
-            it.setString(1, OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL)
-            it.setInt(2, batchSize)
-            it.executeUpdate()
-        }.also { connection.commit() }
-    }
-    return updatedUsingSykmeldingsperioder + updatedUsingCreatedAt
 }
 
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfolgingsplan(
