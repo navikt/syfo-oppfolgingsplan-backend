@@ -17,6 +17,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
+private const val OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL = "6 months"
+
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr: String,
     sykmeldt: Sykmeldt,
@@ -374,7 +376,7 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
                 WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
                 AND sp.organisasjonsnummer = op.organisasjonsnummer
                 AND sp.invalidated_at IS NULL
-                AND sp.tom >= CURRENT_DATE - INTERVAL '6 months'
+                AND sp.tom >= CURRENT_DATE - CAST(? AS INTERVAL)
             )
             ORDER BY op.uuid
             LIMIT ?
@@ -391,7 +393,7 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
                 AND sp.organisasjonsnummer = op.organisasjonsnummer
                 AND sp.invalidated_at IS NULL
             )
-            AND op.created_at < NOW() - INTERVAL '6 months'
+            AND op.created_at < NOW() - CAST(? AS INTERVAL)
             ORDER BY op.uuid
             LIMIT ?
         )
@@ -399,13 +401,15 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
 
     val updatedUsingSykmeldingsperioder = connection.use { connection ->
         connection.prepareStatement(softDeleteUsingSykmeldingsperioderStatement).use {
-            it.setInt(1, batchSize)
+            it.setString(1, OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL)
+            it.setInt(2, batchSize)
             it.executeUpdate()
         }.also { connection.commit() }
     }
     val updatedUsingCreatedAt = connection.use { connection ->
         connection.prepareStatement(softDeleteUsingCreatedAtStatement).use {
-            it.setInt(1, batchSize)
+            it.setString(1, OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL)
+            it.setInt(2, batchSize)
             it.executeUpdate()
         }.also { connection.commit() }
     }
