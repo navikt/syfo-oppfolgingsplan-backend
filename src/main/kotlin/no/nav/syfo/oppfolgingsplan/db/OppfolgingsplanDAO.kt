@@ -367,14 +367,14 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
             SELECT op.uuid
             FROM oppfolgingsplan op
             JOIN LATERAL (
-                SELECT MAX(sp.tom) AS siste_tom
+                SELECT MAX(sp.tom) AS latest_tom
                 FROM sykmeldingsperiode sp
                 WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
                   AND sp.organisasjonsnummer = op.organisasjonsnummer
                   AND sp.invalidated_at IS NULL
-            ) siste ON true
+            ) latest_valid_sykmeldingsperiode ON true
             WHERE op.skjult_fra IS NULL
-              AND siste.siste_tom < CURRENT_DATE - CAST(? AS INTERVAL)
+              AND latest_valid_sykmeldingsperiode.latest_tom < CURRENT_DATE - CAST(? AS INTERVAL)
             ORDER BY op.uuid
             LIMIT ?
         )
