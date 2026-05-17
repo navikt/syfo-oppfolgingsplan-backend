@@ -74,6 +74,8 @@ spec:
         - application: syfo-dokumentporten
         - application: syfooppdfgen
         - application: dinesykmeldte-backend
+        - application: isnarmesteleder
+          namespace: teamsykefravr
         - application: isdialogmelding
           namespace: teamsykefravr
         - application: istilgangskontroll
@@ -92,6 +94,10 @@ spec:
       value: production
     - name: DINE_SYKMELDTE_BASE_URL
       value: http://dinesykmeldte-backend
+    - name: ISNARMESTELEDER_BASE_URL
+      value: http://isnarmesteleder.teamsykefravr
+    - name: ISNARMESTELEDER_SCOPE
+      value: prod-gcp:teamsykefravr:isnarmesteleder
     - name: PDFGEN_BASE_URL
       value: http://syfooppdfgen
     - name: ISDIALOGMELDING_BASE_URL

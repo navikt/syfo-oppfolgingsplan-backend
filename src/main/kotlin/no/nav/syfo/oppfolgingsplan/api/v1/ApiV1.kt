@@ -6,6 +6,7 @@ import no.nav.syfo.application.Environment
 import no.nav.syfo.application.auth.ClientAuthorizationPlugin
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
+import no.nav.syfo.foresporsel.ForesporselService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanApiV1
@@ -27,6 +28,7 @@ fun Route.registerApiV1(
     isDialogmeldingService: IsDialogmeldingService,
     isTilgangskontrollService: IsTilgangskontrollService,
     dokarkivService: DokarkivService,
+    foresporselService: ForesporselService,
     environment: Environment,
 ) {
     route("/api/v1/arbeidsgiver") {
@@ -61,6 +63,7 @@ fun Route.registerApiV1(
             texasHttpClient,
             oppfolgingsplanService,
             pdfGenService,
+            foresporselService,
         )
     }
     route("/api/v1/veileder") {

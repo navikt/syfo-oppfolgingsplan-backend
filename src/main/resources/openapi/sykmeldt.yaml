@@ -49,6 +49,38 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/sykmeldt/oppfolgingsplaner/be-om-plan:
+    post:
+      tags:
+        - Oppfølgingsplan
+      summary: Be om oppfølgingsplan fra arbeidsgiver
+      description: |
+        Oppretter en forespørsel om oppfølgingsplan for innlogget sykmeldt og valgt virksomhet.
+      operationId: postBeOmOppfolgingsplan
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BeOmPlanRequest'
+      responses:
+        '201':
+          description: Forespørsel opprettet
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NarmesteLederNotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/v1/sykmeldt/oppfolgingsplaner/{uuid}:
     get:
       tags:
@@ -184,6 +216,32 @@ components:
             timestamp: "2025-11-28T12:00:00Z"
             path: "/api/v1/sykmeldt/oppfolgingsplaner/987fcdeb-51a2-3bc4-d567-890123456789"
 
+    NarmesteLederNotFound:
+      description: Fant ingen aktiv nærmeste leder-relasjon for virksomheten
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 404
+            type: NOT_FOUND
+            message: "Fant ingen aktiv nærmeste leder-relasjon for virksomheten"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/sykmeldt/oppfolgingsplaner/be-om-plan"
+
+    Conflict:
+      description: Forespørselen kan ikke opprettes akkurat nå
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          example:
+            status: 409
+            type: CONFLICT
+            message: "Forespørsel om oppfølgingsplan er allerede sendt nylig"
+            timestamp: "2025-11-28T12:00:00Z"
+            path: "/api/v1/sykmeldt/oppfolgingsplaner/be-om-plan"
+
     InternalServerError:
       description: Intern serverfeil
       content:
@@ -241,6 +299,7 @@ components:
       required:
         - aktiveOppfolgingsplaner
         - tidligerePlaner
+        - sykmeldteArbeidsforhold
       properties:
         aktiveOppfolgingsplaner:
           type: array
@@ -252,6 +311,53 @@ components:
           description: Oppfølgingsplaner med evalueringsdato < i dag
           items:
             $ref: '#/components/schemas/OppfolgingsplanMetadata'
+        sykmeldteArbeidsforhold:
+          type: array
+          items:
+            $ref: '#/components/schemas/SykmeldtArbeidsforhold'
+
+    BeOmPlanRequest:
+      type: object
+      required:
+        - organisasjonsnummer
+      properties:
+        organisasjonsnummer:
+          type: string
+          pattern: '^\d{9}$'
+          example: "999888777"
+
+    SykmeldtArbeidsforhold:
+      type: object
+      required:
+        - organisasjonsnummer
+        - foresporselStatus
+      properties:
+        organisasjonsnummer:
+          type: string
+          example: "999888777"
+        organisasjonsnavn:
+          type: string
+          nullable: true
+          example: "Plan AS"
+        narmesteLederNavn:
+          type: string
+          nullable: true
+          example: "Plan Leder"
+        foresporselStatus:
+          $ref: '#/components/schemas/ForesporselStatus'
+        foresporselTidspunkt:
+          type: string
+          format: date-time
+          nullable: true
+
+    ForesporselStatus:
+      type: string
+      enum:
+        - CAN_REQUEST
+        - ALREADY_REQUESTED
+        - HAS_ACTIVE_PLAN
+        - MISSING_NARMESTELEDER
+        - NARMESTELEDER_UNKNOWN
 
     OppfolgingsplanResponse:
       type: object

@@ -20,4 +20,5 @@ data class ArbeidstakerHendelse(
 
 enum class HendelseType {
     SM_OPPFOLGINGSPLAN_OPPRETTET,
+    SM_OPPFOLGINGSPLAN_FORESPORSEL,
 }

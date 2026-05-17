@@ -28,9 +28,14 @@ import no.nav.syfo.dokumentporten.SendOppfolgingsplanTask
 import no.nav.syfo.dokumentporten.client.DokumentportenClient
 import no.nav.syfo.dokumentporten.client.FakeDokumentportenClient
 import no.nav.syfo.dokumentporten.client.IDokumentportenClient
+import no.nav.syfo.foresporsel.ForesporselService
+import no.nav.syfo.foresporsel.db.ForesporselOppfolgingsplanRepository
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.isdialogmelding.client.FakeIsDialogmeldingClient
 import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
+import no.nav.syfo.isnarmesteleder.client.FakeIsnarmestelederClient
+import no.nav.syfo.isnarmesteleder.client.IIsnarmestelederClient
+import no.nav.syfo.isnarmesteleder.client.IsnarmestelederHttpClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
@@ -141,6 +146,17 @@ private fun clientsModule() = module {
             )
         }
     }
+    single<IIsnarmestelederClient> {
+        if (isLocalEnv()) {
+            FakeIsnarmestelederClient()
+        } else {
+            IsnarmestelederHttpClient(
+                httpClient = get(),
+                texasHttpClient = get(),
+                isnarmestelederBaseUrl = env().isnarmestelederBaseUrl,
+            )
+        }
+    }
     single {
         if (isLocalEnv()) {
             FakeDokumentportenClient()
@@ -206,6 +222,8 @@ private fun servicesModule() = module {
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }
+    single { ForesporselOppfolgingsplanRepository(get()) }
+    single { ForesporselService(get(), get(), get(), get()) }
     single { SykmeldingsperiodeRepository(get()) }
     single { SykmeldingsperiodeConsumer(get(), env().kafka) }
 }

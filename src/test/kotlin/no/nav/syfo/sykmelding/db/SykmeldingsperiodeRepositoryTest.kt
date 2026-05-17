@@ -1,6 +1,7 @@
 package no.nav.syfo.sykmelding.db
 
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import no.nav.syfo.TestDB
@@ -93,6 +94,80 @@ class SykmeldingsperiodeRepositoryTest :
                 invalidatedRows shouldBe 2
                 persisted.shouldHaveSize(2)
                 persisted.all { it.invalidatedAt != null } shouldBe true
+            }
+        }
+
+        describe("findOrganisasjonerMedAktivSykmeldingsperiode") {
+            it("returns distinct active organisasjonsnumre within grace period") {
+                val today = LocalDate.now()
+
+                repository.storeSykmeldingsperioder(
+                    listOf(
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "12345678901",
+                            organisasjonsnummer = "111111111",
+                            sykmeldingId = "sykmelding-4",
+                            fom = today.minusDays(10),
+                            tom = today.plusDays(5),
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "12345678901",
+                            organisasjonsnummer = "222222222",
+                            sykmeldingId = "sykmelding-5",
+                            fom = today.minusDays(30),
+                            tom = today.minusDays(FORESPORSEL_GRACE_PERIOD_DAYS),
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "12345678901",
+                            organisasjonsnummer = "111111111",
+                            sykmeldingId = "sykmelding-6",
+                            fom = today.minusDays(3),
+                            tom = today.plusDays(10),
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "12345678901",
+                            organisasjonsnummer = "333333333",
+                            sykmeldingId = "sykmelding-7",
+                            fom = today.plusDays(1),
+                            tom = today.plusDays(20),
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "12345678901",
+                            organisasjonsnummer = "444444444",
+                            sykmeldingId = "sykmelding-8",
+                            fom = today.minusDays(40),
+                            tom = today.minusDays(FORESPORSEL_GRACE_PERIOD_DAYS + 1),
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "12345678902",
+                            organisasjonsnummer = "555555555",
+                            sykmeldingId = "sykmelding-9",
+                            fom = today.minusDays(10),
+                            tom = today.plusDays(10),
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "12345678901",
+                            organisasjonsnummer = "666666666",
+                            sykmeldingId = "sykmelding-10",
+                            fom = today.minusDays(10),
+                            tom = today.plusDays(10),
+                        ),
+                    ),
+                )
+                repository.invalidateSykmelding("sykmelding-10")
+
+                val aktiveOrganisasjoner = repository.findOrganisasjonerMedAktivSykmeldingsperiode("12345678901")
+
+                aktiveOrganisasjoner shouldContainExactlyInAnyOrder listOf(
+                    "111111111",
+                    "222222222",
+                )
+            }
+
+            it("returns empty list when no active periods exist") {
+                val aktiveOrganisasjoner = repository.findOrganisasjonerMedAktivSykmeldingsperiode("12345678901")
+
+                aktiveOrganisasjoner shouldBe emptyList()
             }
         }
     })
