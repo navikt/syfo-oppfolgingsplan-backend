@@ -6,6 +6,7 @@ import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_SOFT_DELETED
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 
 class SoftDeleteOppfolgingsplanerTask(
     leaderElection: LeaderElection,
@@ -24,6 +25,14 @@ class SoftDeleteOppfolgingsplanerTask(
             log.info("Soft-deleted $softDeletedOppfolgingsplaner expired oppfolgingsplaner")
         } else {
             log.debug("No expired oppfolgingsplaner to soft-delete")
+        }
+    }
+
+    companion object {
+        internal fun intervalForEnvironment(isProdEnv: Boolean): Duration = if (isProdEnv) {
+            1.days
+        } else {
+            5.minutes
         }
     }
 }

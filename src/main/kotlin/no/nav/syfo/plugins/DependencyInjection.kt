@@ -14,6 +14,7 @@ import no.nav.syfo.application.database.Database
 import no.nav.syfo.application.database.DatabaseConfig
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
+import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.valkey.ValkeyCache
@@ -207,7 +208,13 @@ private fun servicesModule() = module {
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }
-    single { SoftDeleteOppfolgingsplanerTask(get(), get()) }
+    single {
+        SoftDeleteOppfolgingsplanerTask(
+            leaderElection = get(),
+            oppfolgingsplanService = get(),
+            interval = SoftDeleteOppfolgingsplanerTask.intervalForEnvironment(isProdEnv()),
+        )
+    }
     single { SykmeldingsperiodeRepository(get()) }
     single { SykmeldingsperiodeConsumer(get(), env().kafka) }
 }
