@@ -18,13 +18,14 @@ class SoftDeleteOppfolgingsplanerTask(
     leaderElection = leaderElection,
 ) {
     override suspend fun execute() {
+        log.info("Starting task for soft-delete expired oppfolgingsplaner")
         val softDeletedOppfolgingsplaner = oppfolgingsplanService.softDeleteExpiredOppfolgingsplaner()
 
         if (softDeletedOppfolgingsplaner > 0) {
             COUNT_OPPFOLGINGSPLAN_SOFT_DELETED.increment(softDeletedOppfolgingsplaner.toDouble())
             log.info("Soft-deleted $softDeletedOppfolgingsplaner expired oppfolgingsplaner")
         } else {
-            log.debug("No expired oppfolgingsplaner to soft-delete")
+            log.info("Found 0 expired oppfolgingsplaner to soft-delete")
         }
     }
 

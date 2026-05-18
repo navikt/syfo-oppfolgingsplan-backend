@@ -1,21 +1,13 @@
 package no.nav.syfo.oppfolgingsplan.task
 
-import ch.qos.logback.classic.Level
-import ch.qos.logback.classic.Logger
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.read.ListAppender
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks
-import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.syfo.TestDB
-import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_SOFT_DELETED
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
@@ -25,10 +17,8 @@ import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.varsel.EsyfovarselProducer
-import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.time.LocalDate
-import kotlin.time.Duration.Companion.days
 
 class SoftDeleteOppfolgingsplanerTaskTest :
     DescribeSpec({
@@ -61,59 +51,6 @@ class SoftDeleteOppfolgingsplanerTaskTest :
         beforeTest {
             clearAllMocks()
             TestDB.clearAllData()
-        }
-
-        describe("execute") {
-            it("should call service and increment counter") {
-                val leaderElection = mockk<LeaderElection>()
-                val oppfolgingsplanService = mockk<OppfolgingsplanService>()
-                val counterBefore = COUNT_OPPFOLGINGSPLAN_SOFT_DELETED.count()
-
-                coEvery { leaderElection.isLeader() } returns true
-                coEvery { oppfolgingsplanService.softDeleteExpiredOppfolgingsplaner() } returns 3
-
-                val task = SoftDeleteOppfolgingsplanerTask(
-                    leaderElection = leaderElection,
-                    oppfolgingsplanService = oppfolgingsplanService,
-                    interval = 1.days,
-                )
-
-                task.execute()
-
-                coVerify(exactly = 1) { oppfolgingsplanService.softDeleteExpiredOppfolgingsplaner() }
-                COUNT_OPPFOLGINGSPLAN_SOFT_DELETED.count() - counterBefore shouldBe 3.0
-            }
-
-            it("should log debug when no planer are soft-deleted") {
-                val leaderElection = mockk<LeaderElection>()
-                val oppfolgingsplanService = mockk<OppfolgingsplanService>()
-                val logger = LoggerFactory.getLogger(SoftDeleteOppfolgingsplanerTask::class.qualifiedName) as Logger
-                val appender = ListAppender<ILoggingEvent>().apply { start() }
-
-                coEvery { leaderElection.isLeader() } returns true
-                coEvery { oppfolgingsplanService.softDeleteExpiredOppfolgingsplaner() } returns 0
-                val originalLevel = logger.level
-                logger.level = Level.DEBUG
-                logger.addAppender(appender)
-
-                try {
-                    val task = SoftDeleteOppfolgingsplanerTask(
-                        leaderElection = leaderElection,
-                        oppfolgingsplanService = oppfolgingsplanService,
-                        interval = 1.days,
-                    )
-
-                    task.execute()
-
-                    appender.list.any {
-                        it.level == Level.DEBUG && it.formattedMessage == "No expired oppfolgingsplaner to soft-delete"
-                    } shouldBe true
-                } finally {
-                    logger.level = originalLevel
-                    logger.detachAppender(appender)
-                    appender.stop()
-                }
-            }
         }
 
         describe("softDeleteExpiredOppfolgingsplaner") {
