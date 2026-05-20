@@ -72,13 +72,6 @@ class OppfolgingsplanServiceTest :
             }
         }
         describe("public function tests") {
-            describe("getPersistedOppfolgingsplanByUuid") {
-                afterTest {
-                    TestDB.clearAllData()
-                    clearAllMocks()
-                }
-            }
-
             describe("getAndSetNarmestelederFullname") {
                 afterTest {
                     TestDB.clearAllData()
