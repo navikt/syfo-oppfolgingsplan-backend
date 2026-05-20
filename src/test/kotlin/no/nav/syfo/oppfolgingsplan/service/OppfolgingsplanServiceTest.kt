@@ -51,11 +51,12 @@ class OppfolgingsplanServiceTest :
                 filtered.first().uuid shouldBe deltMedVeileder.uuid
             }
 
-            it("toListOppfolgingsplanVeileder should not filter hidden feilregistrerte items") {
+            it("toListOppfolgingsplanVeileder should only filter on deling med veileder") {
                 val hiddenFeilregistrert = defaultPersistedOppfolgingsplan().copy(
                     deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
                     skalDelesMedVeileder = true,
                     skjultFra = Instant.now(),
+                    feilregistrert = Instant.now(),
                     feilregistrertAarsak = "Opprettet på feil person",
                 )
                 val hiddenButValid = defaultPersistedOppfolgingsplan().copy(

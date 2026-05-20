@@ -99,7 +99,7 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
         SELECT *
         FROM oppfolgingsplan
         WHERE sykmeldt_fnr = ?
-        AND feilregistrert_aarsak IS NULL
+        AND feilregistrert IS NULL
         $skjultFilter
         ORDER BY created_at DESC
     """.trimIndent()
@@ -128,7 +128,7 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
         WHERE sykmeldt_fnr = ?
         AND organisasjonsnummer = ?
         AND skjult_fra IS NULL
-        AND feilregistrert_aarsak IS NULL
+        AND feilregistrert IS NULL
         ORDER BY created_at DESC
     """.trimIndent()
 
@@ -156,7 +156,7 @@ fun DatabaseInterface.findOppfolgingsplanBy(
         SELECT *
         FROM oppfolgingsplan
         WHERE uuid = ?
-        AND feilregistrert_aarsak IS NULL
+        AND feilregistrert IS NULL
         $skjultFilter
     """.trimIndent()
 
@@ -418,5 +418,6 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfol
     createdAt = getTimestamp("created_at").toInstant(),
     skjultFra = this.getTimestamp("skjult_fra")?.toInstant(),
     feilregistrertAarsak = this.getString("feilregistrert_aarsak"),
+    feilregistrert = this.getTimestamp("feilregistrert")?.toInstant(),
     sendtTilDokumentportenTidspunkt = this.getTimestamp("sendt_til_dokumentporten_tidspunkt")?.toInstant(),
 )

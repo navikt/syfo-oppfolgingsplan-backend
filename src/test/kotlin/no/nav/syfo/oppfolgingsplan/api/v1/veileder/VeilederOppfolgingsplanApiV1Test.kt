@@ -328,6 +328,7 @@ class VeilederOppfolgingsplanApiV1Test :
                                 narmesteLederId = narmestelederId,
                                 sykmeldtFnr = sykmeldtFnr,
                                 skjultFra = Instant.now(),
+                                feilregistrert = Instant.now(),
                                 feilregistrertAarsak = "Opprettet på feil person",
                             ),
                         )
@@ -530,6 +531,7 @@ class VeilederOppfolgingsplanApiV1Test :
                             narmesteLederId = narmestelederId,
                             sykmeldtFnr = sykmeldtFnr,
                             skjultFra = Instant.now(),
+                            feilregistrert = Instant.now(),
                             feilregistrertAarsak = "Opprettet på feil person",
                         ),
                     )

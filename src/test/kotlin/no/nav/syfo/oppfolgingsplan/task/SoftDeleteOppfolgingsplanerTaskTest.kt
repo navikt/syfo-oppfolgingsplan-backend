@@ -300,12 +300,54 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             it("filters out plans that are both hidden and feilregistrert") {
                 val hiddenFeilregistrertPlan = defaultPersistedOppfolgingsplan().copy(
                     skjultFra = Instant.now(),
+                    feilregistrert = Instant.now(),
                     feilregistrertAarsak = "Opprettet på feil person",
                 )
                 val hiddenFeilregistrertUuid = testDb.persistOppfolgingsplan(hiddenFeilregistrertPlan)
 
                 testDb.findAllOppfolgingsplanerBy(hiddenFeilregistrertPlan.sykmeldtFnr, inkluderSkjulte = true) shouldBe emptyList()
                 testDb.findOppfolgingsplanBy(hiddenFeilregistrertUuid, inkluderSkjulte = true).shouldBeNull()
+            }
+
+            it("filters out plans when feilregistrert is set even without a reason") {
+                val feilregistrertPlan = defaultPersistedOppfolgingsplan().copy(
+                    feilregistrert = Instant.now(),
+                    feilregistrertAarsak = null,
+                )
+                val feilregistrertUuid = testDb.persistOppfolgingsplan(feilregistrertPlan)
+
+                testDb.findAllOppfolgingsplanerBy(feilregistrertPlan.sykmeldtFnr) shouldBe emptyList()
+                testDb.findOppfolgingsplanBy(feilregistrertUuid).shouldBeNull()
+            }
+
+            it("keeps plans when only feilregistrertAarsak is set") {
+                val planWithMetadataOnly = defaultPersistedOppfolgingsplan().copy(
+                    feilregistrert = null,
+                    feilregistrertAarsak = "Opprettet på feil person",
+                )
+                val planUuid = testDb.persistOppfolgingsplan(planWithMetadataOnly)
+
+                testDb.findAllOppfolgingsplanerBy(planWithMetadataOnly.sykmeldtFnr).map { it.uuid } shouldBe listOf(planUuid)
+                testDb.findOppfolgingsplanBy(planUuid)?.feilregistrertAarsak shouldBe "Opprettet på feil person"
+            }
+
+            it("filters out feilregistrerte plans for fnr and organisasjonsnummer without using reason alone as trigger") {
+                val includedPlan = defaultPersistedOppfolgingsplan().copy(
+                    feilregistrert = null,
+                    feilregistrertAarsak = "Kun metadata",
+                )
+                val filteredPlan = defaultPersistedOppfolgingsplan().copy(
+                    uuid = java.util.UUID.randomUUID(),
+                    feilregistrert = Instant.now(),
+                    feilregistrertAarsak = null,
+                )
+                val includedUuid = testDb.persistOppfolgingsplan(includedPlan)
+                testDb.persistOppfolgingsplan(filteredPlan)
+
+                testDb.findAllOppfolgingsplanerBy(
+                    includedPlan.sykmeldtFnr,
+                    includedPlan.organisasjonsnummer,
+                ).map { it.uuid } shouldBe listOf(includedUuid)
             }
         }
 
