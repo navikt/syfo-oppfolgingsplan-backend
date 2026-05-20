@@ -303,6 +303,29 @@ class OppfolgingsplanApiV1Test :
                 }
             }
 
+            it("GET /oppfolgingsplaner/{uuid} should respond with NotFound when plan is hidden") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val hiddenUUID = testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            narmesteLederId = narmestelederId,
+                            skjultFra = Instant.now(),
+                        ),
+                    )
+
+                    val response = client.get {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/$hiddenUUID")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.NotFound
+                    val apiError = response.body<ApiError>()
+                    apiError.type shouldBe ErrorType.PLAN_NOT_FOUND
+                }
+            }
+
             it("GET /oppfolgingsplaner/aktiv-plan should respond with PLAN_NOT_FOUND if aktiv plan does not exist") {
                 withTestApplication {
                     // Arrange
@@ -349,6 +372,29 @@ class OppfolgingsplanApiV1Test :
                 }
             }
 
+            it("GET /oppfolgingsplaner/aktiv-plan should respond with PLAN_NOT_FOUND when only hidden plan exists") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            narmesteLederId = narmestelederId,
+                            skjultFra = Instant.now(),
+                        ),
+                    )
+
+                    val response = client.get {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/aktiv-plan")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.NotFound
+                    val apiError = response.body<ApiError>()
+                    apiError.type shouldBe ErrorType.PLAN_NOT_FOUND
+                }
+            }
+
             it("GET /oppfolgingsplaner/oversikt should respond with OK and return overview") {
                 withTestApplication {
                     // Arrange
@@ -388,6 +434,30 @@ class OppfolgingsplanApiV1Test :
                     overview.aktivPlan?.stillingsprosent shouldBe BigDecimal("100.00")
                     overview.tidligerePlaner.size shouldBe 1
                     overview.tidligerePlaner.first().id shouldBe firstPlanUUID
+                }
+            }
+
+            it("GET /oppfolgingsplaner/oversikt should return no plans when only hidden plans exist") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            narmesteLederId = narmestelederId,
+                            skjultFra = Instant.now(),
+                        ),
+                    )
+
+                    val response = client.get {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.OK
+                    val overview = response.body<ArbeidsgiverOppfolgingsplanOverviewResponse>().oversikt
+                    overview.aktivPlan shouldBe null
+                    overview.tidligerePlaner shouldBe emptyList()
                 }
             }
             it("POST /oppfolgingsplaner should respond with 201 when oppfolgingsplan is created successfully") {

@@ -17,6 +17,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
+private const val OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL = "6 months"
+
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr: String,
     sykmeldt: Sykmeldt,
@@ -90,11 +92,14 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
     sykmeldtFnr: String,
+    inkluderSkjulte: Boolean = false,
 ): List<PersistedOppfolgingsplan> {
+    val skjultFilter = if (!inkluderSkjulte) "AND skjult_fra IS NULL" else ""
     val statement = """
         SELECT *
         FROM oppfolgingsplan
         WHERE sykmeldt_fnr = ?
+        $skjultFilter
         ORDER BY created_at DESC
     """.trimIndent()
 
@@ -121,6 +126,7 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
         FROM oppfolgingsplan
         WHERE sykmeldt_fnr = ?
         AND organisasjonsnummer = ?
+        AND skjult_fra IS NULL
         ORDER BY created_at DESC
     """.trimIndent()
 
@@ -141,11 +147,14 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
 
 fun DatabaseInterface.findOppfolgingsplanBy(
     uuid: UUID,
+    inkluderSkjulte: Boolean = false,
 ): PersistedOppfolgingsplan? {
+    val skjultFilter = if (!inkluderSkjulte) "AND skjult_fra IS NULL" else ""
     val statement = """
         SELECT *
         FROM oppfolgingsplan
         WHERE uuid = ?
+        $skjultFilter
     """.trimIndent()
 
     connection.use { connection ->
@@ -306,6 +315,8 @@ fun DatabaseInterface.updateDelingAvPlanMedVeileder(
 }
 
 fun DatabaseInterface.findOppfolgingsplanerForDokumentportenPublisering(): List<PersistedOppfolgingsplan> {
+    // Intentionally no filter on skjult_fra: hiding applies to SM/AG surfaces, while
+    // Dokumentporten publication should still include plans hidden from those surfaces.
     val statement = """
         SELECT *
         FROM
@@ -348,6 +359,40 @@ fun DatabaseInterface.setSendtTilDokumentportenTidspunkt(
     }
 }
 
+fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
+    batchSize: Int = 1000,
+): Int {
+    val statement = """
+        WITH candidates AS (
+            SELECT op.uuid
+            FROM oppfolgingsplan op
+            JOIN LATERAL (
+                SELECT MAX(sp.tom) AS latest_tom
+                FROM sykmeldingsperiode sp
+                WHERE sp.sykmeldt_fnr = op.sykmeldt_fnr
+                  AND sp.organisasjonsnummer = op.organisasjonsnummer
+                  AND sp.invalidated_at IS NULL
+            ) latest_valid_sykmeldingsperiode ON true
+            WHERE op.skjult_fra IS NULL
+              AND latest_valid_sykmeldingsperiode.latest_tom < CURRENT_DATE - CAST(? AS INTERVAL)
+            ORDER BY op.uuid
+            LIMIT ?
+        )
+        UPDATE oppfolgingsplan op
+        SET skjult_fra = NOW()
+        FROM candidates
+        WHERE op.uuid = candidates.uuid
+    """.trimIndent()
+
+    return connection.use { connection ->
+        connection.prepareStatement(statement).use {
+            it.setString(1, OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL)
+            it.setInt(2, batchSize)
+            it.executeUpdate()
+        }.also { connection.commit() }
+    }
+}
+
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfolgingsplan(
     uuid = getObject("uuid") as UUID,
     sykmeldtFnr = this.getString("sykmeldt_fnr"),
@@ -368,5 +413,6 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfol
     deltMedVeilederTidspunkt = this.getTimestamp("delt_med_veileder_tidspunkt")?.toInstant(),
     utkastCreatedAt = this.getTimestamp("utkast_created_at")?.toInstant(),
     createdAt = getTimestamp("created_at").toInstant(),
+    skjultFra = this.getTimestamp("skjult_fra")?.toInstant(),
     sendtTilDokumentportenTidspunkt = this.getTimestamp("sendt_til_dokumentporten_tidspunkt")?.toInstant(),
 )

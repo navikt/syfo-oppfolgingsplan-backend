@@ -1,5 +1,4 @@
 package no.nav.syfo.oppfolgingsplan.service
-
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.nulls.shouldBeNull

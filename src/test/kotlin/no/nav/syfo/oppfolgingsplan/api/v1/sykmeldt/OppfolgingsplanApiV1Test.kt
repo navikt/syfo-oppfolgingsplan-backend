@@ -53,6 +53,7 @@ import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
+import java.time.Instant
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -263,6 +264,33 @@ class OppfolgingsplanApiV1Test :
                         overview.tidligerePlaner.first().organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
                     }
                 }
+
+                it("GET /oppfolgingsplaner/oversikt should return empty lists when only hidden plans exist") {
+                    val sykmeldtFnr = "12345678901"
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = sykmeldtFnr,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+
+                        testDb.persistOppfolgingsplan(
+                            defaultPersistedOppfolgingsplan().copy(
+                                narmesteLederId = narmestelederId,
+                                skjultFra = Instant.now(),
+                            ),
+                        )
+
+                        val response = client.get {
+                            url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                            bearerAuth("Bearer token")
+                        }
+
+                        response.status shouldBe HttpStatusCode.OK
+                        val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
+                        overview.aktiveOppfolgingsplaner shouldBe emptyList()
+                        overview.tidligerePlaner shouldBe emptyList()
+                    }
+                }
             }
             it("GET /oppfolgingsplaner/{uuid} should respond with NotFound if oppfolgingsplan does not exist") {
                 withTestApplication {
@@ -322,6 +350,28 @@ class OppfolgingsplanApiV1Test :
                         }
 
                         // Assert
+                        response.status shouldBe HttpStatusCode.NotFound
+                    }
+                }
+
+                it("GET /oppfolgingsplaner/{uuid} should respond with NotFound when plan is hidden") {
+                    withTestApplication {
+                        val sykmeldtFnr = "12345678901"
+                        texasClientMock.defaultMocks(sykmeldtFnr, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+
+                        val hiddenUUID = testDb.persistOppfolgingsplan(
+                            defaultPersistedOppfolgingsplan()
+                                .copy(
+                                    narmesteLederId = narmestelederId,
+                                    skjultFra = Instant.now(),
+                                ),
+                        )
+
+                        val response = client.get {
+                            url("/api/v1/sykmeldt/oppfolgingsplaner/$hiddenUUID")
+                            bearerAuth("Bearer token")
+                        }
+
                         response.status shouldBe HttpStatusCode.NotFound
                     }
                 }

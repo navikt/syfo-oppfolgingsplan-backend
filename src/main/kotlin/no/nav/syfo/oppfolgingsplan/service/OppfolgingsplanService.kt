@@ -24,6 +24,7 @@ import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
@@ -45,6 +46,7 @@ import java.time.ZoneId
 import java.util.UUID
 
 const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
+const val OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS = 1000
 
 /**
  * Service for managing oppfølgingsplaner.
@@ -154,8 +156,14 @@ class OppfolgingsplanService(
         )
     }
 
-    suspend fun getPersistedOppfolgingsplanByUuid(uuid: UUID): PersistedOppfolgingsplan = withContext(Dispatchers.IO) {
-        database.findOppfolgingsplanBy(uuid)
+    suspend fun getPersistedOppfolgingsplanByUuid(
+        uuid: UUID,
+        inkluderSkjulte: Boolean = false,
+    ): PersistedOppfolgingsplan = withContext(Dispatchers.IO) {
+        database.findOppfolgingsplanBy(
+            uuid = uuid,
+            inkluderSkjulte = inkluderSkjulte,
+        )
     } ?: throw PlanNotFoundException("Oppfolgingsplan not found for uuid: $uuid")
 
     suspend fun updateSkalDelesMedLege(
@@ -251,8 +259,45 @@ class OppfolgingsplanService(
         )
     }
 
-    suspend fun getPersistedOppfolgingsplanListBy(sykmeldtFnr: String): List<PersistedOppfolgingsplan> = withContext(Dispatchers.IO) {
-        database.findAllOppfolgingsplanerBy(sykmeldtFnr)
+    suspend fun getPersistedOppfolgingsplanListBy(
+        sykmeldtFnr: String,
+        inkluderSkjulte: Boolean = false,
+    ): List<PersistedOppfolgingsplan> = withContext(Dispatchers.IO) {
+        database.findAllOppfolgingsplanerBy(
+            sykmeldtFnr = sykmeldtFnr,
+            inkluderSkjulte = inkluderSkjulte,
+        )
+    }
+
+    suspend fun softDeleteExpiredOppfolgingsplaner(): Int = withContext(Dispatchers.IO) {
+        runSoftDeleteExpiredOppfolgingsplanerLoop(
+            maxBatchIterations = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
+        ) {
+            database.softDeleteExpiredOppfolgingsplaner()
+        }
+    }
+
+    internal fun runSoftDeleteExpiredOppfolgingsplanerLoop(
+        maxBatchIterations: Int = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
+        softDeleteBatch: () -> Int,
+    ): Int {
+        require(maxBatchIterations > 0) {
+            "maxBatchIterations must be greater than 0"
+        }
+
+        var total = 0
+        repeat(maxBatchIterations) { _ ->
+            val count = softDeleteBatch()
+            total += count
+            if (count == 0) {
+                return total
+            }
+        }
+
+        logger.warn(
+            "Stopped soft-delete loop after reaching safeguard of $maxBatchIterations batches; total soft-deleted so far: $total",
+        )
+        return total
     }
 
     suspend fun getAndSetNarmestelederFullname(

@@ -32,6 +32,7 @@ data class PersistedOppfolgingsplan(
     val journalpostId: String? = null,
     val utkastCreatedAt: Instant? = null,
     val createdAt: Instant,
+    val skjultFra: Instant? = null,
     val sendtTilDokumentportenTidspunkt: Instant? = null,
 )
 

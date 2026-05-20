@@ -119,8 +119,9 @@ fun DatabaseInterface.persistOppfolgingsplan(
             evalueringsdato,
             skal_deles_med_lege,
             skal_deles_med_veileder,
-            created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            created_at,
+            skjult_fra
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING uuid
     """.trimIndent()
 
@@ -139,6 +140,12 @@ fun DatabaseInterface.persistOppfolgingsplan(
             it.setDate(11, Date.valueOf(persistedOppfolgingsplan.evalueringsdato.toString()))
             it.setBoolean(12, persistedOppfolgingsplan.skalDelesMedLege)
             it.setBoolean(13, persistedOppfolgingsplan.skalDelesMedVeileder)
+            it.setTimestamp(14, Timestamp.from(persistedOppfolgingsplan.createdAt))
+            if (persistedOppfolgingsplan.skjultFra != null) {
+                it.setTimestamp(15, Timestamp.from(persistedOppfolgingsplan.skjultFra))
+            } else {
+                it.setNull(15, Types.TIMESTAMP_WITH_TIMEZONE)
+            }
             val resultSet = it.executeQuery()
             connection.commit()
             resultSet.next()
