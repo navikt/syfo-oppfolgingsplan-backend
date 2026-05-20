@@ -130,7 +130,7 @@ Tjenesten bruker Kafka i begge retninger:
 
 Innkommende kall er låst ned med `accessPolicy` i NAIS og sjekkes også i applikasjonen.
 
-- `syfo-oppfolgingsplan-frontend` kaller arbeidsgiver- og sykmeldt-API med TokenX
+- `syfo-oppfolgingsplan-frontend` kaller arbeidsgiver- og sykmeldt-API med TokenX (ID-porten)
 - `syfomodiaperson` kaller veileder-API med Azure AD
 - Texas brukes til token introspeksjon og token exchange
 - i dev er også `tokenx-token-generator` og `azure-token-generator` tillatt inn mot appen
