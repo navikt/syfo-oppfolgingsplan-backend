@@ -50,8 +50,34 @@ class OppfolgingsplanServiceTest :
                 filtered.size shouldBe 1
                 filtered.first().uuid shouldBe deltMedVeileder.uuid
             }
+
+            it("toListOppfolgingsplanVeileder should not filter hidden feilregistrerte items") {
+                val hiddenFeilregistrert = defaultPersistedOppfolgingsplan().copy(
+                    deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
+                    skalDelesMedVeileder = true,
+                    skjultFra = Instant.now(),
+                    feilregistrertAarsak = "Opprettet på feil person",
+                )
+                val hiddenButValid = defaultPersistedOppfolgingsplan().copy(
+                    deltMedVeilederTidspunkt = Instant.now().plus(20, ChronoUnit.MINUTES),
+                    skalDelesMedVeileder = true,
+                    skjultFra = Instant.now(),
+                    feilregistrertAarsak = null,
+                )
+
+                val filtered = listOf(hiddenFeilregistrert, hiddenButValid).toListOppfolgingsplanVeileder()
+
+                filtered.map { it.uuid }.toSet() shouldBe setOf(hiddenFeilregistrert.uuid, hiddenButValid.uuid)
+            }
         }
         describe("public function tests") {
+            describe("getPersistedOppfolgingsplanByUuid") {
+                afterTest {
+                    TestDB.clearAllData()
+                    clearAllMocks()
+                }
+            }
+
             describe("getAndSetNarmestelederFullname") {
                 afterTest {
                     TestDB.clearAllData()

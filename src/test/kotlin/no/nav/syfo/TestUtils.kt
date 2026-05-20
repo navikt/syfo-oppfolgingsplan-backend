@@ -71,6 +71,7 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
     createdAt = Instant.now(),
     skjultFra = null,
+    feilregistrertAarsak = null,
 )
 
 fun defaultPersistedOppfolgingsplanUtkast() = PersistedOppfolgingsplanUtkast(

@@ -296,6 +296,17 @@ class SoftDeleteOppfolgingsplanerTaskTest :
                 testDb.findAllOppfolgingsplanerBy(hiddenPlan.sykmeldtFnr, inkluderSkjulte = true).map { it.uuid } shouldBe listOf(hiddenUuid)
                 testDb.findOppfolgingsplanBy(hiddenUuid, inkluderSkjulte = true)?.uuid shouldBe hiddenUuid
             }
+
+            it("filters out plans that are both hidden and feilregistrert") {
+                val hiddenFeilregistrertPlan = defaultPersistedOppfolgingsplan().copy(
+                    skjultFra = Instant.now(),
+                    feilregistrertAarsak = "Opprettet på feil person",
+                )
+                val hiddenFeilregistrertUuid = testDb.persistOppfolgingsplan(hiddenFeilregistrertPlan)
+
+                testDb.findAllOppfolgingsplanerBy(hiddenFeilregistrertPlan.sykmeldtFnr, inkluderSkjulte = true) shouldBe emptyList()
+                testDb.findOppfolgingsplanBy(hiddenFeilregistrertUuid, inkluderSkjulte = true).shouldBeNull()
+            }
         }
 
         describe("dokumentporten") {

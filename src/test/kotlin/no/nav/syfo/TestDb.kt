@@ -120,8 +120,9 @@ fun DatabaseInterface.persistOppfolgingsplan(
             skal_deles_med_lege,
             skal_deles_med_veileder,
             created_at,
-            skjult_fra
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            skjult_fra,
+            feilregistrert_aarsak
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING uuid
     """.trimIndent()
 
@@ -146,6 +147,7 @@ fun DatabaseInterface.persistOppfolgingsplan(
             } else {
                 it.setNull(15, Types.TIMESTAMP_WITH_TIMEZONE)
             }
+            it.setString(16, persistedOppfolgingsplan.feilregistrertAarsak)
             val resultSet = it.executeQuery()
             connection.commit()
             resultSet.next()
