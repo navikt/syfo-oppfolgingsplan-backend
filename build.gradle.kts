@@ -10,6 +10,7 @@ val ktorVersion = "3.4.3"
 val logbackVersion = "1.5.32"
 val logstashEncoderVersion = "9.0"
 val micrometerVersion = "1.16.5"
+val nettyVersion = "4.2.13.Final"
 val mockkVersion = "1.14.9"
 val postgresVersion = "42.7.10"
 val testcontainersVersion = "1.21.4"
@@ -32,6 +33,8 @@ repositories {
 }
 
 dependencies {
+    implementation(platform("io.netty:netty-bom:$nettyVersion"))
+
     implementation("io.ktor:ktor-server-core")
     implementation("io.ktor:ktor-server-auth")
     implementation("io.ktor:ktor-server-auth-jwt")
