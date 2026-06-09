@@ -281,6 +281,82 @@ class VeilederOppfolgingsplanApiV1Test :
                         responseList.first().uuid shouldBe firstPlanUUID
                     }
                 }
+
+                it("POST /veileder/oppfolgingsplaner should include hidden plans") {
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = "some-veileder-token",
+                            navident = "some-navident",
+                            azpName = syfomodiapersonClientId,
+                        )
+                        coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
+
+                        val hiddenPlanUuid = testDb.persistOppfolgingsplan(
+                            defaultPersistedOppfolgingsplan().copy(
+                                narmesteLederId = narmestelederId,
+                                sykmeldtFnr = sykmeldtFnr,
+                                skjultFra = Instant.now(),
+                            ),
+                        )
+                        testDb.updateSkalDelesMedVeileder(hiddenPlanUuid, true)
+                        testDb.setDeltMedVeilederTidspunkt(hiddenPlanUuid, Instant.now())
+
+                        val response = client.post {
+                            url("/api/v1/veileder/oppfolgingsplaner/query")
+                            bearerAuth(token = "Bearer token")
+                            header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
+                            contentType(ContentType.Application.Json)
+                            setBody(OppfolgingsplanerReadRequest(sykmeldtFnr))
+                        }
+
+                        response.status shouldBe HttpStatusCode.OK
+                        response.body<List<OppfolgingsplanVeileder>>().map { it.uuid } shouldBe listOf(hiddenPlanUuid)
+                    }
+                }
+
+                it("POST /veileder/oppfolgingsplaner should filter out hidden feilregistrerte plans") {
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = "some-veileder-token",
+                            navident = "some-navident",
+                            azpName = syfomodiapersonClientId,
+                        )
+                        coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
+
+                        val hiddenFeilregistrertUuid = testDb.persistOppfolgingsplan(
+                            defaultPersistedOppfolgingsplan().copy(
+                                narmesteLederId = narmestelederId,
+                                sykmeldtFnr = sykmeldtFnr,
+                                skjultFra = Instant.now(),
+                                feilregistrert = Instant.now(),
+                                feilregistrertAarsak = "Opprettet på feil person",
+                            ),
+                        )
+                        testDb.updateSkalDelesMedVeileder(hiddenFeilregistrertUuid, true)
+                        testDb.setDeltMedVeilederTidspunkt(hiddenFeilregistrertUuid, Instant.now())
+
+                        val visibleForVeilederUuid = testDb.persistOppfolgingsplan(
+                            defaultPersistedOppfolgingsplan().copy(
+                                narmesteLederId = narmestelederId,
+                                sykmeldtFnr = sykmeldtFnr,
+                                skjultFra = Instant.now(),
+                            ),
+                        )
+                        testDb.updateSkalDelesMedVeileder(visibleForVeilederUuid, true)
+                        testDb.setDeltMedVeilederTidspunkt(visibleForVeilederUuid, Instant.now())
+
+                        val response = client.post {
+                            url("/api/v1/veileder/oppfolgingsplaner/query")
+                            bearerAuth(token = "Bearer token")
+                            header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
+                            contentType(ContentType.Application.Json)
+                            setBody(OppfolgingsplanerReadRequest(sykmeldtFnr))
+                        }
+
+                        response.status shouldBe HttpStatusCode.OK
+                        response.body<List<OppfolgingsplanVeileder>>().map { it.uuid } shouldBe listOf(visibleForVeilederUuid)
+                    }
+                }
             }
         }
 
@@ -405,6 +481,70 @@ class VeilederOppfolgingsplanApiV1Test :
                             token = any(),
                         )
                     }
+                }
+            }
+
+            it("GET /veileder/oppfolgingsplaner/<uuid> should return hidden plan") {
+                withTestApplication {
+                    val pdfContent = "ThisIsPdfContent"
+                    texasClientMock.defaultMocks(
+                        pid = "some-veileder-token",
+                        navident = "some-navident",
+                        azpName = syfomodiapersonClientId,
+                    )
+                    coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
+                    coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
+                    val hiddenPlanUuid = testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            narmesteLederId = narmestelederId,
+                            sykmeldtFnr = sykmeldtFnr,
+                            skjultFra = Instant.now(),
+                        ),
+                    )
+                    testDb.updateSkalDelesMedVeileder(hiddenPlanUuid, true)
+                    testDb.setDeltMedVeilederTidspunkt(hiddenPlanUuid, Instant.now())
+
+                    val response = client.get {
+                        url("/api/v1/veileder/oppfolgingsplaner/$hiddenPlanUuid")
+                        bearerAuth(token = "Bearer token")
+                        header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
+                    }
+
+                    response.status shouldBe HttpStatusCode.OK
+                    response.contentType() shouldBe ContentType.Application.Pdf
+                    response.body<ByteArray>() shouldBe pdfContent.toByteArray(Charsets.UTF_8)
+                }
+            }
+
+            it("GET /veileder/oppfolgingsplaner/<uuid> should return Not Found for hidden feilregistrert plan") {
+                withTestApplication {
+                    val pdfContent = "ThisIsPdfContent"
+                    texasClientMock.defaultMocks(
+                        pid = "some-veileder-token",
+                        navident = "some-navident",
+                        azpName = syfomodiapersonClientId,
+                    )
+                    coEvery { isTilgangskontrollClientMock.harTilgangTilSykmeldt(any(), any()) } returns true
+                    coEvery { pdfGenService.generatePdf(any()) } returns pdfContent.toByteArray(Charsets.UTF_8)
+                    val hiddenFeilregistrertUuid = testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            narmesteLederId = narmestelederId,
+                            sykmeldtFnr = sykmeldtFnr,
+                            skjultFra = Instant.now(),
+                            feilregistrert = Instant.now(),
+                            feilregistrertAarsak = "Opprettet på feil person",
+                        ),
+                    )
+                    testDb.updateSkalDelesMedVeileder(hiddenFeilregistrertUuid, true)
+                    testDb.setDeltMedVeilederTidspunkt(hiddenFeilregistrertUuid, Instant.now())
+
+                    val response = client.get {
+                        url("/api/v1/veileder/oppfolgingsplaner/$hiddenFeilregistrertUuid")
+                        bearerAuth(token = "Bearer token")
+                        header(NAV_PERSONIDENT_HEADER, sykmeldtFnr)
+                    }
+
+                    response.status shouldBe HttpStatusCode.NotFound
                 }
             }
         }

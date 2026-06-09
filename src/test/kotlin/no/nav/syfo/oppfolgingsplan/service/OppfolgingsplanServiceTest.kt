@@ -1,5 +1,4 @@
 package no.nav.syfo.oppfolgingsplan.service
-
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.nulls.shouldBeNull
@@ -50,6 +49,26 @@ class OppfolgingsplanServiceTest :
 
                 filtered.size shouldBe 1
                 filtered.first().uuid shouldBe deltMedVeileder.uuid
+            }
+
+            it("toListOppfolgingsplanVeileder should only filter on deling med veileder") {
+                val hiddenFeilregistrert = defaultPersistedOppfolgingsplan().copy(
+                    deltMedVeilederTidspunkt = Instant.now().plus(10, ChronoUnit.MINUTES),
+                    skalDelesMedVeileder = true,
+                    skjultFra = Instant.now(),
+                    feilregistrert = Instant.now(),
+                    feilregistrertAarsak = "Opprettet på feil person",
+                )
+                val hiddenButValid = defaultPersistedOppfolgingsplan().copy(
+                    deltMedVeilederTidspunkt = Instant.now().plus(20, ChronoUnit.MINUTES),
+                    skalDelesMedVeileder = true,
+                    skjultFra = Instant.now(),
+                    feilregistrertAarsak = null,
+                )
+
+                val filtered = listOf(hiddenFeilregistrert, hiddenButValid).toListOppfolgingsplanVeileder()
+
+                filtered.map { it.uuid }.toSet() shouldBe setOf(hiddenFeilregistrert.uuid, hiddenButValid.uuid)
             }
         }
         describe("public function tests") {

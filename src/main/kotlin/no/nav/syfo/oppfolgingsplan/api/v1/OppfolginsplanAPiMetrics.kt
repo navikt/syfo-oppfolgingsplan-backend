@@ -9,6 +9,7 @@ const val OPPFOLGINGSPLAN_SHARED_WITH_GP = "${METRICS_NS}_oppfolgingsplan_shared
 const val OPPFOLGINGSPLAN_SHARED_WITH_NAV = "${METRICS_NS}_oppfolgingsplan_shared_with_nav"
 const val OPPFOLGINGSPLAN_DRAFT_MANUALLY_DELETED = "${METRICS_NS}_oppfolgingsplan_draft_manually_deleted"
 const val OPPFOLGINGSPLAN_DRAFT_AUTO_DELETED = "${METRICS_NS}_oppfolgingsplan_draft_auto_deleted"
+const val OPPFOLGINGSPLAN_SOFT_DELETED = "${METRICS_NS}_oppfolgingsplan_soft_deleted"
 
 val COUNT_OPPFOLGINGSPLAN_CREATED: Counter = Counter.builder(OPPFOLGINGSPLAN_CREATED)
     .description("Counts the number of created oppfolgingsplans")
@@ -24,4 +25,7 @@ val COUNT_OPPFOLGINGSPLAN_DRAFT_MANUALLY_DELETED: Counter = Counter.builder(OPPF
     .register(METRICS_REGISTRY)
 val COUNT_OPPFOLGINGSPLAN_DRAFT_AUTO_DELETED: Counter = Counter.builder(OPPFOLGINGSPLAN_DRAFT_AUTO_DELETED)
     .description("Counts the number of expired oppfolgingsplan drafts automatically deleted")
+    .register(METRICS_REGISTRY)
+val COUNT_OPPFOLGINGSPLAN_SOFT_DELETED: Counter = Counter.builder(OPPFOLGINGSPLAN_SOFT_DELETED)
+    .description("Counts the number of oppfolgingsplaner soft-deleted by cleanup task")
     .register(METRICS_REGISTRY)

@@ -1,6 +1,6 @@
 {
   "source": "navikt/hovmester",
-  "source_sha": "700ef1134bff0e21fa618c8f4a0d94afec21119f",
+  "source_sha": "e4f4b8805d725273cf2b9d069ca4224f75ccd7ea",
   "files": [
     ".github/ISSUE_TEMPLATE/bug.yml",
     ".github/ISSUE_TEMPLATE/config.yml",
@@ -9,9 +9,11 @@
     ".github/ISSUE_TEMPLATE/story.yml",
     ".github/ISSUE_TEMPLATE/task.yml",
     ".github/PULL_REQUEST_TEMPLATE.md",
+    ".github/agents/barista.agent.md",
     ".github/agents/hovmester.agent.md",
     ".github/agents/inspektor-claude.agent.md",
     ".github/agents/inspektor-gpt.agent.md",
+    ".github/agents/juniorkokk.agent.md",
     ".github/agents/kokk.agent.md",
     ".github/agents/konditor.agent.md",
     ".github/agents/souschef.agent.md",
@@ -59,6 +61,7 @@
     ".github/skills/nav-troubleshoot/references/auth-diagnose.md",
     ".github/skills/nav-troubleshoot/references/database-diagnose.md",
     ".github/skills/nav-troubleshoot/references/kafka-diagnose.md",
+    ".github/skills/nav-troubleshoot/references/observability-diagnose.md",
     ".github/skills/nav-troubleshoot/references/pod-diagnose.md",
     ".github/skills/observability-setup/SKILL.md",
     ".github/skills/observability-setup/references/alerting.md",
