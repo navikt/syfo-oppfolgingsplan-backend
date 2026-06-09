@@ -4,9 +4,8 @@ val flywayVersion = "12.6.2"
 val hikariVersion = "7.0.2"
 val kafkaVersion = "4.3.0"
 val koinVersion = "4.2.1"
-val kotestExtensionsVersion = "2.0.0"
 val kotestVersion = "6.1.11"
-val ktorVersion = "3.4.3"
+val ktorVersion = "3.5.0"
 val logbackVersion = "1.5.32"
 val logstashEncoderVersion = "9.0"
 val micrometerVersion = "1.16.5"
@@ -86,11 +85,11 @@ dependencies {
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
     testImplementation("io.kotest:kotest-property:$kotestVersion")
-    testImplementation("io.kotest.extensions:kotest-assertions-ktor:$kotestExtensionsVersion")
+    testImplementation("io.kotest:kotest-assertions-ktor:$kotestVersion")
     testImplementation("io.mockk:mockk:$mockkVersion")
     testImplementation("io.insert-koin:koin-test:$koinVersion")
     testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
-    testImplementation("io.kotest.extensions:kotest-extensions-koin:1.3.0")
+    testImplementation("io.kotest:kotest-extensions-koin:$kotestVersion")
     testImplementation("org.wiremock:wiremock:3.13.2")
     testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
     testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
