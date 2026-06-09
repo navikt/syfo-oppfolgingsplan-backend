@@ -1,17 +1,17 @@
 
 val dataFakerVersion = "2.5.4"
-val flywayVersion = "12.6.2"
+val flywayVersion = "12.7.0"
 val hikariVersion = "7.0.2"
 val kafkaVersion = "4.3.0"
 val koinVersion = "4.2.1"
 val kotestVersion = "6.1.11"
 val ktorVersion = "3.5.0"
-val logbackVersion = "1.5.32"
+val logbackVersion = "1.5.34"
 val logstashEncoderVersion = "9.0"
 val micrometerVersion = "1.16.5"
 val nettyVersion = "4.2.14.Final"
-val mockkVersion = "1.14.9"
-val postgresVersion = "42.7.10"
+val mockkVersion = "1.14.11"
+val postgresVersion = "42.7.11"
 val testcontainersVersion = "1.21.4"
 val valkeyVersion = "5.5.0"
 
@@ -50,7 +50,7 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-apache5-jvm")
     implementation("io.ktor:ktor-serialization-jackson")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.3")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.0")
     implementation("io.insert-koin:koin-ktor:$koinVersion")
     implementation("io.insert-koin:koin-logger-slf4j:$koinVersion")
     implementation("io.ktor:ktor-server-netty")
