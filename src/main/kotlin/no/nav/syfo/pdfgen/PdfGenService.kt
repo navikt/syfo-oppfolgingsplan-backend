@@ -92,6 +92,9 @@ fun PersistedOppfolgingsplan.toOppfolgingsplanPdfV1(): OppfolgingsplanPdfV1 {
     )
 }
 
-private fun String.sanitizePdfText(): String = replace("\uFEFF", "").replace("\uFFFE", "")
+private fun String.sanitizePdfText(): String = replace("\uFEFF", "")
+    .replace("\uFFFE", "")
+    .replace("\u0002", "")
+    .replace("\u0003", "")
 
 private fun String?.sanitizePdfTextOrNull(): String? = this?.sanitizePdfText()
