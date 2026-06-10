@@ -17,7 +17,7 @@ val testcontainersVersion = "1.21.4"
 val valkeyVersion = "5.5.0"
 
 plugins {
-    kotlin("jvm") version "2.3.21"
+    kotlin("jvm") version "2.4.0"
     id("io.ktor.plugin") version "3.4.3"
     id("com.gradleup.shadow") version "9.4.2"
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
