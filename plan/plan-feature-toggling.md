@@ -2,7 +2,7 @@
 
 ## Mål
 
-Innføre en generisk løsning for tiltakspakker/eksperimenter der virksomheter kan segmenteres etter ulike regeltyper. Første eksperiment gjelder nye sykmeldinger for virksomheter med adresse i Troms, men modellen skal støtte andre eksperimenter og regler senere.
+Innføre en generisk løsning for tiltakspakker/eksperimenter der virksomheter kan segmenteres etter ulike regeltyper. Første eksperiment gjelder nye sykmeldinger for virksomheter med adresse i Troms eller Finnmark, men modellen skal støtte andre eksperimenter og regler senere.
 
 ## Premisser
 
@@ -12,7 +12,7 @@ Innføre en generisk løsning for tiltakspakker/eksperimenter der virksomheter k
 - Nye sykmeldinger fra Kafka-topic `teamsykmelding.syfo-sendt-sykmelding` er bare en trigger for å oppdage kandidatvirksomheter som kan segmenteres.
 - Første regeltype er fylke på virksomhetsadresse fra EREG.
 - Fylkesregelen bruker EREG forretningsadresse uten fallback til postadresse. Manglende forretningsadresse gir `KAN_IKKE_EVALUERE`.
-- Første eksperiment kan også trenge randomisering, foreløpig skissert som 70 % inkludert og 30 % ekskludert etter at øvrige kriterier matcher.
+- Første eksperiment skal randomisere 50 % inkludert og 50 % ekskludert etter at øvrige kriterier matcher.
 - Randomiseringsenhet er arbeidsgiver/virksomhet (`organisasjonsnummer`): alle relevante sykmeldinger hos samme arbeidsgiver i eksperimentperioden skal følge samme gruppe.
 - Relevante sykmeldinger for primæranalyse er sykmeldinger som starter etter at arbeidsgiveren er randomisert/tildelt gruppe. Pågående forløp fra før randomisering kan eventuelt analyseres separat som sekundæranalyse.
 - Inkluderingsperiode, eksponeringsperiode og analyseperiode må skilles. Stopp i inkludering skal ikke automatisk skru av tiltaket for arbeidsgivere som allerede er i tiltaksgruppen.
@@ -22,7 +22,7 @@ Innføre en generisk løsning for tiltakspakker/eksperimenter der virksomheter k
 ## Anbefalt arkitektur
 
 ```text
-Kafka / bakgrunnsjobb
+Kafka-konsument
   -> mottar sykmelding som trigger
   -> finner virksomhet/orgnummer
   -> slår opp nødvendige kildedata, f.eks. EREG
@@ -106,8 +106,8 @@ Eksempel:
 
 ```sql
 regel_type = 'VIRKSOMHET_ADRESSE_FYLKE'
-kriterier = '{"fylkesnummer": ["55"]}'::jsonb
-inkluderingsprosent = 70
+kriterier = '{"fylkesnummer": ["55", "56"]}'::jsonb
+inkluderingsprosent = 50
 randomisering_salt = 'nye-sykmeldinger-v1'
 ```
 
@@ -205,26 +205,26 @@ Tolket som algoritme betyr dette:
 4. Koble hver arbeidsgiver deterministisk til én tildeling.
 5. Lagre tildelingen i `tiltakspakke_virksomhet`.
 
-For 70/30 må listen bygges med 70 % `INKLUDERT` og 30 % `EKSKLUDERT`. Dette gir mest presis fordeling når kandidatpopulasjonen er kjent på forhånd. Ved løpende Kafka-segmentering er en ren hash-bucket enklere, men gir bare forventet 70/30, ikke eksakt 70/30 for små populasjoner.
+For en batchmodell måtte listen bygges med ønsket andel `INKLUDERT` og `EKSKLUDERT`. Første versjon skal ikke bruke batchjobb; den skal bruke Kafka som trigger og deterministisk hash-bucket per virksomhet. Det gir forventet 50/50 over tid, men ikke eksakt 50/50 for små populasjoner.
 
 Mulige randomiseringsstrategier:
 
-| Strategi                                            | Fordel                                        | Ulempe                                                   |
-| --------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------- |
-| Batch-tildeling fra kandidatpopulasjon              | Kan gi eksakt 70/30                           | Krever kjent populasjon og rerun/plan ved nye kandidater |
-| Deterministisk hash-bucket per orgnummer            | Fungerer løpende med Kafka og lazy evaluering | Gir forventet, ikke eksakt, fordeling                    |
-| Hybrid: batch først, hash for senere nye kandidater | Rask oppstart og håndterer nye virksomheter   | To mekanismer må dokumenteres og analyseres              |
+| Strategi                                            | Fordel                                                | Ulempe                                                                     |
+| --------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------- |
+| Deterministisk hash-bucket per orgnummer            | Fungerer løpende med Kafka og lazy evaluering         | Gir forventet, ikke eksakt, 50/50-fordeling                                |
+| Batch-tildeling fra kandidatpopulasjon              | Kan gi eksakt 50/50                                   | Ikke valgt for første versjon; krever kjent populasjon og batchjobb        |
+| Hybrid: batch først, hash for senere nye kandidater | Kan håndtere både startpopulasjon og nye virksomheter | Ikke valgt for første versjon; to mekanismer må dokumenteres og analyseres |
 
-Foreløpig anbefaling: bruk batch-tildeling hvis datascience trenger eksakt kontroll-/tiltaksfordeling. API-et skal uansett bare lese lagret tildeling fra `tiltakspakke_virksomhet`.
+Valgt førsteversjon: bruk deterministisk hash-bucket per orgnummer når Kafka oppdager en ny kandidatvirksomhet. API-et skal uansett bare lese lagret tildeling fra `tiltakspakke_virksomhet`.
 
-Beslutningspunkt før implementering: Teamet må velge om eksperimentet skal ha lukket kandidatpopulasjon, løpende randomisering ved første relevante sykmelding, eller en hybridmodell. Dette valget styrer både datamodell, evalueringsalgoritme, backfill-jobb og analyseopplegg. Implementering bør ikke starte før dette er avklart med team og datascience.
+Beslutning for første versjon: eksperimentet bruker løpende randomisering ved første relevante sykmelding fra Kafka, ikke lukket kandidatpopulasjon og ikke batchjobb. Konsekvensen må være kjent for team/datascience: 50/50 blir forventet fordeling, ikke garantert eksakt fordeling i små datamengder.
 
 Eksempel på ønsket logikk:
 
 ```text
-hvis fylke matcher 55:
+hvis fylke matcher 55 eller 56:
   bucket = stableHash(orgnummer + tiltakspakke + regelsett + salt) % 100
-  hvis bucket < 70:
+  hvis bucket < 50:
     status = INKLUDERT
     begrunnelse = REGEL_MATCHET_RANDOMISERT_INN
   ellers:
@@ -237,15 +237,15 @@ ellers:
 
 Må avklares før implementering:
 
-- Skal 70/30 gjelde blant alle virksomheter, eller bare blant virksomheter som matcher faglige regler som fylke?
-- Må fordelingen være eksakt 70/30, eller holder forventet 70/30 over tid?
-- Er kandidatpopulasjonen kjent før eksperimentstart, eller kommer den løpende via Kafka?
-- Team-beslutning: skal første versjon bruke lukket kandidatpopulasjon, løpende randomisering, eller hybridmodell?
+- Avklart for første versjon: 50/50 gjelder blant virksomheter som matcher faglige regler, altså forretningsadresse i Troms eller Finnmark.
+- Avklart for første versjon: fordelingen blir forventet 50/50 over tid, ikke eksakt 50/50.
+- Avklart for første versjon: kandidatpopulasjonen kommer løpende via Kafka.
+- Avklart for første versjon: ingen batchjobb, ingen lukket kandidatpopulasjon og ingen hybridmodell.
 - Skal eksisterende virksomheter beholde opprinnelig randomisering ved nytt regelsett, eller randomiseres på nytt?
 - Skal kontrollgruppen returneres eksplisitt i API-et, eller skjules som `ikke med`?
 - Skal randomisering ligge på regel, regelsett eller tiltakspakke?
 
-## Første eksperiment: Troms
+## Første eksperiment: Troms og Finnmark
 
 ```sql
 INSERT INTO tiltakspakke (id, navn, beskrivelse)
@@ -268,8 +268,8 @@ INSERT INTO tiltakspakke_segmenteringsregel (
 SELECT
     id,
     'VIRKSOMHET_ADRESSE_FYLKE',
-    '{"fylkesnummer": ["55"]}'::jsonb,
-    70,
+    '{"fylkesnummer": ["55", "56"]}'::jsonb,
+    50,
     'nye-sykmeldinger-v1'
 FROM tiltakspakke_regelsett
 WHERE tiltakspakke_id = 'nye-sykmeldinger'
@@ -299,15 +299,15 @@ INSERT INTO tiltakspakke_segmenteringsregel (
 SELECT
     id,
     'VIRKSOMHET_ADRESSE_FYLKE',
-    '{"fylkesnummer": ["55", "56"]}'::jsonb,
-    70,
+    '{"fylkesnummer": ["55", "56", "<nytt_fylkesnummer>"]}'::jsonb,
+    50,
     'nye-sykmeldinger-v2'
 FROM tiltakspakke_regelsett
 WHERE tiltakspakke_id = 'nye-sykmeldinger'
   AND versjon = 2;
 ```
 
-Når aktivt regelsett endres, må virksomheter som bare er vurdert mot gammel versjon reevalueres. Det kan gjøres lazy i API, via Kafka ved neste sykmelding, eller med en bakgrunnsjobb. For rask API anbefales bakgrunnsjobb eller forhåndsreevaluering.
+Når aktivt regelsett endres, må virksomheter som bare er vurdert mot gammel versjon reevalueres. Første versjon skal ikke bruke batchjobb; nye vurderinger skjer når Kafka oppdager virksomheten på nytt. Hvis teamet senere trenger rask re-evaluering av hele populasjonen ved regelendring, må det planlegges som en egen utvidelse.
 
 ## API-design
 
@@ -452,8 +452,8 @@ ORDER BY tv.tiltakspakke_id;
 - Avklart: relevante sykmeldinger for primæranalyse er sykmeldinger som starter etter `randomisert_at`.
 - Avklart: `eksponering_slutter_at IS NULL` betyr at eksponering fortsetter; `inkludering_slutter_at` skal ikke skru av tiltaket for eksisterende tiltaksgruppe.
 - Avklart: `evaluerte_data` skal kun inneholde minimale beslutningsdata, ikke full EREG-respons, adresse, fnr eller sykmeldingsdata.
-- Må besluttes av team/datascience: lukket kandidatpopulasjon, løpende randomisering ved første sykmelding eller hybridmodell. Dette er en blocker før evalueringsalgoritmen låses.
-- Må besluttes av team/datascience: om 70/30 må være eksakt, eller om forventet 70/30 over tid er godt nok.
+- Avklart for første versjon: randomisering skjer løpende ved første relevante sykmelding fra Kafka, uten batchjobb.
+- Avklart for første versjon: fordeling er 50/50 blant virksomheter i Troms og Finnmark som matcher faglige regler. Fordelingen er forventet over tid, ikke garantert eksakt i små datamengder.
 - Hvilke apper skal ha `accessPolicy.inbound` til API-et?
 - Hvor lenge skal evaluerte segmenteringsdata beholdes?
 
@@ -461,13 +461,13 @@ ORDER BY tv.tiltakspakke_id;
 
 Planen er sterkest på API-hastighet og separasjon mellom trigger, tildeling og visning. De største risikoene er nå tydeligere:
 
-1. Randomiseringsstrategi er ikke låst. Dette påvirker om Kafka kan være nok, eller om det kreves batch/populasjonsbygging før eksperimentstart.
+1. Randomiseringsstrategi er låst for første versjon til Kafka-trigger og deterministisk hash-bucket per orgnummer. Risikoen er at 50/50 ikke blir eksakt i små datamengder.
 2. Eksperimentperioder må modelleres riktig, ellers kan brukere falle tilbake til standard for tidlig eller bli eksponert lenger enn ønsket.
 3. Analyse og brukeropplevelse må skille mellom randomisering, faktisk eksponering og utfall.
 4. API må ikke skjule `EKSKLUDERT`/kontrollgruppe fra backend, ellers mister dere sporbarhet.
 5. Dataminimering må håndheves aktivt, spesielt rundt `evaluerte_data`, logging og EREG-respons.
 
-Anbefalt neste steg før implementering er et kort beslutningsmøte med team og datascience om randomiseringsstrategi, kandidatpopulasjon og krav til eksakt 70/30.
+Anbefalt neste steg før implementering er å bekrefte med datascience at forventet 50/50 over tid er akseptabelt når første versjon ikke bruker batchjobb.
 
 ## Implementeringsfaser
 
