@@ -188,36 +188,9 @@ Primæranalysen bør bare inkludere sykmeldinger som starter etter `randomisert_
 
 API-et skal ikke automatisk fjerne tiltaket ved `inkludering_slutter_at`. Eksisterende inkluderte arbeidsgivere skal beholde tiltaket frem til `eksponering_slutter_at` eller til teamet avslutter eksponeringen kontrollert. `eksponering_slutter_at IS NULL` betyr at eksponering fortsetter.
 
-Datascientist har foreslått en batch-randomisering over en kjent arbeidsgiverpopulasjon:
-
-```r
-# Randomisering til tiltaks- og kontrollgruppe
-# Eksakt halvparten i hver gruppe (krever partall antall arbeidsgivere)
-tildeling <- sample(rep(0:1, length.out = arbeidsgiver))
-sim$tiltaksgruppe <- tildeling[sim arbeidsgiver]
-```
-
-Tolket som algoritme betyr dette:
-
-1. Finn alle arbeidsgivere som matcher faglige kriterier for eksperimentet.
-2. Lag en fordelingsliste med ønsket andel tiltaksgruppe/kontrollgruppe.
-3. Shuffle listen én gang.
-4. Koble hver arbeidsgiver deterministisk til én tildeling.
-5. Lagre tildelingen i `tiltakspakke_virksomhet`.
-
-For en batchmodell måtte listen bygges med ønsket andel `INKLUDERT` og `EKSKLUDERT`. Første versjon skal ikke bruke batchjobb; den skal bruke Kafka som trigger og deterministisk hash-bucket per virksomhet. Det gir forventet 50/50 over tid, men ikke eksakt 50/50 for små populasjoner.
-
-Mulige randomiseringsstrategier:
-
-| Strategi                                            | Fordel                                                | Ulempe                                                                     |
-| --------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------- |
-| Deterministisk hash-bucket per orgnummer            | Fungerer løpende med Kafka og lazy evaluering         | Gir forventet, ikke eksakt, 50/50-fordeling                                |
-| Batch-tildeling fra kandidatpopulasjon              | Kan gi eksakt 50/50                                   | Ikke valgt for første versjon; krever kjent populasjon og batchjobb        |
-| Hybrid: batch først, hash for senere nye kandidater | Kan håndtere både startpopulasjon og nye virksomheter | Ikke valgt for første versjon; to mekanismer må dokumenteres og analyseres |
-
 Valgt førsteversjon: bruk deterministisk hash-bucket per orgnummer når Kafka oppdager en ny kandidatvirksomhet. API-et skal uansett bare lese lagret tildeling fra `tiltakspakke_virksomhet`.
 
-Beslutning for første versjon: eksperimentet bruker løpende randomisering ved første relevante sykmelding fra Kafka, ikke lukket kandidatpopulasjon og ikke batchjobb. Konsekvensen må være kjent for team/datascience: 50/50 blir forventet fordeling, ikke garantert eksakt fordeling i små datamengder.
+Konsekvens: 50/50 er forventet fordeling over tid, men ikke garantert eksakt fordeling i små datamengder.
 
 Eksempel på ønsket logikk:
 
@@ -239,8 +212,7 @@ Må avklares før implementering:
 
 - Avklart for første versjon: 50/50 gjelder blant virksomheter som matcher faglige regler, altså forretningsadresse i Troms eller Finnmark.
 - Avklart for første versjon: fordelingen blir forventet 50/50 over tid, ikke eksakt 50/50.
-- Avklart for første versjon: kandidatpopulasjonen kommer løpende via Kafka.
-- Avklart for første versjon: ingen batchjobb, ingen lukket kandidatpopulasjon og ingen hybridmodell.
+- Avklart for første versjon: virksomheter oppdages løpende via Kafka.
 - Skal eksisterende virksomheter beholde opprinnelig randomisering ved nytt regelsett, eller randomiseres på nytt?
 - Skal kontrollgruppen returneres eksplisitt i API-et, eller skjules som `ikke med`?
 - Skal randomisering ligge på regel, regelsett eller tiltakspakke?
@@ -307,7 +279,7 @@ WHERE tiltakspakke_id = 'nye-sykmeldinger'
   AND versjon = 2;
 ```
 
-Når aktivt regelsett endres, må virksomheter som bare er vurdert mot gammel versjon reevalueres. Første versjon skal ikke bruke batchjobb; nye vurderinger skjer når Kafka oppdager virksomheten på nytt. Hvis teamet senere trenger rask re-evaluering av hele populasjonen ved regelendring, må det planlegges som en egen utvidelse.
+Når aktivt regelsett endres, må virksomheter som bare er vurdert mot gammel versjon reevalueres. I første versjon skjer nye vurderinger når Kafka oppdager virksomheten på nytt. Hvis teamet senere trenger rask re-evaluering av alle tidligere vurderte virksomheter ved regelendring, må det planlegges som en egen utvidelse.
 
 ## API-design
 
@@ -452,7 +424,7 @@ ORDER BY tv.tiltakspakke_id;
 - Avklart: relevante sykmeldinger for primæranalyse er sykmeldinger som starter etter `randomisert_at`.
 - Avklart: `eksponering_slutter_at IS NULL` betyr at eksponering fortsetter; `inkludering_slutter_at` skal ikke skru av tiltaket for eksisterende tiltaksgruppe.
 - Avklart: `evaluerte_data` skal kun inneholde minimale beslutningsdata, ikke full EREG-respons, adresse, fnr eller sykmeldingsdata.
-- Avklart for første versjon: randomisering skjer løpende ved første relevante sykmelding fra Kafka, uten batchjobb.
+- Avklart for første versjon: randomisering skjer løpende ved første relevante sykmelding fra Kafka.
 - Avklart for første versjon: fordeling er 50/50 blant virksomheter i Troms og Finnmark som matcher faglige regler. Fordelingen er forventet over tid, ikke garantert eksakt i små datamengder.
 - Hvilke apper skal ha `accessPolicy.inbound` til API-et?
 - Hvor lenge skal evaluerte segmenteringsdata beholdes?
@@ -467,7 +439,7 @@ Planen er sterkest på API-hastighet og separasjon mellom trigger, tildeling og 
 4. API må ikke skjule `EKSKLUDERT`/kontrollgruppe fra backend, ellers mister dere sporbarhet.
 5. Dataminimering må håndheves aktivt, spesielt rundt `evaluerte_data`, logging og EREG-respons.
 
-Anbefalt neste steg før implementering er å bekrefte med datascience at forventet 50/50 over tid er akseptabelt når første versjon ikke bruker batchjobb.
+Anbefalt neste steg før implementering er å bekrefte at forventet 50/50 over tid er akseptabelt for første versjon.
 
 ## Implementeringsfaser
 
