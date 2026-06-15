@@ -5,6 +5,7 @@ import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.auth.principal
 import io.ktor.server.request.uri
 import no.nav.syfo.application.exception.ApiErrorException
+import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.util.logger
 
@@ -20,10 +21,19 @@ val ClientAuthorizationPlugin = createRouteScopedPlugin(
 ) {
     val clientId = pluginConfig.allowedClientId
 
-    val allowedClients = if (isProdEnv()) {
-        listOf(clientId)
-    } else {
-        listOf(clientId, "dev-gcp:nais:tokenx-token-generator", "dev-gcp:nais:azure-token-generator")
+    val allowedClients = when {
+        isProdEnv() -> listOf(clientId)
+        isLocalEnv() ->  listOf(
+            clientId,
+            "dev-gcp:nais:tokenx-token-generator",
+            "dev-gcp:nais:azure-token-generator",
+            "notfound"
+        )
+        else -> listOf(
+            clientId,
+            "dev-gcp:nais:tokenx-token-generator",
+            "dev-gcp:nais:azure-token-generator"
+        )
     }
 
     onCall { call ->
