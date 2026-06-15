@@ -1,0 +1,69 @@
+{
+  "content": {
+    "formIdentifier": "oppfolgingsplan",
+    "formSemanticVersion": "1.0.0",
+    "formSnapshotVersion": "2.0.0",
+    "sections": [
+      {
+        "fields": [
+          {
+            "description": "Beskriv en vanlig arbeidsdag og hvilke oppgaver arbeidstaker gjør på jobben",
+            "fieldId": "vanligArbeidsdag",
+            "fieldType": "TEXT",
+            "label": "Hvordan ser en vanlig arbeidsdag ut?",
+            "value": "Jeg skriver litt om min vanlige arbeidsdag her",
+            "wasRequired": true
+          },
+          {
+            "description": "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?",
+            "fieldId": "ordinæreArbeidsoppgaver",
+            "fieldType": "TEXT",
+            "label": "Hvilke ordinære arbeidsoppgaver kan forstatt utføres?",
+            "value": "Jeg skriver litt om mine ordinære arbeidsoppgaver her",
+            "wasRequired": true
+          }
+        ],
+        "sectionId": "arbeidsoppgaver",
+        "sectionTitle": "Arbeidsoppgaver"
+      },
+      {
+        "fields": [
+          {
+            "description": "Dette er en beskrivelse av radio gruppen",
+            "fieldId": "arbeidsgiver",
+            "fieldType": "RADIO_GROUP",
+            "label": "Dette er tittelen på en radio gruppe",
+            "options": [
+              {
+                "optionId": "option1",
+                "optionLabel": "Dette er option 1"
+              },
+              {
+                "optionId": "option2",
+                "optionLabel": "Dette er option 2"
+              },
+              {
+                "optionId": "option3",
+                "optionLabel": "Dette er option 3"
+              }
+            ],
+            "selectedOptionId": "option2",
+            "wasRequired": true
+          },
+          {
+            "description": "Dato for når oppfølgingsplanen skal evalueres",
+            "fieldId": "evalueringsDato",
+            "fieldType": "DATE",
+            "label": "Evalueringsdato",
+            "value": "2026-07-12",
+            "wasRequired": true
+          }
+        ],
+        "sectionId": "tilpasninger",
+        "sectionTitle": "Tilpasninger"
+      }
+    ]
+  },
+  "evalueringsdato": "2026-07-12",
+  "evalueringPaaminnelse": true
+}

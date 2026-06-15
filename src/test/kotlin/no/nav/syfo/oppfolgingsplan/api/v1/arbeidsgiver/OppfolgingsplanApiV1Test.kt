@@ -491,6 +491,8 @@ class OppfolgingsplanApiV1Test :
                     persisted.first().organisasjonsnummer shouldBe sykmeldt.orgnummer
                     persisted.first().content.toString() shouldBe oppfolgingsplan.content.toString()
                     persisted.first().evalueringsdato.toString() shouldBe oppfolgingsplan.evalueringsdato.toString()
+                    persisted.first().evalueringPaaminnelse shouldBe false
+                    persisted.first().evalueringPaaminnelseOutboxAt shouldBe null
                     persisted.first().sykmeldtFullName shouldBe "Navn Sykmeldt"
                     persisted.first().organisasjonsnavn shouldBe "Test AS"
                     persisted.first().stillingstittel shouldBe "Systemutvikler"

@@ -29,6 +29,8 @@ data class OppfolgingsplanResponse(
 data class CreateOppfolgingsplanRequest(
     val content: FormSnapshot,
     val evalueringsdato: LocalDate,
+    val evalueringPaaminnelse: Boolean = false,
+
 )
 
 data class DelMedLegeResponse(
