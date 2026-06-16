@@ -25,9 +25,7 @@ val ClientAuthorizationPlugin = createRouteScopedPlugin(
         isProdEnv() -> listOf(clientId)
         isLocalEnv() ->  listOf(
             clientId,
-            "dev-gcp:nais:tokenx-token-generator",
-            "dev-gcp:nais:azure-token-generator",
-            "notfound"
+            "local:fakedings"
         )
         else -> listOf(
             clientId,
