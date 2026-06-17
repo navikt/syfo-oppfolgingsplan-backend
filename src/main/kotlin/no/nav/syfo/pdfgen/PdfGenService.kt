@@ -96,5 +96,6 @@ private fun String.sanitizePdfText(): String = replace("\uFEFF", "")
     .replace("\uFFFE", "")
     .replace("\u0002", "")
     .replace("\u0003", "")
+    .replace("\u000B", "")
 
 private fun String?.sanitizePdfTextOrNull(): String? = this?.sanitizePdfText()
