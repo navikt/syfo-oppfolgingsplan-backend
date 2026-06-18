@@ -170,7 +170,7 @@ For å kjøre Kafka-lokalt trenger containerplattformen ofte litt ekstra ressurs
 colima start --arch aarch64 --memory 8 --cpu 4
 ```
 
-- Kafka UI: http://localhost:9000
+- Kafka UI: http://localhost:9080
 - Lokal PDF-generator: klon [syfooppdfgen](https://github.com/navikt/syfooppdfgen) og følg instruksjonene der
 - HTTP request-filer: ferdige forespørsler for IntelliJ HTTP Client i [`src/test/http`](src/test/http/README.md)
 - Lokal tokenhenting: `fetch-token-for-local-dev.sh` henter et lokalt testtoken via fake ID-porten og Texas

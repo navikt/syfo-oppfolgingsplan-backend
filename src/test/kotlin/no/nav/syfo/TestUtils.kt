@@ -52,6 +52,7 @@ fun defaultUtkastRequest(mutate: MutableMap<String, String?>.() -> Unit = {}): L
 fun defaultOppfolgingsplan() = CreateOppfolgingsplanRequest(
     content = defaultFormSnapshot(),
     evalueringsdato = LocalDate.now().plus(30, ChronoUnit.DAYS),
+    evalueringPaaminnelse = false,
 )
 
 fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
@@ -64,6 +65,8 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     stillingstittel = "Systemutvikler",
     stillingsprosent = BigDecimal("100.00"),
     content = defaultFormSnapshot(),
+    evalueringPaaminnelse = false,
+    evalueringPaaminnelseOutboxAt = null,
     skalDelesMedLege = false,
     skalDelesMedVeileder = false,
     uuid = UUID.randomUUID(),

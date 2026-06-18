@@ -38,11 +38,13 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             stillingsprosent,
             content,
             evalueringsdato,
+            evaluering_paaminnelse,
+            evaluering_paaminnelse_outbox_at,
             skal_deles_med_lege,
             skal_deles_med_veileder,
             utkast_created_at,
             created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         RETURNING uuid
     """.trimIndent()
 
@@ -74,12 +76,14 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             it.setBigDecimal(8, stillingsprosent)
             it.setObject(9, createOppfolgingsplanRequest.content.toJsonString(), Types.OTHER)
             it.setDate(10, Date.valueOf(createOppfolgingsplanRequest.evalueringsdato.toString()))
-            it.setBoolean(11, false)
-            it.setBoolean(12, false)
+            it.setBoolean(11, createOppfolgingsplanRequest.evalueringPaaminnelse)
+            it.setNull(12, Types.TIMESTAMP_WITH_TIMEZONE)
+            it.setBoolean(13, false)
+            it.setBoolean(14, false)
             if (utkastCreatedAt != null) {
-                it.setTimestamp(13, Timestamp.from(utkastCreatedAt))
+                it.setTimestamp(15, Timestamp.from(utkastCreatedAt))
             } else {
-                it.setNull(13, Types.TIMESTAMP)
+                it.setNull(15, Types.TIMESTAMP)
             }
             val resultSet = it.executeQuery()
             resultSet.next()
@@ -409,6 +413,8 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfol
     stillingsprosent = this.getBigDecimal("stillingsprosent"),
     content = FormSnapshot.jsonToFormSnapshot(getString("content")),
     evalueringsdato = LocalDate.parse(this.getString("evalueringsdato")),
+    evalueringPaaminnelse = this.getBoolean("evaluering_paaminnelse"),
+    evalueringPaaminnelseOutboxAt = this.getTimestamp("evaluering_paaminnelse_outbox_at")?.toInstant(),
     skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
     skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),
     deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),

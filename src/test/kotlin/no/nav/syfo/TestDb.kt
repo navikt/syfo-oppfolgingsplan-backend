@@ -117,13 +117,15 @@ fun DatabaseInterface.persistOppfolgingsplan(
             stillingsprosent,
             content,
             evalueringsdato,
+            evaluering_paaminnelse,
+            evaluering_paaminnelse_outbox_at,
             skal_deles_med_lege,
             skal_deles_med_veileder,
             created_at,
             skjult_fra,
             feilregistrert,
             feilregistrert_aarsak
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         RETURNING uuid
     """.trimIndent()
 
@@ -140,20 +142,26 @@ fun DatabaseInterface.persistOppfolgingsplan(
             it.setBigDecimal(9, persistedOppfolgingsplan.stillingsprosent)
             it.setObject(10, persistedOppfolgingsplan.content.toJsonString(), Types.OTHER)
             it.setDate(11, Date.valueOf(persistedOppfolgingsplan.evalueringsdato.toString()))
-            it.setBoolean(12, persistedOppfolgingsplan.skalDelesMedLege)
-            it.setBoolean(13, persistedOppfolgingsplan.skalDelesMedVeileder)
-            it.setTimestamp(14, Timestamp.from(persistedOppfolgingsplan.createdAt))
-            if (persistedOppfolgingsplan.skjultFra != null) {
-                it.setTimestamp(15, Timestamp.from(persistedOppfolgingsplan.skjultFra))
+            it.setBoolean(12, persistedOppfolgingsplan.evalueringPaaminnelse)
+            if (persistedOppfolgingsplan.evalueringPaaminnelseOutboxAt != null) {
+                it.setTimestamp(13, Timestamp.from(persistedOppfolgingsplan.evalueringPaaminnelseOutboxAt))
             } else {
-                it.setNull(15, Types.TIMESTAMP_WITH_TIMEZONE)
+                it.setNull(13, Types.TIMESTAMP_WITH_TIMEZONE)
+            }
+            it.setBoolean(14, persistedOppfolgingsplan.skalDelesMedLege)
+            it.setBoolean(15, persistedOppfolgingsplan.skalDelesMedVeileder)
+            it.setTimestamp(16, Timestamp.from(persistedOppfolgingsplan.createdAt))
+            if (persistedOppfolgingsplan.skjultFra != null) {
+                it.setTimestamp(17, Timestamp.from(persistedOppfolgingsplan.skjultFra))
+            } else {
+                it.setNull(17, Types.TIMESTAMP_WITH_TIMEZONE)
             }
             if (persistedOppfolgingsplan.feilregistrert != null) {
-                it.setTimestamp(16, Timestamp.from(persistedOppfolgingsplan.feilregistrert))
+                it.setTimestamp(18, Timestamp.from(persistedOppfolgingsplan.feilregistrert))
             } else {
-                it.setNull(16, Types.TIMESTAMP_WITH_TIMEZONE)
+                it.setNull(18, Types.TIMESTAMP_WITH_TIMEZONE)
             }
-            it.setString(17, persistedOppfolgingsplan.feilregistrertAarsak)
+            it.setString(19, persistedOppfolgingsplan.feilregistrertAarsak)
             val resultSet = it.executeQuery()
             connection.commit()
             resultSet.next()

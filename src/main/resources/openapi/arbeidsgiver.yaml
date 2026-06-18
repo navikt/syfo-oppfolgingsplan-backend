@@ -515,6 +515,10 @@ components:
           format: date
           description: Dato for evaluering av oppfølgingsplanen
           example: "2025-12-28"
+        evalueringPaaminnelse:
+          type: boolean
+          description: Boolean som indikerer om arbeidsgiver ønsker påminnelse knyttet til evalueringsdatoen. Hvis feltet mangler tolkes det som false.
+          example: true
 
     CreateUtkastRequest:
       type: object
@@ -531,6 +535,7 @@ components:
             typiskArbeidshverdag: "Beskrivelse av arbeidsdag"
             arbeidsoppgaverSomKanUtfores: "Oppgaver som kan utføres"
             evalueringsDato: "2025-12-28"
+            evalueringPaaminnelse: "true"
 
     OppfolgingsplanOverviewResponse:
       type: object
@@ -750,6 +755,10 @@ components:
           type: string
           description: Versjon av snapshot-formatet
           example: "2.0.0"
+        evalueringPaaminnelse:
+          type: boolean
+          default: false
+          description: Om arbeidsgiver ønsker påminnelse knyttet til evalueringsdatoen. Hvis feltet mangler tolkes det som false.
         sections:
           type: array
           items:
