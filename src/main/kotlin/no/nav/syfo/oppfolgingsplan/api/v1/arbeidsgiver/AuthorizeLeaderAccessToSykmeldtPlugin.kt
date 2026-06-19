@@ -38,6 +38,7 @@ val AuthorizeLeaderAccessToSykmeldtPlugin = createRouteScopedPlugin(
                 )
 
             val narmesteLederId = call.parameters["narmesteLederId"]
+                ?: call.parameters["narmestelederId"]
                 ?: throw ApiErrorException.BadRequest("Missing narmesteLederId parameter in request")
 
             val innloggetBruker = call.principal<BrukerPrincipal>()

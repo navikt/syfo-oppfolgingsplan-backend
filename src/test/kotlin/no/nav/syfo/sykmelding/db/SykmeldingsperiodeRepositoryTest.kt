@@ -95,4 +95,34 @@ class SykmeldingsperiodeRepositoryTest :
                 persisted.all { it.invalidatedAt != null } shouldBe true
             }
         }
+
+        describe("findEarliestFom") {
+            it("returns earliest active fom for sykmeldt and organization") {
+                repository.storeSykmeldingsperioder(
+                    listOf(
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "12345678901",
+                            organisasjonsnummer = "987654321",
+                            sykmeldingId = "sykmelding-old",
+                            fom = LocalDate.of(2025, 1, 1),
+                            tom = LocalDate.of(2025, 1, 31),
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "12345678901",
+                            organisasjonsnummer = "987654321",
+                            sykmeldingId = "sykmelding-new",
+                            fom = LocalDate.of(2025, 6, 1),
+                            tom = LocalDate.of(2025, 6, 30),
+                        ),
+                    ),
+                )
+
+                val earliestFom = repository.findEarliestFom(
+                    sykmeldtFnr = "12345678901",
+                    organisasjonsnummer = "987654321",
+                )
+
+                earliestFom shouldBe LocalDate.of(2025, 1, 1)
+            }
+        }
     })

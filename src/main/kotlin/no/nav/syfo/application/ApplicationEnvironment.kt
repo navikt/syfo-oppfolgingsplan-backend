@@ -26,6 +26,7 @@ interface Environment {
     val kafka: KafkaEnv
     val electorPath: String
     val syfomodiapersonClientId: String
+    val dinesykmeldteBackendClientId: String
     val syfoOppfolgingsplanFrontendClientId: String
 }
 
@@ -70,6 +71,7 @@ data class NaisEnvironment(
     override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars(),
     override val electorPath: String = getEnvVar("ELECTOR_PATH"),
     override val syfomodiapersonClientId: String = getEnvVar("SYFOMODIAPERSON_CLIENT_ID"),
+    override val dinesykmeldteBackendClientId: String = getEnvVar("DINESYKMELDTE_BACKEND_CLIENT_ID"),
     override val syfoOppfolgingsplanFrontendClientId: String = getEnvVar("SYFO_OPPFOLGINGSPLAN_FRONTEND_CLIENT_ID"),
 ) : Environment
 
@@ -121,5 +123,6 @@ data class LocalEnvironment(
     override val kafka: KafkaEnv = KafkaEnv.createForLocal(),
     override val electorPath: String = "/elector",
     override val syfomodiapersonClientId: String = "dev-gcp:teamsykefravr:syfomodiaperson",
+    override val dinesykmeldteBackendClientId: String = "dev-gcp:team-esyfo:dinesykmeldte-backend",
     override val syfoOppfolgingsplanFrontendClientId: String = "dev-gcp:team-esyfo:syfo-oppfolgingsplan-frontend",
 ) : Environment

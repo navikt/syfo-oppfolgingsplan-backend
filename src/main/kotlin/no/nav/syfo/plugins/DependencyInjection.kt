@@ -36,6 +36,7 @@ import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.oppfolgingsplan.task.CleanupUtkastTask
 import no.nav.syfo.oppfolgingsplan.task.SoftDeleteOppfolgingsplanerTask
 import no.nav.syfo.pdfgen.PdfGenService
@@ -205,6 +206,7 @@ private fun servicesModule() = module {
     single { PdlService(get()) }
     single { AaregService(get()) }
     single { OppfolgingsplanService(database = get(), esyfovarselProducer = get(), pdlService = get(), aaregService = get()) }
+    single { PaaminnelseService(database = get(), sykmeldingsperiodeRepository = get()) }
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }

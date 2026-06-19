@@ -92,6 +92,29 @@ class SykmeldingsperiodeRepository(
             }
         }
     }
+
+    fun findEarliestFom(
+        sykmeldtFnr: String,
+        organisasjonsnummer: String,
+    ): java.time.LocalDate? {
+        val statement = """
+            SELECT MIN(fom) AS earliest_fom
+            FROM sykmeldingsperiode
+            WHERE sykmeldt_fnr = ?
+              AND organisasjonsnummer = ?
+              AND invalidated_at IS NULL
+        """.trimIndent()
+
+        return database.connection.use { connection ->
+            connection.prepareStatement(statement).use { preparedStatement ->
+                preparedStatement.setString(1, sykmeldtFnr)
+                preparedStatement.setString(2, organisasjonsnummer)
+                preparedStatement.executeQuery().use { resultSet ->
+                    if (resultSet.next()) resultSet.getDate("earliest_fom")?.toLocalDate() else null
+                }
+            }
+        }
+    }
 }
 
 private fun ResultSet.toPersistedSykmeldingsperiode(): PersistedSykmeldingsperiode = PersistedSykmeldingsperiode(

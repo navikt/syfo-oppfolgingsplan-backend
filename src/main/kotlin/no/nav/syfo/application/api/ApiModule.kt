@@ -12,8 +12,10 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
+import no.nav.syfo.oppfolgingsplan.api.v1.narmesteleder.registerPaaminnelseApi
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.plugins.installCallId
 import no.nav.syfo.plugins.installContentNegotiation
@@ -27,6 +29,7 @@ fun Application.configureRouting() {
     val texasHttpClient by inject<TexasHttpClient>()
     val dineSykmeldteService by inject<DineSykmeldteService>()
     val oppfolgingsplanService by inject<OppfolgingsplanService>()
+    val paaminnelseService by inject<PaaminnelseService>()
     val pdfGenService by inject<PdfGenService>()
     val isDialogmeldingService by inject<IsDialogmeldingService>()
     val isTilgangskontrollService by inject<IsTilgangskontrollService>()
@@ -40,6 +43,7 @@ fun Application.configureRouting() {
     routing {
         if (!isProdEnv()) {
             swaggerUI(path = "swagger/arbeidsgiver", swaggerFile = "openapi/arbeidsgiver.yaml")
+            swaggerUI(path = "swagger/paaminnelse", swaggerFile = "openapi/paaminnelse.yaml")
             swaggerUI(path = "swagger/sykmeldt", swaggerFile = "openapi/sykmeldt.yaml")
             swaggerUI(path = "swagger/veileder", swaggerFile = "openapi/veileder.yaml")
         }
@@ -53,6 +57,12 @@ fun Application.configureRouting() {
             isDialogmeldingService = isDialogmeldingService,
             isTilgangskontrollService = isTilgangskontrollService,
             dokarkivService = dokarkivService,
+            environment = environment,
+        )
+        registerPaaminnelseApi(
+            dineSykmeldteService = dineSykmeldteService,
+            texasHttpClient = texasHttpClient,
+            paaminnelseService = paaminnelseService,
             environment = environment,
         )
     }

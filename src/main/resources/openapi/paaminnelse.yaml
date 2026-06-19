@@ -1,0 +1,114 @@
+openapi: "3.1.0"
+info:
+  title: "Oppfølgingsplan API - Påminnelse"
+  description: |
+    Intern kontrakt for dinesykmeldte-backend mot syfo-oppfolgingsplan-backend
+    for bestilling og lesing av påminnelse om oppfølgingsplan.
+  version: "1.0.0"
+servers:
+  - url: http://localhost:8080
+    description: Lokal utvikling
+  - url: https://syfo-oppfolgingsplan-backend.intern.dev.nav.no
+    description: Dev-miljø
+paths:
+  /api/v1/narmesteleder/{narmestelederId}/oppfolgingsplaner/paaminnelse:
+    get:
+      summary: Hent status for påminnelse
+      operationId: getPaaminnelseStatus
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NarmestelederId'
+      responses:
+        '200':
+          description: Nåværende påminnelsesstatus
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaaminnelseStatusDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/SykmeldtNotFound'
+    post:
+      summary: Bestill påminnelse
+      operationId: bestillPaaminnelse
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NarmestelederId'
+      responses:
+        '200':
+          description: Påminnelse bestilt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaaminnelseStatusDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/SykmeldtNotFound'
+    delete:
+      summary: Avbestill påminnelse
+      operationId: avbestillPaaminnelse
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NarmestelederId'
+      responses:
+        '200':
+          description: Påminnelse avbestilt
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaaminnelseStatusDto'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/SykmeldtNotFound'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    NarmestelederId:
+      name: narmestelederId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Unauthorized:
+      description: Manglende eller ugyldig autentisering
+    Forbidden:
+      description: Ikke autorisert for relasjonen
+    SykmeldtNotFound:
+      description: Relasjonen finnes ikke eller er ikke tilgjengelig
+  schemas:
+    PaaminnelseStatus:
+      type: string
+      enum:
+        - SKJULT
+        - TILGJENGELIG
+        - BESTILT
+    PaaminnelseStatusDto:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/PaaminnelseStatus'
+        synligFra:
+          type: string
+          format: date
+          nullable: true
