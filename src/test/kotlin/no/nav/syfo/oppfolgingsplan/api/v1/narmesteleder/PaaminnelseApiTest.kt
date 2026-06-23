@@ -19,6 +19,7 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.clearAllMocks
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import no.nav.syfo.TestDB
@@ -28,6 +29,7 @@ import no.nav.syfo.application.exception.ApiError
 import no.nav.syfo.application.exception.ErrorType
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
+import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
@@ -188,6 +190,33 @@ class PaaminnelseApiTest :
                     persisted?.bestilt shouldBe true
                     persisted?.sykmeldtFnr shouldBe "12345678901"
                     persisted?.organisasjonsnummer shouldBe "orgnummer"
+                }
+            }
+
+            it("POST should respond with BadRequest when sykmeldt has no active sykmelding") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(
+                        pid = pidInnloggetBruker,
+                        clientId = environment.dinesykmeldteBackendClientId,
+                    )
+                    coEvery {
+                        dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                            narmestelederId,
+                            "token",
+                        )
+                    } returns defaultSykmeldt().copy(
+                        narmestelederId = narmestelederId,
+                        aktivSykmelding = false,
+                    )
+
+                    val response = client.post {
+                        url("/api/v1/narmesteleder/$narmestelederId/oppfolgingsplaner/paaminnelse")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.BadRequest
+                    response.body<ApiError>().type shouldBe ErrorType.BAD_REQUEST
+                    countPaaminnelseRows() shouldBe 0
                 }
             }
 

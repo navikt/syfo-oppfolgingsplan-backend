@@ -77,7 +77,25 @@ class PaaminnelseServiceTest :
                 status.synligFra shouldBe LocalDate.of(2025, 6, 1)
             }
 
-            it("returns SKJULT when an oppfolgingsplan already exists") {
+            it("returns TILGJENGELIG when an oppfolgingsplan exists from after synligFra") {
+                val synligFra = LocalDate.of(2025, 6, 1)
+                seedSyketilfelle(
+                    startDato = synligFra,
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+                TestDB.database.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan().copy(
+                        createdAt = synligFra.atStartOfDay(fixedClock.zone).toInstant().minusSeconds(1),
+                    ),
+                )
+
+                val status = service.getPaaminnelseStatus(defaultSykmeldt())
+
+                status.status shouldBe PaaminnelseStatus.TILGJENGELIG
+                status.synligFra shouldBe synligFra
+            }
+
+            it("returns SKJULT when an oppfolgingsplan already exists but from prior to current syketilfelle") {
                 seedSyketilfelle(
                     startDato = LocalDate.of(2025, 6, 1),
                     tom = LocalDate.of(2025, 6, 30),
@@ -88,6 +106,32 @@ class PaaminnelseServiceTest :
 
                 status.status shouldBe PaaminnelseStatus.SKJULT
                 status.synligFra shouldBe LocalDate.of(2025, 6, 1)
+            }
+
+            it("returns TILGJENGELIG on day 23 after synligFra") {
+                val synligFra = LocalDate.of(2025, 5, 27)
+                seedSyketilfelle(
+                    startDato = synligFra,
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+
+                val status = service.getPaaminnelseStatus(defaultSykmeldt())
+
+                status.status shouldBe PaaminnelseStatus.TILGJENGELIG
+                status.synligFra shouldBe synligFra
+            }
+
+            it("returns SKJULT on day 24 after synligFra") {
+                val synligFra = LocalDate.of(2025, 5, 26)
+                seedSyketilfelle(
+                    startDato = synligFra,
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+
+                val status = service.getPaaminnelseStatus(defaultSykmeldt())
+
+                status.status shouldBe PaaminnelseStatus.SKJULT
+                status.synligFra shouldBe synligFra
             }
 
             it("returns BESTILT inside the window when paaminnelse is ordered") {

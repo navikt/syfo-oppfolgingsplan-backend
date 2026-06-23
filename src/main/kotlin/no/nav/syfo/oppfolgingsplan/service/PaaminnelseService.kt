@@ -32,7 +32,8 @@ class PaaminnelseService(
         when {
             sykmeldt.aktivSykmelding != true -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT, synligFra)
             synligFra == null -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT)
-            database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer).isNotEmpty() ->
+            database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+                .any { it.createdAt >= synligFra.atStartOfDay(clock.zone).toInstant() } ->
                 PaaminnelseStatusDto(PaaminnelseStatus.SKJULT, synligFra)
 
             !erInnenforBestillingsvindu(synligFra) -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT, synligFra)
