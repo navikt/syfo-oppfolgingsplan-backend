@@ -46,6 +46,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaaminnelseStatusDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -88,6 +90,8 @@ components:
         type: string
         format: uuid
   responses:
+    BadRequest:
+      description: Ugyldig forespørsel, for eksempel hvis det ikke er en aktiv sykmelding
     Unauthorized:
       description: Manglende eller ugyldig autentisering
     Forbidden:

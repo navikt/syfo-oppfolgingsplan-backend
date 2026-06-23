@@ -54,7 +54,10 @@ class PaaminnelseServiceTest :
             }
 
             it("returns SKJULT when bestillingsvinduet has passed") {
-                seedSyketilfelle(startDato = LocalDate.of(2025, 5, 1))
+                seedSyketilfelle(
+                    startDato = LocalDate.of(2025, 5, 1),
+                    tom = LocalDate.of(2025, 6, 30),
+                )
 
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
@@ -63,7 +66,10 @@ class PaaminnelseServiceTest :
             }
 
             it("returns TILGJENGELIG inside the window when no paaminnelse is ordered") {
-                seedSyketilfelle(startDato = LocalDate.of(2025, 6, 1))
+                seedSyketilfelle(
+                    startDato = LocalDate.of(2025, 6, 1),
+                    tom = LocalDate.of(2025, 6, 30),
+                )
 
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
@@ -72,7 +78,10 @@ class PaaminnelseServiceTest :
             }
 
             it("returns SKJULT when an oppfolgingsplan already exists") {
-                seedSyketilfelle(startDato = LocalDate.of(2025, 6, 1))
+                seedSyketilfelle(
+                    startDato = LocalDate.of(2025, 6, 1),
+                    tom = LocalDate.of(2025, 6, 30),
+                )
                 TestDB.database.persistOppfolgingsplan(defaultPersistedOppfolgingsplan())
 
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
@@ -82,7 +91,10 @@ class PaaminnelseServiceTest :
             }
 
             it("returns BESTILT inside the window when paaminnelse is ordered") {
-                seedSyketilfelle(startDato = LocalDate.of(2025, 6, 1))
+                seedSyketilfelle(
+                    startDato = LocalDate.of(2025, 6, 1),
+                    tom = LocalDate.of(2025, 6, 30),
+                )
                 service.bestillPaaminnelse(defaultSykmeldt())
 
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
@@ -94,7 +106,10 @@ class PaaminnelseServiceTest :
 
         describe("bestillPaaminnelse and avbestillPaaminnelse") {
             it("returns explicit BESTILT and TILGJENGELIG contract values") {
-                seedSyketilfelle(startDato = LocalDate.of(2025, 6, 1))
+                seedSyketilfelle(
+                    startDato = LocalDate.of(2025, 6, 1),
+                    tom = LocalDate.of(2025, 6, 30),
+                )
 
                 val bestilt = service.bestillPaaminnelse(defaultSykmeldt())
                 val avbestilt = service.avbestillPaaminnelse(defaultSykmeldt())

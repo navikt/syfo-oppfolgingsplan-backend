@@ -22,9 +22,11 @@ class PaaminnelseService(
     suspend fun getPaaminnelseStatus(
         sykmeldt: Sykmeldt,
     ): PaaminnelseStatusDto = withContext(Dispatchers.IO) {
+        val today = LocalDate.now(clock)
         val synligFra = sykmeldingsperiodeRepository.findEarliestFom(
             sykmeldtFnr = sykmeldt.fnr,
             organisasjonsnummer = sykmeldt.orgnummer,
+            today = today,
         )
 
         when {
@@ -43,9 +45,11 @@ class PaaminnelseService(
     suspend fun bestillPaaminnelse(
         sykmeldt: Sykmeldt,
     ): PaaminnelseStatusDto = withContext(Dispatchers.IO) {
+        val today = LocalDate.now(clock)
         val synligFra = sykmeldingsperiodeRepository.findEarliestFom(
             sykmeldtFnr = sykmeldt.fnr,
             organisasjonsnummer = sykmeldt.orgnummer,
+            today = today,
         )
         database.upsertPaaminnelse(
             sykmeldt = sykmeldt,
@@ -57,9 +61,11 @@ class PaaminnelseService(
     suspend fun avbestillPaaminnelse(
         sykmeldt: Sykmeldt,
     ): PaaminnelseStatusDto = withContext(Dispatchers.IO) {
+        val today = LocalDate.now(clock)
         val synligFra = sykmeldingsperiodeRepository.findEarliestFom(
             sykmeldtFnr = sykmeldt.fnr,
             organisasjonsnummer = sykmeldt.orgnummer,
+            today = today,
         )
         database.upsertPaaminnelse(
             sykmeldt = sykmeldt,
@@ -70,5 +76,9 @@ class PaaminnelseService(
 
     internal fun erInnenforBestillingsvindu(
         synligFra: LocalDate,
-    ): Boolean = LocalDate.now(clock).isBefore(synligFra.plusWeeks(4))
+    ): Boolean = LocalDate.now(clock).isBefore(synligFra.plusDays(PAAMINNELLSE_ETTER_DAGER))
+
+    companion object {
+        const val PAAMINNELLSE_ETTER_DAGER = 24L
+    }
 }
