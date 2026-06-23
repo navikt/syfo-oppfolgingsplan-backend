@@ -34,6 +34,7 @@ class PaaminnelseService(
             synligFra == null -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT)
             database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer).isNotEmpty() ->
                 PaaminnelseStatusDto(PaaminnelseStatus.SKJULT, synligFra)
+
             !erInnenforBestillingsvindu(synligFra) -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT, synligFra)
             else -> PaaminnelseStatusDto(
                 status = database.findPaaminnelseBy(sykmeldt.fnr, sykmeldt.orgnummer).toStatus(),
@@ -42,7 +43,7 @@ class PaaminnelseService(
         }
     }
 
-    suspend fun bestillPaaminnelse(
+    suspend fun activatePaaminnelse(
         sykmeldt: Sykmeldt,
     ): PaaminnelseStatusDto = withContext(Dispatchers.IO) {
         val today = LocalDate.now(clock)
@@ -58,7 +59,7 @@ class PaaminnelseService(
         PaaminnelseStatusDto(PaaminnelseStatus.BESTILT, synligFra)
     }
 
-    suspend fun avbestillPaaminnelse(
+    suspend fun deactivatePaaminnelse(
         sykmeldt: Sykmeldt,
     ): PaaminnelseStatusDto = withContext(Dispatchers.IO) {
         val today = LocalDate.now(clock)
@@ -78,7 +79,7 @@ class PaaminnelseService(
         synligFra: LocalDate,
     ): Boolean = LocalDate.now(clock).isBefore(synligFra.plusDays(PAAMINNELLSE_ETTER_DAGER))
 
-    companion object {
+    private companion object {
         const val PAAMINNELLSE_ETTER_DAGER = 24L
     }
 }

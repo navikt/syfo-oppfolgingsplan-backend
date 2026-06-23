@@ -48,7 +48,7 @@ fun Route.registerPaaminnelseApi(
         post {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
             if (sykmeldt.aktivSykmelding == true) {
-                val response = paaminnelseService.bestillPaaminnelse(
+                val response = paaminnelseService.activatePaaminnelse(
                     sykmeldt = sykmeldt,
                 )
 
@@ -62,7 +62,7 @@ fun Route.registerPaaminnelseApi(
         delete {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
-            val response = paaminnelseService.avbestillPaaminnelse(
+            val response = paaminnelseService.deactivatePaaminnelse(
                 sykmeldt = sykmeldt,
             )
 

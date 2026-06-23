@@ -95,7 +95,7 @@ class PaaminnelseServiceTest :
                     startDato = LocalDate.of(2025, 6, 1),
                     tom = LocalDate.of(2025, 6, 30),
                 )
-                service.bestillPaaminnelse(defaultSykmeldt())
+                service.activatePaaminnelse(defaultSykmeldt())
 
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
@@ -111,8 +111,8 @@ class PaaminnelseServiceTest :
                     tom = LocalDate.of(2025, 6, 30),
                 )
 
-                val bestilt = service.bestillPaaminnelse(defaultSykmeldt())
-                val avbestilt = service.avbestillPaaminnelse(defaultSykmeldt())
+                val bestilt = service.activatePaaminnelse(defaultSykmeldt())
+                val avbestilt = service.deactivatePaaminnelse(defaultSykmeldt())
 
                 bestilt.status shouldBe PaaminnelseStatus.BESTILT
                 avbestilt.status shouldBe PaaminnelseStatus.TILGJENGELIG
