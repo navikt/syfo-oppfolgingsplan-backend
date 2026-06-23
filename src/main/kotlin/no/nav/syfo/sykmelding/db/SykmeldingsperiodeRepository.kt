@@ -112,11 +112,12 @@ class SykmeldingsperiodeRepository(
         """.trimIndent()
 
         val sykmeldingsperioder = database.connection.use { connection ->
+            var idx = 0
             connection.prepareStatement(statement).use { preparedStatement ->
-                preparedStatement.setString(1, sykmeldtFnr)
-                preparedStatement.setString(2, organisasjonsnummer)
-                preparedStatement.setDate(3, Date.valueOf(today))
-                preparedStatement.setDate(4, Date.valueOf(lookbackDate))
+                preparedStatement.setString(++idx, sykmeldtFnr)
+                preparedStatement.setString(++idx, organisasjonsnummer)
+                preparedStatement.setDate(++idx, Date.valueOf(today))
+                preparedStatement.setDate(++idx, Date.valueOf(lookbackDate))
                 preparedStatement.executeQuery().use { resultSet ->
                     buildList {
                         while (resultSet.next()) {

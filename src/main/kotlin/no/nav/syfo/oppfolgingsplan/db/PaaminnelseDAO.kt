@@ -25,10 +25,11 @@ fun DatabaseInterface.upsertPaaminnelse(
         """.trimIndent()
 
     connection.use { connection ->
+        var idx = 0
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setString(1, sykmeldt.orgnummer)
-            preparedStatement.setString(2, sykmeldt.fnr)
-            preparedStatement.setBoolean(3, bestilt)
+            preparedStatement.setString(++idx, sykmeldt.orgnummer)
+            preparedStatement.setString(++idx, sykmeldt.fnr)
+            preparedStatement.setBoolean(++idx, bestilt)
 
             val resultSet = preparedStatement.executeQuery()
             connection.commit()
@@ -52,9 +53,10 @@ fun DatabaseInterface.findPaaminnelseBy(
         """.trimIndent()
 
     connection.use { connection ->
+        var idx = 0
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setString(1, sykmeldtFnr)
-            preparedStatement.setString(2, organisasjonsnummer)
+            preparedStatement.setString(++idx, sykmeldtFnr)
+            preparedStatement.setString(++idx, organisasjonsnummer)
             val resultSet = preparedStatement.executeQuery()
 
             return if (resultSet.next()) {
