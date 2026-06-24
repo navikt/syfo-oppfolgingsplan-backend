@@ -1,7 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.narmesteleder
 
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
@@ -47,16 +46,12 @@ fun Route.registerPaaminnelseApi(
 
         post {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
-            if (sykmeldt.aktivSykmelding == true) {
-                val response = paaminnelseService.activatePaaminnelse(
-                    sykmeldt = sykmeldt,
-                )
+            val response = paaminnelseService.activatePaaminnelse(
+                sykmeldt = sykmeldt,
+            )
 
-                COUNT_PAAMINNELSE_BESTILT.increment()
-                call.respond(HttpStatusCode.OK, response)
-            } else {
-                throw BadRequestException("Kan ikke bestille påminnelse for sykmeldt uten aktiv sykmelding")
-            }
+            COUNT_PAAMINNELSE_BESTILT.increment()
+            call.respond(HttpStatusCode.OK, response)
         }
 
         delete {

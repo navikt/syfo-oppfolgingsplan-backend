@@ -1,10 +1,14 @@
 package no.nav.syfo.oppfolgingsplan.service
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.ktor.server.plugins.BadRequestException
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
+import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
+import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelse
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
@@ -162,6 +166,42 @@ class PaaminnelseServiceTest :
                 avbestilt.status shouldBe PaaminnelseStatus.TILGJENGELIG
                 bestilt.synligFra shouldBe LocalDate.of(2025, 6, 1)
                 avbestilt.synligFra shouldBe LocalDate.of(2025, 6, 1)
+            }
+
+            it("rejects activatePaaminnelse when status is SKJULT because an oppfolgingsplan already exists in the current syketilfelle") {
+                val synligFra = LocalDate.of(2025, 6, 1)
+                seedSyketilfelle(
+                    startDato = synligFra,
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+                TestDB.database.persistOppfolgingsplan(
+                    defaultPersistedOppfolgingsplan().copy(
+                        createdAt = synligFra.atStartOfDay(fixedClock.zone).toInstant(),
+                    ),
+                )
+
+                shouldThrow<BadRequestException> {
+                    service.activatePaaminnelse(defaultSykmeldt())
+                }
+
+                TestDB.database.findPaaminnelseBy("12345678901", "orgnummer") shouldBe null
+            }
+
+            it("rejects deactivatePaaminnelse when status is SKJULT because the ordering window has passed") {
+                seedSyketilfelle(
+                    startDato = LocalDate.of(2025, 5, 1),
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+                TestDB.database.upsertPaaminnelse(
+                    sykmeldt = defaultSykmeldt(),
+                    bestilt = true,
+                )
+
+                shouldThrow<BadRequestException> {
+                    service.deactivatePaaminnelse(defaultSykmeldt())
+                }
+
+                TestDB.database.findPaaminnelseBy("12345678901", "orgnummer")?.bestilt shouldBe true
             }
         }
     })

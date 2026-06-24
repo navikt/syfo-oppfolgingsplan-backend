@@ -29,13 +29,16 @@ import no.nav.syfo.application.exception.ApiError
 import no.nav.syfo.application.exception.ErrorType
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
+import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
+import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelse
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatusDto
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
+import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.returnsNotFound
@@ -43,6 +46,7 @@ import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.texas.client.TexasHttpClient
 import java.time.LocalDate
+import java.time.ZoneId
 
 class PaaminnelseApiTest :
     DescribeSpec({
@@ -169,6 +173,34 @@ class PaaminnelseApiTest :
                 }
             }
 
+            it("GET should return SKJULT when an oppfolgingsplan already exists in the current syketilfelle") {
+                withTestApplication {
+                    val startDato = LocalDate.now().minusDays(7)
+                    seedAktivtSyketilfelle(startDato)
+                    testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            createdAt = startDato.atStartOfDay(ZoneId.of("Europe/Oslo")).toInstant(),
+                        ),
+                    )
+                    texasClientMock.defaultMocks(
+                        pid = pidInnloggetBruker,
+                        clientId = environment.dinesykmeldteClientId,
+                    )
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val response = client.get {
+                        url("/api/v1/narmesteleder/$narmestelederId/oppfolgingsplaner/paaminnelse")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.OK
+                    response.body<PaaminnelseStatusDto>() shouldBe PaaminnelseStatusDto(
+                        status = PaaminnelseStatus.SKJULT,
+                        synligFra = startDato,
+                    )
+                }
+            }
+
             it("POST should persist BESTILT") {
                 withTestApplication {
                     seedAktivtSyketilfelle()
@@ -208,6 +240,32 @@ class PaaminnelseApiTest :
                         narmestelederId = narmestelederId,
                         aktivSykmelding = false,
                     )
+
+                    val response = client.post {
+                        url("/api/v1/narmesteleder/$narmestelederId/oppfolgingsplaner/paaminnelse")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.BadRequest
+                    response.body<ApiError>().type shouldBe ErrorType.BAD_REQUEST
+                    countPaaminnelseRows() shouldBe 0
+                }
+            }
+
+            it("POST should respond with BadRequest when status is SKJULT because an oppfolgingsplan already exists in the current syketilfelle") {
+                withTestApplication {
+                    val startDato = LocalDate.now().minusDays(7)
+                    seedAktivtSyketilfelle(startDato)
+                    testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            createdAt = startDato.atStartOfDay(ZoneId.of("Europe/Oslo")).toInstant(),
+                        ),
+                    )
+                    texasClientMock.defaultMocks(
+                        pid = pidInnloggetBruker,
+                        clientId = environment.dinesykmeldteClientId,
+                    )
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                     val response = client.post {
                         url("/api/v1/narmesteleder/$narmestelederId/oppfolgingsplaner/paaminnelse")
@@ -264,6 +322,30 @@ class PaaminnelseApiTest :
                     response.status shouldBe HttpStatusCode.OK
                     response.body<PaaminnelseStatusDto>().status shouldBe PaaminnelseStatus.TILGJENGELIG
                     testDb.findPaaminnelseBy("12345678901", "orgnummer")?.bestilt shouldBe false
+                }
+            }
+
+            it("DELETE should respond with BadRequest when status is SKJULT because the ordering window has passed") {
+                withTestApplication {
+                    seedAktivtSyketilfelle(startDato = LocalDate.now().minusDays(30))
+                    testDb.upsertPaaminnelse(
+                        sykmeldt = defaultSykmeldt(),
+                        bestilt = true,
+                    )
+                    texasClientMock.defaultMocks(
+                        pid = pidInnloggetBruker,
+                        clientId = environment.dinesykmeldteClientId,
+                    )
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val response = client.delete {
+                        url("/api/v1/narmesteleder/$narmestelederId/oppfolgingsplaner/paaminnelse")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.BadRequest
+                    response.body<ApiError>().type shouldBe ErrorType.BAD_REQUEST
+                    testDb.findPaaminnelseBy("12345678901", "orgnummer")?.bestilt shouldBe true
                 }
             }
         }
