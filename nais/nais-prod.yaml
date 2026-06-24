@@ -75,7 +75,7 @@ spec:
         - application: syfo-dokumentporten
         - application: syfooppdfgen
         - application: dinesykmeldte-backend
-        - application: isdialogmeldingdinesykmeldte-backend
+        - application: isdialogmelding
           namespace: teamsykefravr
         - application: istilgangskontroll
           namespace: teamsykefravr
