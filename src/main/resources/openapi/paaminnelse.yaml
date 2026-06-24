@@ -2,7 +2,7 @@ openapi: "3.1.0"
 info:
   title: "Oppfølgingsplan API - Påminnelse"
   description: |
-    Intern kontrakt for dinesykmeldte-backend mot syfo-oppfolgingsplan-backend
+    Intern kontrakt for dinesykmeldte mot syfo-oppfolgingsplan-backend
     for bestilling og lesing av påminnelse om oppfølgingsplan.
   version: "1.0.0"
 servers:

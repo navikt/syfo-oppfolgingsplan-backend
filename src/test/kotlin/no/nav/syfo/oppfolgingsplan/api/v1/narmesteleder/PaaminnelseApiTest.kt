@@ -132,7 +132,7 @@ class PaaminnelseApiTest :
                 withTestApplication {
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,
-                        clientId = environment.dinesykmeldteBackendClientId,
+                        clientId = environment.dinesykmeldteClientId,
                     )
                     dineSykmeldteHttpClientMock.returnsNotFound(narmestelederId = narmestelederId)
 
@@ -152,7 +152,7 @@ class PaaminnelseApiTest :
                     seedAktivtSyketilfelle(startDato)
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,
-                        clientId = environment.dinesykmeldteBackendClientId,
+                        clientId = environment.dinesykmeldteClientId,
                     )
                     dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -174,7 +174,7 @@ class PaaminnelseApiTest :
                     seedAktivtSyketilfelle()
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,
-                        clientId = environment.dinesykmeldteBackendClientId,
+                        clientId = environment.dinesykmeldteClientId,
                     )
                     dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -197,7 +197,7 @@ class PaaminnelseApiTest :
                 withTestApplication {
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,
-                        clientId = environment.dinesykmeldteBackendClientId,
+                        clientId = environment.dinesykmeldteClientId,
                     )
                     coEvery {
                         dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
@@ -225,7 +225,7 @@ class PaaminnelseApiTest :
                     seedAktivtSyketilfelle()
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,
-                        clientId = environment.dinesykmeldteBackendClientId,
+                        clientId = environment.dinesykmeldteClientId,
                     )
                     dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
@@ -248,7 +248,7 @@ class PaaminnelseApiTest :
                     seedAktivtSyketilfelle()
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,
-                        clientId = environment.dinesykmeldteBackendClientId,
+                        clientId = environment.dinesykmeldteClientId,
                     )
                     dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 

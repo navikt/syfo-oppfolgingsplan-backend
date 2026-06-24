@@ -30,7 +30,7 @@ fun Route.registerPaaminnelseApi(
             client = texasHttpClient
         }
         install(ClientAuthorizationPlugin) {
-            allowedClientId = environment.dinesykmeldteBackendClientId
+            allowedClientId = environment.dinesykmeldteClientId
         }
         install(AuthorizeLeaderAccessToSykmeldtPlugin) {
             this.texasHttpClient = texasHttpClient

@@ -67,7 +67,7 @@ spec:
     inbound:
       rules:
         - application: syfo-oppfolgingsplan-frontend
-        - application: dinesykmeldte-backend
+        - application: dinesykmeldte
         - application: syfomodiaperson
           namespace: teamsykefravr
     outbound:
@@ -75,7 +75,7 @@ spec:
         - application: syfo-dokumentporten
         - application: syfooppdfgen
         - application: dinesykmeldte-backend
-        - application: isdialogmelding
+        - application: isdialogmeldingdinesykmeldte-backend
           namespace: teamsykefravr
         - application: istilgangskontroll
           namespace: teamsykefravr
@@ -117,7 +117,7 @@ spec:
       value: prod-fss.arbeidsforhold.aareg-services-nais
     - name: SYFOMODIAPERSON_CLIENT_ID
       value: prod-gcp:teamsykefravr:syfomodiaperson
-    - name: DINESYKMELDTE_BACKEND_CLIENT_ID
-      value: prod-gcp:team-esyfo:dinesykmeldte-backend
+    - name: DINESYKMELDTE_CLIENT_ID
+      value: prod-gcp:team-esyfo:dinesykmeldte
     - name: SYFO_OPPFOLGINGSPLAN_FRONTEND_CLIENT_ID
       value: prod-gcp:team-esyfo:syfo-oppfolgingsplan-frontend
