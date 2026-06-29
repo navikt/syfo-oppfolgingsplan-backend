@@ -95,7 +95,7 @@ class OppfolgingsplanApiV1Test :
         val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
             coEvery { aaregServiceMock.getStillingsinformasjon(any(), any()) } returns Stillingsinformasjon(

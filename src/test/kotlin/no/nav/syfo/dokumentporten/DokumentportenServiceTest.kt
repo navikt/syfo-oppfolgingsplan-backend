@@ -34,7 +34,7 @@ class DokumentportenServiceTest :
         )
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
         }
         fun addDefaultOppfolgingsplanerToDb(): PersistedOppfolgingsplan = defaultPersistedOppfolgingsplan().let {

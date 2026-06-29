@@ -49,7 +49,7 @@ class SoftDeleteOppfolgingsplanerTaskTest :
         }
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
         }
 

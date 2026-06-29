@@ -16,7 +16,7 @@ class DokumentportenQueriesTest :
         val testDb = TestDB.database
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
         }
 

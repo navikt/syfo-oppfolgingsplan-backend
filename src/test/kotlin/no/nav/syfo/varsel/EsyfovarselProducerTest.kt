@@ -29,7 +29,7 @@ class EsyfovarselProducerTest :
         val orgnummer = "987654321"
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
         }
         describe("sendVarselToEsyfovarsel") {
             it("Calls send on Producer with ProducerRecord") {

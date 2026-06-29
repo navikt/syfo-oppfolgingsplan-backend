@@ -6,6 +6,7 @@ import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Statement
+import java.time.LocalDate
 import java.util.UUID
 
 class SykmeldingsperiodeRepository(
@@ -92,6 +93,47 @@ class SykmeldingsperiodeRepository(
             }
         }
     }
+
+    fun findEarliestFom(
+        sykmeldtFnr: String,
+        organisasjonsnummer: String,
+        today: LocalDate,
+    ): LocalDate? {
+        val lookbackDate = today.minusDays(FIND_EARLIEST_FOM_LOOKBACK_DAYS.toLong())
+        val statement = """
+            SELECT fom, tom
+            FROM sykmeldingsperiode
+            WHERE sykmeldt_fnr = ?
+              AND organisasjonsnummer = ?
+              AND invalidated_at IS NULL
+              AND fom <= ?
+              AND tom >= ?
+            ORDER BY tom DESC, fom DESC
+        """.trimIndent()
+
+        val sykmeldingsperioder = database.connection.use { connection ->
+            var idx = 0
+            connection.prepareStatement(statement).use { preparedStatement ->
+                preparedStatement.setString(++idx, sykmeldtFnr)
+                preparedStatement.setString(++idx, organisasjonsnummer)
+                preparedStatement.setDate(++idx, Date.valueOf(today))
+                preparedStatement.setDate(++idx, Date.valueOf(lookbackDate))
+                preparedStatement.executeQuery().use { resultSet ->
+                    buildList {
+                        while (resultSet.next()) {
+                            add(resultSet.toSykmeldingsperiodeInterval())
+                        }
+                    }
+                }
+            }
+        }
+
+        return sykmeldingsperioder.findEarliestContinuousFom(today)
+    }
+
+    private companion object {
+        const val FIND_EARLIEST_FOM_LOOKBACK_DAYS = 50
+    }
 }
 
 private fun ResultSet.toPersistedSykmeldingsperiode(): PersistedSykmeldingsperiode = PersistedSykmeldingsperiode(
@@ -104,3 +146,38 @@ private fun ResultSet.toPersistedSykmeldingsperiode(): PersistedSykmeldingsperio
     invalidatedAt = getTimestamp("invalidated_at")?.toInstant(),
     createdAt = getTimestamp("created_at").toInstant(),
 )
+
+private data class SykmeldingsperiodeInterval(
+    val fom: LocalDate,
+    val tom: LocalDate,
+)
+
+private fun ResultSet.toSykmeldingsperiodeInterval(): SykmeldingsperiodeInterval = SykmeldingsperiodeInterval(
+    fom = getDate("fom").toLocalDate(),
+    tom = getDate("tom").toLocalDate(),
+)
+
+private fun List<SykmeldingsperiodeInterval>.findEarliestContinuousFom(
+    today: LocalDate,
+): LocalDate? {
+    val periodsSortedForBackwardTraversal = sortedWith(
+        compareByDescending<SykmeldingsperiodeInterval> { it.tom }.thenByDescending { it.fom },
+    )
+
+    val activePeriods = periodsSortedForBackwardTraversal.filter { period ->
+        !period.fom.isAfter(today) && !period.tom.isBefore(today)
+    }
+    if (activePeriods.isEmpty()) {
+        return null
+    }
+
+    var earliestFom = activePeriods.minOf { it.fom }
+
+    for (period in periodsSortedForBackwardTraversal) {
+        if (period.fom.isBefore(earliestFom) && !period.tom.plusDays(1).isBefore(earliestFom)) {
+            earliestFom = period.fom
+        }
+    }
+
+    return earliestFom
+}

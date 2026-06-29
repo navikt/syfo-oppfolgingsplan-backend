@@ -36,7 +36,7 @@ class SykmeldingsperiodeConsumerTest :
         )
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
         }
 
         describe("processRecord") {
@@ -197,7 +197,6 @@ class SykmeldingsperiodeConsumerTest :
                         "sykmeldingsperioder": [
                           {"fom": "2025-01-10", "tom": "2025-01-20", "type": "AKTIVITET_IKKE_MULIG", "gradert": null, "behandlingsdager": null}
                         ],
-                        "syketilfelleStartDato": "2025-01-10",
                         "mottattTidspunkt": "2025-01-10T08:00:00Z",
                         "behandletTidspunkt": "2025-01-10T09:00:00Z",
                         "arbeidsgiver": {"orgnummer": "111222333", "orgNavn": "Foo AS"},

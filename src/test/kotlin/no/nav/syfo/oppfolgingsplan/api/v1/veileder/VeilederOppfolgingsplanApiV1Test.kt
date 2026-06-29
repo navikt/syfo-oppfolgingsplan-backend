@@ -72,7 +72,7 @@ class VeilederOppfolgingsplanApiV1Test :
         val syfomodiapersonClientId = environment.syfomodiapersonClientId
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
         }

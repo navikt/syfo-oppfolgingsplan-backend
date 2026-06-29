@@ -67,6 +67,7 @@ spec:
     inbound:
       rules:
         - application: syfo-oppfolgingsplan-frontend
+        - application: dinesykmeldte
         - application: tokenx-token-generator
           namespace: nais
         - application: azure-token-generator
@@ -120,5 +121,7 @@ spec:
       value: dev-fss.arbeidsforhold.aareg-services-nais
     - name: SYFOMODIAPERSON_CLIENT_ID
       value: dev-gcp:teamsykefravr:syfomodiaperson
+    - name: DINESYKMELDTE_CLIENT_ID
+      value: dev-gcp:team-esyfo:dinesykmeldte
     - name: SYFO_OPPFOLGINGSPLAN_FRONTEND_CLIENT_ID
       value: dev-gcp:team-esyfo:syfo-oppfolgingsplan-frontend
