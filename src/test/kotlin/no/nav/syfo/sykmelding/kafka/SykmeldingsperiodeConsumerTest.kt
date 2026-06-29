@@ -36,7 +36,7 @@ class SykmeldingsperiodeConsumerTest :
         )
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
         }
 
         describe("processRecord") {

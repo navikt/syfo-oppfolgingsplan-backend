@@ -26,7 +26,7 @@ class AaregClientTest :
         val wireMockServer = WireMockServer(options().dynamicPort())
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             wireMockServer.start()
         }
 

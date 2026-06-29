@@ -23,7 +23,7 @@ class DineSykmeldteServiceTest :
         val lederFnr = "12345678901"
         val token = "token"
 
-        beforeTest { clearAllMocks() }
+        beforeTest { clearAllMocks(currentThreadOnly = true) }
 
         describe("getSykmeldtForNarmesteleder") {
             it("returns cached sykmeldt and does not call http client on cache hit") {

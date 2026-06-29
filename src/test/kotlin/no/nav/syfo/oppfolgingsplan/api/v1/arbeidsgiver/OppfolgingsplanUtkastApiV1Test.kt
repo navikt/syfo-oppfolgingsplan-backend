@@ -82,7 +82,7 @@ class OppfolgingsplanUtkastApiV1Test :
         val environment: Environment = LocalEnvironment()
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
         }

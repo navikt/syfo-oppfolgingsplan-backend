@@ -75,7 +75,7 @@ class OppfolgingsplanServiceTest :
             describe("getAndSetNarmestelederFullname") {
                 afterTest {
                     TestDB.clearAllData()
-                    clearAllMocks()
+                    clearAllMocks(currentThreadOnly = true)
                 }
                 it("should set narmesteleder fullname when it is missing") {
                     // Arrange
@@ -132,7 +132,7 @@ class OppfolgingsplanServiceTest :
             describe("createOppfolgingsplan") {
                 afterTest {
                     TestDB.clearAllData()
-                    clearAllMocks()
+                    clearAllMocks(currentThreadOnly = true)
                 }
 
                 it("should persist stillingssnapshot from aareg") {
@@ -209,7 +209,7 @@ class OppfolgingsplanServiceTest :
             describe("deleteExpiredOppfolgingsplanUtkast") {
                 afterTest {
                     TestDB.clearAllData()
-                    clearAllMocks()
+                    clearAllMocks(currentThreadOnly = true)
                 }
 
                 it("should delete drafts older than cutoff and keep exact cutoff and newer drafts") {

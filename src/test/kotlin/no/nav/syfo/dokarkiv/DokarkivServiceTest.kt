@@ -16,7 +16,7 @@ class DokarkivServiceTest :
         val dokarkivService = DokarkivService(dokarkivClient)
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
         }
 
         describe("DokarkivService") {

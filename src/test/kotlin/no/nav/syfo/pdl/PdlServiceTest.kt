@@ -18,7 +18,7 @@ class PdlServiceTest :
         val service = PdlService(pdlClient)
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
         }
 
         describe("PdlService.getNameFor") {

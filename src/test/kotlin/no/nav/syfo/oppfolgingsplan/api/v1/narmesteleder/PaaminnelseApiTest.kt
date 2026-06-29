@@ -65,7 +65,7 @@ class PaaminnelseApiTest :
         val pidInnloggetBruker = "10987654321"
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
         }

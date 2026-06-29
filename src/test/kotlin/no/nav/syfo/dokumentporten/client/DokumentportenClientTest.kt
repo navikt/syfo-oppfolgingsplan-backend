@@ -18,7 +18,7 @@ class DokumentportenClientTest :
     DescribeSpec({
         val texasClient = mockk<TexasHttpClient>()
 
-        beforeTest { clearAllMocks() }
+        beforeTest { clearAllMocks(currentThreadOnly = true) }
 
         describe("DokumentportenClient") {
             // Arrange

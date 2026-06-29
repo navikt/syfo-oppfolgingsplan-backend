@@ -77,7 +77,7 @@ class OppfolgingsplanApiV1Test :
         val aaregServiceMock = mockk<AaregService>(relaxed = true)
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
         }

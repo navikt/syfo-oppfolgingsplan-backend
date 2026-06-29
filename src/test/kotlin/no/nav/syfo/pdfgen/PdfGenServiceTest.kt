@@ -46,7 +46,7 @@ class PdfGenServiceTest :
         }
 
         beforeTest {
-            clearAllMocks()
+            clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
         }
 
