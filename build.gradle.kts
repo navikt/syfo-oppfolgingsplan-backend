@@ -21,7 +21,7 @@ plugins {
     id("io.ktor.plugin") version "3.4.3"
     id("com.gradleup.shadow") version "9.4.3"
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.3.21"
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.4.0"
 }
 
 group = "no.nav.syfo"
