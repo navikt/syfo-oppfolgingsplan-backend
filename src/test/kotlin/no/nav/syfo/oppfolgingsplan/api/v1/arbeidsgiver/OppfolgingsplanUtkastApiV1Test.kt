@@ -3,6 +3,7 @@ package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -57,6 +58,7 @@ import java.util.UUID
 
 class OppfolgingsplanUtkastApiV1Test :
     DescribeSpec({
+        val utkastRequestMapper = jacksonObjectMapper()
 
         val texasClientMock = mockk<TexasHttpClient>()
         val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
@@ -120,6 +122,7 @@ class OppfolgingsplanUtkastApiV1Test :
                 fn(this)
             }
         }
+
         describe("Oppfolgingsplan Utkast API V1") {
             it("PUT /oppfolgingsplaner/utkast creates a new draft if it does not exist") {
                 withTestApplication {
@@ -134,7 +137,7 @@ class OppfolgingsplanUtkastApiV1Test :
                     val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
                         bearerAuth("Bearer token")
                         contentType(ContentType.Application.Json)
-                        setBody(utkast)
+                        setBody(utkastRequestMapper.writeValueAsString(utkast))
                     }
 
                     // Assert
@@ -174,7 +177,7 @@ class OppfolgingsplanUtkastApiV1Test :
                     val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
                         bearerAuth("Bearer token")
                         contentType(ContentType.Application.Json)
-                        setBody(updatedUtkastRequest)
+                        setBody(utkastRequestMapper.writeValueAsString(updatedUtkastRequest))
                     }
 
                     response.status shouldBe HttpStatusCode.OK
@@ -233,7 +236,7 @@ class OppfolgingsplanUtkastApiV1Test :
                     val response = client.put("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/utkast") {
                         bearerAuth("Bearer token")
                         contentType(ContentType.Application.Json)
-                        setBody(utkastWithNulls)
+                        setBody(utkastRequestMapper.writeValueAsString(utkastWithNulls))
                     }
 
                     response.status shouldBe HttpStatusCode.OK
