@@ -53,12 +53,13 @@ import no.nav.syfo.pdl.client.PdlClient
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
+import no.nav.syfo.util.applyStandardConfiguration
 import no.nav.syfo.varsel.EsyfovarselProducer
 import java.util.UUID
 
 class OppfolgingsplanUtkastApiV1Test :
     DescribeSpec({
-        val utkastRequestMapper = jacksonObjectMapper()
+        val utkastRequestMapper = jacksonObjectMapper().applyStandardConfiguration()
 
         val texasClientMock = mockk<TexasHttpClient>()
         val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
