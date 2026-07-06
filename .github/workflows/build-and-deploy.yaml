@@ -23,4 +23,4 @@ jobs:
     secrets: inherit
     with:
       app: syfo-oppfolgingsplan-backend
-      java-version: '21'
+      java-version: '25'
