@@ -12,7 +12,7 @@ val logstashEncoderVersion = "9.0"
 val micrometerVersion = "1.17.0"
 val nettyVersion = "4.2.15.Final"
 val mockkVersion = "1.14.11"
-val postgresVersion = "42.7.12"
+val postgresVersion = "42.7.13"
 val testcontainersVersion = "1.21.4"
 val valkeyVersion = "5.5.0"
 
