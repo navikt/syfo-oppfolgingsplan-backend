@@ -120,6 +120,7 @@ Tjenesten bruker Kafka i begge retninger:
 
 - **konsumerer** `teamsykmelding.syfo-sendt-sykmelding` med consumer group `syfo-oppfolgingsplan-backend-sykmeldingsperiode-v2`
 - **produserer** varsler til `team-esyfo.varselbus` når en oppfølgingsplan opprettes
+- **shadow-publiserer i dev** også et Budstikka-dispatch til `team-esyfo.budstikka.v1` når `BUDSTIKKA_ENABLED=true`; varselbus er fortsatt autoritativ og Budstikka-løpet er kun additivt og best effort
 
 ## Database og cache
 

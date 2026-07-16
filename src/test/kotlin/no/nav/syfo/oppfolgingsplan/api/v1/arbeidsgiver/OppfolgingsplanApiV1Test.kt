@@ -68,6 +68,7 @@ import no.nav.syfo.returnsNotFound
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
+import no.nav.syfo.varsel.budstikka.BudstikkaPublisher
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import java.math.BigDecimal
 import java.time.Instant
@@ -80,6 +81,7 @@ class OppfolgingsplanApiV1Test :
         val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
         val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
         val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
+        val budstikkaPublisherMock = mockk<BudstikkaPublisher>()
         val testDb = TestDB.database
         val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
         val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
@@ -98,6 +100,7 @@ class OppfolgingsplanApiV1Test :
             clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
+            every { budstikkaPublisherMock.publishOppfolgingsplanCreated(any(), any()) } returns Unit
             coEvery { aaregServiceMock.getStillingsinformasjon(any(), any()) } returns Stillingsinformasjon(
                 stillingstittel = "Systemutvikler",
                 stillingsprosent = BigDecimal("100.00"),
@@ -106,6 +109,7 @@ class OppfolgingsplanApiV1Test :
         val oppfolgingsplanService = OppfolgingsplanService(
             database = testDb,
             esyfovarselProducer = esyfovarselProducerMock,
+            budstikkaPublisher = budstikkaPublisherMock,
             pdlService = pdlServiceMock,
             aaregService = aaregServiceMock,
         )
@@ -600,6 +604,47 @@ class OppfolgingsplanApiV1Test :
                             hendelse.arbeidstakerFnr shouldBe sykmeldt.fnr
                             hendelse.orgnummer shouldBe sykmeldt.orgnummer
                         },
+                    )
+                }
+            }
+        }
+        it("POST /oppfolgingsplaner still creates new oppfolgingsplan when Budstikka publisher throws exception") {
+            withTestApplication {
+                // Arrange
+                texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+
+                dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                coEvery {
+                    esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
+                } returns Unit
+                every {
+                    budstikkaPublisherMock.publishOppfolgingsplanCreated(any(), any())
+                } throws RuntimeException("exception")
+
+                testDb.upsertOppfolgingsplanUtkast(
+                    narmesteLederFnr = pidInnlogetBruker,
+                    sykmeldt = sykmeldt,
+                    lagreUtkastRequest = defaultUtkastRequest(),
+                )
+
+                // Act
+                val response = client.post {
+                    url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
+                    bearerAuth("******")
+                    contentType(ContentType.Application.Json)
+                    setBody(defaultOppfolgingsplan())
+                }
+
+                // Assert
+                response.status shouldBe HttpStatusCode.Created
+                val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
+                persistedOppfolgingsplaner.size shouldBe 1
+                verify(exactly = 1) { esyfovarselProducerMock.sendVarselToEsyfovarsel(any()) }
+                verify(exactly = 1) {
+                    budstikkaPublisherMock.publishOppfolgingsplanCreated(
+                        persistedOppfolgingsplaner.first().uuid,
+                        sykmeldt.fnr,
                     )
                 }
             }

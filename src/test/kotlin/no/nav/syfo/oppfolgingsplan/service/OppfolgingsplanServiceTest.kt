@@ -6,7 +6,9 @@ import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CancellationException
 import no.nav.syfo.TestDB
 import no.nav.syfo.aareg.AaregService
@@ -22,6 +24,8 @@ import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.setOppfolgingsplanUtkastUpdatedAt
 import no.nav.syfo.varsel.EsyfovarselProducer
+import no.nav.syfo.varsel.budstikka.BudstikkaPublisher
+import no.nav.syfo.varsel.budstikka.NoOpBudstikkaPublisher
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneOffset
@@ -137,10 +141,12 @@ class OppfolgingsplanServiceTest :
 
                 it("should persist stillingssnapshot from aareg") {
                     val aaregService = mockk<AaregService>()
+                    val budstikkaPublisher = mockk<BudstikkaPublisher>(relaxed = true)
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),
                         esyfovarselProducer = mockk(relaxed = true),
+                        budstikkaPublisher = budstikkaPublisher,
                         aaregService = aaregService,
                     )
                     coEvery {
@@ -159,6 +165,12 @@ class OppfolgingsplanServiceTest :
                     val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
                     persisted.stillingstittel shouldBe "Systemutvikler"
                     persisted.stillingsprosent shouldBe BigDecimal("80.50")
+                    verify(exactly = 1) {
+                        budstikkaPublisher.publishOppfolgingsplanCreated(
+                            oppfolgingsplanUuid = uuid,
+                            sykmeldtFnr = "12345678901",
+                        )
+                    }
                 }
 
                 it("should persist null stillingssnapshot when aareg fails") {
@@ -182,6 +194,68 @@ class OppfolgingsplanServiceTest :
                     val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
                     persisted.stillingstittel.shouldBeNull()
                     persisted.stillingsprosent.shouldBeNull()
+                }
+
+                it("should still create oppfolgingsplan when Budstikka publisher throws") {
+                    val aaregService = mockk<AaregService>()
+                    val esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true)
+                    val budstikkaPublisher = mockk<BudstikkaPublisher>()
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = esyfovarselProducer,
+                        budstikkaPublisher = budstikkaPublisher,
+                        aaregService = aaregService,
+                    )
+                    coEvery {
+                        aaregService.getStillingsinformasjon("12345678901", "orgnummer")
+                    } returns Stillingsinformasjon(
+                        stillingstittel = "Systemutvikler",
+                        stillingsprosent = BigDecimal("80.50"),
+                    )
+                    every {
+                        budstikkaPublisher.publishOppfolgingsplanCreated(any(), any())
+                    } throws RuntimeException("boom")
+
+                    val uuid = service.createOppfolgingsplan(
+                        narmesteLederFnr = "10987654321",
+                        sykmeldt = defaultSykmeldt(),
+                        createOppfolgingsplanRequest = defaultOppfolgingsplan(),
+                    )
+
+                    service.getPersistedOppfolgingsplanByUuid(uuid).uuid shouldBe uuid
+                    verify(exactly = 1) { esyfovarselProducer.sendVarselToEsyfovarsel(any()) }
+                    verify(exactly = 1) {
+                        budstikkaPublisher.publishOppfolgingsplanCreated(
+                            oppfolgingsplanUuid = uuid,
+                            sykmeldtFnr = "12345678901",
+                        )
+                    }
+                }
+
+                it("should not fail when no-op Budstikka publisher is used") {
+                    val aaregService = mockk<AaregService>()
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        budstikkaPublisher = NoOpBudstikkaPublisher,
+                        aaregService = aaregService,
+                    )
+                    coEvery {
+                        aaregService.getStillingsinformasjon("12345678901", "orgnummer")
+                    } returns Stillingsinformasjon(
+                        stillingstittel = "Systemutvikler",
+                        stillingsprosent = BigDecimal("80.50"),
+                    )
+
+                    val uuid = service.createOppfolgingsplan(
+                        narmesteLederFnr = "10987654321",
+                        sykmeldt = defaultSykmeldt(),
+                        createOppfolgingsplanRequest = defaultOppfolgingsplan(),
+                    )
+
+                    service.getPersistedOppfolgingsplanByUuid(uuid).uuid shouldBe uuid
                 }
 
                 it("should rethrow cancellation exception from aareg") {

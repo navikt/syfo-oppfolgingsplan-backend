@@ -39,6 +39,8 @@ import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
+import no.nav.syfo.varsel.budstikka.BudstikkaPublisher
+import no.nav.syfo.varsel.budstikka.NoOpBudstikkaPublisher
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
@@ -57,6 +59,7 @@ const val OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS = 1000
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
+    private val budstikkaPublisher: BudstikkaPublisher = NoOpBudstikkaPublisher,
     private val pdlService: PdlService,
     private val aaregService: AaregService,
 ) {
@@ -100,6 +103,19 @@ class OppfolgingsplanService(
             throw e
         } catch (e: Exception) {
             logger.error("Error when producing kafka message", e)
+        }
+
+        try {
+            withContext(Dispatchers.IO) {
+                budstikkaPublisher.publishOppfolgingsplanCreated(
+                    oppfolgingsplanUuid = uuid,
+                    sykmeldtFnr = sykmeldt.fnr,
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.error("Error when publishing Budstikka shadow varsel", e)
         }
 
         return uuid

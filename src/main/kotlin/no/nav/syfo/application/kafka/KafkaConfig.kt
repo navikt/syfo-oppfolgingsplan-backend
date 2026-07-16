@@ -45,6 +45,16 @@ fun producerProperties(env: KafkaEnv): Properties {
     }
 }
 
+fun stringProducerProperties(env: KafkaEnv): Properties {
+    val producerProperties = commonProperties(env)
+
+    return producerProperties.apply {
+        put(ProducerConfig.ACKS_CONFIG, "all")
+        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
+        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
+    }
+}
+
 fun consumerProperties(env: KafkaEnv, groupId: String): Properties {
     val props = commonProperties(env)
     props.apply {

@@ -11,6 +11,7 @@ interface Environment {
     val database: DatabaseEnvironment
     val texas: TexasEnvironment
     val valkeyEnvironment: ValkeyEnvironment
+    val budstikkaEnabled: Boolean
     val dineSykmeldteBaseUrl: String
     val dokarkivBaseUrl: String
     val dokarkivScope: String
@@ -56,6 +57,7 @@ data class NaisEnvironment(
         username = getEnvVar("VALKEY_USERNAME_SYFO_OPPFOLGINGSPLAN_BACKEND"),
         password = getEnvVar("VALKEY_PASSWORD_SYFO_OPPFOLGINGSPLAN_BACKEND"),
     ),
+    override val budstikkaEnabled: Boolean = getEnvVar("BUDSTIKKA_ENABLED", "false").toBoolean(),
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
     override val dokarkivBaseUrl: String = getEnvVar("DOKARKIV_URL"),
@@ -80,6 +82,11 @@ fun getEnvVar(varName: String, defaultValue: String? = null) = System.getenv(var
 fun isLocalEnv(): Boolean = getEnvVar("NAIS_CLUSTER_NAME", "local") == "local"
 
 fun isProdEnv(): Boolean = getEnvVar("NAIS_CLUSTER_NAME", "local") == "prod-gcp"
+
+fun isBudstikkaShadowEnabled(
+    budstikkaEnabled: Boolean,
+    isProdEnv: Boolean,
+): Boolean = budstikkaEnabled && !isProdEnv
 
 data class LocalEnvironment(
     override val database: DatabaseEnvironment = DatabaseEnvironment(
@@ -108,6 +115,7 @@ data class LocalEnvironment(
         password = "test",
         ssl = false,
     ),
+    override val budstikkaEnabled: Boolean = false,
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
