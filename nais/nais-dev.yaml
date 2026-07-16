@@ -127,3 +127,5 @@ spec:
       value: dev-gcp:team-esyfo:syfo-oppfolgingsplan-frontend
     - name: BUDSTIKKA_ENABLED
       value: "true"
+    - name: BUDSTIKKA_ENABLED
+      value: "true"
