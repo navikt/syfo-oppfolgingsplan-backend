@@ -1,6 +1,6 @@
 
 val dataFakerVersion = "2.7.0"
-val flywayVersion = "12.10.0"
+val flywayVersion = "12.11.0"
 val hikariVersion = "7.1.0"
 val kafkaVersion = "4.3.0"
 val koinVersion = "4.2.2"
