@@ -53,7 +53,7 @@ class BudstikkaProducerTest :
                             it.value() shouldContain "\"reference\":\"0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4\""
                             it.value() shouldContain "\"personIdentifier\":\"12345678901\""
                             it.value() shouldContain "\"varseltype\":\"BESKJED\""
-                            it.value() shouldContain "\"text\":\"Det er opprettet en oppfølgingsplan.\""
+                            it.value() shouldContain "\"text\":\"$OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT\""
                             it.value() shouldContain "\"link\":\"$budstikkaOppfolgingsplanSykmeldtUrl\""
                         },
                     )

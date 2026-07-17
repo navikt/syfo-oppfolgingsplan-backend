@@ -6,7 +6,7 @@ import no.nav.syfo.varsel.budstikka.domain.PersonIdentifier
 import no.nav.syfo.varsel.budstikka.domain.Varseltype
 import java.util.UUID
 
-const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Det er opprettet en oppfølgingsplan."
+const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Din arbeidsgiver har laget en oppfølgingsplan for deg"
 
 fun createOppfolgingsplanCreatedDispatch(
     oppfolgingsplanUuid: UUID,
