@@ -11,6 +11,7 @@ const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Det er opprettet en oppfølg
 fun createOppfolgingsplanCreatedDispatch(
     oppfolgingsplanUuid: UUID,
     sykmeldtFnr: String,
+    budstikkaOppfolgingsplanSykmeldtUrl: String,
 ): Dispatch = Dispatch(
     eventId = UUID.randomUUID(),
     reference = oppfolgingsplanUuid.toString(),
@@ -18,6 +19,6 @@ fun createOppfolgingsplanCreatedDispatch(
         personIdentifier = PersonIdentifier(sykmeldtFnr),
         varseltype = Varseltype.BESKJED,
         text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
-        link = null,
+        link = budstikkaOppfolgingsplanSykmeldtUrl,
     ),
 )

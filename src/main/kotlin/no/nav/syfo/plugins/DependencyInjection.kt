@@ -205,6 +205,7 @@ private fun kafkeProducerModule() = module {
                 KafkaProducer<String, String>(
                     stringProducerProperties(env().kafka),
                 ),
+                env().budstikkaOppfolgingsplanSykmeldtUrl,
             )
         } else {
             NoOpBudstikkaPublisher

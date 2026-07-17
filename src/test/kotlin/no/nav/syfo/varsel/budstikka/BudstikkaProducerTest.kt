@@ -23,7 +23,8 @@ import java.util.concurrent.TimeoutException
 class BudstikkaProducerTest :
     DescribeSpec({
         val kafkaProducerMock = mockk<KafkaProducer<String, String>>()
-        val producer = BudstikkaProducer(kafkaProducerMock)
+        val budstikkaOppfolgingsplanSykmeldtUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
+        val producer = BudstikkaProducer(kafkaProducerMock, budstikkaOppfolgingsplanSykmeldtUrl)
 
         beforeTest {
             clearAllMocks(currentThreadOnly = true)
@@ -53,6 +54,7 @@ class BudstikkaProducerTest :
                             it.value() shouldContain "\"personIdentifier\":\"12345678901\""
                             it.value() shouldContain "\"varseltype\":\"BESKJED\""
                             it.value() shouldContain "\"text\":\"Det er opprettet en oppfølgingsplan.\""
+                            it.value() shouldContain "\"link\":\"$budstikkaOppfolgingsplanSykmeldtUrl\""
                         },
                     )
                 }

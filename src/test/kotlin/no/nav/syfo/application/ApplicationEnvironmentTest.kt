@@ -27,4 +27,11 @@ class ApplicationEnvironmentTest :
                 ) shouldBe false
             }
         }
+
+        describe("LocalEnvironment") {
+            it("uses dev URL for Budstikka oppfolgingsplan link") {
+                LocalEnvironment().budstikkaOppfolgingsplanSykmeldtUrl shouldBe
+                    "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
+            }
+        }
     })

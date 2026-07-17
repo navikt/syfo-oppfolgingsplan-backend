@@ -16,6 +16,7 @@ private const val BUDSTIKKA_SEND_TIMEOUT_MILLIS = 250L
 
 class BudstikkaProducer(
     private val producer: KafkaProducer<String, String>,
+    private val budstikkaOppfolgingsplanSykmeldtUrl: String,
 ) : BudstikkaPublisher {
     private val log = logger()
 
@@ -26,6 +27,7 @@ class BudstikkaProducer(
         val dispatch = createOppfolgingsplanCreatedDispatch(
             oppfolgingsplanUuid = oppfolgingsplanUuid,
             sykmeldtFnr = sykmeldtFnr,
+            budstikkaOppfolgingsplanSykmeldtUrl = budstikkaOppfolgingsplanSykmeldtUrl,
         )
         val payload = dispatchJson.encodeToString(dispatch)
         val record = ProducerRecord(

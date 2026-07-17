@@ -12,6 +12,7 @@ interface Environment {
     val texas: TexasEnvironment
     val valkeyEnvironment: ValkeyEnvironment
     val budstikkaEnabled: Boolean
+    val budstikkaOppfolgingsplanSykmeldtUrl: String
     val dineSykmeldteBaseUrl: String
     val dokarkivBaseUrl: String
     val dokarkivScope: String
@@ -58,6 +59,7 @@ data class NaisEnvironment(
         password = getEnvVar("VALKEY_PASSWORD_SYFO_OPPFOLGINGSPLAN_BACKEND"),
     ),
     override val budstikkaEnabled: Boolean = getEnvVar("BUDSTIKKA_ENABLED", "false").toBoolean(),
+    override val budstikkaOppfolgingsplanSykmeldtUrl: String = getEnvVar("BUDSTIKKA_OPPFOLGINGSPLAN_SYKMELDT_URL"),
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
     override val dokarkivBaseUrl: String = getEnvVar("DOKARKIV_URL"),
@@ -116,6 +118,7 @@ data class LocalEnvironment(
         ssl = false,
     ),
     override val budstikkaEnabled: Boolean = false,
+    override val budstikkaOppfolgingsplanSykmeldtUrl: String = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt",
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
