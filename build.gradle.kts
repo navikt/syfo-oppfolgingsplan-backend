@@ -18,7 +18,7 @@ val valkeyVersion = "5.5.0"
 
 plugins {
     kotlin("jvm") version "2.3.21"
-    id("io.ktor.plugin") version "3.4.3"
+    id("io.ktor.plugin") version "3.5.1"
     id("com.gradleup.shadow") version "9.6.0"
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
     id("org.jetbrains.kotlin.plugin.serialization") version "2.3.21"
