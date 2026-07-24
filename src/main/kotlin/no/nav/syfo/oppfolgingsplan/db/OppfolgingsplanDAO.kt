@@ -2,7 +2,6 @@ package no.nav.syfo.oppfolgingsplan.db
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
@@ -11,7 +10,6 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
-import no.nav.syfo.util.logger
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
@@ -50,8 +48,9 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             skal_deles_med_lege,
             skal_deles_med_veileder,
             utkast_created_at,
-            created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            created_at,
+            event_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), gen_random_uuid())
         RETURNING uuid
     """.trimIndent()
 
@@ -407,49 +406,45 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
     }
 }
 
-suspend fun DatabaseInterface.generateEventIdTransactionally(
-    uuid: UUID,
-    block: (eventId: UUID) -> Unit
-) = withContext(Dispatchers.IO) {
+suspend fun DatabaseInterface.findEventId(
+    oppfolgingsplanId: UUID
+): UUID = withContext(Dispatchers.IO) {
     val statement = """
-        UPDATE oppfolgingsplan
-        SET event_id = gen_random_uuid()
+        SELECT event_id 
+        FROM oppfolgingsplan
         WHERE uuid = ?
-        RETURNING event_id
     """.trimIndent()
-    val logger = logger()
 
     connection.use { connection ->
-        val autocommitState = connection.autoCommit
-        connection.autoCommit = false
         connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setObject(1, uuid)
-            val resultSet = preparedStatement.executeQuery()
-            val eventId = if (resultSet.next()) {
-                resultSet.getObject("event_id") as? UUID
-            } else {
-                throw IllegalStateException("Oppfolgingsplan not found")
-            }
-            try {
-                eventId?.let {
-                    block(it)
-                } ?: throw IllegalStateException("Failed to generate event_id")
-                connection.commit()
-            } catch (e: Exception) {
-                connection.rollback()
-                logger.info("Rolling back the generated event id {}",
-                    kv("oppfolgingsplanUuid", uuid),
-                    kv("eventId", eventId),
-                    e
-                )
-                throw e
-            } finally {
-                connection.autoCommit = autocommitState
+            preparedStatement.setObject(1, oppfolgingsplanId)
+            preparedStatement.executeQuery().use { resultSet ->
+                if (resultSet.next()) {
+                    resultSet.getObject("event_id", UUID::class.java)
+                } else {
+                    throw IllegalStateException("Oppfolgingsplan not found")
+                }
             }
         }
     }
 }
 
+
+suspend fun DatabaseInterface.setVarselPublished(oppfolgingsplanId: UUID) = withContext(Dispatchers.IO) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET varsel_published_at = NOW()
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setObject(1, oppfolgingsplanId)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfolgingsplan(
     uuid = getObject("uuid") as UUID,
     sykmeldtFnr = this.getString("sykmeldt_fnr"),

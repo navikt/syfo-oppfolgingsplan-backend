@@ -2,11 +2,14 @@ package no.nav.syfo.oppfolgingsplan.service
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.mockk.Runs
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.CancellationException
@@ -17,9 +20,10 @@ import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
-import no.nav.syfo.findEventIdForOppfolgingsplan
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
+import no.nav.syfo.findVarselPublishedAtByOppfolgingsplanId
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.persistOppfolgingsplanUtkast
@@ -158,12 +162,9 @@ class OppfolgingsplanServiceTest :
                         stillingstittel = "Systemutvikler",
                         stillingsprosent = BigDecimal("80.50"),
                     )
-                    var publishedEventId: UUID? = null
                     every {
                         budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
-                    } answers {
-                        thirdArg<UUID>().also { publishedEventId = it }
-                    }
+                    } just Runs
 
                     val uuid = service.createOppfolgingsplan(
                         narmesteLederFnr = "10987654321",
@@ -174,12 +175,13 @@ class OppfolgingsplanServiceTest :
                     val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
                     persisted.stillingstittel shouldBe "Systemutvikler"
                     persisted.stillingsprosent shouldBe BigDecimal("80.50")
-                    TestDB.database.findEventIdForOppfolgingsplan(uuid) shouldBe publishedEventId
+                    val eventId = TestDB.database.findEventId(uuid)
+                    eventId.shouldNotBeNull()
                     verify(exactly = 1) {
                         budstikkaPublisher.publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = uuid,
                             sykmeldtFnr = "12345678901",
-                            eventId = publishedEventId ?: error("Expected eventId to be published"),
+                            eventId = eventId,
                         )
                     }
                 }
@@ -240,7 +242,7 @@ class OppfolgingsplanServiceTest :
                     )
 
                     service.getPersistedOppfolgingsplanByUuid(uuid).uuid shouldBe uuid
-                    TestDB.database.findEventIdForOppfolgingsplan(uuid).shouldBeNull()
+                    TestDB.database.findEventId(uuid).shouldNotBeNull()
                     verify(exactly = 1) {
                         budstikkaPublisher.publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = uuid,
@@ -297,7 +299,10 @@ class OppfolgingsplanServiceTest :
                     TestDB.database.persistOppfolgingsplanUtkast(exactCutoffDraft)
                     TestDB.database.persistOppfolgingsplanUtkast(freshDraft)
 
-                    TestDB.database.setOppfolgingsplanUtkastUpdatedAt(expiredDraft.uuid, cutoff.minus(1, ChronoUnit.DAYS))
+                    TestDB.database.setOppfolgingsplanUtkastUpdatedAt(
+                        expiredDraft.uuid,
+                        cutoff.minus(1, ChronoUnit.DAYS)
+                    )
                     TestDB.database.setOppfolgingsplanUtkastUpdatedAt(exactCutoffDraft.uuid, cutoff)
                     TestDB.database.setOppfolgingsplanUtkastUpdatedAt(
                         freshDraft.uuid,
@@ -309,7 +314,8 @@ class OppfolgingsplanServiceTest :
                     )
 
                     deletedDrafts shouldBe 1
-                    TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(expiredDraft.narmesteLederId).shouldBeNull()
+                    TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(expiredDraft.narmesteLederId)
+                        .shouldBeNull()
                     TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(exactCutoffDraft.narmesteLederId)
                         ?.uuid shouldBe exactCutoffDraft.uuid
                     TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(freshDraft.narmesteLederId)
@@ -346,10 +352,71 @@ class OppfolgingsplanServiceTest :
                     val deletedDrafts = service.deleteExpiredOppfolgingsplanUtkast()
 
                     deletedDrafts shouldBe 1
-                    TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(expiredDraft.narmesteLederId).shouldBeNull()
+                    TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(expiredDraft.narmesteLederId)
+                        .shouldBeNull()
                     TestDB.database.findOppfolgingsplanUtkastByNarmesteLederId(freshDraft.narmesteLederId)
                         ?.uuid shouldBe freshDraft.uuid
                 }
+            }
+
+            it("Should set varsel_published_at when varsel is sent") {
+                val aaregService = mockk<AaregService>()
+                val esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true)
+                val budstikkaPublisher = mockk<BudstikkaPublisher>()
+                val service = OppfolgingsplanService(
+                    database = TestDB.database,
+                    pdlService = mockk(relaxed = true),
+                    esyfovarselProducer = esyfovarselProducer,
+                    budstikkaPublisher = budstikkaPublisher,
+                    aaregService = aaregService,
+                )
+                coEvery {
+                    aaregService.getStillingsinformasjon("12845678901", "orgnummer")
+                } returns Stillingsinformasjon(
+                    stillingstittel = "Systemutvikler",
+                    stillingsprosent = BigDecimal("80.50"),
+                )
+                every {
+                    budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
+                } answers { thirdArg<UUID>() }
+
+                val uuid = service.createOppfolgingsplan(
+                    narmesteLederFnr = "10987654321",
+                    sykmeldt = defaultSykmeldt(),
+                    createOppfolgingsplanRequest = defaultOppfolgingsplan(),
+                )
+
+                TestDB.database.findVarselPublishedAtByOppfolgingsplanId(uuid).shouldNotBeNull()
+            }
+
+            it("Should not set varsel_published_at when varsel is not sent") {
+                val aaregService = mockk<AaregService>()
+                val esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true)
+                val budstikkaPublisher = mockk<BudstikkaPublisher>()
+                val service = OppfolgingsplanService(
+                    database = TestDB.database,
+                    pdlService = mockk(relaxed = true),
+                    esyfovarselProducer = esyfovarselProducer,
+                    budstikkaPublisher = budstikkaPublisher,
+                    aaregService = aaregService,
+                )
+                coEvery {
+                    aaregService.getStillingsinformasjon("12845678901", "orgnummer")
+                } returns Stillingsinformasjon(
+                    stillingstittel = "Systemutvikler",
+                    stillingsprosent = BigDecimal("80.50"),
+                )
+                every {
+                    budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
+                } throws RuntimeException("boom")
+
+                val uuid = service.createOppfolgingsplan(
+                    narmesteLederFnr = "10987654321",
+                    sykmeldt = defaultSykmeldt(),
+                    createOppfolgingsplanRequest = defaultOppfolgingsplan(),
+                )
+
+                TestDB.database.findVarselPublishedAtByOppfolgingsplanId(uuid).shouldBeNull()
             }
         }
     })

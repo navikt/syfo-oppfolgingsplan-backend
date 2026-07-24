@@ -42,7 +42,6 @@ import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.defaultUtkastRequest
-import no.nav.syfo.findEventIdForOppfolgingsplan
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
@@ -53,6 +52,7 @@ import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
+import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewResponse
@@ -501,7 +501,7 @@ class OppfolgingsplanApiV1Test :
                     persisted.first().organisasjonsnavn shouldBe "Test AS"
                     persisted.first().stillingstittel shouldBe "Systemutvikler"
                     persisted.first().stillingsprosent shouldBe BigDecimal("100.00")
-                    val persistedEventId = testDb.findEventIdForOppfolgingsplan(persisted.first().uuid)
+                    val persistedEventId = testDb.findEventId(persisted.first().uuid)
                     persistedEventId.shouldNotBeNull()
                     verify(exactly = 1) {
                         budstikkaPublisherMock.publishOppfolgingsplanCreated(
@@ -551,7 +551,7 @@ class OppfolgingsplanApiV1Test :
 
                     val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
                     persistedUtkast shouldBe null
-                    val persistedEventId = testDb.findEventIdForOppfolgingsplan(persistedOppfolgingsplaner.first().uuid)
+                    val persistedEventId = testDb.findEventId(persistedOppfolgingsplaner.first().uuid)
                     persistedEventId.shouldNotBeNull()
                     verify(exactly = 1) {
                         budstikkaPublisherMock.publishOppfolgingsplanCreated(
@@ -570,7 +570,7 @@ class OppfolgingsplanApiV1Test :
 
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
-                every {
+                coEvery {
                     budstikkaPublisherMock.publishOppfolgingsplanCreated(any(), any(), any())
                 } throws RuntimeException("exception")
 
@@ -592,8 +592,8 @@ class OppfolgingsplanApiV1Test :
                 response.status shouldBe HttpStatusCode.Created
                 val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
                 persistedOppfolgingsplaner.size shouldBe 1
-                testDb.findEventIdForOppfolgingsplan(persistedOppfolgingsplaner.first().uuid) shouldBe null
-                verify(exactly = 1) {
+                testDb.findEventId(persistedOppfolgingsplaner.first().uuid) shouldNotBe null
+                coVerify(exactly = 1) {
                     budstikkaPublisherMock.publishOppfolgingsplanCreated(
                         persistedOppfolgingsplaner.first().uuid,
                         sykmeldt.fnr,

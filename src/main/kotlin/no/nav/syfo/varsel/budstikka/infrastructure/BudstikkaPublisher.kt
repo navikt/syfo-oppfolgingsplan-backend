@@ -6,6 +6,6 @@ interface BudstikkaPublisher {
     fun publishOppfolgingsplanCreated(
         oppfolgingsplanUuid: UUID,
         sykmeldtFnr: String,
-        eventId: UUID
-    ) : UUID
+        eventId: UUID,
+    )
 }

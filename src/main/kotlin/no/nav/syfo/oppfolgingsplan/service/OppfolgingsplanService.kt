@@ -1,10 +1,11 @@
 package no.nav.syfo.oppfolgingsplan.service
 
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.slf4j.MDCContext
 import kotlinx.coroutines.withContext
+import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.ApiErrorException
@@ -21,12 +22,13 @@ import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
-import no.nav.syfo.oppfolgingsplan.db.generateEventIdTransactionally
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
+import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.oppfolgingsplan.db.setVarselPublished
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
@@ -45,7 +47,6 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
-import org.slf4j.MDC
 import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
@@ -67,6 +68,7 @@ class OppfolgingsplanService(
     private val aaregService: AaregService,
 ) {
     private val logger = logger()
+    private val scope = CoroutineScope(MDCContext() + Dispatchers.IO)
 
     suspend fun createOppfolgingsplan(
         narmesteLederFnr: String,
@@ -98,22 +100,23 @@ class OppfolgingsplanService(
             )
         }
 
+        val eventId = database.findEventId(uuid)
+
         try {
-            withContext(Dispatchers.IO) {
-                launch {
-                    database.generateEventIdTransactionally(uuid) { eventId ->
-                        budstikkaPublisher.publishOppfolgingsplanCreated(
-                            oppfolgingsplanUuid = uuid,
-                            sykmeldtFnr = sykmeldt.fnr,
-                            eventId = eventId,
-                        )
-                    }
-                }
-            }
+            budstikkaPublisher.publishOppfolgingsplanCreated(
+                oppfolgingsplanUuid = uuid,
+                sykmeldtFnr = sykmeldt.fnr,
+                eventId = eventId,
+            )
+            database.setVarselPublished(uuid)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.error("Error when publishing Budstikka varsel", e)
+            logger.error("Error when publishing Budstikka varsel {} {}",
+                kv("oppfolgingsplanUuid", uuid),
+                kv("eventId", eventId),
+                e
+            )
         }
 
         return uuid

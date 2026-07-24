@@ -43,10 +43,10 @@ class BudstikkaProducerTest :
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
 
                 producer.publishOppfolgingsplanCreated(
-                    oppfolgingsplanUuid = java.util.UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4"),
+                    oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4"),
                     sykmeldtFnr = "12345678901",
                     eventId = eventId,
-                ) shouldBe eventId
+                )
 
                 verify(exactly = 1) {
                     kafkaProducerMock.send(
@@ -76,7 +76,7 @@ class BudstikkaProducerTest :
 
                 val error = shouldThrow<Exception> {
                     producer.publishOppfolgingsplanCreated(
-                        oppfolgingsplanUuid = java.util.UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4"),
+                        oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4"),
                         sykmeldtFnr = "12345678901",
                         eventId = eventId,
                     )

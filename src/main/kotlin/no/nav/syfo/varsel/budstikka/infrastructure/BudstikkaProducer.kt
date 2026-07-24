@@ -21,7 +21,7 @@ class BudstikkaProducer(
 ) : BudstikkaPublisher {
     private val log = logger()
 
-    override fun publishOppfolgingsplanCreated(oppfolgingsplanUuid: UUID, sykmeldtFnr: String, eventId: UUID): UUID {
+    override fun publishOppfolgingsplanCreated(oppfolgingsplanUuid: UUID, sykmeldtFnr: String, eventId: UUID) {
         val dispatch = createOppfolgingsplanCreatedDispatch(
             oppfolgingsplanUuid = oppfolgingsplanUuid,
             sykmeldtFnr = sykmeldtFnr,
@@ -39,11 +39,10 @@ class BudstikkaProducer(
             kv("topic", BUDSTIKKA_TOPIC),
             kv("type", BUDSTIKKA_DISPATCH_TYPE),
             kv("eventId", eventId),
-            kv("oppfolgingsplanUuid", oppfolgingsplanUuid)
+            kv("oppfolgingsplanUuid", oppfolgingsplanUuid),
         )
         try {
             producer.send(record).get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
-            return eventId
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
             log.error(
