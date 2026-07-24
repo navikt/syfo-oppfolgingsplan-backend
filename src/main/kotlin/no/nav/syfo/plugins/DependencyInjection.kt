@@ -206,7 +206,7 @@ private fun kafkeProducerModule() = module {
                         put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000)
                     },
             ),
-            env().budstikkaOppfolgingsplanSykmeldtUrl,
+            env().minSideSykmeldtOppfolgingsplanUrl,
         )
     }
 }

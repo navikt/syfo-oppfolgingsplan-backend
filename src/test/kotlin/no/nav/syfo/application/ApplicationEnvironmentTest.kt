@@ -7,7 +7,7 @@ class ApplicationEnvironmentTest :
     DescribeSpec({
         describe("LocalEnvironment") {
             it("uses dev URL for Budstikka oppfolgingsplan link") {
-                LocalEnvironment().budstikkaOppfolgingsplanSykmeldtUrl shouldBe
+                LocalEnvironment().minSideSykmeldtOppfolgingsplanUrl shouldBe
                     "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
             }
         }
