@@ -125,5 +125,5 @@ spec:
       value: dev-gcp:team-esyfo:dinesykmeldte
     - name: SYFO_OPPFOLGINGSPLAN_FRONTEND_CLIENT_ID
       value: dev-gcp:team-esyfo:syfo-oppfolgingsplan-frontend
-    - name: BUDSTIKKA_OPPFOLGINGSPLAN_SYKMELDT_URL
+    - name: MIN_SIDE_SYKMELDT_OPPFOLGINGSPLAN_URL
       value: https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt
