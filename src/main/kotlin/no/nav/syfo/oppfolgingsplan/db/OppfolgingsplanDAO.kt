@@ -407,7 +407,7 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
 }
 
 suspend fun DatabaseInterface.findEventId(
-    oppfolgingsplanId: UUID
+    oppfolgingsplanId: UUID,
 ): UUID = withContext(Dispatchers.IO) {
     val statement = """
         SELECT event_id 

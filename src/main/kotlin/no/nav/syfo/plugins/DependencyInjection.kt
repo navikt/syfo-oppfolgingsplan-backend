@@ -54,6 +54,7 @@ import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import no.nav.syfo.varsel.domain.EsyfovarselHendelse
 import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.koin.core.scope.Scope
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
@@ -200,7 +201,10 @@ private fun kafkeProducerModule() = module {
     single<BudstikkaPublisher> {
         BudstikkaProducer(
             KafkaProducer<String, String>(
-                stringProducerProperties(env().kafka),
+                stringProducerProperties(env().kafka)
+                    .apply {
+                        put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000)
+                    },
             ),
             env().budstikkaOppfolgingsplanSykmeldtUrl,
         )

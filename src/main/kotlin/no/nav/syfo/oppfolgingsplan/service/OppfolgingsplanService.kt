@@ -1,9 +1,7 @@
 package no.nav.syfo.oppfolgingsplan.service
 
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.slf4j.MDCContext
 import kotlinx.coroutines.withContext
 import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.syfo.aareg.AaregService
@@ -20,12 +18,12 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
+import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
-import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.setVarselPublished
@@ -111,10 +109,11 @@ class OppfolgingsplanService(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.error("Error when publishing Budstikka varsel {} {}",
+            logger.error(
+                "Error when publishing Budstikka varsel {} {}",
                 kv("oppfolgingsplanUuid", uuid),
                 kv("eventId", eventId),
-                e
+                e,
             )
         }
 
