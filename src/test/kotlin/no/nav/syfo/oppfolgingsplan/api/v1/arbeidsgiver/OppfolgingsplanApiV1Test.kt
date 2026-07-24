@@ -100,7 +100,7 @@ class OppfolgingsplanApiV1Test :
             clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
-            every { budstikkaPublisherMock.publishOppfolgingsplanCreated(any(), any(), any()) } answers { thirdArg<UUID>() }
+            coEvery { budstikkaPublisherMock.publishOppfolgingsplanCreated(any(), any(), any()) } answers { thirdArg<UUID>() }
             coEvery { aaregServiceMock.getStillingsinformasjon(any(), any()) } returns Stillingsinformasjon(
                 stillingstittel = "Systemutvikler",
                 stillingsprosent = BigDecimal("100.00"),
@@ -503,7 +503,7 @@ class OppfolgingsplanApiV1Test :
                     persisted.first().stillingsprosent shouldBe BigDecimal("100.00")
                     val persistedEventId = testDb.findEventId(persisted.first().uuid)
                     persistedEventId.shouldNotBeNull()
-                    verify(exactly = 1) {
+                    coVerify(exactly = 1) {
                         budstikkaPublisherMock.publishOppfolgingsplanCreated(
                             persisted.first().uuid,
                             sykmeldt.fnr,
@@ -553,7 +553,7 @@ class OppfolgingsplanApiV1Test :
                     persistedUtkast shouldBe null
                     val persistedEventId = testDb.findEventId(persistedOppfolgingsplaner.first().uuid)
                     persistedEventId.shouldNotBeNull()
-                    verify(exactly = 1) {
+                    coVerify(exactly = 1) {
                         budstikkaPublisherMock.publishOppfolgingsplanCreated(
                             persistedOppfolgingsplaner.first().uuid,
                             sykmeldt.fnr,

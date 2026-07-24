@@ -68,7 +68,6 @@ class OppfolgingsplanService(
     private val aaregService: AaregService,
 ) {
     private val logger = logger()
-    private val scope = CoroutineScope(MDCContext() + Dispatchers.IO)
 
     suspend fun createOppfolgingsplan(
         narmesteLederFnr: String,

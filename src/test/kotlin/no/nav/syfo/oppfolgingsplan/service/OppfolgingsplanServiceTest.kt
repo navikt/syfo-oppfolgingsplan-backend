@@ -162,7 +162,7 @@ class OppfolgingsplanServiceTest :
                         stillingstittel = "Systemutvikler",
                         stillingsprosent = BigDecimal("80.50"),
                     )
-                    every {
+                    coEvery {
                         budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
                     } just Runs
 
@@ -177,7 +177,7 @@ class OppfolgingsplanServiceTest :
                     persisted.stillingsprosent shouldBe BigDecimal("80.50")
                     val eventId = TestDB.database.findEventId(uuid)
                     eventId.shouldNotBeNull()
-                    verify(exactly = 1) {
+                    coVerify(exactly = 1) {
                         budstikkaPublisher.publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = uuid,
                             sykmeldtFnr = "12345678901",
@@ -199,7 +199,7 @@ class OppfolgingsplanServiceTest :
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
                     } throws RuntimeException("boom")
-                    every {
+                    coEvery {
                         budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
                     } answers { thirdArg<UUID>() }
 
@@ -231,7 +231,7 @@ class OppfolgingsplanServiceTest :
                         stillingstittel = "Systemutvikler",
                         stillingsprosent = BigDecimal("80.50"),
                     )
-                    every {
+                    coEvery {
                         budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
                     } throws RuntimeException("boom")
 
@@ -243,7 +243,7 @@ class OppfolgingsplanServiceTest :
 
                     service.getPersistedOppfolgingsplanByUuid(uuid).uuid shouldBe uuid
                     TestDB.database.findEventId(uuid).shouldNotBeNull()
-                    verify(exactly = 1) {
+                    coVerify(exactly = 1) {
                         budstikkaPublisher.publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = uuid,
                             sykmeldtFnr = "12345678901",
@@ -376,7 +376,7 @@ class OppfolgingsplanServiceTest :
                     stillingstittel = "Systemutvikler",
                     stillingsprosent = BigDecimal("80.50"),
                 )
-                every {
+                coEvery {
                     budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
                 } answers { thirdArg<UUID>() }
 
@@ -406,7 +406,7 @@ class OppfolgingsplanServiceTest :
                     stillingstittel = "Systemutvikler",
                     stillingsprosent = BigDecimal("80.50"),
                 )
-                every {
+                coEvery {
                     budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
                 } throws RuntimeException("boom")
 
