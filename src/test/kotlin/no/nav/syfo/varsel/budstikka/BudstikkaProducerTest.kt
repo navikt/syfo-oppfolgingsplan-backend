@@ -9,6 +9,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import no.nav.syfo.varsel.budstikka.domain.DispatchHeader
+import no.nav.syfo.varsel.budstikka.infrastructure.BUDSTIKKA_TOPIC
+import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
+import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -53,7 +56,7 @@ class BudstikkaProducerTest :
                             it.value() shouldContain "\"reference\":\"0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4\""
                             it.value() shouldContain "\"personIdentifier\":\"12345678901\""
                             it.value() shouldContain "\"varseltype\":\"BESKJED\""
-                            it.value() shouldContain "\"text\":\"$OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT\""
+                            it.value() shouldContain "\"text\":\"${OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT}\""
                             it.value() shouldContain "\"link\":\"$budstikkaOppfolgingsplanSykmeldtUrl\""
                         },
                     )

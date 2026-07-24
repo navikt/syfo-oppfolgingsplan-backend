@@ -24,7 +24,7 @@ import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.setOppfolgingsplanUtkastUpdatedAt
 import no.nav.syfo.varsel.EsyfovarselProducer
-import no.nav.syfo.varsel.budstikka.BudstikkaPublisher
+import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import no.nav.syfo.varsel.budstikka.NoOpBudstikkaPublisher
 import java.math.BigDecimal
 import java.time.Instant

@@ -2,6 +2,8 @@ package no.nav.syfo.oppfolgingsplan.service
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.slf4j.MDCContext
 import kotlinx.coroutines.withContext
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
@@ -19,6 +21,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
+import no.nav.syfo.oppfolgingsplan.db.generateEventIdTransactionally
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
@@ -39,10 +42,10 @@ import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
-import no.nav.syfo.varsel.budstikka.BudstikkaPublisher
-import no.nav.syfo.varsel.budstikka.NoOpBudstikkaPublisher
+import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
+import org.slf4j.MDC
 import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
@@ -59,7 +62,7 @@ const val OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS = 1000
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
-    private val budstikkaPublisher: BudstikkaPublisher = NoOpBudstikkaPublisher,
+    private val budstikkaPublisher: BudstikkaPublisher,
     private val pdlService: PdlService,
     private val aaregService: AaregService,
 ) {
@@ -97,20 +100,16 @@ class OppfolgingsplanService(
 
         try {
             withContext(Dispatchers.IO) {
-                produceOppfolgingsplanCreatedVarsel(sykmeldt)
-            }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            logger.error("Error when producing kafka message", e)
-        }
+                launch {
+                    database.generateEventIdTransactionally(uuid) { eventId ->
+                        budstikkaPublisher.publishOppfolgingsplanCreated(
+                            oppfolgingsplanUuid = uuid,
+                            sykmeldtFnr = sykmeldt.fnr,
+                            eventId = eventId,
+                        )
+                    }
+                }
 
-        try {
-            withContext(Dispatchers.IO) {
-                budstikkaPublisher.publishOppfolgingsplanCreated(
-                    oppfolgingsplanUuid = uuid,
-                    sykmeldtFnr = sykmeldt.fnr,
-                )
             }
         } catch (e: CancellationException) {
             throw e

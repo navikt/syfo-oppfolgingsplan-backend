@@ -4,6 +4,8 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import no.nav.syfo.varsel.budstikka.domain.BrukervarselCreate
 import no.nav.syfo.varsel.budstikka.domain.Varseltype
+import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.createOppfolgingsplanCreatedDispatch
 import java.util.UUID
 
 class OppfolgingsplanCreatedBudstikkaMapperTest :

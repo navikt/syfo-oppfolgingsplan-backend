@@ -1,5 +1,8 @@
 package no.nav.syfo.oppfolgingsplan.db
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
@@ -8,6 +11,9 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
+import no.nav.syfo.util.logger
+import org.slf4j.LoggerFactory
+import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
 import java.sql.Date
 import java.sql.ResultSet
@@ -18,6 +24,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 private const val OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL = "6 months"
+private fun logger() = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr: String,
@@ -397,6 +404,45 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
             it.setInt(2, batchSize)
             it.executeUpdate()
         }.also { connection.commit() }
+    }
+}
+
+suspend fun DatabaseInterface.generateEventIdTransactionally(
+    uuid: UUID,
+    block: (eventId: UUID) -> Unit
+) = withContext(Dispatchers.IO) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET event_id = gen_random_uuid()
+        WHERE uuid = ?
+        RETURNING event_id
+    """.trimIndent()
+    val logger = logger()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setObject(1, uuid)
+            val resultSet = preparedStatement.executeQuery()
+            val eventId = if (resultSet.next()) {
+                resultSet.getObject("event_id") as? UUID
+            } else {
+                throw IllegalStateException("Oppfolgingsplan not found")
+            }
+            try {
+                eventId?.let {
+                    block(it)
+                } ?: throw IllegalStateException("Failed to generate event_id")
+                connection.commit()
+            } catch (e: Exception) {
+                connection.rollback()
+                logger.info("Rolling back the generated event id {}",
+                    kv("oppfolgingsplanUuid", uuid),
+                    kv("eventId", eventId),
+                    e
+                )
+                throw e
+            }
+        }
     }
 }
 

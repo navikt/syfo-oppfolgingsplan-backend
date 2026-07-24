@@ -1,5 +1,6 @@
-package no.nav.syfo.varsel.budstikka
+package no.nav.syfo.varsel.budstikka.infrastructure
 
+import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.budstikka.domain.DispatchHeader
 import no.nav.syfo.varsel.budstikka.domain.dispatchJson
@@ -20,10 +21,7 @@ class BudstikkaProducer(
 ) : BudstikkaPublisher {
     private val log = logger()
 
-    override fun publishOppfolgingsplanCreated(
-        oppfolgingsplanUuid: UUID,
-        sykmeldtFnr: String,
-    ) {
+    override fun publishOppfolgingsplanCreated(oppfolgingsplanUuid: UUID, sykmeldtFnr: String, eventId: UUID): UUID {
         val dispatch = createOppfolgingsplanCreatedDispatch(
             oppfolgingsplanUuid = oppfolgingsplanUuid,
             sykmeldtFnr = sykmeldtFnr,
@@ -34,49 +32,56 @@ class BudstikkaProducer(
             BUDSTIKKA_TOPIC,
             dispatch.content.partitionKey,
             payload,
-        ).apply {
-            headers().add(
-                DispatchHeader.EVENT_ID,
-                dispatch.eventId.toString().toByteArray(StandardCharsets.UTF_8),
-            )
-        }
+        ).withHeader(DispatchHeader.EVENT_ID, eventId)
 
         log.info(
-            "Publiserer Budstikka shadow dispatch til topic={}, type={}, eventId={}",
-            BUDSTIKKA_TOPIC,
-            BUDSTIKKA_DISPATCH_TYPE,
-            dispatch.eventId,
+            "Publiserer Budstikka dispatch {}, {}, {}, {}",
+            kv("topic", BUDSTIKKA_TOPIC),
+            kv("type", BUDSTIKKA_DISPATCH_TYPE),
+            kv("eventId", eventId),
+            kv("oppfolgingsplanUuid", oppfolgingsplanUuid)
         )
         try {
             producer.send(record).get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+            return eventId
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
             log.error(
-                "Publisering av Budstikka shadow dispatch ble avbrutt til topic={}, type={}, eventId={}",
-                BUDSTIKKA_TOPIC,
-                BUDSTIKKA_DISPATCH_TYPE,
-                dispatch.eventId,
+                "Publisering av Budstikka dispatch ble avbrutt {}, {}, {}, {}",
+                kv("topic", BUDSTIKKA_TOPIC),
+                kv("type", BUDSTIKKA_DISPATCH_TYPE),
+                kv("eventId", eventId),
+                kv("oppfolgingsplanUuid", oppfolgingsplanUuid),
                 e,
             )
             throw e
         } catch (e: TimeoutException) {
             log.error(
-                "Publisering av Budstikka shadow dispatch timet ut til topic={}, type={}, eventId={}",
-                BUDSTIKKA_TOPIC,
-                BUDSTIKKA_DISPATCH_TYPE,
-                dispatch.eventId,
+                "Publisering av Budstikka dispatch timet ut {}, {}, {}, {}",
+                kv("topic", BUDSTIKKA_TOPIC),
+                kv("type", BUDSTIKKA_DISPATCH_TYPE),
+                kv("eventId", eventId),
+                kv("oppfolgingsplanUuid", oppfolgingsplanUuid),
                 e,
             )
             throw e
         } catch (e: Exception) {
             log.error(
-                "Feilet ved publisering av Budstikka shadow dispatch til topic={}, type={}, eventId={}",
-                BUDSTIKKA_TOPIC,
-                BUDSTIKKA_DISPATCH_TYPE,
-                dispatch.eventId,
+                "Feilet ved publisering av Budstikka dispatch til {}, {}, {}, {}",
+                kv("topic", BUDSTIKKA_TOPIC),
+                kv("type", BUDSTIKKA_DISPATCH_TYPE),
+                kv("eventId", eventId),
+                kv("oppfolgingsplanUuid", oppfolgingsplanUuid),
                 e,
             )
             throw e
         }
+    }
+
+    private fun <K, V> ProducerRecord<K, V>.withHeader(headerKey: String, headerValue: UUID) = apply {
+        headers().add(
+            headerKey,
+            headerValue.toString().toByteArray(StandardCharsets.UTF_8),
+        )
     }
 }

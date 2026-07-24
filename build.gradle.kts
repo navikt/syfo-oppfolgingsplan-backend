@@ -15,6 +15,7 @@ val mockkVersion = "1.14.11"
 val postgresVersion = "42.7.13"
 val testcontainersVersion = "1.21.4"
 val valkeyVersion = "5.5.0"
+val coroutinesVersion = "1.11.0"
 
 plugins {
     kotlin("jvm") version "2.3.21"
@@ -65,6 +66,8 @@ dependencies {
     implementation("org.apache.kafka:kafka_2.13:$kafkaVersion") {
         exclude(group = "log4j")
     }
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:$coroutinesVersion")
 
     testImplementation("io.ktor:ktor-server-test-host")
 

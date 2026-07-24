@@ -4,7 +4,7 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
-import no.nav.syfo.varsel.budstikka.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import java.util.UUID
 
 class DispatchSerializationTest :

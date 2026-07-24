@@ -1,4 +1,4 @@
-package no.nav.syfo.varsel.budstikka
+package no.nav.syfo.varsel.budstikka.infrastructure
 
 import no.nav.syfo.varsel.budstikka.domain.BrukervarselCreate
 import no.nav.syfo.varsel.budstikka.domain.Dispatch
@@ -13,7 +13,6 @@ fun createOppfolgingsplanCreatedDispatch(
     sykmeldtFnr: String,
     budstikkaOppfolgingsplanSykmeldtUrl: String,
 ): Dispatch = Dispatch(
-    eventId = UUID.randomUUID(),
     reference = oppfolgingsplanUuid.toString(),
     content = BrukervarselCreate(
         personIdentifier = PersonIdentifier(sykmeldtFnr),

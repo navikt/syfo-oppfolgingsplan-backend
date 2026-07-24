@@ -68,7 +68,7 @@ import no.nav.syfo.returnsNotFound
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
-import no.nav.syfo.varsel.budstikka.BudstikkaPublisher
+import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import java.math.BigDecimal
 import java.time.Instant
