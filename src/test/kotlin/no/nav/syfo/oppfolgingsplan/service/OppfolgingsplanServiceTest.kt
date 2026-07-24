@@ -17,6 +17,7 @@ import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
+import no.nav.syfo.findEventIdForOppfolgingsplan
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.pdl.PdlService
@@ -25,12 +26,12 @@ import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.setOppfolgingsplanUtkastUpdatedAt
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
-import no.nav.syfo.varsel.budstikka.NoOpBudstikkaPublisher
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
+import java.util.UUID
 
 class OppfolgingsplanServiceTest :
     DescribeSpec({
@@ -89,6 +90,7 @@ class OppfolgingsplanServiceTest :
                         database = TestDB.database,
                         pdlService = pdlServive,
                         esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
+                        budstikkaPublisher = mockk(relaxed = true),
                         aaregService = mockk(relaxed = true),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
@@ -117,6 +119,7 @@ class OppfolgingsplanServiceTest :
                         database = TestDB.database,
                         pdlService = pdlServive,
                         esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
+                        budstikkaPublisher = mockk(relaxed = true),
                         aaregService = mockk(relaxed = true),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
@@ -141,7 +144,7 @@ class OppfolgingsplanServiceTest :
 
                 it("should persist stillingssnapshot from aareg") {
                     val aaregService = mockk<AaregService>()
-                    val budstikkaPublisher = mockk<BudstikkaPublisher>(relaxed = true)
+                    val budstikkaPublisher = mockk<BudstikkaPublisher>()
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),
@@ -155,6 +158,12 @@ class OppfolgingsplanServiceTest :
                         stillingstittel = "Systemutvikler",
                         stillingsprosent = BigDecimal("80.50"),
                     )
+                    var publishedEventId: UUID? = null
+                    every {
+                        budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
+                    } answers {
+                        thirdArg<UUID>().also { publishedEventId = it }
+                    }
 
                     val uuid = service.createOppfolgingsplan(
                         narmesteLederFnr = "10987654321",
@@ -165,25 +174,32 @@ class OppfolgingsplanServiceTest :
                     val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
                     persisted.stillingstittel shouldBe "Systemutvikler"
                     persisted.stillingsprosent shouldBe BigDecimal("80.50")
+                    TestDB.database.findEventIdForOppfolgingsplan(uuid) shouldBe publishedEventId
                     verify(exactly = 1) {
                         budstikkaPublisher.publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = uuid,
                             sykmeldtFnr = "12345678901",
+                            eventId = publishedEventId ?: error("Expected eventId to be published"),
                         )
                     }
                 }
 
                 it("should persist null stillingssnapshot when aareg fails") {
                     val aaregService = mockk<AaregService>()
+                    val budstikkaPublisher = mockk<BudstikkaPublisher>()
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),
                         esyfovarselProducer = mockk(relaxed = true),
+                        budstikkaPublisher = budstikkaPublisher,
                         aaregService = aaregService,
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
                     } throws RuntimeException("boom")
+                    every {
+                        budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
+                    } answers { thirdArg<UUID>() }
 
                     val uuid = service.createOppfolgingsplan(
                         narmesteLederFnr = "10987654321",
@@ -214,7 +230,7 @@ class OppfolgingsplanServiceTest :
                         stillingsprosent = BigDecimal("80.50"),
                     )
                     every {
-                        budstikkaPublisher.publishOppfolgingsplanCreated(any(), any())
+                        budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
                     } throws RuntimeException("boom")
 
                     val uuid = service.createOppfolgingsplan(
@@ -224,38 +240,14 @@ class OppfolgingsplanServiceTest :
                     )
 
                     service.getPersistedOppfolgingsplanByUuid(uuid).uuid shouldBe uuid
-                    verify(exactly = 1) { esyfovarselProducer.sendVarselToEsyfovarsel(any()) }
+                    TestDB.database.findEventIdForOppfolgingsplan(uuid).shouldBeNull()
                     verify(exactly = 1) {
                         budstikkaPublisher.publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = uuid,
                             sykmeldtFnr = "12345678901",
+                            eventId = any(),
                         )
                     }
-                }
-
-                it("should not fail when no-op Budstikka publisher is used") {
-                    val aaregService = mockk<AaregService>()
-                    val service = OppfolgingsplanService(
-                        database = TestDB.database,
-                        pdlService = mockk(relaxed = true),
-                        esyfovarselProducer = mockk(relaxed = true),
-                        budstikkaPublisher = NoOpBudstikkaPublisher,
-                        aaregService = aaregService,
-                    )
-                    coEvery {
-                        aaregService.getStillingsinformasjon("12345678901", "orgnummer")
-                    } returns Stillingsinformasjon(
-                        stillingstittel = "Systemutvikler",
-                        stillingsprosent = BigDecimal("80.50"),
-                    )
-
-                    val uuid = service.createOppfolgingsplan(
-                        narmesteLederFnr = "10987654321",
-                        sykmeldt = defaultSykmeldt(),
-                        createOppfolgingsplanRequest = defaultOppfolgingsplan(),
-                    )
-
-                    service.getPersistedOppfolgingsplanByUuid(uuid).uuid shouldBe uuid
                 }
 
                 it("should rethrow cancellation exception from aareg") {
@@ -264,6 +256,7 @@ class OppfolgingsplanServiceTest :
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),
                         esyfovarselProducer = mockk(relaxed = true),
+                        budstikkaPublisher = mockk(relaxed = true),
                         aaregService = aaregService,
                     )
                     coEvery {
@@ -328,6 +321,7 @@ class OppfolgingsplanServiceTest :
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),
                         esyfovarselProducer = mockk(relaxed = true),
+                        budstikkaPublisher = mockk(relaxed = true),
                         aaregService = mockk(relaxed = true),
                     )
                     val expiredDraft = defaultPersistedOppfolgingsplanUtkast().copy(

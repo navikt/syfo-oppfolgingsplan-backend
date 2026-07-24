@@ -102,6 +102,7 @@ class VeilederOppfolgingsplanApiV1Test :
                                 database = testDb,
                                 esyfovarselProducer = esyfovarselProducerMock,
                                 pdlService = mockk(relaxed = true),
+                                budstikkaPublisher = mockk(relaxed = true),
                                 aaregService = mockk<AaregService>(relaxed = true),
                             ),
                             pdfGenService = pdfGenService,

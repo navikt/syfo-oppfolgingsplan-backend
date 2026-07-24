@@ -420,6 +420,8 @@ suspend fun DatabaseInterface.generateEventIdTransactionally(
     val logger = logger()
 
     connection.use { connection ->
+        val autocommitState = connection.autoCommit
+        connection.autoCommit = false
         connection.prepareStatement(statement).use { preparedStatement ->
             preparedStatement.setObject(1, uuid)
             val resultSet = preparedStatement.executeQuery()
@@ -441,6 +443,8 @@ suspend fun DatabaseInterface.generateEventIdTransactionally(
                     e
                 )
                 throw e
+            } finally {
+                connection.autoCommit = autocommitState
             }
         }
     }
