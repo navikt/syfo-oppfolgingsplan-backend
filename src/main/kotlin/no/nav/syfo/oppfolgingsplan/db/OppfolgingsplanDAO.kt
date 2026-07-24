@@ -429,7 +429,6 @@ suspend fun DatabaseInterface.findEventId(
     }
 }
 
-
 suspend fun DatabaseInterface.setVarselPublished(oppfolgingsplanId: UUID) = withContext(Dispatchers.IO) {
     val statement = """
         UPDATE oppfolgingsplan
@@ -445,6 +444,7 @@ suspend fun DatabaseInterface.setVarselPublished(oppfolgingsplanId: UUID) = with
         connection.commit()
     }
 }
+
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfolgingsplan(
     uuid = getObject("uuid") as UUID,
     sykmeldtFnr = this.getString("sykmeldt_fnr"),
