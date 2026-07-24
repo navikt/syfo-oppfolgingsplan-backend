@@ -16,6 +16,7 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.kafka.producerProperties
+import no.nav.syfo.application.kafka.stringProducerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
@@ -49,8 +50,11 @@ import no.nav.syfo.sykmelding.kafka.SykmeldingsperiodeConsumer
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.httpClientDefault
 import no.nav.syfo.varsel.EsyfovarselProducer
+import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
+import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import no.nav.syfo.varsel.domain.EsyfovarselHendelse
 import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.koin.core.scope.Scope
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
@@ -194,6 +198,17 @@ private fun kafkeProducerModule() = module {
             ),
         )
     }
+    single<BudstikkaPublisher> {
+        BudstikkaProducer(
+            KafkaProducer<String, String>(
+                stringProducerProperties(env().kafka)
+                    .apply {
+                        put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000)
+                    },
+            ),
+            env().minSideSykmeldtOppfolgingsplanUrl,
+        )
+    }
 }
 
 private fun servicesModule() = module {
@@ -205,7 +220,15 @@ private fun servicesModule() = module {
     single { LeaderElection(get(), env().electorPath) }
     single { PdlService(get()) }
     single { AaregService(get()) }
-    single { OppfolgingsplanService(database = get(), esyfovarselProducer = get(), pdlService = get(), aaregService = get()) }
+    single {
+        OppfolgingsplanService(
+            database = get(),
+            esyfovarselProducer = get(),
+            budstikkaPublisher = get(),
+            pdlService = get(),
+            aaregService = get(),
+        )
+    }
     single { PaaminnelseService(database = get(), sykmeldingsperiodeRepository = get()) }
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }

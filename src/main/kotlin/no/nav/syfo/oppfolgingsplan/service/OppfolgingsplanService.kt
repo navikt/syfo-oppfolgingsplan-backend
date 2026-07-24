@@ -3,6 +3,7 @@ package no.nav.syfo.oppfolgingsplan.service
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.ApiErrorException
@@ -17,6 +18,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
+import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
@@ -24,6 +26,7 @@ import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.oppfolgingsplan.db.setVarselPublished
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
@@ -39,6 +42,7 @@ import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
+import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
@@ -57,6 +61,7 @@ const val OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS = 1000
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
+    private val budstikkaPublisher: BudstikkaPublisher,
     private val pdlService: PdlService,
     private val aaregService: AaregService,
 ) {
@@ -92,14 +97,24 @@ class OppfolgingsplanService(
             )
         }
 
+        val eventId = database.findEventId(uuid)
+
         try {
-            withContext(Dispatchers.IO) {
-                produceOppfolgingsplanCreatedVarsel(sykmeldt)
-            }
+            budstikkaPublisher.publishOppfolgingsplanCreated(
+                oppfolgingsplanUuid = uuid,
+                sykmeldtFnr = sykmeldt.fnr,
+                eventId = eventId,
+            )
+            database.setVarselPublished(uuid)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.error("Error when producing kafka message", e)
+            logger.error(
+                "Error when publishing Budstikka varsel {} {}",
+                kv("oppfolgingsplanUuid", uuid),
+                kv("eventId", eventId),
+                e,
+            )
         }
 
         return uuid

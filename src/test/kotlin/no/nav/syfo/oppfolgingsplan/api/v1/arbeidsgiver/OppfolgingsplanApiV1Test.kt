@@ -27,7 +27,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
 import no.nav.syfo.TestDB
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.aareg.Stillingsinformasjon
@@ -52,6 +51,7 @@ import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
+import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewResponse
@@ -68,7 +68,7 @@ import no.nav.syfo.returnsNotFound
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
-import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
+import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -80,6 +80,7 @@ class OppfolgingsplanApiV1Test :
         val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
         val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
         val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
+        val budstikkaPublisherMock = mockk<BudstikkaPublisher>()
         val testDb = TestDB.database
         val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
         val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
@@ -98,6 +99,7 @@ class OppfolgingsplanApiV1Test :
             clearAllMocks(currentThreadOnly = true)
             TestDB.clearAllData()
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
+            coEvery { budstikkaPublisherMock.publishOppfolgingsplanCreated(any(), any(), any()) } answers { thirdArg<UUID>() }
             coEvery { aaregServiceMock.getStillingsinformasjon(any(), any()) } returns Stillingsinformasjon(
                 stillingstittel = "Systemutvikler",
                 stillingsprosent = BigDecimal("100.00"),
@@ -106,6 +108,7 @@ class OppfolgingsplanApiV1Test :
         val oppfolgingsplanService = OppfolgingsplanService(
             database = testDb,
             esyfovarselProducer = esyfovarselProducerMock,
+            budstikkaPublisher = budstikkaPublisherMock,
             pdlService = pdlServiceMock,
             aaregService = aaregServiceMock,
         )
@@ -497,13 +500,13 @@ class OppfolgingsplanApiV1Test :
                     persisted.first().organisasjonsnavn shouldBe "Test AS"
                     persisted.first().stillingstittel shouldBe "Systemutvikler"
                     persisted.first().stillingsprosent shouldBe BigDecimal("100.00")
-                    verify(exactly = 1) {
-                        esyfovarselProducerMock.sendVarselToEsyfovarsel(
-                            withArg {
-                                val hendelse = it as ArbeidstakerHendelse
-                                hendelse.arbeidstakerFnr shouldBe sykmeldt.fnr
-                                hendelse.orgnummer shouldBe sykmeldt.orgnummer
-                            },
+                    val persistedEventId = testDb.findEventId(persisted.first().uuid)
+                    persistedEventId.shouldNotBeNull()
+                    coVerify(exactly = 1) {
+                        budstikkaPublisherMock.publishOppfolgingsplanCreated(
+                            persisted.first().uuid,
+                            sykmeldt.fnr,
+                            persistedEventId,
                         )
                     }
                 }
@@ -547,19 +550,19 @@ class OppfolgingsplanApiV1Test :
 
                     val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
                     persistedUtkast shouldBe null
-                    verify(exactly = 1) {
-                        esyfovarselProducerMock.sendVarselToEsyfovarsel(
-                            withArg {
-                                val hendelse = it as ArbeidstakerHendelse
-                                hendelse.arbeidstakerFnr shouldBe sykmeldt.fnr
-                                hendelse.orgnummer shouldBe sykmeldt.orgnummer
-                            },
+                    val persistedEventId = testDb.findEventId(persistedOppfolgingsplaner.first().uuid)
+                    persistedEventId.shouldNotBeNull()
+                    coVerify(exactly = 1) {
+                        budstikkaPublisherMock.publishOppfolgingsplanCreated(
+                            persistedOppfolgingsplaner.first().uuid,
+                            sykmeldt.fnr,
+                            persistedEventId,
                         )
                     }
                 }
             }
         }
-        it("POST /oppfolgingsplaner still creates new oppfolgingsplan when kafka producer throws exception") {
+        it("POST /oppfolgingsplaner still creates new oppfolgingsplan when Budstikka publisher throws exception") {
             withTestApplication {
                 // Arrange
                 texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
@@ -567,8 +570,8 @@ class OppfolgingsplanApiV1Test :
                 dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
                 coEvery {
-                    esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
-                } throws Exception("exception")
+                    budstikkaPublisherMock.publishOppfolgingsplanCreated(any(), any(), any())
+                } throws RuntimeException("exception")
 
                 testDb.upsertOppfolgingsplanUtkast(
                     narmesteLederFnr = pidInnlogetBruker,
@@ -576,30 +579,24 @@ class OppfolgingsplanApiV1Test :
                     lagreUtkastRequest = defaultUtkastRequest(),
                 )
 
-                val oppfolgingsplan = defaultOppfolgingsplan()
-
                 // Act
                 val response = client.post {
                     url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner")
-                    bearerAuth("Bearer token")
+                    bearerAuth("******")
                     contentType(ContentType.Application.Json)
-                    setBody(oppfolgingsplan)
+                    setBody(defaultOppfolgingsplan())
                 }
 
                 // Assert
                 response.status shouldBe HttpStatusCode.Created
                 val persistedOppfolgingsplaner = testDb.findAllOppfolgingsplanerBy("12345678901", "orgnummer")
                 persistedOppfolgingsplaner.size shouldBe 1
-
-                val persistedUtkast = testDb.findOppfolgingsplanUtkastBy("12345678901", "orgnummer")
-                persistedUtkast shouldBe null
-                verify(exactly = 1) {
-                    esyfovarselProducerMock.sendVarselToEsyfovarsel(
-                        withArg {
-                            val hendelse = it as ArbeidstakerHendelse
-                            hendelse.arbeidstakerFnr shouldBe sykmeldt.fnr
-                            hendelse.orgnummer shouldBe sykmeldt.orgnummer
-                        },
+                testDb.findEventId(persistedOppfolgingsplaner.first().uuid) shouldNotBe null
+                coVerify(exactly = 1) {
+                    budstikkaPublisherMock.publishOppfolgingsplanCreated(
+                        persistedOppfolgingsplaner.first().uuid,
+                        sykmeldt.fnr,
+                        any(),
                     )
                 }
             }
