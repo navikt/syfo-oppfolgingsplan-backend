@@ -109,12 +109,11 @@ class OppfolgingsplanService(
                         )
                     }
                 }
-
             }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            logger.error("Error when publishing Budstikka shadow varsel", e)
+            logger.error("Error when publishing Budstikka varsel", e)
         }
 
         return uuid
