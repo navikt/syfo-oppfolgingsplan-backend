@@ -107,7 +107,6 @@ class OppfolgingsplanApiV1Test :
                                 database = testDb,
                                 esyfovarselProducer = esyfovarselProducerMock,
                                 pdlService = pdlServiceMock,
-                                budstikkaPublisher = mockk(relaxed = true),
                                 aaregService = aaregServiceMock,
                             ),
                             pdfGenService = pdfGenService,
