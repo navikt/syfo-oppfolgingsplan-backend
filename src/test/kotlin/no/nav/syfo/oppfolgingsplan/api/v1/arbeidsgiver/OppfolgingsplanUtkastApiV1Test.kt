@@ -77,6 +77,7 @@ class OppfolgingsplanUtkastApiV1Test :
             database = testDb,
             esyfovarselProducer = esyfovarselProducerMock,
             pdlService = pdlService,
+            budstikkaPublisher = mockk(relaxed = true),
             aaregService = mockk<AaregService>(relaxed = true),
         )
         val narmestelederId = UUID.randomUUID().toString()
