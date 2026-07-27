@@ -18,7 +18,6 @@ class OppfolgingsplanServiceSafeguardTest :
             database = mockk<DatabaseInterface>(relaxed = true),
             pdlService = mockk(relaxed = true),
             esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
-            budstikkaPublisher = mockk(relaxed = true),
             aaregService = mockk(relaxed = true),
         )
 

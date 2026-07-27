@@ -29,7 +29,6 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             database = testDb,
             esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
             pdlService = mockk(relaxed = true),
-            budstikkaPublisher = mockk(relaxed = true),
             aaregService = mockk(relaxed = true),
         )
 
