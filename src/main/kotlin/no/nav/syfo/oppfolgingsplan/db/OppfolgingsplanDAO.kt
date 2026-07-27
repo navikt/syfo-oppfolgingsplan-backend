@@ -1,5 +1,7 @@
 package no.nav.syfo.oppfolgingsplan.db
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
@@ -8,6 +10,8 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
+import org.slf4j.LoggerFactory
+import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
 import java.sql.Date
 import java.sql.ResultSet
@@ -18,6 +22,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 private const val OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL = "6 months"
+private fun logger() = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr: String,
@@ -43,8 +48,9 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             skal_deles_med_lege,
             skal_deles_med_veileder,
             utkast_created_at,
-            created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            created_at,
+            event_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), gen_random_uuid())
         RETURNING uuid
     """.trimIndent()
 
@@ -397,6 +403,45 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
             it.setInt(2, batchSize)
             it.executeUpdate()
         }.also { connection.commit() }
+    }
+}
+
+suspend fun DatabaseInterface.findEventId(
+    oppfolgingsplanId: UUID,
+): UUID = withContext(Dispatchers.IO) {
+    val statement = """
+        SELECT event_id 
+        FROM oppfolgingsplan
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setObject(1, oppfolgingsplanId)
+            preparedStatement.executeQuery().use { resultSet ->
+                if (resultSet.next()) {
+                    resultSet.getObject("event_id", UUID::class.java)
+                } else {
+                    throw IllegalStateException("Oppfolgingsplan not found")
+                }
+            }
+        }
+    }
+}
+
+suspend fun DatabaseInterface.setVarselPublished(oppfolgingsplanId: UUID) = withContext(Dispatchers.IO) {
+    val statement = """
+        UPDATE oppfolgingsplan
+        SET varsel_published_at = NOW()
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setObject(1, oppfolgingsplanId)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
     }
 }
 

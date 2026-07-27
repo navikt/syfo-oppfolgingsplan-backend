@@ -30,6 +30,7 @@ class DokumentportenServiceTest :
             database = testDb,
             pdlService = mockk<PdlService>(relaxed = true),
             esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
+            budstikkaPublisher = mockk(relaxed = true),
             aaregService = mockk<AaregService>(relaxed = true),
         )
 
