@@ -27,7 +27,7 @@ flowchart LR
     postgres[(PostgreSQL)]
     valkey[(Valkey)]
     sykmelding[(teamsykmelding.syfo-sendt-sykmelding)]
-    varselbus[(team-esyfo.varselbus)]
+    syfo-budstikka[(team-esyfo.budstikka.v1)]
     dinesykmeldte[dinesykmeldte-backend]
     tilgang[istilgangskontroll]
     dialog[isdialogmelding]
@@ -43,7 +43,7 @@ flowchart LR
     backend --> postgres
     backend --> valkey
     sykmelding -->|konsumerer| backend
-    backend -->|produserer varsler| varselbus
+    backend -->|produserer varsler| syfo-budstikka
     backend --> dinesykmeldte
     backend --> tilgang
     backend --> dialog
@@ -119,8 +119,8 @@ Veiledertilgang sjekkes mot `istilgangskontroll`.
 Tjenesten bruker Kafka i begge retninger:
 
 - **konsumerer** `teamsykmelding.syfo-sendt-sykmelding` med consumer group `syfo-oppfolgingsplan-backend-sykmeldingsperiode-v2`
-- **produserer** varsler til `team-esyfo.varselbus` når en oppfølgingsplan opprettes
-
+- **produserer** varsler til `team-esyfo.budstikka.v1` når en oppfølgingsplan opprettes.
+  
 ## Database og cache
 
 - PostgreSQL kjøres i NAIS GCP SQL med Flyway-migreringer
