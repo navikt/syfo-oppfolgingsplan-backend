@@ -37,5 +37,5 @@ data class BrevFallback(
 @Serializable
 enum class SendingWindow {
     ONGOING,
-    NKS_OPENING_HOURS,
+    BUDSTIKKA_OPENING_HOURS,
 }
