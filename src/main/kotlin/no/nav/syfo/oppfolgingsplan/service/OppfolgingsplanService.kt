@@ -33,6 +33,7 @@ import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.setUnntaksvurderingNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.setVarselPublished
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
+import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredUnntaksvurderinger
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
@@ -339,14 +340,22 @@ class OppfolgingsplanService(
     }
 
     suspend fun softDeleteExpiredOppfolgingsplaner(): Int = withContext(Dispatchers.IO) {
-        runSoftDeleteExpiredOppfolgingsplanerLoop(
+        runSoftDeleteBatchLoop(
             maxBatchIterations = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
         ) {
             database.softDeleteExpiredOppfolgingsplaner()
         }
     }
 
-    internal fun runSoftDeleteExpiredOppfolgingsplanerLoop(
+    suspend fun softDeleteExpiredUnntaksvurderinger(): Int = withContext(Dispatchers.IO) {
+        runSoftDeleteBatchLoop(
+            maxBatchIterations = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
+        ) {
+            database.softDeleteExpiredUnntaksvurderinger()
+        }
+    }
+
+    internal fun runSoftDeleteBatchLoop(
         maxBatchIterations: Int = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
         softDeleteBatch: () -> Int,
     ): Int {

@@ -64,6 +64,40 @@ fun DatabaseInterface.findAllUnntaksvurderingerBy(
     }
 }
 
+fun DatabaseInterface.softDeleteExpiredUnntaksvurderinger(
+    batchSize: Int = 1000,
+): Int {
+    val statement = """
+        WITH candidates AS (
+            SELECT uv.uuid
+            FROM unntaksvurdering uv
+            JOIN LATERAL (
+                SELECT MAX(sp.tom) AS latest_tom
+                FROM sykmeldingsperiode sp
+                WHERE sp.sykmeldt_fnr = uv.sykmeldt_fnr
+                  AND sp.organisasjonsnummer = uv.organisasjonsnummer
+                  AND sp.invalidated_at IS NULL
+            ) latest_valid_sykmeldingsperiode ON true
+            WHERE uv.skjult_fra IS NULL
+              AND latest_valid_sykmeldingsperiode.latest_tom < CURRENT_DATE - CAST(? AS INTERVAL)
+            ORDER BY uv.uuid
+            LIMIT ?
+        )
+        UPDATE unntaksvurdering uv
+        SET skjult_fra = NOW()
+        FROM candidates
+        WHERE uv.uuid = candidates.uuid
+    """.trimIndent()
+
+    return connection.use { connection ->
+        connection.prepareStatement(statement).use {
+            it.setString(1, SOFT_DELETE_RETENTION_INTERVAL)
+            it.setInt(2, batchSize)
+            it.executeUpdate()
+        }.also { connection.commit() }
+    }
+}
+
 fun DatabaseInterface.setUnntaksvurderingNarmesteLederFullName(
     uuid: UUID,
     narmesteLederFullName: String,

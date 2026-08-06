@@ -11,6 +11,7 @@ const val OPPFOLGINGSPLAN_DRAFT_MANUALLY_DELETED = "${METRICS_NS}_oppfolgingspla
 const val OPPFOLGINGSPLAN_DRAFT_AUTO_DELETED = "${METRICS_NS}_oppfolgingsplan_draft_auto_deleted"
 const val OPPFOLGINGSPLAN_SOFT_DELETED = "${METRICS_NS}_oppfolgingsplan_soft_deleted"
 const val UNNTAKSVURDERING_CREATED = "${METRICS_NS}_unntaksvurdering_created"
+const val UNNTAKSVURDERING_SOFT_DELETED = "${METRICS_NS}_unntaksvurdering_soft_deleted"
 const val PAAMINNELSE_BESTILT = "${METRICS_NS}_paaminnelse_bestilt"
 const val PAAMINNELSE_AVBESTILT = "${METRICS_NS}_paaminnelse_avbestilt"
 
@@ -34,6 +35,9 @@ val COUNT_OPPFOLGINGSPLAN_SOFT_DELETED: Counter = Counter.builder(OPPFOLGINGSPLA
     .register(METRICS_REGISTRY)
 val COUNT_UNNTAKSVURDERING_CREATED: Counter = Counter.builder(UNNTAKSVURDERING_CREATED)
     .description("Counts the number of melded unntaksvurderinger")
+    .register(METRICS_REGISTRY)
+val COUNT_UNNTAKSVURDERING_SOFT_DELETED: Counter = Counter.builder(UNNTAKSVURDERING_SOFT_DELETED)
+    .description("Counts the number of unntaksvurderinger soft-deleted by cleanup task")
     .register(METRICS_REGISTRY)
 val COUNT_PAAMINNELSE_BESTILT: Counter = Counter.builder(PAAMINNELSE_BESTILT)
     .description("Counts the number of times a paaminnelse is ordered")

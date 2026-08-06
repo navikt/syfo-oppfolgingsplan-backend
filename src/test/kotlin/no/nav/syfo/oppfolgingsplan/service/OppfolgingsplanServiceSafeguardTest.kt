@@ -22,7 +22,7 @@ class OppfolgingsplanServiceSafeguardTest :
             aaregService = mockk(relaxed = true),
         )
 
-        describe("runSoftDeleteExpiredOppfolgingsplanerLoop") {
+        describe("runSoftDeleteBatchLoop") {
             it("stops when safeguard limit is reached and logs warning without PII") {
                 val appender = ListAppender<ILoggingEvent>().apply { start() }
                 val originalLevel = logger.level
@@ -30,7 +30,7 @@ class OppfolgingsplanServiceSafeguardTest :
                 logger.addAppender(appender)
 
                 try {
-                    val totalSoftDeleted = service.runSoftDeleteExpiredOppfolgingsplanerLoop(
+                    val totalSoftDeleted = service.runSoftDeleteBatchLoop(
                         maxBatchIterations = 3,
                     ) {
                         1
@@ -51,7 +51,7 @@ class OppfolgingsplanServiceSafeguardTest :
             it("keeps processing until batch returns zero before safeguard limit") {
                 var invocations = 0
 
-                val totalSoftDeleted = service.runSoftDeleteExpiredOppfolgingsplanerLoop(
+                val totalSoftDeleted = service.runSoftDeleteBatchLoop(
                     maxBatchIterations = 5,
                 ) {
                     invocations++

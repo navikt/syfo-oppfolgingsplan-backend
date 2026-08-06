@@ -5,6 +5,8 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.mockk.clearAllMocks
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
@@ -364,6 +366,19 @@ class SoftDeleteOppfolgingsplanerTaskTest :
                 val planerForPublisering = testDb.findOppfolgingsplanerForDokumentportenPublisering()
 
                 planerForPublisering.map { it.uuid }.sortedBy { it.toString() } shouldBe listOf(visibleUuid, hiddenUuid).sortedBy { it.toString() }
+            }
+        }
+
+        describe("SoftDeleteOppfolgingsplanerTask execute") {
+            it("soft-deletes both oppfolgingsplaner and unntaksvurderinger") {
+                val serviceMock = mockk<OppfolgingsplanService>()
+                coEvery { serviceMock.softDeleteExpiredOppfolgingsplaner() } returns 1
+                coEvery { serviceMock.softDeleteExpiredUnntaksvurderinger() } returns 2
+
+                SoftDeleteOppfolgingsplanerTask(mockk(), serviceMock).execute()
+
+                coVerify(exactly = 1) { serviceMock.softDeleteExpiredOppfolgingsplaner() }
+                coVerify(exactly = 1) { serviceMock.softDeleteExpiredUnntaksvurderinger() }
             }
         }
     })
