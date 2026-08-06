@@ -20,6 +20,7 @@ import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_CREATED
 import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_SHARED_WITH_GP
 import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_SHARED_WITH_NAV
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_UNNTAKSVURDERING_CREATED
 import no.nav.syfo.oppfolgingsplan.api.v1.extractAndValidateUUIDParameter
 import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
@@ -88,6 +89,31 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             COUNT_OPPFOLGINGSPLAN_CREATED.increment()
             call.response.headers.append(HttpHeaders.Location, call.request.path() + "/$uuid")
+            call.respond(HttpStatusCode.Created)
+        }
+
+        /**
+         * Melder at oppfolgingsplan ikke er aktuell for sykmeldt (unntaksvurdering).
+         * Avvises når det finnes aktiv plan eller utkast for samme arbeidsforhold.
+         */
+        post("/unntaksvurderinger") {
+            val innloggetBruker = call.principal<BrukerPrincipal>()
+                ?: throw ApiErrorException.Unauthorized("No user principal found in request")
+
+            val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
+
+            if (sykmeldt.aktivSykmelding != true) {
+                throw ApiErrorException.Forbidden(
+                    "Cannot meld unntaksvurdering for sykmeldt without active sykmelding",
+                )
+            }
+
+            oppfolgingsplanService.meldUnntaksvurdering(
+                innloggetBruker.ident,
+                sykmeldt,
+            )
+
+            COUNT_UNNTAKSVURDERING_CREATED.increment()
             call.respond(HttpStatusCode.Created)
         }
 

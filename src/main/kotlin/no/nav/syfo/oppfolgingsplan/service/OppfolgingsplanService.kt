@@ -25,6 +25,7 @@ import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
+import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
@@ -123,6 +124,30 @@ class OppfolgingsplanService(
         }
 
         return uuid
+    }
+
+    suspend fun meldUnntaksvurdering(
+        narmesteLederFnr: String,
+        sykmeldt: Sykmeldt,
+    ): UUID {
+        val (aktivPlanFinnes, utkastFinnes) = withContext(Dispatchers.IO) {
+            val aktivPlan = database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer).firstOrNull()
+            val utkast = database.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
+            (aktivPlan != null) to (utkast != null)
+        }
+
+        if (aktivPlanFinnes) {
+            throw ApiErrorException.Conflict("Cannot meld unntaksvurdering when an aktiv oppfolgingsplan exists")
+        }
+        if (utkastFinnes) {
+            throw ApiErrorException.Conflict("Cannot meld unntaksvurdering when an oppfolgingsplan utkast exists")
+        }
+
+        val narmesteLederFullName = pdlService.getNameFor(narmesteLederFnr)
+
+        return withContext(Dispatchers.IO) {
+            database.persistUnntaksvurdering(narmesteLederFnr, sykmeldt, narmesteLederFullName)
+        }
     }
 
     suspend fun persistOppfolgingsplanUtkast(

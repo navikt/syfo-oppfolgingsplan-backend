@@ -276,4 +276,147 @@ class UnntaksvurderingApiV1Test :
                 }
             }
         }
+
+        describe("POST /oppfolgingsplaner/unntaksvurderinger") {
+            it("responds with Unauthorized when no token is provided") {
+                withTestApplication {
+                    val response = client.post("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                    response.status shouldBe HttpStatusCode.Unauthorized
+                }
+            }
+
+            it("responds with Forbidden when client is not allowed") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(clientId = "cluster:another-namespace:another-app")
+
+                    val response = client.post {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.Forbidden
+                }
+            }
+
+            it("responds with Created and persists unntaksvurdering with name from PDL") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+                    coEvery { pdlServiceMock.getNameFor(pidInnlogetBruker) } returns "Maren Hegna"
+
+                    val response = client.post {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.Created
+                    val persisted = testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+                    persisted.size shouldBe 1
+                    persisted.first().narmesteLederFnr shouldBe pidInnlogetBruker
+                    persisted.first().narmesteLederFullName shouldBe "Maren Hegna"
+                }
+            }
+
+            it("persists unntaksvurdering with null name when PDL has no name") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+                    coEvery { pdlServiceMock.getNameFor(pidInnlogetBruker) } returns null
+
+                    val response = client.post {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.Created
+                    testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+                        .first().narmesteLederFullName shouldBe null
+                }
+            }
+
+            it("responds with Forbidden when sykmeldt has no active sykmelding") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    coEvery {
+                        dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+                    } returns defaultSykmeldt().copy(narmestelederId = narmestelederId, aktivSykmelding = false)
+
+                    val response = client.post {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.Forbidden
+                    testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer) shouldBe emptyList()
+                }
+            }
+
+            it("responds with Conflict when an aktiv plan exists") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(narmesteLederId = narmestelederId),
+                    )
+
+                    val response = client.post {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.Conflict
+                    testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer) shouldBe emptyList()
+                }
+            }
+
+            it("responds with Conflict when an utkast exists") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    testDb.upsertOppfolgingsplanUtkast(
+                        narmesteLederFnr = pidInnlogetBruker,
+                        sykmeldt = sykmeldt,
+                        lagreUtkastRequest = defaultUtkastRequest(),
+                    )
+
+                    val response = client.post {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.Conflict
+                    testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer) shouldBe emptyList()
+                }
+            }
+
+            it("responds with Created when an unntaksvurdering already exists — newest decides status") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+                    coEvery { pdlServiceMock.getNameFor(pidInnlogetBruker) } returns "Maren Hegna"
+
+                    val existing = testDb.persistUnntaksvurdering(pidInnlogetBruker, sykmeldt, "Maren Hegna")
+
+                    val response = client.post {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.Created
+                    val alle = testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+                    alle.size shouldBe 2
+                    alle.last().uuid shouldBe existing
+
+                    val overviewResponse = client.get {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
+                        bearerAuth("Bearer token")
+                    }
+                    val overview = overviewResponse.body<ArbeidsgiverOppfolgingsplanOverviewResponse>().oversikt
+                    overview.gjeldendeStatus shouldBe GjeldendeStatus.IKKE_AKTUELT
+                    overview.unntaksvurderinger.first().id shouldBe alle.first().uuid
+                }
+            }
+        }
     })
