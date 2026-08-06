@@ -19,6 +19,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.db.domain.toUnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
+import no.nav.syfo.oppfolgingsplan.db.existsAktivPlanOrUtkast
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findAllUnntaksvurderingerBy
 import no.nav.syfo.oppfolgingsplan.db.findEventId
@@ -131,16 +132,14 @@ class OppfolgingsplanService(
         narmesteLederFnr: String,
         sykmeldt: Sykmeldt,
     ): UUID {
-        val (aktivPlanFinnes, utkastFinnes) = withContext(Dispatchers.IO) {
-            val aktivPlan = database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer).firstOrNull()
-            val utkast = database.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
-            (aktivPlan != null) to (utkast != null)
+        val existing = withContext(Dispatchers.IO) {
+            database.existsAktivPlanOrUtkast(sykmeldt.fnr, sykmeldt.orgnummer)
         }
 
-        if (aktivPlanFinnes) {
+        if (existing.aktivPlanExists) {
             throw ApiErrorException.Conflict("Cannot meld unntaksvurdering when an aktiv oppfolgingsplan exists")
         }
-        if (utkastFinnes) {
+        if (existing.utkastExists) {
             throw ApiErrorException.Conflict("Cannot meld unntaksvurdering when an oppfolgingsplan utkast exists")
         }
 

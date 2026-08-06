@@ -53,6 +53,7 @@ import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
+import java.time.Instant
 import java.util.UUID
 
 class UnntaksvurderingApiV1Test :
@@ -367,6 +368,36 @@ class UnntaksvurderingApiV1Test :
 
                     response.status shouldBe HttpStatusCode.Conflict
                     testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer) shouldBe emptyList()
+                }
+            }
+
+            it("responds with Created when only skjulte or feilregistrerte planer exist") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+                    coEvery { pdlServiceMock.getNameFor(pidInnlogetBruker) } returns "Maren Hegna"
+
+                    testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            narmesteLederId = narmestelederId,
+                            skjultFra = Instant.now(),
+                        ),
+                    )
+                    testDb.persistOppfolgingsplan(
+                        defaultPersistedOppfolgingsplan().copy(
+                            uuid = UUID.randomUUID(),
+                            narmesteLederId = narmestelederId,
+                            feilregistrert = Instant.now(),
+                        ),
+                    )
+
+                    val response = client.post {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.Created
+                    testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer).size shouldBe 1
                 }
             }
 
