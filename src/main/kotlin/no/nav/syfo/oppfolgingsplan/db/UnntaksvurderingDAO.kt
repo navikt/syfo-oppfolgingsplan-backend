@@ -64,6 +64,26 @@ fun DatabaseInterface.findAllUnntaksvurderingerBy(
     }
 }
 
+fun DatabaseInterface.setUnntaksvurderingNarmesteLederFullName(
+    uuid: UUID,
+    narmesteLederFullName: String,
+) {
+    val statement = """
+        UPDATE unntaksvurdering
+        SET narmeste_leder_full_name = ?
+        WHERE uuid = ?
+    """.trimIndent()
+
+    connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, narmesteLederFullName)
+            preparedStatement.setObject(2, uuid)
+            preparedStatement.executeUpdate()
+        }
+        connection.commit()
+    }
+}
+
 fun ResultSet.mapToUnntaksvurdering(): PersistedUnntaksvurdering = PersistedUnntaksvurdering(
     uuid = getObject("uuid") as UUID,
     sykmeldtFnr = getString("sykmeldt_fnr"),

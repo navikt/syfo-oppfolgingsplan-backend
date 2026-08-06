@@ -16,6 +16,8 @@ data class OversiktResponseData(
     val utkast: UtkastMetadata?,
     val aktivPlan: OppfolgingsplanMetadata?,
     val tidligerePlaner: List<OppfolgingsplanMetadata>,
+    val unntaksvurderinger: List<UnntaksvurderingMetadata>,
+    val gjeldendeStatus: GjeldendeStatus,
 )
 
 data class OppfolgingsplanMetadata(

@@ -15,9 +15,12 @@ import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
+import no.nav.syfo.oppfolgingsplan.db.domain.toUnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
+import no.nav.syfo.oppfolgingsplan.db.findAllUnntaksvurderingerBy
 import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
@@ -26,6 +29,7 @@ import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.oppfolgingsplan.db.setUnntaksvurderingNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.setVarselPublished
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
@@ -39,6 +43,7 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
+import no.nav.syfo.oppfolgingsplan.dto.utledGjeldendeStatus
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -248,13 +253,20 @@ class OppfolgingsplanService(
     }.firstOrNull()
 
     suspend fun getOppfolgingsplanOverviewFor(sykmeldt: Sykmeldt): ArbeidsgiverOppfolgingsplanOverviewResponse {
-        val (utkast, oppfolgingsplaner) = withContext(Dispatchers.IO) {
+        val (utkast, oppfolgingsplaner, unntaksvurderinger) = withContext(Dispatchers.IO) {
             val utkast = database.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
                 ?.toUtkastMetadata()
             val oppfolgingsplaner = database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
                 .map { it.toOppfolgingsplanMetadata() }
-            utkast to oppfolgingsplaner
+            val unntaksvurderinger = database.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+            Triple(utkast, oppfolgingsplaner, unntaksvurderinger)
         }
+
+        val unntaksvurderingMetadata = unntaksvurderinger
+            .map { getAndSetUnntaksvurderingNarmestelederFullname(it) }
+            .map { it.toUnntaksvurderingMetadata(sykmeldt.getOrganizationName()) }
+
+        val aktivPlan = oppfolgingsplaner.firstOrNull()
 
         return ArbeidsgiverOppfolgingsplanOverviewResponse(
             userHasEditAccess = sykmeldt.aktivSykmelding == true,
@@ -268,10 +280,27 @@ class OppfolgingsplanService(
             ),
             oversikt = OversiktResponseData(
                 utkast = utkast,
-                aktivPlan = oppfolgingsplaner.firstOrNull(),
+                aktivPlan = aktivPlan,
                 tidligerePlaner = oppfolgingsplaner.drop(1),
+                unntaksvurderinger = unntaksvurderingMetadata,
+                gjeldendeStatus = utledGjeldendeStatus(utkast, aktivPlan, unntaksvurderingMetadata),
             ),
         )
+    }
+
+    private suspend fun getAndSetUnntaksvurderingNarmestelederFullname(
+        unntaksvurdering: PersistedUnntaksvurdering,
+    ): PersistedUnntaksvurdering = if (unntaksvurdering.narmesteLederFullName.isNullOrEmpty()) {
+        pdlService.getNameFor(
+            unntaksvurdering.narmesteLederFnr,
+        )?.let { narmesteLederName ->
+            withContext(Dispatchers.IO) {
+                database.setUnntaksvurderingNarmesteLederFullName(unntaksvurdering.uuid, narmesteLederName)
+            }
+            unntaksvurdering.copy(narmesteLederFullName = narmesteLederName)
+        } ?: unntaksvurdering
+    } else {
+        unntaksvurdering
     }
 
     suspend fun getPersistedOppfolgingsplanListBy(
