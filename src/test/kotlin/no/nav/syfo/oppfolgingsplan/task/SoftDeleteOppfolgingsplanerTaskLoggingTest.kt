@@ -24,6 +24,7 @@ class SoftDeleteOppfolgingsplanerTaskLoggingTest :
                 val counterBefore = COUNT_OPPFOLGINGSPLAN_SOFT_DELETED.count()
 
                 coEvery { oppfolgingsplanService.softDeleteExpiredOppfolgingsplaner() } returns 3
+                coEvery { oppfolgingsplanService.softDeleteExpiredUnntaksvurderinger() } returns 0
 
                 val task = SoftDeleteOppfolgingsplanerTask(
                     leaderElection = leaderElection,
@@ -44,6 +45,7 @@ class SoftDeleteOppfolgingsplanerTaskLoggingTest :
                 val appender = ListAppender<ILoggingEvent>().apply { start() }
 
                 coEvery { oppfolgingsplanService.softDeleteExpiredOppfolgingsplaner() } returns 0
+                coEvery { oppfolgingsplanService.softDeleteExpiredUnntaksvurderinger() } returns 0
                 val originalLevel = logger.level
                 logger.level = Level.INFO
                 logger.addAppender(appender)
