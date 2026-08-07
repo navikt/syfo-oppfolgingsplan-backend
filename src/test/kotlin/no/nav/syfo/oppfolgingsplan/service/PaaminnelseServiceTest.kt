@@ -188,13 +188,15 @@ class PaaminnelseServiceTest :
             }
 
             it("rejects deactivatePaaminnelse when status is SKJULT because the ordering window has passed") {
+                val synligFra = LocalDate.of(2025, 5, 1)
                 seedSyketilfelle(
-                    startDato = LocalDate.of(2025, 5, 1),
+                    startDato = synligFra,
                     tom = LocalDate.of(2025, 6, 30),
                 )
                 TestDB.database.upsertPaaminnelse(
                     sykmeldt = defaultSykmeldt(),
                     bestilt = true,
+                    forlopFom = synligFra,
                 )
 
                 shouldThrow<BadRequestException> {

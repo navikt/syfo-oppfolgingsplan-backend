@@ -327,10 +327,12 @@ class PaaminnelseApiTest :
 
             it("DELETE should respond with BadRequest when status is SKJULT because the ordering window has passed") {
                 withTestApplication {
-                    seedAktivtSyketilfelle(startDato = LocalDate.now().minusDays(30))
+                    val synligFra = LocalDate.now().minusDays(30)
+                    seedAktivtSyketilfelle(startDato = synligFra)
                     testDb.upsertPaaminnelse(
                         sykmeldt = defaultSykmeldt(),
                         bestilt = true,
+                        forlopFom = synligFra,
                     )
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,

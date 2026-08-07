@@ -13,4 +13,10 @@ src/generated
 
 # OS specific
 .DS_Store
-docs/
+
+# Genererte dokumenter, men ADR-er sjekkes inn
+docs/*
+!docs/adr/
+
+# Lokale arbeidsnotater (ikke sjekkes inn)
+.local-notes/

@@ -2,10 +2,14 @@ package no.nav.syfo.oppfolgingsplan.db.domain
 
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
 import java.time.Instant
+import java.time.LocalDate
+import java.util.UUID
 
 data class PersistedPaaminnelse(
+    val uuid: UUID,
     val organisasjonsnummer: String,
     val sykmeldtFnr: String,
+    val forlopFom: LocalDate,
     val bestilt: Boolean,
     val createdAt: Instant,
     val updatedAt: Instant,

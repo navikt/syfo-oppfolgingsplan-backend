@@ -18,6 +18,8 @@ import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.kafka.stringProducerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
+import no.nav.syfo.application.outbox.OutboxProcessor
+import no.nav.syfo.application.outbox.OutboxTask
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
@@ -36,6 +38,7 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
+import no.nav.syfo.oppfolgingsplan.outbox.PaaminnelseOutboxHandler
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.oppfolgingsplan.task.CleanupUtkastTask
@@ -230,6 +233,14 @@ private fun servicesModule() = module {
         )
     }
     single { PaaminnelseService(database = get(), sykmeldingsperiodeRepository = get()) }
+    single { PaaminnelseOutboxHandler() }
+    single {
+        OutboxProcessor(
+            database = get(),
+            handlers = listOf(get<PaaminnelseOutboxHandler>()),
+        )
+    }
+    single { OutboxTask(get(), get()) }
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }

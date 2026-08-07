@@ -13,6 +13,7 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
+import java.sql.Connection
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Timestamp
@@ -403,6 +404,35 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
             it.setInt(2, batchSize)
             it.executeUpdate()
         }.also { connection.commit() }
+    }
+}
+
+/**
+ * Transaction-scoped variant. Neither commits nor closes the connection.
+ */
+internal fun Connection.existsOppfolgingsplanCreatedAfterForlopStart(
+    sykmeldtFnr: String,
+    organisasjonsnummer: String,
+    forlopStart: Instant,
+): Boolean {
+    prepareStatement(
+        """
+        SELECT 1
+        FROM oppfolgingsplan
+        WHERE sykmeldt_fnr = ?
+          AND organisasjonsnummer = ?
+          AND skjult_fra IS NULL
+          AND feilregistrert IS NULL
+          AND created_at >= ?
+        LIMIT 1
+        """.trimIndent(),
+    ).use { preparedStatement ->
+        preparedStatement.setString(1, sykmeldtFnr)
+        preparedStatement.setString(2, organisasjonsnummer)
+        preparedStatement.setTimestamp(3, Timestamp.from(forlopStart))
+        preparedStatement.executeQuery().use { resultSet ->
+            return resultSet.next()
+        }
     }
 }
 

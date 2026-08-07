@@ -3,6 +3,7 @@ package no.nav.syfo.sykmelding.db
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.sykmelding.db.domain.PersistedSykmeldingsperiode
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
+import java.sql.Connection
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Statement
@@ -98,43 +99,54 @@ class SykmeldingsperiodeRepository(
         sykmeldtFnr: String,
         organisasjonsnummer: String,
         today: LocalDate,
-    ): LocalDate? {
-        val lookbackDate = today.minusDays(FIND_EARLIEST_FOM_LOOKBACK_DAYS.toLong())
-        val statement = """
-            SELECT fom, tom
-            FROM sykmeldingsperiode
-            WHERE sykmeldt_fnr = ?
-              AND organisasjonsnummer = ?
-              AND invalidated_at IS NULL
-              AND fom <= ?
-              AND tom >= ?
-            ORDER BY tom DESC, fom DESC
-        """.trimIndent()
+    ): LocalDate? = database.connection.use { connection ->
+        connection.findEarliestFom(
+            sykmeldtFnr = sykmeldtFnr,
+            organisasjonsnummer = organisasjonsnummer,
+            today = today,
+        )
+    }
+}
 
-        val sykmeldingsperioder = database.connection.use { connection ->
-            var idx = 0
-            connection.prepareStatement(statement).use { preparedStatement ->
-                preparedStatement.setString(++idx, sykmeldtFnr)
-                preparedStatement.setString(++idx, organisasjonsnummer)
-                preparedStatement.setDate(++idx, Date.valueOf(today))
-                preparedStatement.setDate(++idx, Date.valueOf(lookbackDate))
-                preparedStatement.executeQuery().use { resultSet ->
-                    buildList {
-                        while (resultSet.next()) {
-                            add(resultSet.toSykmeldingsperiodeInterval())
-                        }
-                    }
+/**
+ * Transaction-scoped variant. Neither commits nor closes the connection.
+ */
+internal fun Connection.findEarliestFom(
+    sykmeldtFnr: String,
+    organisasjonsnummer: String,
+    today: LocalDate,
+): LocalDate? {
+    val lookbackDate = today.minusDays(FIND_EARLIEST_FOM_LOOKBACK_DAYS.toLong())
+    val statement = """
+        SELECT fom, tom
+        FROM sykmeldingsperiode
+        WHERE sykmeldt_fnr = ?
+          AND organisasjonsnummer = ?
+          AND invalidated_at IS NULL
+          AND fom <= ?
+          AND tom >= ?
+        ORDER BY tom DESC, fom DESC
+    """.trimIndent()
+
+    val sykmeldingsperioder = buildList {
+        var idx = 0
+        prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(++idx, sykmeldtFnr)
+            preparedStatement.setString(++idx, organisasjonsnummer)
+            preparedStatement.setDate(++idx, Date.valueOf(today))
+            preparedStatement.setDate(++idx, Date.valueOf(lookbackDate))
+            preparedStatement.executeQuery().use { resultSet ->
+                while (resultSet.next()) {
+                    add(resultSet.toSykmeldingsperiodeInterval())
                 }
             }
         }
-
-        return sykmeldingsperioder.findEarliestContinuousFom(today)
     }
 
-    private companion object {
-        const val FIND_EARLIEST_FOM_LOOKBACK_DAYS = 50
-    }
+    return sykmeldingsperioder.findEarliestContinuousFom(today)
 }
+
+private const val FIND_EARLIEST_FOM_LOOKBACK_DAYS = 50
 
 private fun ResultSet.toPersistedSykmeldingsperiode(): PersistedSykmeldingsperiode = PersistedSykmeldingsperiode(
     id = getObject("id", UUID::class.java),

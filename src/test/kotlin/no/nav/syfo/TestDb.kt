@@ -14,6 +14,7 @@ import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.wait.strategy.HostPortWaitStrategy
 import java.sql.Connection
 import java.sql.Date
+import java.sql.DriverManager
 import java.sql.Timestamp
 import java.sql.Types
 import java.time.Instant
@@ -63,6 +64,9 @@ class TestDB private constructor() {
     companion object {
         val database: DatabaseInterface
 
+        const val DB_USERNAME = "username"
+        const val DB_PASSWORD = "password"
+
         private val psqlContainer: PsqlContainer
 
         init {
@@ -76,21 +80,29 @@ class TestDB private constructor() {
 
                 psqlContainer.waitingFor(HostPortWaitStrategy())
                 psqlContainer.start()
-                val username = "username"
-                val password = "password"
                 val connectionName = psqlContainer.jdbcUrl
 
-                database = TestDatabase(connectionName, username, password)
+                database = TestDatabase(connectionName, DB_USERNAME, DB_PASSWORD)
             } catch (ex: Exception) {
                 log.error("Error", ex)
                 throw ex
             }
         }
 
+        /**
+         * Opens a connection outside the pooled [database], which has a pool size of one. Needed by
+         * tests that require two genuinely concurrent transactions. The caller owns commit,
+         * rollback and close.
+         */
+        fun newConnection(): Connection = DriverManager
+            .getConnection(psqlContainer.jdbcUrl, DB_USERNAME, DB_PASSWORD)
+            .apply { autoCommit = false }
+
         fun clearAllData() = database.connection.use {
             it
                 .prepareStatement(
                     """
+                    DELETE FROM outbox;
                     DELETE FROM paaminnelse;
                     DELETE FROM sykmeldingsperiode;
                     DELETE FROM oppfolgingsplan_utkast;
