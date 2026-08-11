@@ -18,6 +18,8 @@ import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.kafka.stringProducerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
+import no.nav.syfo.application.outbox.OutboxProcessor
+import no.nav.syfo.application.outbox.OutboxTask
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
@@ -36,11 +38,12 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
+import no.nav.syfo.oppfolgingsplan.outbox.LegacyOppfolgingsplanOutboxReconciler
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.oppfolgingsplan.task.CleanupUtkastTask
-import no.nav.syfo.oppfolgingsplan.task.PublishUnpublishedBudstikkaVarslerTask
 import no.nav.syfo.oppfolgingsplan.task.SoftDeleteOppfolgingsplanerTask
 import no.nav.syfo.oppfolgingsplan.task.SoftDeleteUnntaksvurderingerTask
 import no.nav.syfo.pdfgen.PdfGenService
@@ -209,7 +212,6 @@ private fun kafkeProducerModule() = module {
                         put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000)
                     },
             ),
-            env().minSideSykmeldtOppfolgingsplanUrl,
         )
     }
 }
@@ -228,7 +230,6 @@ private fun servicesModule() = module {
         OppfolgingsplanService(
             database = get(),
             esyfovarselProducer = get(),
-            budstikkaPublisher = get(),
             pdlService = get(),
             aaregService = get(),
             unntaksvurderingService = get(),
@@ -238,7 +239,23 @@ private fun servicesModule() = module {
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }
-    single { PublishUnpublishedBudstikkaVarslerTask(get(), get()) }
+    single {
+        OppfolgingsplanCreatedOutboxHandler(
+            publisher = get(),
+            oppfolgingsplanUrl = env().minSideSykmeldtOppfolgingsplanUrl,
+        )
+    }
+    single {
+        LegacyOppfolgingsplanOutboxReconciler()
+    }
+    single {
+        OutboxProcessor(
+            database = get(),
+            handlers = listOf(get<OppfolgingsplanCreatedOutboxHandler>()),
+            reconcilers = listOf(get<LegacyOppfolgingsplanOutboxReconciler>()),
+        )
+    }
+    single { OutboxTask(get(), get()) }
     single {
         SoftDeleteOppfolgingsplanerTask(
             leaderElection = get(),

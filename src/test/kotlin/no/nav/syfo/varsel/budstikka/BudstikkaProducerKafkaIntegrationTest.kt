@@ -7,8 +7,8 @@ import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
 import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.Varseltype
+import no.nav.syfo.oppfolgingsplan.outbox.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
-import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.consumer.KafkaConsumer
@@ -53,11 +53,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                         consumer.poll(Duration.ofMillis(100))
 
                         runBlocking {
-                            BudstikkaProducer(kafkaProducer, oppfolgingsplanUrl).publishOppfolgingsplanCreated(
-                                oppfolgingsplanUuid = oppfolgingsplanUuid,
-                                sykmeldtFnr = sykmeldtFnr,
-                                eventId = eventId,
-                            )
+                            BudstikkaProducer(kafkaProducer).publish(expectedDispatch)
                         }
 
                         val record = consumer.pollSingleRecord()

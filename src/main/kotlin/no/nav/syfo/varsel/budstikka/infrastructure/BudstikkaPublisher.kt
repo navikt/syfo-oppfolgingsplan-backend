@@ -1,11 +1,7 @@
 package no.nav.syfo.varsel.budstikka.infrastructure
 
-import java.util.UUID
+import no.nav.budstikka.contract.EncodedDispatch
 
 interface BudstikkaPublisher {
-    suspend fun publishOppfolgingsplanCreated(
-        oppfolgingsplanUuid: UUID,
-        sykmeldtFnr: String,
-        eventId: UUID,
-    )
+    suspend fun publish(dispatch: EncodedDispatch)
 }

@@ -12,8 +12,8 @@ import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
 import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.Varseltype
+import no.nav.syfo.oppfolgingsplan.outbox.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
-import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -29,13 +29,13 @@ class BudstikkaProducerTest :
     DescribeSpec({
         val kafkaProducerMock = mockk<KafkaProducer<String, String>>()
         val budstikkaOppfolgingsplanSykmeldtUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
-        val producer = BudstikkaProducer(kafkaProducerMock, budstikkaOppfolgingsplanSykmeldtUrl)
+        val producer = BudstikkaProducer(kafkaProducerMock)
 
         beforeTest {
             clearAllMocks(currentThreadOnly = true)
         }
 
-        describe("publishOppfolgingsplanCreated") {
+        describe("publish") {
             it("sends ProducerRecord with topic, key, header and serialized dispatch") {
                 val future = mockk<Future<RecordMetadata>>()
                 val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
@@ -52,11 +52,7 @@ class BudstikkaProducerTest :
                 every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
 
-                producer.publishOppfolgingsplanCreated(
-                    oppfolgingsplanUuid = oppfolgingsplanUuid,
-                    sykmeldtFnr = sykmeldtFnr,
-                    eventId = eventId,
-                )
+                producer.publish(expectedDispatch)
 
                 verify(exactly = 1) {
                     kafkaProducerMock.send(
@@ -82,13 +78,17 @@ class BudstikkaProducerTest :
                 val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
                 every { failedFuture.get(250, TimeUnit.MILLISECONDS) } throws TimeoutException("Forced")
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns failedFuture
+                val dispatch = Budstikka.brukervarselCreate(
+                    eventId = EventId(eventId),
+                    reference = "0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4",
+                    sykmeldt = PersonIdentifier("12345678901"),
+                    varseltype = Varseltype.BESKJED,
+                    text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
+                    link = budstikkaOppfolgingsplanSykmeldtUrl,
+                )
 
                 val error = shouldThrow<Exception> {
-                    producer.publishOppfolgingsplanCreated(
-                        oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4"),
-                        sykmeldtFnr = "12345678901",
-                        eventId = eventId,
-                    )
+                    producer.publish(dispatch)
                 }
 
                 error.message shouldContain "Forced"

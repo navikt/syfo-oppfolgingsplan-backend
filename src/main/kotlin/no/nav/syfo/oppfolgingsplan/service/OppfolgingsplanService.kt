@@ -3,7 +3,6 @@ package no.nav.syfo.oppfolgingsplan.service
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.ApiErrorException
@@ -13,22 +12,18 @@ import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.db.domain.PersistedBudstikkaVarsel
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
-import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
-import no.nav.syfo.oppfolgingsplan.db.findUnpublishedBudstikkaVarsler
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
-import no.nav.syfo.oppfolgingsplan.db.setVarselPublished
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
@@ -45,10 +40,6 @@ import no.nav.syfo.oppfolgingsplan.dto.utledGjeldendeStatus
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
-import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
-import no.nav.syfo.varsel.budstikka.infrastructure.COUNT_BUDSTIKKA_OPPFOLGINGSPLAN_VARSEL_FAILED
-import no.nav.syfo.varsel.budstikka.infrastructure.COUNT_BUDSTIKKA_OPPFOLGINGSPLAN_VARSEL_PUBLISHED
-import no.nav.syfo.varsel.budstikka.infrastructure.COUNT_BUDSTIKKA_OPPFOLGINGSPLAN_VARSEL_RETRIED
 import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
 import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
@@ -66,7 +57,6 @@ const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
     private val esyfovarselProducer: EsyfovarselProducer,
-    private val budstikkaPublisher: BudstikkaPublisher,
     private val pdlService: PdlService,
     private val aaregService: AaregService,
     private val unntaksvurderingService: UnntaksvurderingService,
@@ -93,7 +83,7 @@ class OppfolgingsplanService(
             null
         }
 
-        val uuid = withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.IO) {
             database.persistOppfolgingsplanAndDeleteUtkast(
                 narmesteLederFnr = narmesteLederFnr,
                 sykmeldt = sykmeldt,
@@ -102,63 +92,6 @@ class OppfolgingsplanService(
                 stillingsprosent = stillingsinformasjon?.stillingsprosent,
             )
         }
-
-        val eventId = database.findEventId(uuid)
-
-        val varsel = PersistedBudstikkaVarsel(
-            oppfolgingsplanUuid = uuid,
-            sykmeldtFnr = sykmeldt.fnr,
-            eventId = eventId,
-        )
-        try {
-            publishBudstikkaVarsel(varsel)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            COUNT_BUDSTIKKA_OPPFOLGINGSPLAN_VARSEL_FAILED.increment()
-            logBudstikkaPublishError(varsel, e)
-        }
-
-        return uuid
-    }
-
-    suspend fun retryUnpublishedBudstikkaVarsler(batchSize: Int = 100): Int {
-        val varsler = database.findUnpublishedBudstikkaVarsler(batchSize)
-        var publishedCount = 0
-
-        varsler.forEach { varsel ->
-            try {
-                publishBudstikkaVarsel(varsel)
-                COUNT_BUDSTIKKA_OPPFOLGINGSPLAN_VARSEL_RETRIED.increment()
-                publishedCount++
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                COUNT_BUDSTIKKA_OPPFOLGINGSPLAN_VARSEL_FAILED.increment()
-                logBudstikkaPublishError(varsel, e)
-            }
-        }
-
-        return publishedCount
-    }
-
-    private suspend fun publishBudstikkaVarsel(varsel: PersistedBudstikkaVarsel) {
-        budstikkaPublisher.publishOppfolgingsplanCreated(
-            oppfolgingsplanUuid = varsel.oppfolgingsplanUuid,
-            sykmeldtFnr = varsel.sykmeldtFnr,
-            eventId = varsel.eventId,
-        )
-        database.setVarselPublished(varsel.oppfolgingsplanUuid)
-        COUNT_BUDSTIKKA_OPPFOLGINGSPLAN_VARSEL_PUBLISHED.increment()
-    }
-
-    private fun logBudstikkaPublishError(varsel: PersistedBudstikkaVarsel, exception: Exception) {
-        logger.error(
-            "Error when publishing Budstikka varsel {} {}",
-            kv("oppfolgingsplanUuid", varsel.oppfolgingsplanUuid),
-            kv("eventId", varsel.eventId),
-            exception,
-        )
     }
 
     suspend fun persistOppfolgingsplanUtkast(

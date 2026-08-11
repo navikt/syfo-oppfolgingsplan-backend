@@ -37,7 +37,7 @@ class TestDatabase(
                 jdbcUrl = connectionName
                 username = dbUsername
                 password = dbPassword
-                maximumPoolSize = 1
+                maximumPoolSize = 4
                 minimumIdle = 1
                 isAutoCommit = false
                 connectionTimeout = 10_000
@@ -94,6 +94,7 @@ class TestDB private constructor() {
             it
                 .prepareStatement(
                     """
+                    DELETE FROM outbox;
                     DELETE FROM unntaksvurdering;
                     DELETE FROM paaminnelse;
                     DELETE FROM sykmeldingsperiode;
@@ -245,26 +246,6 @@ fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
         val resultSet = it.executeQuery()
         if (resultSet.next()) {
             resultSet.toOppfolgingsplanUtkastDTO()
-        } else {
-            null
-        }
-    }
-}
-
-fun DatabaseInterface.findVarselPublishedAtByOppfolgingsplanId(
-    oppfolgingsplanId: UUID,
-): Instant? = connection.use { connection ->
-    connection.prepareStatement(
-        """
-        SELECT varsel_published_at
-        FROM oppfolgingsplan
-        WHERE uuid = ?
-        """.trimIndent(),
-    ).use {
-        it.setObject(1, oppfolgingsplanId)
-        val resultSet = it.executeQuery()
-        if (resultSet.next()) {
-            resultSet.getTimestamp("varsel_published_at")?.toInstant()
         } else {
             null
         }
