@@ -35,8 +35,8 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
 import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelse
-import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatusDto
+import no.nav.syfo.oppfolgingsplan.model.PaaminnelseStatus
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
@@ -168,7 +168,6 @@ class PaaminnelseApiTest :
                     response.status shouldBe HttpStatusCode.OK
                     response.body<PaaminnelseStatusDto>() shouldBe PaaminnelseStatusDto(
                         status = PaaminnelseStatus.TILGJENGELIG,
-                        synligFra = startDato,
                     )
                 }
             }
@@ -196,7 +195,6 @@ class PaaminnelseApiTest :
                     response.status shouldBe HttpStatusCode.OK
                     response.body<PaaminnelseStatusDto>() shouldBe PaaminnelseStatusDto(
                         status = PaaminnelseStatus.SKJULT,
-                        synligFra = startDato,
                     )
                 }
             }
@@ -327,12 +325,12 @@ class PaaminnelseApiTest :
 
             it("DELETE should respond with BadRequest when status is SKJULT because the ordering window has passed") {
                 withTestApplication {
-                    val synligFra = LocalDate.now().minusDays(30)
-                    seedAktivtSyketilfelle(startDato = synligFra)
+                    val forlopFom = LocalDate.now().minusDays(30)
+                    seedAktivtSyketilfelle(startDato = forlopFom)
                     testDb.upsertPaaminnelse(
                         sykmeldt = defaultSykmeldt(),
                         bestilt = true,
-                        forlopFom = synligFra,
+                        forlopFom = forlopFom,
                     )
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,

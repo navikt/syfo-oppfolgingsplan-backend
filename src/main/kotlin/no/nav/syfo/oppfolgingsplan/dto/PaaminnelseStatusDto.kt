@@ -1,14 +1,14 @@
 package no.nav.syfo.oppfolgingsplan.dto
 
-import java.time.LocalDate
-
-enum class PaaminnelseStatus {
-    SKJULT,
-    TILGJENGELIG,
-    BESTILT,
-}
+import no.nav.syfo.oppfolgingsplan.model.Paaminnelse
+import no.nav.syfo.oppfolgingsplan.model.PaaminnelseStatus
 
 data class PaaminnelseStatusDto(
     val status: PaaminnelseStatus,
-    val synligFra: LocalDate? = null,
 )
+
+fun Paaminnelse.toDTO(): PaaminnelseStatusDto {
+     return PaaminnelseStatusDto(
+         status = this.status,
+     )
+ }

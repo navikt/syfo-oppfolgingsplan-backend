@@ -112,7 +112,3 @@ components:
       properties:
         status:
           $ref: '#/components/schemas/PaaminnelseStatus'
-        synligFra:
-          type: string
-          format: date
-          nullable: true

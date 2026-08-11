@@ -9,7 +9,7 @@ import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
 import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelse
-import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
+import no.nav.syfo.oppfolgingsplan.model.PaaminnelseStatus
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
@@ -54,7 +54,7 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.SKJULT
-                status.synligFra shouldBe null
+                status.forlopFom shouldBe null
             }
 
             it("returns SKJULT when bestillingsvinduet has passed") {
@@ -66,7 +66,7 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.SKJULT
-                status.synligFra shouldBe LocalDate.of(2025, 5, 1)
+                status.forlopFom shouldBe LocalDate.of(2025, 5, 1)
             }
 
             it("returns TILGJENGELIG inside the window when no paaminnelse is ordered") {
@@ -78,25 +78,25 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.TILGJENGELIG
-                status.synligFra shouldBe LocalDate.of(2025, 6, 1)
+                status.forlopFom shouldBe LocalDate.of(2025, 6, 1)
             }
 
-            it("returns TILGJENGELIG when an oppfolgingsplan exists from after synligFra") {
-                val synligFra = LocalDate.of(2025, 6, 1)
+            it("returns TILGJENGELIG when an oppfolgingsplan exists from after forlopFom") {
+                val forlopFom = LocalDate.of(2025, 6, 1)
                 seedSyketilfelle(
-                    startDato = synligFra,
+                    startDato = forlopFom,
                     tom = LocalDate.of(2025, 6, 30),
                 )
                 TestDB.database.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
-                        createdAt = synligFra.atStartOfDay(fixedClock.zone).toInstant().minusSeconds(1),
+                        createdAt = forlopFom.atStartOfDay(fixedClock.zone).toInstant().minusSeconds(1),
                     ),
                 )
 
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.TILGJENGELIG
-                status.synligFra shouldBe synligFra
+                status.forlopFom shouldBe forlopFom
             }
 
             it("returns SKJULT when an oppfolgingsplan already exists but from prior to current syketilfelle") {
@@ -109,33 +109,33 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.SKJULT
-                status.synligFra shouldBe LocalDate.of(2025, 6, 1)
+                status.forlopFom shouldBe LocalDate.of(2025, 6, 1)
             }
 
-            it("returns TILGJENGELIG on day 23 after synligFra") {
-                val synligFra = LocalDate.of(2025, 5, 27)
+            it("returns TILGJENGELIG on day 23 after forlopFom") {
+                val forlopFom = LocalDate.of(2025, 5, 26)
                 seedSyketilfelle(
-                    startDato = synligFra,
+                    startDato = forlopFom,
                     tom = LocalDate.of(2025, 6, 30),
                 )
 
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.TILGJENGELIG
-                status.synligFra shouldBe synligFra
+                status.forlopFom shouldBe forlopFom
             }
 
-            it("returns SKJULT on day 24 after synligFra") {
-                val synligFra = LocalDate.of(2025, 5, 26)
+            it("returns SKJULT on day 24 after forlopFom") {
+                val forlopFom = LocalDate.of(2025, 5, 25)
                 seedSyketilfelle(
-                    startDato = synligFra,
+                    startDato = forlopFom,
                     tom = LocalDate.of(2025, 6, 30),
                 )
 
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.SKJULT
-                status.synligFra shouldBe synligFra
+                status.forlopFom shouldBe forlopFom
             }
 
             it("returns BESTILT inside the window when paaminnelse is ordered") {
@@ -148,7 +148,7 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.BESTILT
-                status.synligFra shouldBe LocalDate.of(2025, 6, 1)
+                status.forlopFom shouldBe LocalDate.of(2025, 6, 1)
             }
         }
 
@@ -164,19 +164,19 @@ class PaaminnelseServiceTest :
 
                 bestilt.status shouldBe PaaminnelseStatus.BESTILT
                 avbestilt.status shouldBe PaaminnelseStatus.TILGJENGELIG
-                bestilt.synligFra shouldBe LocalDate.of(2025, 6, 1)
-                avbestilt.synligFra shouldBe LocalDate.of(2025, 6, 1)
+                bestilt.forlopFom shouldBe LocalDate.of(2025, 6, 1)
+                avbestilt.forlopFom shouldBe LocalDate.of(2025, 6, 1)
             }
 
             it("rejects activatePaaminnelse when status is SKJULT because an oppfolgingsplan already exists in the current syketilfelle") {
-                val synligFra = LocalDate.of(2025, 6, 1)
+                val forlopFom = LocalDate.of(2025, 6, 1)
                 seedSyketilfelle(
-                    startDato = synligFra,
+                    startDato = forlopFom,
                     tom = LocalDate.of(2025, 6, 30),
                 )
                 TestDB.database.persistOppfolgingsplan(
                     defaultPersistedOppfolgingsplan().copy(
-                        createdAt = synligFra.atStartOfDay(fixedClock.zone).toInstant(),
+                        createdAt = forlopFom.atStartOfDay(fixedClock.zone).toInstant(),
                     ),
                 )
 
@@ -188,15 +188,15 @@ class PaaminnelseServiceTest :
             }
 
             it("rejects deactivatePaaminnelse when status is SKJULT because the ordering window has passed") {
-                val synligFra = LocalDate.of(2025, 5, 1)
+                val forlopFom = LocalDate.of(2025, 5, 1)
                 seedSyketilfelle(
-                    startDato = synligFra,
+                    startDato = forlopFom,
                     tom = LocalDate.of(2025, 6, 30),
                 )
                 TestDB.database.upsertPaaminnelse(
                     sykmeldt = defaultSykmeldt(),
                     bestilt = true,
-                    forlopFom = synligFra,
+                    forlopFom = forlopFom,
                 )
 
                 shouldThrow<BadRequestException> {

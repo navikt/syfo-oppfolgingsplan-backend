@@ -13,6 +13,7 @@ import no.nav.syfo.application.outbox.execute
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
 import no.nav.syfo.oppfolgingsplan.db.paaminnelseDedupKey
+import no.nav.syfo.oppfolgingsplan.service.PAAMINNELSE_ETTER_DAGER
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
@@ -26,7 +27,7 @@ class PaaminnelseOutboxHandlerTest :
     DescribeSpec({
         val database = TestDB.database
         val zoneId = ZoneId.of("Europe/Oslo")
-        val now = Instant.parse("2025-06-04T10:00:00Z")
+        val now = Instant.parse("2025-06-25T10:00:00Z")
         val forlopFom = LocalDate.of(2025, 6, 1)
         val repository = SykmeldingsperiodeRepository(database)
         fun service() = PaaminnelseService(database, repository, Clock.fixed(now, zoneId))
@@ -64,7 +65,7 @@ class PaaminnelseOutboxHandlerTest :
 
             val message = outbox().shouldNotBeNull()
             message.status shouldBe OutboxStatus.KLAR
-            message.scheduledAt shouldBe now
+            message.scheduledAt shouldBe forlopFom.plusDays(PAAMINNELSE_ETTER_DAGER).atStartOfDay(zoneId).toInstant()
             configuredJacksonMapper.readTree(message.payload).path("messageType").asText() shouldBe
                 OutboxMessageType.PAAMINNELSE_OPPFOLGINGSPLAN.name
             message.payload shouldNotContain defaultSykmeldt().fnr

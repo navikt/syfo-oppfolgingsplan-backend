@@ -14,6 +14,7 @@ import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_PAAMINNELSE_AVBESTILT
 import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_PAAMINNELSE_BESTILT
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.AuthorizeLeaderAccessToSykmeldtPlugin
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.CALL_ATTRIBUTE_SYKMELDT
+import no.nav.syfo.oppfolgingsplan.dto.toDTO
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.texas.TexasTokenXAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
@@ -40,7 +41,7 @@ fun Route.registerPaaminnelseApi(
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
             call.respond(
                 HttpStatusCode.OK,
-                paaminnelseService.getPaaminnelseStatus(sykmeldt),
+                paaminnelseService.getPaaminnelseStatus(sykmeldt).toDTO(),
             )
         }
 

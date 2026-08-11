@@ -1,6 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.db.domain
 
-import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
+import no.nav.syfo.oppfolgingsplan.model.PaaminnelseStatus
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
