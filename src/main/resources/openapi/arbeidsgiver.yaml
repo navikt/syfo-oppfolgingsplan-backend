@@ -108,7 +108,7 @@ paths:
         Nytt unntak kan meldes når et unntak allerede gjelder; det nyeste
         avgjør gjeldende status.
         Krever aktiv sykmelding.
-      operationId: meldUnntaksvurdering
+      operationId: createUnntaksvurdering
       security:
         - bearerAuth: []
       parameters:

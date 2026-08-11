@@ -104,11 +104,11 @@ fun Route.registerArbeidsgiverOppfolgingsplanApiV1(
 
             if (sykmeldt.aktivSykmelding != true) {
                 throw ApiErrorException.Forbidden(
-                    "Cannot meld unntaksvurdering for sykmeldt without active sykmelding",
+                    "Cannot create unntaksvurdering for sykmeldt without active sykmelding",
                 )
             }
 
-            oppfolgingsplanService.meldUnntaksvurdering(
+            oppfolgingsplanService.createUnntaksvurdering(
                 innloggetBruker.ident,
                 sykmeldt,
             )

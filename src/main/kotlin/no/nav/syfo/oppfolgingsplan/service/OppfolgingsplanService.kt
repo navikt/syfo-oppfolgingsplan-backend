@@ -128,7 +128,7 @@ class OppfolgingsplanService(
         return uuid
     }
 
-    suspend fun meldUnntaksvurdering(
+    suspend fun createUnntaksvurdering(
         narmesteLederFnr: String,
         sykmeldt: Sykmeldt,
     ): UUID {
@@ -137,10 +137,10 @@ class OppfolgingsplanService(
         }
 
         if (existing.aktivPlanExists) {
-            throw ApiErrorException.Conflict("Cannot meld unntaksvurdering when an aktiv oppfolgingsplan exists")
+            throw ApiErrorException.Conflict("Cannot create unntaksvurdering when an aktiv oppfolgingsplan exists")
         }
         if (existing.utkastExists) {
-            throw ApiErrorException.Conflict("Cannot meld unntaksvurdering when an oppfolgingsplan utkast exists")
+            throw ApiErrorException.Conflict("Cannot create unntaksvurdering when an oppfolgingsplan utkast exists")
         }
 
         val narmesteLederFullName = pdlService.getNameFor(narmesteLederFnr)
