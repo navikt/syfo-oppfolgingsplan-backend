@@ -4,20 +4,20 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.string.shouldNotContain
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import no.nav.syfo.varsel.budstikka.domain.DispatchHeader
-import no.nav.syfo.varsel.budstikka.infrastructure.BUDSTIKKA_TOPIC
+import no.nav.budstikka.contract.Budstikka
+import no.nav.budstikka.contract.EventId
+import no.nav.budstikka.contract.PersonIdentifier
+import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.TopicPartition
-import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -39,29 +39,38 @@ class BudstikkaProducerTest :
             it("sends ProducerRecord with topic, key, header and serialized dispatch") {
                 val future = mockk<Future<RecordMetadata>>()
                 val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
+                val oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
+                val sykmeldtFnr = "12345678901"
+                val expectedDispatch = Budstikka.brukervarselCreate(
+                    eventId = EventId(eventId),
+                    reference = oppfolgingsplanUuid.toString(),
+                    sykmeldt = PersonIdentifier(sykmeldtFnr),
+                    varseltype = Varseltype.BESKJED,
+                    text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
+                    link = budstikkaOppfolgingsplanSykmeldtUrl,
+                )
                 every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
 
                 producer.publishOppfolgingsplanCreated(
-                    oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4"),
-                    sykmeldtFnr = "12345678901",
+                    oppfolgingsplanUuid = oppfolgingsplanUuid,
+                    sykmeldtFnr = sykmeldtFnr,
                     eventId = eventId,
                 )
 
                 verify(exactly = 1) {
                     kafkaProducerMock.send(
                         withArg {
-                            val eventIdHeader = it.headers().lastHeader(DispatchHeader.EVENT_ID).value().toString(StandardCharsets.UTF_8)
-                            it.topic() shouldBe BUDSTIKKA_TOPIC
-                            it.key() shouldBe "12345678901"
-                            eventIdHeader shouldBe eventId.toString()
-                            it.value() shouldContain "\"type\":\"BrukervarselCreate\""
-                            it.value() shouldNotContain "\"eventId\""
-                            it.value() shouldContain "\"reference\":\"0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4\""
-                            it.value() shouldContain "\"personIdentifier\":\"12345678901\""
-                            it.value() shouldContain "\"varseltype\":\"BESKJED\""
-                            it.value() shouldContain "\"text\":\"${OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT}\""
-                            it.value() shouldContain "\"link\":\"$budstikkaOppfolgingsplanSykmeldtUrl\""
+                            val actualHeaders = it.headers().associate { header ->
+                                header.key() to header.value().toList()
+                            }
+                            val expectedHeaders = expectedDispatch.headerBytes().mapValues { (_, value) ->
+                                value.toList()
+                            }
+                            it.topic() shouldBe expectedDispatch.topic
+                            it.key() shouldBe expectedDispatch.key
+                            it.value() shouldBe expectedDispatch.value
+                            actualHeaders shouldBe expectedHeaders
                         },
                     )
                 }

@@ -255,6 +255,69 @@ class OppfolgingsplanServiceTest :
                     }
                 }
 
+                it("should retry unpublished Budstikka varsel with the persisted eventId only once") {
+                    val aaregService = mockk<AaregService>()
+                    val budstikkaPublisher = mockk<BudstikkaPublisher>()
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        budstikkaPublisher = budstikkaPublisher,
+                        aaregService = aaregService,
+                    )
+                    coEvery {
+                        aaregService.getStillingsinformasjon("12345678901", "orgnummer")
+                    } returns Stillingsinformasjon(
+                        stillingstittel = "Systemutvikler",
+                        stillingsprosent = BigDecimal("80.50"),
+                    )
+                    coEvery {
+                        budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
+                    } throws RuntimeException("boom")
+
+                    val uuid = service.createOppfolgingsplan(
+                        narmesteLederFnr = "10987654321",
+                        sykmeldt = defaultSykmeldt(),
+                        createOppfolgingsplanRequest = defaultOppfolgingsplan(),
+                    )
+                    val eventId = TestDB.database.findEventId(uuid)
+                    TestDB.database.findVarselPublishedAtByOppfolgingsplanId(uuid).shouldBeNull()
+
+                    coEvery {
+                        budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
+                    } just Runs
+
+                    service.retryUnpublishedBudstikkaVarsler() shouldBe 1
+                    TestDB.database.findVarselPublishedAtByOppfolgingsplanId(uuid).shouldNotBeNull()
+                    service.retryUnpublishedBudstikkaVarsler() shouldBe 0
+
+                    coVerify(exactly = 2) {
+                        budstikkaPublisher.publishOppfolgingsplanCreated(
+                            oppfolgingsplanUuid = uuid,
+                            sykmeldtFnr = "12345678901",
+                            eventId = eventId,
+                        )
+                    }
+                }
+
+                it("should ignore historical oppfolgingsplan without eventId during retry") {
+                    val budstikkaPublisher = mockk<BudstikkaPublisher>(relaxed = true)
+                    val service = OppfolgingsplanService(
+                        database = TestDB.database,
+                        pdlService = mockk(relaxed = true),
+                        esyfovarselProducer = mockk(relaxed = true),
+                        budstikkaPublisher = budstikkaPublisher,
+                        aaregService = mockk(relaxed = true),
+                    )
+                    TestDB.database.persistOppfolgingsplan(defaultPersistedOppfolgingsplan())
+
+                    service.retryUnpublishedBudstikkaVarsler() shouldBe 0
+
+                    coVerify(exactly = 0) {
+                        budstikkaPublisher.publishOppfolgingsplanCreated(any(), any(), any())
+                    }
+                }
+
                 it("should rethrow cancellation exception from aareg") {
                     val aaregService = mockk<AaregService>()
                     val service = OppfolgingsplanService(

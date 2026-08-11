@@ -40,6 +40,7 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.oppfolgingsplan.task.CleanupUtkastTask
+import no.nav.syfo.oppfolgingsplan.task.PublishUnpublishedBudstikkaVarslerTask
 import no.nav.syfo.oppfolgingsplan.task.SoftDeleteOppfolgingsplanerTask
 import no.nav.syfo.oppfolgingsplan.task.SoftDeleteUnntaksvurderingerTask
 import no.nav.syfo.pdfgen.PdfGenService
@@ -237,6 +238,7 @@ private fun servicesModule() = module {
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }
+    single { PublishUnpublishedBudstikkaVarslerTask(get(), get()) }
     single {
         SoftDeleteOppfolgingsplanerTask(
             leaderElection = get(),
