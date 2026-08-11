@@ -21,8 +21,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
-// Shared by oppfolgingsplan and unntaksvurdering soft delete — one interval, one rule.
-internal const val SOFT_DELETE_RETENTION_INTERVAL = "6 months"
 private fun logger() = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
