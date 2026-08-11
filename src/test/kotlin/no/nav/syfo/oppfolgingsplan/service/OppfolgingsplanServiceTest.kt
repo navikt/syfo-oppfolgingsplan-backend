@@ -94,6 +94,7 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
                         budstikkaPublisher = mockk(relaxed = true),
                         aaregService = mockk(relaxed = true),
+                        unntaksvurderingService = mockk(relaxed = true),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
                     val plan = defaultPersistedOppfolgingsplan().copy(
@@ -123,6 +124,7 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
                         budstikkaPublisher = mockk(relaxed = true),
                         aaregService = mockk(relaxed = true),
+                        unntaksvurderingService = mockk(relaxed = true),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
                     val plan = defaultPersistedOppfolgingsplan()
@@ -153,6 +155,7 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         budstikkaPublisher = budstikkaPublisher,
                         aaregService = aaregService,
+                        unntaksvurderingService = mockk(relaxed = true),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -193,6 +196,7 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         budstikkaPublisher = budstikkaPublisher,
                         aaregService = aaregService,
+                        unntaksvurderingService = mockk(relaxed = true),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -222,6 +226,7 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = esyfovarselProducer,
                         budstikkaPublisher = budstikkaPublisher,
                         aaregService = aaregService,
+                        unntaksvurderingService = mockk(relaxed = true),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -258,6 +263,7 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         budstikkaPublisher = mockk(relaxed = true),
                         aaregService = aaregService,
+                        unntaksvurderingService = mockk(relaxed = true),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -327,6 +333,7 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         budstikkaPublisher = mockk(relaxed = true),
                         aaregService = mockk(relaxed = true),
+                        unntaksvurderingService = mockk(relaxed = true),
                     )
                     val expiredDraft = defaultPersistedOppfolgingsplanUtkast().copy(
                         narmesteLederId = "leder-expired-default-path",
@@ -367,6 +374,7 @@ class OppfolgingsplanServiceTest :
                     esyfovarselProducer = esyfovarselProducer,
                     budstikkaPublisher = budstikkaPublisher,
                     aaregService = aaregService,
+                    unntaksvurderingService = mockk(relaxed = true),
                 )
                 coEvery {
                     aaregService.getStillingsinformasjon("12845678901", "orgnummer")
@@ -397,6 +405,7 @@ class OppfolgingsplanServiceTest :
                     esyfovarselProducer = esyfovarselProducer,
                     budstikkaPublisher = budstikkaPublisher,
                     aaregService = aaregService,
+                    unntaksvurderingService = mockk(relaxed = true),
                 )
                 coEvery {
                     aaregService.getStillingsinformasjon("12845678901", "orgnummer")

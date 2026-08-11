@@ -111,6 +111,7 @@ class OppfolgingsplanApiV1Test :
             budstikkaPublisher = budstikkaPublisherMock,
             pdlService = pdlServiceMock,
             aaregService = aaregServiceMock,
+            unntaksvurderingService = mockk(relaxed = true),
         )
         val environment: Environment = LocalEnvironment()
 
@@ -136,6 +137,7 @@ class OppfolgingsplanApiV1Test :
                             DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
                             texasClientMock,
                             oppfolgingsplanService = oppfolgingsplanService,
+                            unntaksvurderingService = mockk(relaxed = true),
                             pdfGenService = pdfGenServiceMock,
                             isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                             dokarkivService = dokarkivServiceMock,

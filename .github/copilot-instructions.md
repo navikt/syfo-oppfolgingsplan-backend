@@ -62,7 +62,7 @@ Examples: upgrading frameworks, changing test patterns, adding auth mechanisms, 
 - **Language**: Kotlin
 - **Framework**: Ktor
 - **Build**: Gradle (Kotlin DSL)
-- **Database**: PostgreSQL (via JDBC (HikariCP))
+- **Database**: PostgreSQL via HikariCP; Exposed JDBC DSL for new data access, with legacy JDBC migrated incrementally
 - **Messaging**: Apache Kafka
 - **Testing**: Kotest, MockK
 - **Auth**: Les NAIS-manifestene i prosjektet for å finne hvilke auth-mekanismer som er konfigurert (mulige: Azure AD, TokenX, ID-porten, Maskinporten)
@@ -70,6 +70,10 @@ Examples: upgrading frameworks, changing test patterns, adding auth mechanisms, 
 ## Backend Patterns
 - Check `build.gradle.kts` for actual dependencies before suggesting libraries
 - Use Flyway for all database migrations — never modify existing migrations
+- Use Exposed JDBC DSL for new database operations; migrate existing JDBC only when it is explicitly in scope
+- Reuse the configured HikariCP data source and pass the Exposed database explicitly to transactions
+- Keep Exposed database entry points suspend-based and dispatch blocking JDBC work through the shared transaction helper
+- Parameterized raw SQL is an allowed escape hatch when a query cannot reasonably be expressed with the Exposed DSL
 - Parameterized queries always — never string interpolation in SQL
 - Follow the existing data access pattern in the repository (extension functions, repositories, etc.)
 - Structured logging — check which pattern this repo uses (KotlinLogging, SLF4J, kv() fields, MDC)

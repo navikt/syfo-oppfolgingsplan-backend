@@ -38,8 +38,10 @@ import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
+import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.oppfolgingsplan.task.CleanupUtkastTask
 import no.nav.syfo.oppfolgingsplan.task.SoftDeleteOppfolgingsplanerTask
+import no.nav.syfo.oppfolgingsplan.task.SoftDeleteUnntaksvurderingerTask
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdfgen.client.PdfGenClient
 import no.nav.syfo.pdl.PdlService
@@ -220,6 +222,7 @@ private fun servicesModule() = module {
     single { LeaderElection(get(), env().electorPath) }
     single { PdlService(get()) }
     single { AaregService(get()) }
+    single { UnntaksvurderingService(database = get(), pdlService = get()) }
     single {
         OppfolgingsplanService(
             database = get(),
@@ -227,6 +230,7 @@ private fun servicesModule() = module {
             budstikkaPublisher = get(),
             pdlService = get(),
             aaregService = get(),
+            unntaksvurderingService = get(),
         )
     }
     single { PaaminnelseService(database = get(), sykmeldingsperiodeRepository = get()) }
@@ -238,6 +242,13 @@ private fun servicesModule() = module {
             leaderElection = get(),
             oppfolgingsplanService = get(),
             interval = SoftDeleteOppfolgingsplanerTask.intervalForEnvironment(isProdEnv()),
+        )
+    }
+    single {
+        SoftDeleteUnntaksvurderingerTask(
+            leaderElection = get(),
+            unntaksvurderingService = get(),
+            interval = SoftDeleteUnntaksvurderingerTask.intervalForEnvironment(isProdEnv()),
         )
     }
     single { SykmeldingsperiodeRepository(get()) }

@@ -95,6 +95,38 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/arbeidsgiver/{narmesteLederId}/unntaksvurderinger:
+    post:
+      tags:
+        - Unntaksvurdering
+      summary: Meld at oppfølgingsplan ikke er aktuell (unntaksvurdering)
+      description: |
+        Melder et unntak fra å lage oppfølgingsplan for den sykmeldte
+        («oppfølgingsplan er ikke aktuell nå»). Ingen request-body — årsak
+        eller fritekst mottas ikke og lagres ikke.
+        Avvises når det finnes aktiv plan eller utkast for samme arbeidsforhold.
+        Nytt unntak kan meldes når et unntak allerede gjelder; det nyeste
+        avgjør gjeldende status.
+        Krever aktiv sykmelding.
+      operationId: createUnntaksvurdering
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/NarmesteLederId'
+      responses:
+        '201':
+          description: Unntaksvurdering meldt
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/SykmeldtNotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/aktiv-plan:
     get:
       tags:
@@ -559,6 +591,8 @@ components:
       type: object
       required:
         - tidligerePlaner
+        - unntaksvurderinger
+        - gjeldendeStatus
       properties:
         utkast:
           $ref: '#/components/schemas/UtkastMetadata'
@@ -570,6 +604,56 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OppfolgingsplanMetadata'
+        unntaksvurderinger:
+          type: array
+          description: Meldte unntaksvurderinger, nyeste først. Egen liste — inngår aldri i tidligerePlaner.
+          items:
+            $ref: '#/components/schemas/UnntaksvurderingMetadata'
+        gjeldendeStatus:
+          $ref: '#/components/schemas/GjeldendeStatus'
+
+    GjeldendeStatus:
+      type: string
+      enum:
+        - AKTIV_PLAN
+        - UTKAST
+        - IKKE_AKTUELT
+        - INGEN
+      description: |
+        Backend-beregnet gjeldende tilstand for arbeidsforholdet.
+        Presedens: AKTIV_PLAN > UTKAST > IKKE_AKTUELT > INGEN.
+
+    UnntaksvurderingMetadata:
+      type: object
+      required:
+        - id
+        - meldtTidspunkt
+        - meldtAv
+        - organization
+      properties:
+        id:
+          type: string
+          format: uuid
+        meldtTidspunkt:
+          type: string
+          format: date-time
+        meldtAv:
+          $ref: '#/components/schemas/MeldtAv'
+        organization:
+          $ref: '#/components/schemas/OrganizationDetails'
+
+    MeldtAv:
+      type: object
+      required:
+        - rolle
+      properties:
+        navn:
+          type: string
+          nullable: true
+        rolle:
+          type: string
+          enum:
+            - ARBEIDSGIVER
 
     OppfolgingsplanResponse:
       type: object

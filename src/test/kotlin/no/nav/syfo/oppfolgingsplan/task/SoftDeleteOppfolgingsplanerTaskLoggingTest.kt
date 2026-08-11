@@ -24,7 +24,6 @@ class SoftDeleteOppfolgingsplanerTaskLoggingTest :
                 val counterBefore = COUNT_OPPFOLGINGSPLAN_SOFT_DELETED.count()
 
                 coEvery { oppfolgingsplanService.softDeleteExpiredOppfolgingsplaner() } returns 3
-
                 val task = SoftDeleteOppfolgingsplanerTask(
                     leaderElection = leaderElection,
                     oppfolgingsplanService = oppfolgingsplanService,

@@ -21,7 +21,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
-private const val OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL = "6 months"
 private fun logger() = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
 
 fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
@@ -399,7 +398,7 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
 
     return connection.use { connection ->
         connection.prepareStatement(statement).use {
-            it.setString(1, OPPFOLGINGSPLAN_SOFT_DELETE_RETENTION_INTERVAL)
+            it.setString(1, SOFT_DELETE_RETENTION_INTERVAL)
             it.setInt(2, batchSize)
             it.executeUpdate()
         }.also { connection.commit() }

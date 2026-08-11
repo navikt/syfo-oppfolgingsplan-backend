@@ -32,6 +32,7 @@ class DokumentportenServiceTest :
             esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
             budstikkaPublisher = mockk(relaxed = true),
             aaregService = mockk<AaregService>(relaxed = true),
+            unntaksvurderingService = mockk(relaxed = true),
         )
 
         beforeTest {

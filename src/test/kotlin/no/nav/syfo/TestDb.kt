@@ -18,6 +18,7 @@ import java.sql.Timestamp
 import java.sql.Types
 import java.time.Instant
 import java.util.UUID
+import org.jetbrains.exposed.v1.jdbc.Database as ExposedDatabase
 
 private val objectMapper = jacksonObjectMapper()
 
@@ -46,6 +47,8 @@ class TestDatabase(
         )
     override val connection: Connection
         get() = dataSource.connection
+
+    override val exposedDatabase: ExposedDatabase = ExposedDatabase.connect(dataSource)
 
     init {
         runFlywayMigrations()
@@ -91,6 +94,7 @@ class TestDB private constructor() {
             it
                 .prepareStatement(
                     """
+                    DELETE FROM unntaksvurdering;
                     DELETE FROM paaminnelse;
                     DELETE FROM sykmeldingsperiode;
                     DELETE FROM oppfolgingsplan_utkast;

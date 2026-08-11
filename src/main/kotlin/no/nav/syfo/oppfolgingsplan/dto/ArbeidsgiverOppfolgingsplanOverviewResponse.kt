@@ -16,6 +16,8 @@ data class OversiktResponseData(
     val utkast: UtkastMetadata?,
     val aktivPlan: OppfolgingsplanMetadata?,
     val tidligerePlaner: List<OppfolgingsplanMetadata>,
+    val unntaksvurderinger: List<UnntaksvurderingMetadata>,
+    val gjeldendeStatus: GjeldendeStatus,
 )
 
 data class OppfolgingsplanMetadata(
@@ -40,3 +42,37 @@ data class SykmeldtOppfolgingsplanOverviewResponse(
     val aktiveOppfolgingsplaner: List<OppfolgingsplanMetadata>,
     val tidligerePlaner: List<OppfolgingsplanMetadata>,
 )
+
+enum class GjeldendeStatus {
+    AKTIV_PLAN,
+    UTKAST,
+    IKKE_AKTUELT,
+    INGEN,
+}
+
+enum class MeldtAvRolle {
+    ARBEIDSGIVER,
+}
+
+data class MeldtAv(
+    val navn: String?,
+    val rolle: MeldtAvRolle,
+)
+
+data class UnntaksvurderingMetadata(
+    val id: UUID,
+    val meldtTidspunkt: Instant,
+    val meldtAv: MeldtAv,
+    val organization: OrganizationDetails,
+)
+
+fun utledGjeldendeStatus(
+    utkast: UtkastMetadata?,
+    aktivPlan: OppfolgingsplanMetadata?,
+    unntaksvurderinger: List<UnntaksvurderingMetadata>,
+): GjeldendeStatus = when {
+    aktivPlan != null -> GjeldendeStatus.AKTIV_PLAN
+    utkast != null -> GjeldendeStatus.UTKAST
+    unntaksvurderinger.isNotEmpty() -> GjeldendeStatus.IKKE_AKTUELT
+    else -> GjeldendeStatus.INGEN
+}

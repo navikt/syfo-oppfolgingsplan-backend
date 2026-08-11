@@ -6,6 +6,7 @@ import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import org.flywaydb.core.Flyway
 import java.sql.Connection
+import org.jetbrains.exposed.v1.jdbc.Database as ExposedDatabase
 
 data class DatabaseConfig(
     val jdbcUrl: String,
@@ -17,9 +18,6 @@ data class DatabaseConfig(
 class Database(
     private val config: DatabaseConfig,
 ) : DatabaseInterface {
-    override val connection: Connection
-        get() = dataSource.connection
-
     private var dataSource: HikariDataSource = HikariDataSource(
         HikariConfig().apply {
             jdbcUrl = config.jdbcUrl
@@ -33,6 +31,11 @@ class Database(
             validate()
         },
     )
+
+    override val connection: Connection
+        get() = dataSource.connection
+
+    override val exposedDatabase: ExposedDatabase = ExposedDatabase.connect(dataSource)
 
     init {
         runFlywayMigrations()
@@ -50,4 +53,5 @@ class Database(
 
 interface DatabaseInterface {
     val connection: Connection
+    val exposedDatabase: ExposedDatabase
 }
