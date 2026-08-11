@@ -45,6 +45,7 @@ import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewRespon
 import no.nav.syfo.oppfolgingsplan.dto.GjeldendeStatus
 import no.nav.syfo.oppfolgingsplan.dto.MeldtAvRolle
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
@@ -84,12 +85,14 @@ class UnntaksvurderingApiV1Test :
             every { valkeyCacheMock.getSykmeldt(any(), any()) } returns null
             coEvery { pdlServiceMock.getNameFor(any()) } returns null
         }
+        val unntaksvurderingService = UnntaksvurderingService(testDb, pdlServiceMock)
         val oppfolgingsplanService = OppfolgingsplanService(
             database = testDb,
             esyfovarselProducer = esyfovarselProducerMock,
             budstikkaPublisher = budstikkaPublisherMock,
             pdlService = pdlServiceMock,
             aaregService = aaregServiceMock,
+            unntaksvurderingService = unntaksvurderingService,
         )
         val environment: Environment = LocalEnvironment()
 
@@ -115,6 +118,7 @@ class UnntaksvurderingApiV1Test :
                             DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
                             texasClientMock,
                             oppfolgingsplanService = oppfolgingsplanService,
+                            unntaksvurderingService = unntaksvurderingService,
                             pdfGenService = pdfGenServiceMock,
                             isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                             dokarkivService = dokarkivServiceMock,
@@ -278,10 +282,10 @@ class UnntaksvurderingApiV1Test :
             }
         }
 
-        describe("POST /oppfolgingsplaner/unntaksvurderinger") {
+        describe("POST /unntaksvurderinger") {
             it("responds with Unauthorized when no token is provided") {
                 withTestApplication {
-                    val response = client.post("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                    val response = client.post("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
                     response.status shouldBe HttpStatusCode.Unauthorized
                 }
             }
@@ -291,7 +295,7 @@ class UnntaksvurderingApiV1Test :
                     texasClientMock.defaultMocks(clientId = "cluster:another-namespace:another-app")
 
                     val response = client.post {
-                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
                         bearerAuth("Bearer token")
                     }
 
@@ -306,7 +310,7 @@ class UnntaksvurderingApiV1Test :
                     coEvery { pdlServiceMock.getNameFor(pidInnlogetBruker) } returns "Maren Hegna"
 
                     val response = client.post {
-                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
                         bearerAuth("Bearer token")
                     }
 
@@ -325,7 +329,7 @@ class UnntaksvurderingApiV1Test :
                     coEvery { pdlServiceMock.getNameFor(pidInnlogetBruker) } returns null
 
                     val response = client.post {
-                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
                         bearerAuth("Bearer token")
                     }
 
@@ -343,7 +347,7 @@ class UnntaksvurderingApiV1Test :
                     } returns defaultSykmeldt().copy(narmestelederId = narmestelederId, aktivSykmelding = false)
 
                     val response = client.post {
-                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
                         bearerAuth("Bearer token")
                     }
 
@@ -362,7 +366,7 @@ class UnntaksvurderingApiV1Test :
                     )
 
                     val response = client.post {
-                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
                         bearerAuth("Bearer token")
                     }
 
@@ -392,7 +396,7 @@ class UnntaksvurderingApiV1Test :
                     )
 
                     val response = client.post {
-                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
                         bearerAuth("Bearer token")
                     }
 
@@ -413,7 +417,7 @@ class UnntaksvurderingApiV1Test :
                     )
 
                     val response = client.post {
-                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
                         bearerAuth("Bearer token")
                     }
 
@@ -431,7 +435,7 @@ class UnntaksvurderingApiV1Test :
                     val existing = testDb.persistUnntaksvurdering(pidInnlogetBruker, sykmeldt, "Maren Hegna")
 
                     val response = client.post {
-                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/unntaksvurderinger")
+                        url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
                         bearerAuth("Bearer token")
                     }
 

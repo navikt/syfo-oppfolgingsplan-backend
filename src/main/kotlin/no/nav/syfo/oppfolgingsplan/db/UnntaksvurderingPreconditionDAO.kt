@@ -15,7 +15,7 @@ data class AktivPlanOrUtkastExists(
  * findAllOppfolgingsplanerBy (skjult_fra/feilregistrert filtered) and
  * findOppfolgingsplanUtkastBy.
  */
-fun DatabaseInterface.existsAktivPlanOrUtkast(
+suspend fun DatabaseInterface.existsAktivPlanOrUtkast(
     sykmeldtFnr: String,
     organisasjonsnummer: String,
 ): AktivPlanOrUtkastExists = exposedTransaction(readOnly = true) {

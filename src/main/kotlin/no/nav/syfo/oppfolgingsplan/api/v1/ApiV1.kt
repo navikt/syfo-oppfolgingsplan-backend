@@ -10,9 +10,11 @@ import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverOppfolgingsplanUtkastApiV1
+import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.registerArbeidsgiverUnntaksvurderingApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.sykmeldt.registerSykmeldtOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.registerVeilederOppfolgingsplanApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.TexasAzureADAuthPlugin
 import no.nav.syfo.texas.TexasTokenXAuthPlugin
@@ -23,6 +25,7 @@ fun Route.registerApiV1(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService,
+    unntaksvurderingService: UnntaksvurderingService,
     pdfGenService: PdfGenService,
     isDialogmeldingService: IsDialogmeldingService,
     isTilgangskontrollService: IsTilgangskontrollService,
@@ -48,6 +51,11 @@ fun Route.registerApiV1(
             dineSykmeldteService,
             texasHttpClient,
             oppfolgingsplanService,
+        )
+        registerArbeidsgiverUnntaksvurderingApiV1(
+            dineSykmeldteService,
+            texasHttpClient,
+            unntaksvurderingService,
         )
     }
     route("/api/v1/sykmeldt") {

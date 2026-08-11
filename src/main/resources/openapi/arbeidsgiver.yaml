@@ -95,10 +95,10 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
-  /api/v1/arbeidsgiver/{narmesteLederId}/oppfolgingsplaner/unntaksvurderinger:
+  /api/v1/arbeidsgiver/{narmesteLederId}/unntaksvurderinger:
     post:
       tags:
-        - Oppfølgingsplan
+        - Unntaksvurdering
       summary: Meld at oppfølgingsplan ikke er aktuell (unntaksvurdering)
       description: |
         Melder et unntak fra å lage oppfølgingsplan for den sykmeldte

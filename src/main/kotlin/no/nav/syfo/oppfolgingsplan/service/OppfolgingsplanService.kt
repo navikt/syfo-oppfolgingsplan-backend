@@ -15,26 +15,19 @@ import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplanUtkast
-import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.domain.toOppfolgingsplanMetadata
-import no.nav.syfo.oppfolgingsplan.db.domain.toUnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
-import no.nav.syfo.oppfolgingsplan.db.existsAktivPlanOrUtkast
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
-import no.nav.syfo.oppfolgingsplan.db.findAllUnntaksvurderingerBy
 import no.nav.syfo.oppfolgingsplan.db.findEventId
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
-import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
-import no.nav.syfo.oppfolgingsplan.db.setUnntaksvurderingNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.setVarselPublished
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
-import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredUnntaksvurderinger
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
@@ -58,7 +51,6 @@ import java.time.ZoneId
 import java.util.UUID
 
 const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
-const val OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS = 1000
 
 /**
  * Service for managing oppfølgingsplaner.
@@ -72,6 +64,7 @@ class OppfolgingsplanService(
     private val budstikkaPublisher: BudstikkaPublisher,
     private val pdlService: PdlService,
     private val aaregService: AaregService,
+    private val unntaksvurderingService: UnntaksvurderingService,
 ) {
     private val logger = logger()
 
@@ -126,28 +119,6 @@ class OppfolgingsplanService(
         }
 
         return uuid
-    }
-
-    suspend fun createUnntaksvurdering(
-        narmesteLederFnr: String,
-        sykmeldt: Sykmeldt,
-    ): UUID {
-        val existing = withContext(Dispatchers.IO) {
-            database.existsAktivPlanOrUtkast(sykmeldt.fnr, sykmeldt.orgnummer)
-        }
-
-        if (existing.aktivPlanExists) {
-            throw ApiErrorException.Conflict("Cannot create unntaksvurdering when an aktiv oppfolgingsplan exists")
-        }
-        if (existing.utkastExists) {
-            throw ApiErrorException.Conflict("Cannot create unntaksvurdering when an oppfolgingsplan utkast exists")
-        }
-
-        val narmesteLederFullName = pdlService.getNameFor(narmesteLederFnr)
-
-        return withContext(Dispatchers.IO) {
-            database.persistUnntaksvurdering(narmesteLederFnr, sykmeldt, narmesteLederFullName)
-        }
     }
 
     suspend fun persistOppfolgingsplanUtkast(
@@ -278,18 +249,15 @@ class OppfolgingsplanService(
     }.firstOrNull()
 
     suspend fun getOppfolgingsplanOverviewFor(sykmeldt: Sykmeldt): ArbeidsgiverOppfolgingsplanOverviewResponse {
-        val (utkast, oppfolgingsplaner, unntaksvurderinger) = withContext(Dispatchers.IO) {
+        val (utkast, oppfolgingsplaner) = withContext(Dispatchers.IO) {
             val utkast = database.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
                 ?.toUtkastMetadata()
             val oppfolgingsplaner = database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
                 .map { it.toOppfolgingsplanMetadata() }
-            val unntaksvurderinger = database.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
-            Triple(utkast, oppfolgingsplaner, unntaksvurderinger)
+            Pair(utkast, oppfolgingsplaner)
         }
 
-        val unntaksvurderingMetadata = unntaksvurderinger
-            .map { getAndSetUnntaksvurderingNarmestelederFullname(it) }
-            .map { it.toUnntaksvurderingMetadata(sykmeldt.getOrganizationName()) }
+        val unntaksvurderingMetadata = unntaksvurderingService.getUnntaksvurderingerFor(sykmeldt)
 
         val aktivPlan = oppfolgingsplaner.firstOrNull()
 
@@ -313,21 +281,6 @@ class OppfolgingsplanService(
         )
     }
 
-    private suspend fun getAndSetUnntaksvurderingNarmestelederFullname(
-        unntaksvurdering: PersistedUnntaksvurdering,
-    ): PersistedUnntaksvurdering = if (unntaksvurdering.narmesteLederFullName.isNullOrEmpty()) {
-        pdlService.getNameFor(
-            unntaksvurdering.narmesteLederFnr,
-        )?.let { narmesteLederName ->
-            withContext(Dispatchers.IO) {
-                database.setUnntaksvurderingNarmesteLederFullName(unntaksvurdering.uuid, narmesteLederName)
-            }
-            unntaksvurdering.copy(narmesteLederFullName = narmesteLederName)
-        } ?: unntaksvurdering
-    } else {
-        unntaksvurdering
-    }
-
     suspend fun getPersistedOppfolgingsplanListBy(
         sykmeldtFnr: String,
         inkluderSkjulte: Boolean = false,
@@ -339,42 +292,9 @@ class OppfolgingsplanService(
     }
 
     suspend fun softDeleteExpiredOppfolgingsplaner(): Int = withContext(Dispatchers.IO) {
-        runSoftDeleteBatchLoop(
-            maxBatchIterations = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
-        ) {
+        runSoftDeleteBatchLoop {
             database.softDeleteExpiredOppfolgingsplaner()
         }
-    }
-
-    suspend fun softDeleteExpiredUnntaksvurderinger(): Int = withContext(Dispatchers.IO) {
-        runSoftDeleteBatchLoop(
-            maxBatchIterations = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
-        ) {
-            database.softDeleteExpiredUnntaksvurderinger()
-        }
-    }
-
-    internal fun runSoftDeleteBatchLoop(
-        maxBatchIterations: Int = OPPFOLGINGSPLAN_SOFT_DELETE_MAX_BATCH_ITERATIONS,
-        softDeleteBatch: () -> Int,
-    ): Int {
-        require(maxBatchIterations > 0) {
-            "maxBatchIterations must be greater than 0"
-        }
-
-        var total = 0
-        repeat(maxBatchIterations) { _ ->
-            val count = softDeleteBatch()
-            total += count
-            if (count == 0) {
-                return total
-            }
-        }
-
-        logger.warn(
-            "Stopped soft-delete loop after reaching safeguard of $maxBatchIterations batches; total soft-deleted so far: $total",
-        )
-        return total
     }
 
     suspend fun getAndSetNarmestelederFullname(

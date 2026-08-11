@@ -33,6 +33,7 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             pdlService = mockk(relaxed = true),
             budstikkaPublisher = mockk(relaxed = true),
             aaregService = mockk(relaxed = true),
+            unntaksvurderingService = mockk(relaxed = true),
         )
 
         fun softDeleteAll(batchSize: Int): Pair<Int, Int> {
@@ -370,15 +371,13 @@ class SoftDeleteOppfolgingsplanerTaskTest :
         }
 
         describe("SoftDeleteOppfolgingsplanerTask execute") {
-            it("soft-deletes both oppfolgingsplaner and unntaksvurderinger") {
+            it("soft-deletes oppfolgingsplaner") {
                 val serviceMock = mockk<OppfolgingsplanService>()
                 coEvery { serviceMock.softDeleteExpiredOppfolgingsplaner() } returns 1
-                coEvery { serviceMock.softDeleteExpiredUnntaksvurderinger() } returns 2
 
                 SoftDeleteOppfolgingsplanerTask(mockk(), serviceMock).execute()
 
                 coVerify(exactly = 1) { serviceMock.softDeleteExpiredOppfolgingsplaner() }
-                coVerify(exactly = 1) { serviceMock.softDeleteExpiredUnntaksvurderinger() }
             }
         }
     })

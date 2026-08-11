@@ -79,6 +79,7 @@ class OppfolgingsplanUtkastApiV1Test :
             pdlService = pdlService,
             budstikkaPublisher = mockk(relaxed = true),
             aaregService = mockk<AaregService>(relaxed = true),
+            unntaksvurderingService = mockk(relaxed = true),
         )
         val narmestelederId = UUID.randomUUID().toString()
         val pidInnlogetBruker = "10987654321"
@@ -113,6 +114,7 @@ class OppfolgingsplanUtkastApiV1Test :
                             DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
                             texasClientMock,
                             oppfolgingsplanService = oppfolgingsplanService,
+                            unntaksvurderingService = mockk(relaxed = true),
                             pdfGenService = PdfGenService(pdfGenClient, oppfolgingsplanService),
                             isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                             dokarkivService = dokarkivServiceMock,

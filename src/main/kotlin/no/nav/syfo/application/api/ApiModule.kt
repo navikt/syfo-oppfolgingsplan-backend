@@ -16,6 +16,7 @@ import no.nav.syfo.oppfolgingsplan.api.v1.narmesteleder.registerPaaminnelseApi
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
+import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.plugins.installCallId
 import no.nav.syfo.plugins.installContentNegotiation
@@ -29,6 +30,7 @@ fun Application.configureRouting() {
     val texasHttpClient by inject<TexasHttpClient>()
     val dineSykmeldteService by inject<DineSykmeldteService>()
     val oppfolgingsplanService by inject<OppfolgingsplanService>()
+    val unntaksvurderingService by inject<UnntaksvurderingService>()
     val paaminnelseService by inject<PaaminnelseService>()
     val pdfGenService by inject<PdfGenService>()
     val isDialogmeldingService by inject<IsDialogmeldingService>()
@@ -53,6 +55,7 @@ fun Application.configureRouting() {
             dineSykmeldteService = dineSykmeldteService,
             texasHttpClient = texasHttpClient,
             oppfolgingsplanService = oppfolgingsplanService,
+            unntaksvurderingService = unntaksvurderingService,
             pdfGenService = pdfGenService,
             isDialogmeldingService = isDialogmeldingService,
             isTilgangskontrollService = isTilgangskontrollService,

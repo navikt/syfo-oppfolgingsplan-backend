@@ -72,6 +72,7 @@ Examples: upgrading frameworks, changing test patterns, adding auth mechanisms, 
 - Use Flyway for all database migrations — never modify existing migrations
 - Use Exposed JDBC DSL for new database operations; migrate existing JDBC only when it is explicitly in scope
 - Reuse the configured HikariCP data source and pass the Exposed database explicitly to transactions
+- Keep Exposed database entry points suspend-based and dispatch blocking JDBC work through the shared transaction helper
 - Parameterized raw SQL is an allowed escape hatch when a query cannot reasonably be expressed with the Exposed DSL
 - Parameterized queries always — never string interpolation in SQL
 - Follow the existing data access pattern in the repository (extension functions, repositories, etc.)

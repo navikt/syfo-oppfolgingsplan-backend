@@ -15,7 +15,7 @@ import org.jetbrains.exposed.v1.jdbc.update
 import java.sql.Connection
 import java.util.UUID
 
-fun DatabaseInterface.persistUnntaksvurdering(
+suspend fun DatabaseInterface.persistUnntaksvurdering(
     narmesteLederFnr: String,
     sykmeldt: Sykmeldt,
     narmesteLederFullName: String?,
@@ -28,7 +28,7 @@ fun DatabaseInterface.persistUnntaksvurdering(
     }.single()[UnntaksvurderingTable.uuid]
 }
 
-fun DatabaseInterface.findAllUnntaksvurderingerBy(
+suspend fun DatabaseInterface.findAllUnntaksvurderingerBy(
     sykmeldtFnr: String,
     organisasjonsnummer: String,
 ): List<PersistedUnntaksvurdering> = exposedTransaction(readOnly = true) {
@@ -42,7 +42,7 @@ fun DatabaseInterface.findAllUnntaksvurderingerBy(
         .map { it.toPersistedUnntaksvurdering() }
 }
 
-fun DatabaseInterface.softDeleteExpiredUnntaksvurderinger(
+suspend fun DatabaseInterface.softDeleteExpiredUnntaksvurderinger(
     batchSize: Int = 1000,
 ): Int = exposedTransaction {
     val statement = """
@@ -74,7 +74,7 @@ fun DatabaseInterface.softDeleteExpiredUnntaksvurderinger(
     }
 }
 
-fun DatabaseInterface.setUnntaksvurderingNarmesteLederFullName(
+suspend fun DatabaseInterface.setUnntaksvurderingNarmesteLederFullName(
     uuid: UUID,
     narmesteLederFullName: String,
 ) {

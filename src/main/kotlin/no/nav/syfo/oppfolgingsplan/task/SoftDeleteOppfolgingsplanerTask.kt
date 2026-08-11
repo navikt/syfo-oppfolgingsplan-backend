@@ -3,7 +3,6 @@ package no.nav.syfo.oppfolgingsplan.task
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.task.RecurringTask
 import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPFOLGINGSPLAN_SOFT_DELETED
-import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_UNNTAKSVURDERING_SOFT_DELETED
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
@@ -27,15 +26,6 @@ class SoftDeleteOppfolgingsplanerTask(
             log.info("Soft-deleted $softDeletedOppfolgingsplaner expired oppfolgingsplaner")
         } else {
             log.info("Found 0 expired oppfolgingsplaner to soft-delete")
-        }
-
-        val softDeletedUnntaksvurderinger = oppfolgingsplanService.softDeleteExpiredUnntaksvurderinger()
-
-        if (softDeletedUnntaksvurderinger > 0) {
-            COUNT_UNNTAKSVURDERING_SOFT_DELETED.increment(softDeletedUnntaksvurderinger.toDouble())
-            log.info("Soft-deleted $softDeletedUnntaksvurderinger expired unntaksvurderinger")
-        } else {
-            log.info("Found 0 expired unntaksvurderinger to soft-delete")
         }
     }
 
