@@ -1,5 +1,6 @@
 
 val dataFakerVersion = "2.7.0"
+val budstikkaContractVersion = "0.1.0"
 val exposedVersion = "1.3.1"
 val flywayVersion = "13.1.0"
 val hikariVersion = "7.1.0"
@@ -32,6 +33,7 @@ version = "0.0.1"
 repositories {
     mavenCentral()
     maven(url = "https://packages.confluent.io/maven/")
+    maven(url = "https://github-package-registry-mirror.gc.nav.no/cached/maven-release")
 }
 
 dependencies {
@@ -67,6 +69,7 @@ dependencies {
     implementation("org.apache.kafka:kafka_2.13:$kafkaVersion") {
         exclude(group = "log4j")
     }
+    implementation("no.nav.syfo:budstikka-kontrakt:$budstikkaContractVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-slf4j:$coroutinesVersion")
 
@@ -101,6 +104,7 @@ dependencies {
     testImplementation("io.kotest.extensions:kotest-extensions-koin:1.3.0")
     testImplementation("org.wiremock:wiremock:3.13.2")
     testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
+    testImplementation("org.testcontainers:kafka:$testcontainersVersion")
     testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
 }
 
