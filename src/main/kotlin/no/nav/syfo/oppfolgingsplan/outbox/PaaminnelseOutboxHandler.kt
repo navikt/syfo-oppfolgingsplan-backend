@@ -5,8 +5,10 @@ import no.nav.syfo.application.outbox.OutboxMessageHandler
 import no.nav.syfo.application.outbox.domain.OutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import no.nav.syfo.application.outbox.domain.OutboxRelevans
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedPaaminnelse
 import no.nav.syfo.oppfolgingsplan.db.existsOppfolgingsplanCreatedAfterForlopStart
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
+import no.nav.syfo.oppfolgingsplan.model.Paaminnelse
 import no.nav.syfo.sykmelding.db.findEarliestFom
 import no.nav.syfo.util.configuredJacksonMapper
 import no.nav.syfo.util.logger
@@ -29,25 +31,22 @@ class PaaminnelseOutboxHandler(
 
     override val messageType: OutboxMessageType = OutboxMessageType.PAAMINNELSE_OPPFOLGINGSPLAN
 
-    override fun evaluateRelevance(connection: Connection, message: OutboxMessage, now: Instant): OutboxRelevans {
+    override fun evaluateRelevance(connection: Connection, message: OutboxMessage, now: Instant): List<OutboxRelevans> {
         val forlopFom = configuredJacksonMapper.readValue<PaaminnelsePayload>(message.payload).forlopFom
         val paaminnelse = connection.findPaaminnelseBy(UUID.fromString(message.externalRef))
-            ?: return OutboxRelevans.IkkeRelevant
-
-        if (!paaminnelse.bestilt || paaminnelse.forlopFom != forlopFom) {
-            return OutboxRelevans.IkkeRelevant
-        }
-
-        val earliestFom = connection.findEarliestFom(
+        val earliestFom = paaminnelse?.let { connection.findEarliestFom(
             sykmeldtFnr = paaminnelse.sykmeldtFnr,
             organisasjonsnummer = paaminnelse.organisasjonsnummer,
             today = LocalDate.ofInstant(now, clock.zone),
-        )
-        if (earliestFom != forlopFom) {
-            return OutboxRelevans.IkkeRelevant
-        }
+        )}
+        val oppfolgingsplanCreatedAfterForlopStart = paaminnelse?.let { connection.existsOppfolgingsplanCreatedAfterForlopStart(
+            sykmeldtFnr = paaminnelse.sykmeldtFnr,
+            organisasjonsnummer = paaminnelse.organisasjonsnummer,
+            forlopStart = forlopFom.atStartOfDay(clock.zone).toInstant(),
+        )} ?: false
 
-        return if (
+
+/*        return if (
             connection.existsOppfolgingsplanCreatedAfterForlopStart(
                 sykmeldtFnr = paaminnelse.sykmeldtFnr,
                 organisasjonsnummer = paaminnelse.organisasjonsnummer,
@@ -57,10 +56,31 @@ class PaaminnelseOutboxHandler(
             OutboxRelevans.IkkeRelevant
         } else {
             OutboxRelevans.Relevant
-        }
+        }*/
+        return listOf(paaminnelseIsBestilt(paaminnelse))
     }
 
     override fun send(connection: Connection, message: OutboxMessage) {
         log.info("Påminnelse-outbox payload={}", message.payload)
     }
+
+    fun paaminnelseIsBestilt(paaminnelse: PersistedPaaminnelse?): OutboxRelevans {
+        return when (paaminnelse?.bestilt) {
+            true -> OutboxRelevans.Relevant
+            else -> OutboxRelevans.IkkeRelevant
+        }
+    }
+    fun paaminnelseForlopErGyldig(paaminnelse: PersistedPaaminnelse?, forlopFom: LocalDate): OutboxRelevans {
+        return when (paaminnelse?.forlopFom == forlopFom) {
+            true -> OutboxRelevans.Relevant
+            false -> OutboxRelevans.IkkeRelevant
+        }
+    }
+    fun forlopFomErLikPaaminnelseFom(paaminnelse: PersistedPaaminnelse?, forlopFom: LocalDate): OutboxRelevans {
+        return when (paaminnelse?.forlopFom == forlopFom) {
+            true -> OutboxRelevans.Relevant
+            false -> OutboxRelevans.IkkeRelevant
+        }
+    }
+    fun
 }

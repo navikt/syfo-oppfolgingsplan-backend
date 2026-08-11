@@ -13,7 +13,7 @@ interface OutboxMessageHandler {
     val messageType: OutboxMessageType
 
     /** Decides whether the message should be delivered, discarded, or kept ready for later. */
-    fun evaluateRelevance(connection: Connection, message: OutboxMessage, now: Instant): OutboxRelevans
+    fun evaluateRelevance(connection: Connection, message: OutboxMessage, now: Instant): List<OutboxRelevans>
 
     fun send(connection: Connection, message: OutboxMessage)
 }
