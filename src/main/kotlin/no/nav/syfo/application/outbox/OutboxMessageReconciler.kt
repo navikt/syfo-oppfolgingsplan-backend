@@ -1,7 +1,7 @@
 package no.nav.syfo.application.outbox
 
-import java.sql.Connection
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 
 fun interface OutboxMessageReconciler {
-    fun reconcile(connection: Connection): Int
+    fun reconcile(transaction: JdbcTransaction): Int
 }

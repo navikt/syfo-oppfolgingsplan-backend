@@ -166,9 +166,10 @@ class OppfolgingsplanServiceTest :
                     val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
                     persisted.stillingstittel shouldBe "Systemutvikler"
                     persisted.stillingsprosent shouldBe BigDecimal("80.50")
-                    val outboxMessage = TestDB.database.connection.use {
-                        it.findOutboxMessage(OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET, uuid.toString())
-                    }
+                    val outboxMessage = TestDB.database.findOutboxMessage(
+                        OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET,
+                        uuid.toString(),
+                    )
                     outboxMessage.shouldNotBeNull()
                     outboxMessage.uuid shouldBe TestDB.database.connection.use { connection ->
                         connection.prepareStatement("SELECT event_id FROM oppfolgingsplan WHERE uuid = ?").use {

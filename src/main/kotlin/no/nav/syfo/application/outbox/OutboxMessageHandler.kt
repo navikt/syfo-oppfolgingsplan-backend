@@ -2,13 +2,13 @@ package no.nav.syfo.application.outbox
 
 import no.nav.syfo.application.outbox.domain.OutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
-import java.sql.Connection
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 
 interface OutboxMessageHandler {
     val messageType: OutboxMessageType
 
     suspend fun process(
-        connection: Connection,
+        transaction: JdbcTransaction,
         message: OutboxMessage,
     ): OutboxResult
 }

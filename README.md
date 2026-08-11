@@ -130,7 +130,9 @@ Tjenesten bruker Kafka i begge retninger:
 
 ### Tilbakerulling av Budstikka-piloten
 
-Rull applikasjonen tilbake til forrige image for å stoppe outbox-oppgaven og gå tilbake til forrige kontraktversjon. De gamle varselkolonnene beholdes mens piloten pågår, slik at forrige image kan bruke samme `event_id`. Nye event-ID-er ved ny sending vil omgå dedupliseringen i Budstikka.
+Rull applikasjonen tilbake til forrige image for å stoppe outbox-oppgaven og gå tilbake til forrige kontraktversjon. Forrige image kan ikke drenere outbox-tabellen: `READY`-rader som er opprettet av den nye versjonen blir liggende usendt frem til tjenesten rulles frem igjen. Før en planlagt tilbakeføring må køen derfor dreneres og kontrolleres; etter en nødtilbakeføring må en roll-forward brukes for å gjenoppta leveringen.
+
+De gamle varselkolonnene beholdes mens piloten pågår for skjema- og imagekompatibilitet. Unngå manuell republisering med nye event-ID-er, siden det omgår dedupliseringen i Budstikka.
   
 ## Database og cache
 

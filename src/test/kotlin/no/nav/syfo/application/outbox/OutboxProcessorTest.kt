@@ -22,21 +22,30 @@ import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EncodedDispatch
 import no.nav.budstikka.contract.EventId
 import no.nav.budstikka.contract.PersonIdentifier
+import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.TestDB
+import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.db.insertOutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import no.nav.syfo.application.outbox.domain.OutboxStatus
 import no.nav.syfo.defaultPersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanOutboxTable
 import no.nav.syfo.oppfolgingsplan.outbox.LegacyOppfolgingsplanOutboxReconciler
 import no.nav.syfo.oppfolgingsplan.outbox.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
-import java.sql.Connection
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
+import org.jetbrains.exposed.v1.jdbc.select
+import java.time.Clock
+import java.time.Duration
 import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -80,6 +89,7 @@ class OutboxProcessorTest :
                     varseltype = Varseltype.BESKJED,
                     text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
                     link = OPPFOLGINGSPLAN_URL,
+                    sendingWindow = SendingWindow.ONGOING,
                 )
                 publishedDispatch.captured.topic shouldBe expectedDispatch.topic
                 publishedDispatch.captured.key shouldBe expectedDispatch.key
@@ -173,7 +183,7 @@ class OutboxProcessorTest :
                     override val messageType = OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET
 
                     override suspend fun process(
-                        connection: Connection,
+                        transaction: JdbcTransaction,
                         message: OutboxMessage,
                     ): OutboxResult {
                         if (message.uuid == firstMessageUuid) {
@@ -257,6 +267,36 @@ class OutboxProcessorTest :
                 coVerify(exactly = 1) { publisher.publish(any()) }
             }
 
+            it("does not reconcile plans that already have an outbox message") {
+                val planUuid = TestDB.database.persistOppfolgingsplan(defaultPersistedOppfolgingsplan())
+                val eventId = TestDB.database.findEventId(planUuid).shouldNotBeNull()
+                TestDB.database.insertTestOutboxMessage(eventId, planUuid)
+
+                val reconciled = TestDB.database.exposedTransaction {
+                    LegacyOppfolgingsplanOutboxReconciler().reconcile(this)
+                }
+
+                reconciled shouldBeExactly 0
+            }
+
+            it("does not reconcile plans outside the rolling-deployment window") {
+                val now = Instant.parse("2026-08-11T10:00:00Z")
+                val oldPlan = defaultPersistedOppfolgingsplan().copy(
+                    createdAt = now.minus(Duration.ofDays(2)),
+                )
+                val planUuid = TestDB.database.persistOppfolgingsplan(oldPlan)
+
+                val reconciled = TestDB.database.exposedTransaction {
+                    LegacyOppfolgingsplanOutboxReconciler(
+                        clock = Clock.fixed(now, ZoneOffset.UTC),
+                        lookback = Duration.ofDays(1),
+                    ).reconcile(this)
+                }
+
+                reconciled shouldBeExactly 0
+                TestDB.database.findTestOutboxMessage(planUuid).shouldBeNull()
+            }
+
             it("does not let two processors claim the same message") {
                 val externalRef = UUID.randomUUID()
                 TestDB.database.insertTestOutboxMessage(UUID.randomUUID(), externalRef)
@@ -267,7 +307,7 @@ class OutboxProcessorTest :
                     override val messageType = OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET
 
                     override suspend fun process(
-                        connection: Connection,
+                        transaction: JdbcTransaction,
                         message: OutboxMessage,
                     ): OutboxResult {
                         processCount.incrementAndGet()
@@ -316,44 +356,34 @@ class OutboxProcessorTest :
 
 private const val OPPFOLGINGSPLAN_URL = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
 
-private fun no.nav.syfo.application.database.DatabaseInterface.insertTestOutboxMessage(
+private suspend fun DatabaseInterface.insertTestOutboxMessage(
     messageUuid: UUID,
     externalRef: UUID,
     scheduledAt: Instant = Instant.now(),
-) {
-    connection.use {
-        it.insertOutboxMessage(
-            uuid = messageUuid,
-            messageType = OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET,
-            dedupKey = externalRef.toString(),
-            externalRef = externalRef.toString(),
-            payload = "{}",
-            scheduledAt = scheduledAt,
-        )
-        it.commit()
-    }
-}
-
-private fun no.nav.syfo.application.database.DatabaseInterface.findEventId(
-    oppfolgingsplanUuid: UUID,
-): UUID? = connection.use {
-    it.prepareStatement("SELECT event_id FROM oppfolgingsplan WHERE uuid = ?").use { statement ->
-        statement.setObject(1, oppfolgingsplanUuid)
-        statement.executeQuery().use { resultSet ->
-            if (resultSet.next()) {
-                resultSet.getObject("event_id", UUID::class.java)
-            } else {
-                null
-            }
-        }
-    }
-}
-
-private fun no.nav.syfo.application.database.DatabaseInterface.findTestOutboxMessage(
-    externalRef: UUID,
-): OutboxMessage? = connection.use {
-    it.findOutboxMessage(
+) = exposedTransaction {
+    insertOutboxMessage(
+        uuid = messageUuid,
         messageType = OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET,
         dedupKey = externalRef.toString(),
+        externalRef = externalRef.toString(),
+        payload = "{}",
+        scheduledAt = scheduledAt,
     )
 }
+
+private suspend fun DatabaseInterface.findEventId(
+    oppfolgingsplanUuid: UUID,
+): UUID? = exposedTransaction(readOnly = true) {
+    OppfolgingsplanOutboxTable
+        .select(OppfolgingsplanOutboxTable.eventId)
+        .where { OppfolgingsplanOutboxTable.uuid eq oppfolgingsplanUuid }
+        .singleOrNull()
+        ?.get(OppfolgingsplanOutboxTable.eventId)
+}
+
+private suspend fun DatabaseInterface.findTestOutboxMessage(
+    externalRef: UUID,
+): OutboxMessage? = findOutboxMessage(
+    messageType = OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET,
+    dedupKey = externalRef.toString(),
+)

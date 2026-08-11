@@ -1,11 +1,10 @@
 package no.nav.syfo.application.outbox
 
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.database.suspendedExposedTransaction
 import no.nav.syfo.application.metric.METRICS_NS
 import no.nav.syfo.application.metric.METRICS_REGISTRY
 import no.nav.syfo.application.outbox.db.claimNextReadyOutboxMessage
@@ -13,10 +12,8 @@ import no.nav.syfo.application.outbox.db.deferOutboxMessage
 import no.nav.syfo.application.outbox.db.markOutboxMessageIrrelevant
 import no.nav.syfo.application.outbox.db.markOutboxMessageSent
 import no.nav.syfo.application.outbox.db.recordOutboxMessageFailure
-import no.nav.syfo.application.outbox.domain.OutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import no.nav.syfo.util.logger
-import java.sql.Savepoint
 import java.time.Clock
 
 data class OutboxBatchResult(
@@ -51,10 +48,10 @@ class OutboxProcessor(
         require(maxAttempts > 0) { "maxAttempts must be greater than zero" }
     }
 
-    suspend fun processReadyMessages(batchSizePerType: Int = DEFAULT_BATCH_SIZE): OutboxBatchResult = withContext(Dispatchers.IO) {
+    suspend fun processReadyMessages(batchSizePerType: Int = DEFAULT_BATCH_SIZE): OutboxBatchResult {
         require(batchSizePerType > 0) { "batchSizePerType must be greater than zero" }
         reconcileMissingMessages()
-        handlers.values.fold(OutboxBatchResult()) { total, handler ->
+        return handlers.values.fold(OutboxBatchResult()) { total, handler ->
             total + processReadyMessages(handler, batchSizePerType)
         }
     }
@@ -71,15 +68,23 @@ class OutboxProcessor(
                 processNextMessage(handler) ?: return result
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (e: RecordedOutboxFailure) {
                 incrementMetric(handler.messageType, "failed")
                 log.error(
                     "Failed to process outbox message of type {}, exceptionType={}",
                     handler.messageType,
-                    e.javaClass.name,
+                    e.cause.javaClass.name,
                 )
                 result = result.copy(failed = result.failed + 1)
                 return@repeat
+            } catch (e: Exception) {
+                incrementMetric(handler.messageType, "failed")
+                log.error(
+                    "Aborting outbox batch after transaction failure for message type {}, exceptionType={}",
+                    handler.messageType,
+                    e.javaClass.name,
+                )
+                return result.copy(failed = result.failed + 1)
             }
 
             result = when (outcome) {
@@ -93,66 +98,67 @@ class OutboxProcessor(
         return result
     }
 
-    private suspend fun processNextMessage(handler: OutboxMessageHandler): OutboxResult? = database.connection.use { connection ->
-        var claimedMessage: OutboxMessage? = null
-        var handlerSavepoint: Savepoint? = null
-        try {
-            val message = connection.claimNextReadyOutboxMessage(handler.messageType, clock.instant())
-                ?: return@use null
-            claimedMessage = message
-            handlerSavepoint = connection.setSavepoint()
-            val outcome = handler.process(connection, message)
-            when (outcome) {
-                OutboxResult.SENT -> connection.markOutboxMessageSent(message.uuid, clock.instant())
-                OutboxResult.IRRELEVANT -> connection.markOutboxMessageIrrelevant(message.uuid)
-                OutboxResult.DEFERRED -> {
-                    connection.rollback(handlerSavepoint)
-                    connection.deferOutboxMessage(message.uuid, clock.instant().plusSeconds(DEFER_SECONDS))
-                    connection.commit()
-                    return@use outcome
+    private suspend fun processNextMessage(handler: OutboxMessageHandler): OutboxResult? {
+        val attempt = database.suspendedExposedTransaction {
+            val message = claimNextReadyOutboxMessage(handler.messageType, clock.instant())
+                ?: return@suspendedExposedTransaction ProcessAttempt.Empty
+            val handlerSavepoint = connection.setSavepoint(HANDLER_SAVEPOINT)
+
+            try {
+                when (val outcome = handler.process(this, message)) {
+                    OutboxResult.SENT -> {
+                        markOutboxMessageSent(message.uuid, clock.instant())
+                        connection.releaseSavepoint(handlerSavepoint)
+                        ProcessAttempt.Processed(outcome)
+                    }
+                    OutboxResult.IRRELEVANT -> {
+                        markOutboxMessageIrrelevant(message.uuid)
+                        connection.releaseSavepoint(handlerSavepoint)
+                        ProcessAttempt.Processed(outcome)
+                    }
+                    OutboxResult.DEFERRED -> {
+                        connection.rollback(handlerSavepoint)
+                        deferOutboxMessage(message.uuid, clock.instant().plusSeconds(DEFER_SECONDS))
+                        ProcessAttempt.Processed(outcome)
+                    }
                 }
-            }
-            connection.commit()
-            outcome
-        } catch (e: CancellationException) {
-            connection.rollback()
-            throw e
-        } catch (e: Exception) {
-            if (claimedMessage != null && handlerSavepoint != null) {
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
                 connection.rollback(handlerSavepoint)
                 val attemptedAt = clock.instant()
-                connection.recordOutboxMessageFailure(
-                    uuid = claimedMessage.uuid,
+                recordOutboxMessageFailure(
+                    uuid = message.uuid,
                     attemptedAt = attemptedAt,
-                    retryAt = attemptedAt.plusSeconds(retryDelaySeconds(claimedMessage.attemptCount)),
-                    maxAttempts = maxAttempts,
+                    retryAt = attemptedAt.plusSeconds(retryDelaySeconds(message.attemptCount)),
+                    permanentlyFailed = message.attemptCount + 1 >= this@OutboxProcessor.maxAttempts,
                 )
-                connection.commit()
-            } else {
-                connection.rollback()
+                ProcessAttempt.Failed(e)
             }
-            throw e
+        }
+
+        return when (attempt) {
+            ProcessAttempt.Empty -> null
+            is ProcessAttempt.Processed -> attempt.outcome
+            is ProcessAttempt.Failed -> throw RecordedOutboxFailure(attempt.cause)
         }
     }
 
-    private fun reconcileMissingMessages() {
+    private suspend fun reconcileMissingMessages() {
         reconcilers.forEach { reconciler ->
-            database.connection.use { connection ->
-                try {
-                    val reconciled = reconciler.reconcile(connection)
-                    connection.commit()
-                    if (reconciled > 0) {
-                        log.info("Reconciled {} missing outbox messages", reconciled)
-                    }
-                } catch (e: Exception) {
-                    connection.rollback()
-                    throw e
-                }
+            val reconciled = database.suspendedExposedTransaction {
+                reconciler.reconcile(this)
+            }
+            if (reconciled > 0) {
+                log.info("Reconciled {} missing outbox messages", reconciled)
             }
         }
     }
 
-    private fun retryDelaySeconds(attemptCount: Int): Long = minOf(1L shl attemptCount.coerceAtMost(MAX_BACKOFF_EXPONENT), MAX_RETRY_DELAY_MINUTES) * 60
+    private fun retryDelaySeconds(attemptCount: Int): Long = minOf(
+        1L shl attemptCount.coerceAtMost(MAX_BACKOFF_EXPONENT),
+        MAX_RETRY_DELAY_MINUTES,
+    ) * 60
 
     private fun incrementMetric(
         messageType: OutboxMessageType,
@@ -167,9 +173,20 @@ class OutboxProcessor(
         ).increment()
     }
 
+    private sealed interface ProcessAttempt {
+        data object Empty : ProcessAttempt
+        data class Processed(val outcome: OutboxResult) : ProcessAttempt
+        data class Failed(val cause: Exception) : ProcessAttempt
+    }
+
+    private class RecordedOutboxFailure(
+        override val cause: Exception,
+    ) : RuntimeException(cause)
+
     companion object {
         const val DEFAULT_BATCH_SIZE = 100
         const val DEFAULT_MAX_ATTEMPTS = 10
+        private const val HANDLER_SAVEPOINT = "outbox_handler"
         private const val DEFER_SECONDS = 60L
         private const val MAX_BACKOFF_EXPONENT = 6
         private const val MAX_RETRY_DELAY_MINUTES = 60L

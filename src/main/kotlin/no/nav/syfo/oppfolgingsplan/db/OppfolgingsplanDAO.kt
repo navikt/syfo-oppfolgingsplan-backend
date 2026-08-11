@@ -1,116 +1,18 @@
 package no.nav.syfo.oppfolgingsplan.db
 
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.application.outbox.db.insertOutboxMessage
-import no.nav.syfo.application.outbox.domain.OutboxMessageType
-import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
-import java.math.BigDecimal
-import java.sql.Connection
-import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Timestamp
-import java.sql.Types
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
 private fun logger() = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
-
-fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
-    narmesteLederFnr: String,
-    sykmeldt: Sykmeldt,
-    createOppfolgingsplanRequest: CreateOppfolgingsplanRequest,
-    stillingstittel: String?,
-    stillingsprosent: BigDecimal?,
-): UUID {
-    val insertStatement = """
-        INSERT INTO oppfolgingsplan (
-            sykmeldt_fnr,
-            sykmeldt_full_name,
-            narmeste_leder_id,
-            narmeste_leder_fnr,
-            organisasjonsnummer,
-            organisasjonsnavn,
-            stillingstittel,
-            stillingsprosent,
-            content,
-            evalueringsdato,
-            evaluering_paaminnelse,
-            evaluering_paaminnelse_outbox_at,
-            skal_deles_med_lege,
-            skal_deles_med_veileder,
-            utkast_created_at,
-            created_at,
-            event_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), gen_random_uuid())
-        RETURNING uuid, event_id, created_at
-    """.trimIndent()
-
-    val deleteStatement = """
-        DELETE FROM oppfolgingsplan_utkast
-        WHERE narmeste_leder_id = ?
-        RETURNING created_at
-    """.trimIndent()
-
-    connection.use { connection ->
-        val utkastCreatedAt = connection.prepareStatement(deleteStatement).use {
-            it.setString(1, sykmeldt.narmestelederId)
-            val resultSet = it.executeQuery()
-            if (resultSet.next()) {
-                resultSet.getTimestamp("created_at").toInstant()
-            } else {
-                null
-            }
-        }
-
-        val persistedVarsel = connection.prepareStatement(insertStatement).use {
-            it.setString(1, sykmeldt.fnr)
-            it.setString(2, sykmeldt.navn)
-            it.setString(3, sykmeldt.narmestelederId)
-            it.setString(4, narmesteLederFnr)
-            it.setString(5, sykmeldt.orgnummer)
-            it.setString(6, sykmeldt.getOrganizationName())
-            it.setString(7, stillingstittel)
-            it.setBigDecimal(8, stillingsprosent)
-            it.setObject(9, createOppfolgingsplanRequest.content.toJsonString(), Types.OTHER)
-            it.setDate(10, Date.valueOf(createOppfolgingsplanRequest.evalueringsdato.toString()))
-            it.setBoolean(11, createOppfolgingsplanRequest.evalueringPaaminnelse)
-            it.setNull(12, Types.TIMESTAMP_WITH_TIMEZONE)
-            it.setBoolean(13, false)
-            it.setBoolean(14, false)
-            if (utkastCreatedAt != null) {
-                it.setTimestamp(15, Timestamp.from(utkastCreatedAt))
-            } else {
-                it.setNull(15, Types.TIMESTAMP)
-            }
-            val resultSet = it.executeQuery()
-            resultSet.next()
-            PersistedOppfolgingsplanVarsel(
-                oppfolgingsplanUuid = resultSet.getObject("uuid", UUID::class.java),
-                eventId = resultSet.getObject("event_id", UUID::class.java),
-                createdAt = resultSet.getTimestamp("created_at").toInstant(),
-            )
-        }
-        connection.insertOutboxMessage(
-            uuid = persistedVarsel.eventId,
-            messageType = OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET,
-            dedupKey = persistedVarsel.oppfolgingsplanUuid.toString(),
-            externalRef = persistedVarsel.oppfolgingsplanUuid.toString(),
-            payload = "{}",
-            scheduledAt = persistedVarsel.createdAt,
-        )
-        connection.commit()
-        return persistedVarsel.oppfolgingsplanUuid
-    }
-}
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
     sykmeldtFnr: String,
@@ -417,41 +319,6 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
         }.also { connection.commit() }
     }
 }
-
-fun Connection.findOppfolgingsplanVarselRecipient(
-    oppfolgingsplanUuid: UUID,
-): OppfolgingsplanVarselRecipient? {
-    val statement = """
-        SELECT sykmeldt_fnr
-        FROM oppfolgingsplan
-        WHERE uuid = ?
-          AND skjult_fra IS NULL
-          AND feilregistrert IS NULL
-    """.trimIndent()
-
-    prepareStatement(statement).use {
-        it.setObject(1, oppfolgingsplanUuid)
-        it.executeQuery().use { resultSet ->
-            return if (resultSet.next()) {
-                OppfolgingsplanVarselRecipient(resultSet.getString("sykmeldt_fnr"))
-            } else {
-                null
-            }
-        }
-    }
-}
-
-class OppfolgingsplanVarselRecipient(
-    val sykmeldtFnr: String,
-) {
-    override fun toString(): String = "OppfolgingsplanVarselRecipient()"
-}
-
-private data class PersistedOppfolgingsplanVarsel(
-    val oppfolgingsplanUuid: UUID,
-    val eventId: UUID,
-    val createdAt: Instant,
-)
 
 fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfolgingsplan(
     uuid = getObject("uuid") as UUID,

@@ -83,15 +83,13 @@ class OppfolgingsplanService(
             null
         }
 
-        return withContext(Dispatchers.IO) {
-            database.persistOppfolgingsplanAndDeleteUtkast(
-                narmesteLederFnr = narmesteLederFnr,
-                sykmeldt = sykmeldt,
-                createOppfolgingsplanRequest = createOppfolgingsplanRequest,
-                stillingstittel = stillingsinformasjon?.stillingstittel,
-                stillingsprosent = stillingsinformasjon?.stillingsprosent,
-            )
-        }
+        return database.persistOppfolgingsplanAndDeleteUtkast(
+            narmesteLederFnr = narmesteLederFnr,
+            sykmeldt = sykmeldt,
+            createOppfolgingsplanRequest = createOppfolgingsplanRequest,
+            stillingstittel = stillingsinformasjon?.stillingstittel,
+            stillingsprosent = stillingsinformasjon?.stillingsprosent,
+        )
     }
 
     suspend fun persistOppfolgingsplanUtkast(

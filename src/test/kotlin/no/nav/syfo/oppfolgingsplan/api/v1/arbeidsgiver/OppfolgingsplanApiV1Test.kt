@@ -500,12 +500,10 @@ class OppfolgingsplanApiV1Test :
                     persisted.first().organisasjonsnavn shouldBe "Test AS"
                     persisted.first().stillingstittel shouldBe "Systemutvikler"
                     persisted.first().stillingsprosent shouldBe BigDecimal("100.00")
-                    val outboxMessage = testDb.connection.use {
-                        it.findOutboxMessage(
-                            OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET,
-                            persisted.first().uuid.toString(),
-                        )
-                    }
+                    val outboxMessage = testDb.findOutboxMessage(
+                        OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET,
+                        persisted.first().uuid.toString(),
+                    )
                     outboxMessage.shouldNotBeNull()
                     outboxMessage.status shouldBe OutboxStatus.READY
                 }
@@ -549,12 +547,10 @@ class OppfolgingsplanApiV1Test :
 
                     val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
                     persistedUtkast shouldBe null
-                    testDb.connection.use {
-                        it.findOutboxMessage(
-                            OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET,
-                            persistedOppfolgingsplaner.first().uuid.toString(),
-                        )
-                    }.shouldNotBeNull()
+                    testDb.findOutboxMessage(
+                        OutboxMessageType.OPPFOLGINGSPLAN_OPPRETTET,
+                        persistedOppfolgingsplaner.first().uuid.toString(),
+                    ).shouldNotBeNull()
                 }
             }
         }

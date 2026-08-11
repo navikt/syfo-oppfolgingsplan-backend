@@ -1,15 +1,25 @@
 package no.nav.syfo.application.outbox.db
 
+import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.outbox.domain.OutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import no.nav.syfo.application.outbox.domain.OutboxStatus
-import java.sql.Connection
-import java.sql.ResultSet
-import java.sql.Timestamp
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.core.plus
+import org.jetbrains.exposed.v1.core.vendors.ForUpdateOption
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
+import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
+import java.time.ZoneOffset
 import java.util.UUID
 
-fun Connection.insertOutboxMessage(
+fun JdbcTransaction.insertOutboxMessage(
     uuid: UUID,
     messageType: OutboxMessageType,
     dedupKey: String,
@@ -17,133 +27,112 @@ fun Connection.insertOutboxMessage(
     payload: String,
     scheduledAt: Instant,
 ) {
-    val statement = """
-        INSERT INTO outbox (uuid, message_type, dedup_key, external_ref, payload, scheduled_at)
-        VALUES (?, ?, ?, ?, ?::jsonb, ?)
-    """.trimIndent()
-
-    prepareStatement(statement).use {
-        it.setObject(1, uuid)
-        it.setString(2, messageType.name)
-        it.setString(3, dedupKey)
-        it.setString(4, externalRef)
-        it.setString(5, payload)
-        it.setTimestamp(6, Timestamp.from(scheduledAt))
-        it.executeUpdate()
+    OutboxTable.insert {
+        it[OutboxTable.uuid] = uuid
+        it[OutboxTable.messageType] = messageType
+        it[OutboxTable.dedupKey] = dedupKey
+        it[OutboxTable.externalRef] = externalRef
+        it[OutboxTable.payload] = payload
+        it[OutboxTable.scheduledAt] = scheduledAt.atOffset(ZoneOffset.UTC)
+        it[OutboxTable.status] = OutboxStatus.READY
+        it[OutboxTable.attemptCount] = 0
     }
 }
 
-fun Connection.claimNextReadyOutboxMessage(
+fun JdbcTransaction.claimNextReadyOutboxMessage(
     messageType: OutboxMessageType,
     now: Instant,
-): OutboxMessage? {
-    val statement = """
-        SELECT *
-        FROM outbox
-        WHERE status = 'READY'
-          AND message_type = ?
-          AND scheduled_at <= ?
-        ORDER BY scheduled_at
-        LIMIT 1
-        FOR UPDATE SKIP LOCKED
-    """.trimIndent()
+): OutboxMessage? = OutboxTable
+    .selectAll()
+    .where {
+        (OutboxTable.status eq OutboxStatus.READY) and
+            (OutboxTable.messageType eq messageType) and
+            (OutboxTable.scheduledAt lessEq now.atOffset(ZoneOffset.UTC))
+    }.orderBy(OutboxTable.scheduledAt to SortOrder.ASC)
+    .limit(1)
+    .forUpdate(
+        ForUpdateOption.PostgreSQL.ForUpdate(
+            ForUpdateOption.PostgreSQL.MODE.SKIP_LOCKED,
+        ),
+    ).singleOrNull()
+    ?.toOutboxMessage()
 
-    prepareStatement(statement).use {
-        it.setString(1, messageType.name)
-        it.setTimestamp(2, Timestamp.from(now))
-        it.executeQuery().use { resultSet ->
-            return if (resultSet.next()) resultSet.toOutboxMessage() else null
-        }
+fun JdbcTransaction.markOutboxMessageSent(uuid: UUID, sentAt: Instant) {
+    val updated = OutboxTable.update({
+        (OutboxTable.uuid eq uuid) and (OutboxTable.status eq OutboxStatus.READY)
+    }) {
+        it[status] = OutboxStatus.SENT
+        it[OutboxTable.sentAt] = sentAt.atOffset(ZoneOffset.UTC)
     }
+    check(updated == 1) { "Ready outbox message was not marked sent" }
 }
 
-fun Connection.markOutboxMessageSent(uuid: UUID, sentAt: Instant) {
-    prepareStatement(
-        "UPDATE outbox SET status = 'SENT', sent_at = ? WHERE uuid = ? AND status = 'READY'",
-    ).use {
-        it.setTimestamp(1, Timestamp.from(sentAt))
-        it.setObject(2, uuid)
-        check(it.executeUpdate() == 1) { "Ready outbox message was not marked sent" }
+fun JdbcTransaction.markOutboxMessageIrrelevant(uuid: UUID) {
+    val updated = OutboxTable.update({
+        (OutboxTable.uuid eq uuid) and (OutboxTable.status eq OutboxStatus.READY)
+    }) {
+        it[status] = OutboxStatus.IRRELEVANT
     }
+    check(updated == 1) { "Ready outbox message was not marked irrelevant" }
 }
 
-fun Connection.markOutboxMessageIrrelevant(uuid: UUID) {
-    prepareStatement(
-        "UPDATE outbox SET status = 'IRRELEVANT' WHERE uuid = ? AND status = 'READY'",
-    ).use {
-        it.setObject(1, uuid)
-        check(it.executeUpdate() == 1) { "Ready outbox message was not marked irrelevant" }
-    }
-}
-
-fun Connection.recordOutboxMessageFailure(
+fun JdbcTransaction.recordOutboxMessageFailure(
     uuid: UUID,
     attemptedAt: Instant,
     retryAt: Instant,
-    maxAttempts: Int,
+    permanentlyFailed: Boolean,
 ) {
-    prepareStatement(
-        """
-        UPDATE outbox
-        SET attempt_count = attempt_count + 1,
-            last_attempt_at = ?,
-            scheduled_at = ?,
-            status = CASE WHEN attempt_count + 1 >= ? THEN 'FAILED' ELSE 'READY' END
-        WHERE uuid = ?
-          AND status = 'READY'
-        """.trimIndent(),
-    ).use {
-        it.setTimestamp(1, Timestamp.from(attemptedAt))
-        it.setTimestamp(2, Timestamp.from(retryAt))
-        it.setInt(3, maxAttempts)
-        it.setObject(4, uuid)
-        check(it.executeUpdate() == 1) { "Ready outbox message failure was not recorded" }
+    val updated = OutboxTable.update({
+        (OutboxTable.uuid eq uuid) and (OutboxTable.status eq OutboxStatus.READY)
+    }) {
+        it[attemptCount] = attemptCount + 1
+        it[lastAttemptAt] = attemptedAt.atOffset(ZoneOffset.UTC)
+        it[scheduledAt] = retryAt.atOffset(ZoneOffset.UTC)
+        it[status] = if (permanentlyFailed) OutboxStatus.FAILED else OutboxStatus.READY
     }
+    check(updated == 1) { "Ready outbox message failure was not recorded" }
 }
 
-fun Connection.deferOutboxMessage(
+fun JdbcTransaction.deferOutboxMessage(
     uuid: UUID,
     retryAt: Instant,
 ) {
-    prepareStatement(
-        "UPDATE outbox SET scheduled_at = ? WHERE uuid = ? AND status = 'READY'",
-    ).use {
-        it.setTimestamp(1, Timestamp.from(retryAt))
-        it.setObject(2, uuid)
-        check(it.executeUpdate() == 1) { "Ready outbox message was not deferred" }
+    val updated = OutboxTable.update({
+        (OutboxTable.uuid eq uuid) and (OutboxTable.status eq OutboxStatus.READY)
+    }) {
+        it[scheduledAt] = retryAt.atOffset(ZoneOffset.UTC)
     }
+    check(updated == 1) { "Ready outbox message was not deferred" }
 }
 
-fun Connection.findOutboxMessage(
+fun JdbcTransaction.findOutboxMessage(
     messageType: OutboxMessageType,
     dedupKey: String,
-): OutboxMessage? {
-    val statement = """
-        SELECT *
-        FROM outbox
-        WHERE message_type = ?
-          AND dedup_key = ?
-    """.trimIndent()
+): OutboxMessage? = OutboxTable
+    .selectAll()
+    .where {
+        (OutboxTable.messageType eq messageType) and
+            (OutboxTable.dedupKey eq dedupKey)
+    }.singleOrNull()
+    ?.toOutboxMessage()
 
-    prepareStatement(statement).use {
-        it.setString(1, messageType.name)
-        it.setString(2, dedupKey)
-        it.executeQuery().use { resultSet ->
-            return if (resultSet.next()) resultSet.toOutboxMessage() else null
-        }
-    }
+suspend fun DatabaseInterface.findOutboxMessage(
+    messageType: OutboxMessageType,
+    dedupKey: String,
+): OutboxMessage? = exposedTransaction(readOnly = true) {
+    this.findOutboxMessage(messageType, dedupKey)
 }
 
-private fun ResultSet.toOutboxMessage(): OutboxMessage = OutboxMessage(
-    uuid = getObject("uuid", UUID::class.java),
-    messageType = OutboxMessageType.valueOf(getString("message_type")),
-    dedupKey = getString("dedup_key"),
-    externalRef = getString("external_ref"),
-    payload = getString("payload"),
-    scheduledAt = getTimestamp("scheduled_at").toInstant(),
-    status = OutboxStatus.valueOf(getString("status")),
-    attemptCount = getInt("attempt_count"),
-    lastAttemptAt = getTimestamp("last_attempt_at")?.toInstant(),
-    sentAt = getTimestamp("sent_at")?.toInstant(),
-    createdAt = getTimestamp("created_at").toInstant(),
+private fun org.jetbrains.exposed.v1.core.ResultRow.toOutboxMessage(): OutboxMessage = OutboxMessage(
+    uuid = this[OutboxTable.uuid],
+    messageType = this[OutboxTable.messageType],
+    dedupKey = this[OutboxTable.dedupKey],
+    externalRef = this[OutboxTable.externalRef],
+    payload = this[OutboxTable.payload],
+    scheduledAt = this[OutboxTable.scheduledAt].toInstant(),
+    status = this[OutboxTable.status],
+    attemptCount = this[OutboxTable.attemptCount],
+    lastAttemptAt = this[OutboxTable.lastAttemptAt]?.toInstant(),
+    sentAt = this[OutboxTable.sentAt]?.toInstant(),
+    createdAt = this[OutboxTable.createdAt].toInstant(),
 )
