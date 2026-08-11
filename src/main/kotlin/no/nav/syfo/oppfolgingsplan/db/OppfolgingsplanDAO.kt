@@ -158,55 +158,6 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
     }
 }
 
-data class AktivPlanOrUtkastExists(
-    val aktivPlanExists: Boolean,
-    val utkastExists: Boolean,
-)
-
-/**
- * Existence check without loading rows. Mirrors the visibility rules of
- * findAllOppfolgingsplanerBy (skjult_fra/feilregistrert filtered) and
- * findOppfolgingsplanUtkastBy.
- */
-fun DatabaseInterface.existsAktivPlanOrUtkast(
-    sykmeldtFnr: String,
-    organisasjonsnummer: String,
-): AktivPlanOrUtkastExists {
-    val statement = """
-        SELECT
-            EXISTS (
-                SELECT 1
-                FROM oppfolgingsplan
-                WHERE sykmeldt_fnr = ?
-                  AND organisasjonsnummer = ?
-                  AND skjult_fra IS NULL
-                  AND feilregistrert IS NULL
-            ) AS aktiv_plan_exists,
-            EXISTS (
-                SELECT 1
-                FROM oppfolgingsplan_utkast
-                WHERE sykmeldt_fnr = ?
-                  AND organisasjonsnummer = ?
-            ) AS utkast_exists
-    """.trimIndent()
-
-    return connection.use { connection ->
-        connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setString(1, sykmeldtFnr)
-            preparedStatement.setString(2, organisasjonsnummer)
-            preparedStatement.setString(3, sykmeldtFnr)
-            preparedStatement.setString(4, organisasjonsnummer)
-            preparedStatement.executeQuery().use { resultSet ->
-                resultSet.next()
-                AktivPlanOrUtkastExists(
-                    aktivPlanExists = resultSet.getBoolean("aktiv_plan_exists"),
-                    utkastExists = resultSet.getBoolean("utkast_exists"),
-                )
-            }
-        }
-    }
-}
-
 fun DatabaseInterface.findOppfolgingsplanBy(
     uuid: UUID,
     inkluderSkjulte: Boolean = false,

@@ -1,5 +1,6 @@
 
 val dataFakerVersion = "2.7.0"
+val exposedVersion = "1.3.1"
 val flywayVersion = "13.0.0"
 val hikariVersion = "7.1.0"
 val kafkaVersion = "4.3.1"
@@ -78,6 +79,9 @@ dependencies {
     // Database
     implementation("org.postgresql:postgresql:$postgresVersion")
     implementation("com.zaxxer:HikariCP:$hikariVersion")
+    implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+    implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
     implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
 
     // Caching
