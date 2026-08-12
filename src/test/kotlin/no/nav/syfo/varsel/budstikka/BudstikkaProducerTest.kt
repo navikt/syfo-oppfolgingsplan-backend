@@ -49,7 +49,7 @@ class BudstikkaProducerTest :
                     varseltype = Varseltype.BESKJED,
                     text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
                     link = budstikkaOppfolgingsplanSykmeldtUrl,
-                    sendingWindow = SendingWindow.ONGOING,
+                    sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
                 )
                 every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
@@ -72,7 +72,7 @@ class BudstikkaProducerTest :
                             it.topic() shouldBe expectedDispatch.topic
                             it.key() shouldBe expectedDispatch.key
                             it.value() shouldBe expectedDispatch.value
-                            it.value() shouldContain "\"sendingWindow\":\"ONGOING\""
+                            it.value() shouldContain "\"sendingWindow\":\"BUDSTIKKA_OPENING_HOURS\""
                             actualHeaders shouldBe expectedHeaders
                         },
                     )

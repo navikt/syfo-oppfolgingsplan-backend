@@ -47,7 +47,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                     varseltype = Varseltype.BESKJED,
                     text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
                     link = oppfolgingsplanUrl,
-                    sendingWindow = SendingWindow.ONGOING,
+                    sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
                 )
 
                 KafkaConsumer<String, String>(consumerProperties(kafka.bootstrapServers)).use { consumer ->
@@ -67,7 +67,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                         record.topic() shouldBe expectedDispatch.topic
                         record.key() shouldBe expectedDispatch.key
                         record.value() shouldBe expectedDispatch.value
-                        record.value() shouldContain "\"sendingWindow\":\"ONGOING\""
+                        record.value() shouldContain "\"sendingWindow\":\"BUDSTIKKA_OPENING_HOURS\""
                         record.headers().associate { header ->
                             header.key() to header.value().toList()
                         } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) ->

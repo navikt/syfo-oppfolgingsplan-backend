@@ -35,7 +35,7 @@ class BudstikkaProducer(
             varseltype = Varseltype.BESKJED,
             text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
             link = budstikkaOppfolgingsplanSykmeldtUrl,
-            sendingWindow = SendingWindow.ONGOING,
+            sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
         )
         val record = dispatch.toProducerRecord()
 
