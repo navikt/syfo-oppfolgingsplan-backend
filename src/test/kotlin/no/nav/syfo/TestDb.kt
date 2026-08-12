@@ -66,7 +66,7 @@ class TestDB private constructor() {
     companion object {
         val database: DatabaseInterface
 
-        internal val psqlContainer: PsqlContainer
+        private val psqlContainer: PsqlContainer
 
         init {
             try {
