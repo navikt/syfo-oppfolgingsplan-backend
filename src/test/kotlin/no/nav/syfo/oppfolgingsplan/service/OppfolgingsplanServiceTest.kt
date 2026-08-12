@@ -264,6 +264,7 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         budstikkaPublisher = budstikkaPublisher,
                         aaregService = aaregService,
+                        unntaksvurderingService = mockk(relaxed = true),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -308,6 +309,7 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         budstikkaPublisher = budstikkaPublisher,
                         aaregService = mockk(relaxed = true),
+                        unntaksvurderingService = mockk(relaxed = true),
                     )
                     TestDB.database.persistOppfolgingsplan(defaultPersistedOppfolgingsplan())
 
