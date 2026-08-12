@@ -2,8 +2,11 @@ package no.nav.syfo.application.outbox
 
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldContainAll
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.shouldBe
 import no.nav.syfo.TestDB
+import org.flywaydb.core.Flyway
+import java.sql.DriverManager
 
 class OutboxSchemaTest :
     DescribeSpec({
@@ -59,6 +62,77 @@ class OutboxSchemaTest :
                 }
 
                 eventIdDefault shouldBe "gen_random_uuid()"
+            }
+
+            it("replaces the abandoned pilot schema before creating the current outbox") {
+                val databaseName = "abandoned_outbox_recovery_test"
+                val jdbcUrl = TestDB.psqlContainer.jdbcUrl.substringBeforeLast('/') + "/$databaseName"
+                TestDB.psqlContainer.createConnection("").use { connection ->
+                    connection.createStatement().use { statement ->
+                        statement.execute("CREATE DATABASE $databaseName")
+                    }
+                }
+
+                try {
+                    val flywayConfiguration = Flyway.configure()
+                        .locations("db")
+                        .dataSource(
+                            jdbcUrl,
+                            TestDB.psqlContainer.username,
+                            TestDB.psqlContainer.password,
+                        )
+                    flywayConfiguration.target("25").load().migrate()
+
+                    DriverManager.getConnection(
+                        jdbcUrl,
+                        TestDB.psqlContainer.username,
+                        TestDB.psqlContainer.password,
+                    ).use { connection ->
+                        val abandonedMigration = checkNotNull(
+                            javaClass.getResource("/fixtures/abandoned_outbox_pilot.sql"),
+                        ).readText()
+                        connection.createStatement().use { statement ->
+                            statement.execute(abandonedMigration)
+                        }
+                    }
+
+                    flywayConfiguration.target("latest").load().migrate()
+
+                    DriverManager.getConnection(
+                        jdbcUrl,
+                        TestDB.psqlContainer.username,
+                        TestDB.psqlContainer.password,
+                    ).use { connection ->
+                        val outboxColumns = connection.metaData
+                            .getColumns(null, null, "outbox", null)
+                            .use { resultSet ->
+                                buildSet {
+                                    while (resultSet.next()) {
+                                        add(resultSet.getString("COLUMN_NAME"))
+                                    }
+                                }
+                            }
+                        val paaminnelseColumns = connection.metaData
+                            .getColumns(null, null, "paaminnelse", null)
+                            .use { resultSet ->
+                                buildSet {
+                                    while (resultSet.next()) {
+                                        add(resultSet.getString("COLUMN_NAME"))
+                                    }
+                                }
+                            }
+
+                        outboxColumns shouldContainAll setOf("attempt_count", "last_attempt_at", "sent_at")
+                        outboxColumns shouldNotContain "sendt_at"
+                        paaminnelseColumns shouldNotContain "forlop_fom"
+                    }
+                } finally {
+                    TestDB.psqlContainer.createConnection("").use { connection ->
+                        connection.createStatement().use { statement ->
+                            statement.execute("DROP DATABASE $databaseName WITH (FORCE)")
+                        }
+                    }
+                }
             }
         }
     })
