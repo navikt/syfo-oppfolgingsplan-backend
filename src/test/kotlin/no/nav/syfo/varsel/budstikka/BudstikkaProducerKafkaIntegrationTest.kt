@@ -2,10 +2,12 @@ package no.nav.syfo.varsel.budstikka
 
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.runBlocking
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
 import no.nav.budstikka.contract.PersonIdentifier
+import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
@@ -45,6 +47,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                     varseltype = Varseltype.BESKJED,
                     text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
                     link = oppfolgingsplanUrl,
+                    sendingWindow = SendingWindow.ONGOING,
                 )
 
                 KafkaConsumer<String, String>(consumerProperties(kafka.bootstrapServers)).use { consumer ->
@@ -64,6 +67,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                         record.topic() shouldBe expectedDispatch.topic
                         record.key() shouldBe expectedDispatch.key
                         record.value() shouldBe expectedDispatch.value
+                        record.value() shouldContain "\"sendingWindow\":\"ONGOING\""
                         record.headers().associate { header ->
                             header.key() to header.value().toList()
                         } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) ->

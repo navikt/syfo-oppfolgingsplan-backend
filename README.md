@@ -73,7 +73,6 @@ Den viktigste flyten er:
 
 - `SendOppfolgingsplanTask` sender klare planer videre til Dokumentporten
 - `CleanupUtkastTask` hard-sletter utkast eldre enn 4 måneder
-- `PublishUnpublishedBudstikkaVarslerTask` prøver igjen varsler som mangler bekreftet Kafka-publisering
 - `SykmeldingsperiodeConsumer` lagrer relevante sykmeldingsperioder og håndterer tombstones
 
 ## API-oversikt
@@ -122,12 +121,6 @@ Tjenesten bruker Kafka i begge retninger:
 - **konsumerer** `teamsykmelding.syfo-sendt-sykmelding` med consumer group `syfo-oppfolgingsplan-backend-sykmeldingsperiode-v2`
 - **produserer** varsler til `team-esyfo.budstikka.v1` når en oppfølgingsplan opprettes
 - bygger varselet med `budstikka-kontrakt`
-- lagrer `event_id` før første sending og bruker samme verdi ved nye forsøk
-- setter `varsel_published_at` først etter at Kafka-brokeren har bekreftet sendingen
-
-### Tilbakerulling av Budstikka-piloten
-
-Rull applikasjonen tilbake til forrige image for å stoppe retry-oppgaven og gå tilbake til forrige kontraktversjon. Behold lagrede `event_id`-verdier. Nye event-ID-er ved ny sending vil omgå dedupliseringen i Budstikka.
   
 ## Database og cache
 

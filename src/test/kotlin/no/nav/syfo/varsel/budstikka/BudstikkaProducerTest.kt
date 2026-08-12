@@ -11,6 +11,7 @@ import io.mockk.verify
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
 import no.nav.budstikka.contract.PersonIdentifier
+import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
@@ -48,6 +49,7 @@ class BudstikkaProducerTest :
                     varseltype = Varseltype.BESKJED,
                     text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
                     link = budstikkaOppfolgingsplanSykmeldtUrl,
+                    sendingWindow = SendingWindow.ONGOING,
                 )
                 every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
@@ -70,6 +72,7 @@ class BudstikkaProducerTest :
                             it.topic() shouldBe expectedDispatch.topic
                             it.key() shouldBe expectedDispatch.key
                             it.value() shouldBe expectedDispatch.value
+                            it.value() shouldContain "\"sendingWindow\":\"ONGOING\""
                             actualHeaders shouldBe expectedHeaders
                         },
                     )

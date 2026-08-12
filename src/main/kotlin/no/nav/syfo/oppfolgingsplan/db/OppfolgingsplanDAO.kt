@@ -5,7 +5,6 @@ import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
-import no.nav.syfo.oppfolgingsplan.db.domain.PersistedBudstikkaVarsel
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
@@ -423,39 +422,6 @@ suspend fun DatabaseInterface.findEventId(
                     resultSet.getObject("event_id", UUID::class.java)
                 } else {
                     throw IllegalStateException("Oppfolgingsplan not found")
-                }
-            }
-        }
-    }
-}
-
-suspend fun DatabaseInterface.findUnpublishedBudstikkaVarsler(
-    batchSize: Int,
-): List<PersistedBudstikkaVarsel> = withContext(Dispatchers.IO) {
-    require(batchSize > 0) { "batchSize must be greater than zero" }
-    val statement = """
-        SELECT uuid, sykmeldt_fnr, event_id
-        FROM oppfolgingsplan
-        WHERE event_id IS NOT NULL
-          AND varsel_published_at IS NULL
-        ORDER BY created_at
-        LIMIT ?
-    """.trimIndent()
-
-    connection.use { connection ->
-        connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setInt(1, batchSize)
-            preparedStatement.executeQuery().use { resultSet ->
-                buildList {
-                    while (resultSet.next()) {
-                        add(
-                            PersistedBudstikkaVarsel(
-                                oppfolgingsplanUuid = resultSet.getObject("uuid", UUID::class.java),
-                                sykmeldtFnr = resultSet.getString("sykmeldt_fnr"),
-                                eventId = resultSet.getObject("event_id", UUID::class.java),
-                            ),
-                        )
-                    }
                 }
             }
         }

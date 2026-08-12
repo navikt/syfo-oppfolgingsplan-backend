@@ -7,6 +7,7 @@ import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EncodedDispatch
 import no.nav.budstikka.contract.EventId
 import no.nav.budstikka.contract.PersonIdentifier
+import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.util.logger
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -34,45 +35,42 @@ class BudstikkaProducer(
             varseltype = Varseltype.BESKJED,
             text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
             link = budstikkaOppfolgingsplanSykmeldtUrl,
+            sendingWindow = SendingWindow.ONGOING,
         )
         val record = dispatch.toProducerRecord()
 
         log.info(
-            "Publiserer Budstikka dispatch {}, {}, {}, {}",
+            "Publiserer Budstikka dispatch {}, {}, {}",
             kv("topic", dispatch.topic),
             kv("type", BUDSTIKKA_DISPATCH_TYPE),
             kv("eventId", eventId),
-            kv("oppfolgingsplanUuid", oppfolgingsplanUuid),
         )
         try {
             producer.send(record).get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
         } catch (e: TimeoutException) {
             log.error(
-                "Publisert til akkumulator, timeout på get. Ukjent utfall {}, {}, {}, {}",
+                "Publisert til akkumulator, timeout på get. Ukjent utfall {}, {}, {}",
                 kv("topic", dispatch.topic),
                 kv("type", BUDSTIKKA_DISPATCH_TYPE),
                 kv("eventId", eventId),
-                kv("oppfolgingsplanUuid", oppfolgingsplanUuid),
                 e,
             )
             throw e
         } catch (e: KafkaTimeoutException) {
             log.error(
-                "Publisering av Budstikka dispatch timet ut. Ikke levert {}, {}, {}, {}",
+                "Publisering av Budstikka dispatch timet ut. Ikke levert {}, {}, {}",
                 kv("topic", dispatch.topic),
                 kv("type", BUDSTIKKA_DISPATCH_TYPE),
                 kv("eventId", eventId),
-                kv("oppfolgingsplanUuid", oppfolgingsplanUuid),
                 e,
             )
             throw e
         } catch (e: Exception) {
             log.error(
-                "Feilet ved publisering av Budstikka dispatch til {}, {}, {}, {}",
+                "Feilet ved publisering av Budstikka dispatch til {}, {}, {}",
                 kv("topic", dispatch.topic),
                 kv("type", BUDSTIKKA_DISPATCH_TYPE),
                 kv("eventId", eventId),
-                kv("oppfolgingsplanUuid", oppfolgingsplanUuid),
                 e,
             )
             throw e
