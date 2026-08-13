@@ -1,6 +1,6 @@
 package no.nav.syfo.varsel.budstikka
 
-import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.runBlocking
@@ -24,7 +24,7 @@ import java.util.Properties
 import java.util.UUID
 
 class BudstikkaProducerKafkaIntegrationTest :
-    DescribeSpec({
+    FunSpec({
         val kafka = KafkaContainer("apache/kafka-native:3.8.0")
         val oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
         val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
@@ -38,41 +38,39 @@ class BudstikkaProducerKafkaIntegrationTest :
             kafka.stop()
         }
 
-        describe("BudstikkaProducer") {
-            it("delivers the contract-encoded record to Kafka") {
-                val expectedDispatch = Budstikka.brukervarselCreate(
-                    eventId = EventId(eventId),
-                    reference = oppfolgingsplanUuid.toString(),
-                    sykmeldt = PersonIdentifier(sykmeldtFnr),
-                    varseltype = Varseltype.BESKJED,
-                    text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
-                    link = oppfolgingsplanUrl,
-                    sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
-                )
+        test("BudstikkaProducer delivers the contract-encoded record to Kafka") {
+            val expectedDispatch = Budstikka.brukervarselCreate(
+                eventId = EventId(eventId),
+                reference = oppfolgingsplanUuid.toString(),
+                sykmeldt = PersonIdentifier(sykmeldtFnr),
+                varseltype = Varseltype.BESKJED,
+                text = OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT,
+                link = oppfolgingsplanUrl,
+                sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+            )
 
-                KafkaConsumer<String, String>(consumerProperties(kafka.bootstrapServers)).use { consumer ->
-                    KafkaProducer<String, String>(producerProperties(kafka.bootstrapServers)).use { kafkaProducer ->
-                        consumer.subscribe(listOf(Budstikka.TOPIC))
-                        consumer.poll(Duration.ofMillis(100))
+            KafkaConsumer<String, String>(consumerProperties(kafka.bootstrapServers)).use { consumer ->
+                KafkaProducer<String, String>(producerProperties(kafka.bootstrapServers)).use { kafkaProducer ->
+                    consumer.subscribe(listOf(Budstikka.TOPIC))
+                    consumer.poll(Duration.ofMillis(100))
 
-                        runBlocking {
-                            BudstikkaProducer(kafkaProducer, oppfolgingsplanUrl).publishOppfolgingsplanCreated(
-                                oppfolgingsplanUuid = oppfolgingsplanUuid,
-                                sykmeldtFnr = sykmeldtFnr,
-                                eventId = eventId,
-                            )
-                        }
+                    runBlocking {
+                        BudstikkaProducer(kafkaProducer, oppfolgingsplanUrl).publishOppfolgingsplanCreated(
+                            oppfolgingsplanUuid = oppfolgingsplanUuid,
+                            sykmeldtFnr = sykmeldtFnr,
+                            eventId = eventId,
+                        )
+                    }
 
-                        val record = consumer.pollSingleRecord()
-                        record.topic() shouldBe expectedDispatch.topic
-                        record.key() shouldBe expectedDispatch.key
-                        record.value() shouldBe expectedDispatch.value
-                        record.value() shouldContain "\"sendingWindow\":\"BUDSTIKKA_OPENING_HOURS\""
-                        record.headers().associate { header ->
-                            header.key() to header.value().toList()
-                        } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) ->
-                            value.toList()
-                        }
+                    val record = consumer.pollSingleRecord()
+                    record.topic() shouldBe expectedDispatch.topic
+                    record.key() shouldBe expectedDispatch.key
+                    record.value() shouldBe expectedDispatch.value
+                    record.value() shouldContain "\"sendingWindow\":\"BUDSTIKKA_OPENING_HOURS\""
+                    record.headers().associate { header ->
+                        header.key() to header.value().toList()
+                    } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) ->
+                        value.toList()
                     }
                 }
             }
