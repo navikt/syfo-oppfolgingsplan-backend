@@ -15,6 +15,7 @@ data class OutboxMessage(
     val lastAttemptAt: Instant?,
     val createdAt: Instant,
     val sentAt: Instant?,
+    val cancellationReason: OutboxCancellationReason? = null,
 ) {
     override fun toString(): String = "OutboxMessage(uuid=$uuid, messageType=$messageType, status=$status, " +
         "scheduledAt=$scheduledAt, attemptCount=$attemptCount)"
@@ -40,26 +41,41 @@ data class NewOutboxMessage(
     }
 }
 
-@JvmInline
-value class OutboxMessageType(val value: String) {
-    init {
-        require(TYPE_PATTERN.matches(value)) {
-            "messageType must start with a letter and contain at most 64 uppercase letters, digits, or underscores"
-        }
-    }
+/**
+ * Closed set of commands supported by this application. [value] is the stable database contract;
+ * enum constant names may therefore be refactored without rewriting persisted rows.
+ */
+enum class OutboxMessageType(val value: String) {
+    OPPFOLGINGSPLAN_CREATED("OPPFOLGINGSPLAN_CREATED"),
+    OPPFOLGINGSPLAN_FOUR_WEEK_REMINDER("OPPFOLGINGSPLAN_FOUR_WEEK_REMINDER"),
+    OPPFOLGINGSPLAN_EVALUATION_REMINDER("OPPFOLGINGSPLAN_EVALUATION_REMINDER"),
+    ;
 
-    override fun toString(): String = value
-
-    private companion object {
-        val TYPE_PATTERN = Regex("[A-Z][A-Z0-9_]{0,63}")
+    companion object {
+        fun fromDatabaseValue(value: String): OutboxMessageType = entries.singleOrNull { it.value == value }
+            ?: error("Unknown outbox message type: $value")
     }
 }
 
 enum class OutboxStatus {
     READY,
     SENT,
-    IRRELEVANT,
+    CANCELLED,
+}
 
-    /** Reserved for an explicit operator or future adapter decision; retries never set this. */
-    FAILED,
+/** Low-cardinality domain reason for deliberately not delivering a previously scheduled command. */
+enum class OutboxCancellationReason(val value: String) {
+    NO_LONGER_REQUESTED("NO_LONGER_REQUESTED"),
+    SOURCE_NOT_FOUND("SOURCE_NOT_FOUND"),
+    SOURCE_NO_LONGER_ELIGIBLE("SOURCE_NO_LONGER_ELIGIBLE"),
+    PLAN_ALREADY_CREATED("PLAN_ALREADY_CREATED"),
+    SUPERSEDED("SUPERSEDED"),
+    NO_ELIGIBLE_RECIPIENT("NO_ELIGIBLE_RECIPIENT"),
+    NO_RELEVANT_SICK_LEAVE("NO_RELEVANT_SICK_LEAVE"),
+    ;
+
+    companion object {
+        fun fromDatabaseValue(value: String): OutboxCancellationReason = entries.singleOrNull { it.value == value }
+            ?: error("Unknown outbox cancellation reason: $value")
+    }
 }

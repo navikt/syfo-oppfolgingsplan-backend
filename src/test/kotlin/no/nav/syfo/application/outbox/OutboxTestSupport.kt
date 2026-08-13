@@ -11,8 +11,8 @@ import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import java.time.Instant
 import java.util.UUID
 
-val TEST_IMMEDIATE_MESSAGE = OutboxMessageType("TEST_IMMEDIATE_MESSAGE")
-val TEST_SCHEDULED_MESSAGE = OutboxMessageType("TEST_SCHEDULED_MESSAGE")
+val TEST_IMMEDIATE_MESSAGE = OutboxMessageType.OPPFOLGINGSPLAN_CREATED
+val TEST_SCHEDULED_MESSAGE = OutboxMessageType.OPPFOLGINGSPLAN_FOUR_WEEK_REMINDER
 
 suspend fun DatabaseInterface.enqueueTestOutboxMessage(
     messageType: OutboxMessageType = TEST_IMMEDIATE_MESSAGE,

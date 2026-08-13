@@ -3,6 +3,7 @@ package no.nav.syfo.application.outbox.db
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.outbox.domain.NewOutboxMessage
+import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import no.nav.syfo.application.outbox.domain.OutboxStatus
@@ -55,13 +56,13 @@ fun JdbcTransaction.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = r
 )
 
 /**
- * Explicitly schedules a previously irrelevant command again, for example when a user opts back
+ * Explicitly schedules a previously cancelled command again, for example when a user opts back
  * into a reminder. Normal enqueue deliberately never changes a terminal message.
  */
-fun JdbcTransaction.reactivateIrrelevantOutboxMessage(message: NewOutboxMessage): Boolean = OutboxTable.update({
+fun JdbcTransaction.reactivateCancelledOutboxMessage(message: NewOutboxMessage): Boolean = OutboxTable.update({
     (OutboxTable.messageType eq message.messageType.value) and
         (OutboxTable.dedupKey eq message.dedupKey) and
-        (OutboxTable.status eq OutboxStatus.IRRELEVANT)
+        (OutboxTable.status eq OutboxStatus.CANCELLED)
 }) {
     it[externalRef] = message.externalRef
     it[payload] = message.payload
@@ -70,6 +71,7 @@ fun JdbcTransaction.reactivateIrrelevantOutboxMessage(message: NewOutboxMessage)
     it[attemptCount] = 0
     it[lastAttemptAt] = null
     it[sentAt] = null
+    it[cancellationReason] = null
 } == 1
 
 fun JdbcTransaction.claimNextReadyOutboxMessage(
@@ -85,6 +87,7 @@ fun JdbcTransaction.claimNextReadyOutboxMessage(
     .orderBy(
         OutboxTable.scheduledAt to SortOrder.ASC,
         OutboxTable.createdAt to SortOrder.ASC,
+        OutboxTable.uuid to SortOrder.ASC,
     )
     .limit(1)
     .forUpdate(
@@ -102,9 +105,13 @@ fun JdbcTransaction.markOutboxMessageSent(uuid: UUID, sentAt: Instant) {
     }
 }
 
-fun JdbcTransaction.markOutboxMessageIrrelevant(uuid: UUID) {
-    updateReadyMessage(uuid, "marked irrelevant") {
-        it[status] = OutboxStatus.IRRELEVANT
+fun JdbcTransaction.markOutboxMessageCancelled(
+    uuid: UUID,
+    reason: OutboxCancellationReason,
+) {
+    updateReadyMessage(uuid, "marked cancelled") {
+        it[status] = OutboxStatus.CANCELLED
+        it[cancellationReason] = reason.value
     }
 }
 
@@ -168,7 +175,7 @@ private fun JdbcTransaction.updateReadyMessage(
 
 private fun ResultRow.toOutboxMessage(): OutboxMessage = OutboxMessage(
     uuid = this[OutboxTable.uuid],
-    messageType = OutboxMessageType(this[OutboxTable.messageType]),
+    messageType = OutboxMessageType.fromDatabaseValue(this[OutboxTable.messageType]),
     dedupKey = this[OutboxTable.dedupKey],
     externalRef = this[OutboxTable.externalRef],
     payload = this[OutboxTable.payload],
@@ -178,6 +185,7 @@ private fun ResultRow.toOutboxMessage(): OutboxMessage = OutboxMessage(
     lastAttemptAt = this[OutboxTable.lastAttemptAt]?.toInstant(),
     createdAt = this[OutboxTable.createdAt].toInstant(),
     sentAt = this[OutboxTable.sentAt]?.toInstant(),
+    cancellationReason = this[OutboxTable.cancellationReason]?.let(OutboxCancellationReason::fromDatabaseValue),
 )
 
 private fun Instant.atUtcOffset() = atOffset(ZoneOffset.UTC)

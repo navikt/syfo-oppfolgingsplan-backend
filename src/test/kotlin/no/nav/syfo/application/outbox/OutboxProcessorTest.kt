@@ -13,6 +13,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.outbox.db.findOutboxMessage
+import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxStatus
 import java.time.Clock
 import java.time.Instant
@@ -38,15 +39,18 @@ class OutboxProcessorTest :
                 TestDB.database.findOutboxMessage(message.uuid)?.sentAt.shouldNotBeNull()
             }
 
-            it("marks a message irrelevant without counting a technical failure") {
+            it("cancels a message with its domain reason without counting a technical failure") {
                 val message = TestDB.database.enqueueTestOutboxMessage()
-                val handler = TestOutboxHandler(outcome = { _, _ -> OutboxResult.Irrelevant })
+                val handler = TestOutboxHandler(
+                    outcome = { _, _ -> OutboxResult.Cancelled(OutboxCancellationReason.PLAN_ALREADY_CREATED) },
+                )
 
                 val result = OutboxProcessor(TestDB.database, listOf(handler), clock).processReadyMessages()
 
-                result shouldBe OutboxBatchResult(irrelevant = 1)
+                result shouldBe OutboxBatchResult(cancelled = 1)
                 val persisted = TestDB.database.findOutboxMessage(message.uuid).shouldNotBeNull()
-                persisted.status shouldBe OutboxStatus.IRRELEVANT
+                persisted.status shouldBe OutboxStatus.CANCELLED
+                persisted.cancellationReason shouldBe OutboxCancellationReason.PLAN_ALREADY_CREATED
                 persisted.attemptCount shouldBeExactly 0
             }
 
@@ -80,7 +84,7 @@ class OutboxProcessorTest :
 
                 val result = OutboxProcessor(TestDB.database, listOf(handler), clock).processReadyMessages()
 
-                result shouldBe OutboxBatchResult(failed = 1)
+                result shouldBe OutboxBatchResult(retryScheduled = 1)
                 val persisted = TestDB.database.findOutboxMessage(message.uuid).shouldNotBeNull()
                 persisted.status shouldBe OutboxStatus.READY
                 persisted.attemptCount shouldBeExactly 1
@@ -114,7 +118,7 @@ class OutboxProcessorTest :
 
                 val result = OutboxProcessor(TestDB.database, listOf(handler), clock).processReadyMessages()
 
-                result shouldBe OutboxBatchResult(failed = 1)
+                result shouldBe OutboxBatchResult(retryScheduled = 1)
                 val persisted = TestDB.database.findOutboxMessage(message.uuid).shouldNotBeNull()
                 persisted.status shouldBe OutboxStatus.READY
                 persisted.payload shouldBe "{}"
@@ -136,7 +140,7 @@ class OutboxProcessorTest :
 
                 val result = OutboxProcessor(TestDB.database, listOf(handler), clock).processReadyMessages()
 
-                result shouldBe OutboxBatchResult(sent = 1, failed = 1)
+                result shouldBe OutboxBatchResult(sent = 1, retryScheduled = 1)
                 TestDB.database.findOutboxMessage(failed.uuid)?.status shouldBe OutboxStatus.READY
                 TestDB.database.findOutboxMessage(successful.uuid)?.status shouldBe OutboxStatus.SENT
             }

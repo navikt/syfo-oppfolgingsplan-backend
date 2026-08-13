@@ -16,9 +16,11 @@ Dette er domeneregler og skal ikke bygges inn i den tekniske leveringsmekanismen
 
 ## Beslutning
 
-Vi bruker én outbox-tabell og én prosessor. En meldingstype er en validert streng, ikke en enum i
-kjernen. Nye varseltyper kan derfor legges til som egne handlere uten database- eller
-kjerneendringer.
+Vi bruker én outbox-tabell og én prosessor. Meldingstypene er et lukket Kotlin-enum i applikasjonen,
+slik at skrivefeil og meldinger uten en kjent handler avvises ved kompilering. Hver enumverdi har en
+eksplisitt, stabil databaseverdi som lagres som `TEXT`. Nye varseltyper krever derfor en bevisst
+kodeendring, men ingen databaseendring. Databaseverdier skal ikke gjenbrukes eller endres etter at
+de er tatt i bruk.
 
 En domenetransaksjon oppretter outbox-raden sammen med tilstanden som utløser meldingen.
 `UNIQUE (message_type, dedup_key)` gjør kommandoen idempotent. `scheduled_at` uttrykker når
@@ -30,8 +32,8 @@ automatisk replay (`exposedTransaction(maxAttempts > 1)`). Blokken må ikke inne
 sideeffekter, siden hele domenetransaksjonen kan kjøres på nytt.
 
 Vanlig enqueue endrer aldri en terminal rad. Dersom en bruker eksplisitt slår på et planlagt
-varsel igjen etter at det ble vurdert som irrelevant, kan adapteren eksplisitt reaktivere akkurat
-den `IRRELEVANT`-raden med oppdatert referanse, payload og tidspunkt. En `SENT`-rad kan aldri
+varsel igjen etter at det ble kansellert, kan adapteren eksplisitt reaktivere akkurat den
+`CANCELLED`-raden med oppdatert referanse, payload og tidspunkt. En `SENT`-rad kan aldri
 reaktiveres.
 
 Outbox-raden inneholder en typeuavhengig `external_ref` og et lite JSON-payload. Dedup-nøkkel og
@@ -44,13 +46,14 @@ når meldingen behandles.
 Hver handler returnerer ett av tre domeneutfall:
 
 - `Sent`: leveringen er bekreftet og raden blir terminal.
-- `Irrelevant`: fersk domenetilstand viser at varselet ikke lenger skal sendes.
+- `Cancelled(reason)`: fersk domenetilstand viser at varselet ikke lenger skal sendes. En
+  lavkardinal årsak lagres for drift og produktanalyse uten å lagre sensitive detaljer.
 - `Deferred(until)`: domenet kan ikke avgjøre eller sende ennå. Raden flyttes til det oppgitte
   tidspunktet uten at dette regnes som en teknisk feil.
 
 Exceptions behandles som tekniske feil. Handlerens retry-policy beregner neste forsøk. Standard er
 eksponentiell ventetid fra ett minutt til maksimalt én time. Kjernen har ingen vilkårlig grense som
-permanent kaster en melding etter et kort driftsavbrudd; domenet må eksplisitt velge `Irrelevant`.
+permanent kaster en melding etter et kort driftsavbrudd; domenet må eksplisitt velge `Cancelled`.
 Antall forsøk og siste forsøk lagres for metrikk, varsling og feilsøking.
 
 Prosessoren låser én klar rad med `FOR UPDATE SKIP LOCKED`, kjører handleren og oppdaterer status i
@@ -75,5 +78,6 @@ valgt; vi setter ikke en tilfeldig global TTL som kan åpne for duplikatvarsler.
 - Kafka-/brokerfeil og domeneutsettelse har forskjellige, eksplisitte mekanismer.
 - En poison message blokkerer ikke nyere meldinger; den får nytt `scheduled_at` før batchen går
   videre.
-- Permanently irrelevante varsler må avgjøres av handleren ut fra fersk domenetilstand.
+- Varsler som ikke lenger skal sendes må kanselleres av handleren med en eksplisitt årsak basert på
+  fersk domenetilstand.
 - Operasjonelle alarmer må følge alder og antall forsøk for `READY`-rader.

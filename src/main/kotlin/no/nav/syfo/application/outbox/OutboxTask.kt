@@ -23,12 +23,12 @@ class OutboxTask(
         }
 
         log.info(
-            "Processed {} outbox messages: sent={}, irrelevant={}, deferred={}, failed={}",
+            "Processed {} outbox messages: sent={}, cancelled={}, deferred={}, retryScheduled={}",
             result.processed,
             result.sent,
-            result.irrelevant,
+            result.cancelled,
             result.deferred,
-            result.failed,
+            result.retryScheduled,
         )
     }
 }

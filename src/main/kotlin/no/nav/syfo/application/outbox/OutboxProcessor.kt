@@ -9,7 +9,7 @@ import no.nav.syfo.application.metric.METRICS_NS
 import no.nav.syfo.application.metric.METRICS_REGISTRY
 import no.nav.syfo.application.outbox.db.claimNextReadyOutboxMessage
 import no.nav.syfo.application.outbox.db.deferOutboxMessage
-import no.nav.syfo.application.outbox.db.markOutboxMessageIrrelevant
+import no.nav.syfo.application.outbox.db.markOutboxMessageCancelled
 import no.nav.syfo.application.outbox.db.markOutboxMessageSent
 import no.nav.syfo.application.outbox.db.recordOutboxMessageFailure
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
@@ -20,18 +20,18 @@ import java.util.UUID
 
 data class OutboxBatchResult(
     val sent: Int = 0,
-    val irrelevant: Int = 0,
+    val cancelled: Int = 0,
     val deferred: Int = 0,
-    val failed: Int = 0,
+    val retryScheduled: Int = 0,
 ) {
     val processed: Int
-        get() = sent + irrelevant + deferred + failed
+        get() = sent + cancelled + deferred + retryScheduled
 
     operator fun plus(other: OutboxBatchResult) = OutboxBatchResult(
         sent = sent + other.sent,
-        irrelevant = irrelevant + other.irrelevant,
+        cancelled = cancelled + other.cancelled,
         deferred = deferred + other.deferred,
-        failed = failed + other.failed,
+        retryScheduled = retryScheduled + other.retryScheduled,
     )
 }
 
@@ -70,9 +70,9 @@ class OutboxProcessor(
                     result += attempt.outcome.toBatchResult()
                     incrementMetric(handler.messageType, attempt.outcome.metricValue)
                 }
-                is ProcessAttempt.Failed -> {
-                    result = result.copy(failed = result.failed + 1)
-                    incrementMetric(handler.messageType, "failed")
+                is ProcessAttempt.RetryScheduled -> {
+                    result = result.copy(retryScheduled = result.retryScheduled + 1)
+                    incrementMetric(handler.messageType, "retry_scheduled")
                     log.error(
                         "Failed to handle outbox message, outboxUuid={}, messageType={}, exceptionType={}",
                         attempt.messageUuid,
@@ -102,12 +102,12 @@ class OutboxProcessor(
             val retryAt = handler.retryPolicy.nextRetryAt(message, failedAt)
             check(retryAt.isAfter(failedAt)) { "Outbox retry policy must schedule a future retry" }
             recordOutboxMessageFailure(message.uuid, failedAt, retryAt)
-            return@suspendedExposedTransaction ProcessAttempt.Failed(message.uuid, e)
+            return@suspendedExposedTransaction ProcessAttempt.RetryScheduled(message.uuid, e)
         }
 
         when (outcome) {
             OutboxResult.Sent -> markOutboxMessageSent(message.uuid, clock.instant())
-            OutboxResult.Irrelevant -> markOutboxMessageIrrelevant(message.uuid)
+            is OutboxResult.Cancelled -> markOutboxMessageCancelled(message.uuid, outcome.reason)
             is OutboxResult.Deferred -> {
                 connection.rollback(handlerSavepoint)
                 deferOutboxMessage(message.uuid, outcome.until)
@@ -136,21 +136,21 @@ class OutboxProcessor(
 
     private fun OutboxResult.toBatchResult(): OutboxBatchResult = when (this) {
         OutboxResult.Sent -> OutboxBatchResult(sent = 1)
-        OutboxResult.Irrelevant -> OutboxBatchResult(irrelevant = 1)
+        is OutboxResult.Cancelled -> OutboxBatchResult(cancelled = 1)
         is OutboxResult.Deferred -> OutboxBatchResult(deferred = 1)
     }
 
     private val OutboxResult.metricValue: String
         get() = when (this) {
             OutboxResult.Sent -> "sent"
-            OutboxResult.Irrelevant -> "irrelevant"
+            is OutboxResult.Cancelled -> "cancelled"
             is OutboxResult.Deferred -> "deferred"
         }
 
     private sealed interface ProcessAttempt {
         data object Empty : ProcessAttempt
         data class Processed(val outcome: OutboxResult) : ProcessAttempt
-        data class Failed(val messageUuid: UUID, val cause: Exception) : ProcessAttempt
+        data class RetryScheduled(val messageUuid: UUID, val cause: Exception) : ProcessAttempt
     }
 
     private companion object {

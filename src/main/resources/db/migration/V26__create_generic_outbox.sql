@@ -11,9 +11,14 @@ CREATE TABLE outbox
     last_attempt_at TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     sent_at         TIMESTAMPTZ,
+    cancellation_reason TEXT,
     CONSTRAINT uq_outbox_message UNIQUE (message_type, dedup_key),
-    CONSTRAINT chk_outbox_status CHECK (status IN ('READY', 'SENT', 'IRRELEVANT', 'FAILED')),
-    CONSTRAINT chk_outbox_attempt_count CHECK (attempt_count >= 0)
+    CONSTRAINT chk_outbox_status CHECK (status IN ('READY', 'SENT', 'CANCELLED')),
+    CONSTRAINT chk_outbox_attempt_count CHECK (attempt_count >= 0),
+    CONSTRAINT chk_outbox_cancellation CHECK (
+        (status = 'CANCELLED' AND cancellation_reason IS NOT NULL)
+        OR (status <> 'CANCELLED' AND cancellation_reason IS NULL)
+    )
 );
 
 CREATE INDEX idx_outbox_ready

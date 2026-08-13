@@ -13,10 +13,12 @@ import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.outbox.db.claimNextReadyOutboxMessage
 import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
 import no.nav.syfo.application.outbox.db.findOutboxMessage
-import no.nav.syfo.application.outbox.db.markOutboxMessageIrrelevant
+import no.nav.syfo.application.outbox.db.markOutboxMessageCancelled
 import no.nav.syfo.application.outbox.db.markOutboxMessageSent
-import no.nav.syfo.application.outbox.db.reactivateIrrelevantOutboxMessage
+import no.nav.syfo.application.outbox.db.reactivateCancelledOutboxMessage
 import no.nav.syfo.application.outbox.domain.NewOutboxMessage
+import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
+import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import no.nav.syfo.application.outbox.domain.OutboxStatus
 import java.time.Instant
 import java.util.UUID
@@ -51,16 +53,17 @@ class OutboxDAOTest :
             it("does not revive a terminal message") {
                 val first = TestDB.database.enqueueTestOutboxMessage(dedupKey = "terminal-command")
                 TestDB.database.exposedTransaction {
-                    markOutboxMessageIrrelevant(first.uuid)
+                    markOutboxMessageCancelled(first.uuid, OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE)
                 }
 
                 val duplicate = TestDB.database.enqueueTestOutboxMessage(dedupKey = "terminal-command")
 
                 duplicate.uuid shouldBe first.uuid
-                duplicate.status shouldBe OutboxStatus.IRRELEVANT
+                duplicate.status shouldBe OutboxStatus.CANCELLED
+                duplicate.cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
             }
 
-            it("explicitly reactivates an irrelevant scheduled message") {
+            it("explicitly reactivates a cancelled scheduled message") {
                 val original = TestDB.database.enqueueTestOutboxMessage(
                     messageType = TEST_SCHEDULED_MESSAGE,
                     dedupKey = "reminder-opt-in",
@@ -68,12 +71,12 @@ class OutboxDAOTest :
                     payload = "{\"version\":1}",
                 )
                 TestDB.database.exposedTransaction {
-                    markOutboxMessageIrrelevant(original.uuid)
+                    markOutboxMessageCancelled(original.uuid, OutboxCancellationReason.NO_LONGER_REQUESTED)
                 }
                 val rescheduledAt = Instant.parse("2026-09-09T10:00:00Z")
 
                 val reactivated = TestDB.database.exposedTransaction {
-                    reactivateIrrelevantOutboxMessage(
+                    reactivateCancelledOutboxMessage(
                         NewOutboxMessage(
                             messageType = TEST_SCHEDULED_MESSAGE,
                             dedupKey = "reminder-opt-in",
@@ -93,6 +96,7 @@ class OutboxDAOTest :
                 persisted?.externalRef shouldBe "current-reference"
                 persisted?.payload shouldBe "{\"version\": 2}"
                 persisted?.scheduledAt shouldBe rescheduledAt
+                persisted?.cancellationReason.shouldBeNull()
             }
 
             it("never reactivates a message that was already sent") {
@@ -102,7 +106,7 @@ class OutboxDAOTest :
                 }
 
                 val reactivated = TestDB.database.exposedTransaction {
-                    reactivateIrrelevantOutboxMessage(
+                    reactivateCancelledOutboxMessage(
                         NewOutboxMessage(
                             messageType = TEST_IMMEDIATE_MESSAGE,
                             dedupKey = "already-sent",
@@ -266,13 +270,28 @@ class OutboxDAOTest :
 
                 claimed.shouldBeNull()
             }
+
+            it("uses uuid as a deterministic tie-breaker") {
+                val lowerUuid = UUID.fromString("00000000-0000-0000-0000-000000000001")
+                val higherUuid = UUID.fromString("00000000-0000-0000-0000-000000000002")
+                val scheduledAt = Instant.parse("2026-08-12T12:00:00Z")
+                TestDB.database.enqueueTestOutboxMessage(uuid = higherUuid, scheduledAt = scheduledAt)
+                TestDB.database.enqueueTestOutboxMessage(uuid = lowerUuid, scheduledAt = scheduledAt)
+                TestDB.database.exposedTransaction {
+                    exec("UPDATE outbox SET created_at = '2026-08-12T11:00:00Z'")
+                }
+
+                val claimed = TestDB.database.exposedTransaction {
+                    claimNextReadyOutboxMessage(TEST_IMMEDIATE_MESSAGE, scheduledAt)
+                }
+
+                claimed?.uuid shouldBe lowerUuid
+            }
         }
 
         describe("OutboxMessageType") {
-            it("accepts new domain message types without a core enum change") {
-                val evaluationReminder = no.nav.syfo.application.outbox.domain.OutboxMessageType(
-                    "OPPFOLGINGSPLAN_EVALUATION_REMINDER",
-                )
+            it("persists every supported domain message type using its stable database value") {
+                val evaluationReminder = OutboxMessageType.OPPFOLGINGSPLAN_EVALUATION_REMINDER
 
                 val persisted = TestDB.database.enqueueTestOutboxMessage(messageType = evaluationReminder)
 
@@ -281,9 +300,17 @@ class OutboxDAOTest :
                 }?.messageType shouldBe evaluationReminder
             }
 
-            it("rejects invalid database identifiers early") {
-                shouldThrow<IllegalArgumentException> {
-                    no.nav.syfo.application.outbox.domain.OutboxMessageType("invalid type")
+            it("rejects unknown persisted message types") {
+                shouldThrow<IllegalStateException> {
+                    OutboxMessageType.fromDatabaseValue("OPPFOLGINGSPLAN_EVALUATION_REMINER")
+                }
+            }
+        }
+
+        describe("OutboxCancellationReason") {
+            it("rejects unknown persisted cancellation reasons") {
+                shouldThrow<IllegalStateException> {
+                    OutboxCancellationReason.fromDatabaseValue("SOMETHING_UNBOUNDED")
                 }
             }
         }

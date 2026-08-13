@@ -1,5 +1,6 @@
 package no.nav.syfo.application.outbox
 
+import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
@@ -30,7 +31,7 @@ interface OutboxMessageHandler {
 sealed interface OutboxResult {
     data object Sent : OutboxResult
 
-    data object Irrelevant : OutboxResult
+    data class Cancelled(val reason: OutboxCancellationReason) : OutboxResult
 
     /** The domain is not ready yet. This does not count as a failed delivery attempt. */
     data class Deferred(val until: Instant) : OutboxResult

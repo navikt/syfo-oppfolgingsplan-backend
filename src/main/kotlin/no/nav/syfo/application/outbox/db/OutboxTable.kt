@@ -18,6 +18,7 @@ internal object OutboxTable : Table("outbox") {
     val lastAttemptAt = timestampWithTimeZone("last_attempt_at").nullable()
     val createdAt = timestampWithTimeZone("created_at").databaseGenerated()
     val sentAt = timestampWithTimeZone("sent_at").nullable()
+    val cancellationReason = text("cancellation_reason").nullable()
 
     override val primaryKey = PrimaryKey(uuid)
 }

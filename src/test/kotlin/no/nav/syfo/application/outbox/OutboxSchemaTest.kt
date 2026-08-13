@@ -46,10 +46,12 @@ class OutboxSchemaTest :
                     "last_attempt_at",
                     "created_at",
                     "sent_at",
+                    "cancellation_reason",
                 )
                 columns["uuid"] shouldBe false
                 columns["payload"] shouldBe false
                 columns["sent_at"] shouldBe true
+                columns["cancellation_reason"] shouldBe true
                 indexes shouldContainAll setOf("uq_outbox_message", "idx_outbox_ready")
             }
 
