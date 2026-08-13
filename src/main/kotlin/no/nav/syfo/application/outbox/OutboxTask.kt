@@ -1,19 +1,17 @@
 package no.nav.syfo.application.outbox
 
-import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.task.RecurringTask
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 /** Generic scheduler. It is registered only when at least one domain adapter is introduced. */
 class OutboxTask(
-    leaderElection: LeaderElection,
     private val processor: OutboxProcessor,
     interval: Duration = 1.minutes,
 ) : RecurringTask(
     name = requireNotNull(OutboxTask::class.qualifiedName),
     interval = interval,
-    leaderElection = leaderElection,
+    shouldExecute = { true },
 ) {
     override suspend fun execute() {
         val result = processor.processReadyMessages()

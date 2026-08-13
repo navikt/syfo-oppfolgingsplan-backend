@@ -56,8 +56,16 @@ eksponentiell ventetid fra ett minutt til maksimalt én time. Kjernen har ingen 
 permanent kaster en melding etter et kort driftsavbrudd; domenet må eksplisitt velge `Cancelled`.
 Antall forsøk og siste forsøk lagres for metrikk, varsling og feilsøking.
 
-Prosessoren låser én klar rad med `FOR UPDATE SKIP LOCKED`, kjører handleren og oppdaterer status i
-samme transaksjon. Dette gjør at flere podder kan arbeide uten å behandle samme rad samtidig.
+Prosessoren kjører på alle podder uten leader election. Den låser én klar rad med
+`FOR UPDATE SKIP LOCKED`, kjører handleren og oppdaterer status i samme transaksjon. PostgreSQL
+koordinerer dermed replikaene: en pod hopper over rader en annen pod har låst og kan behandle neste
+rad uten å vente. Dette gir umiddelbar failover og lar kapasiteten skalere med antall podder uten en
+separat elector-avhengighet.
+
+Handleren kjører mens databaselåsen holdes. Denne enkle modellen forutsetter at eksternt arbeid er
+kort og eksplisitt tidsavgrenset. Dersom en fremtidig handler trenger langsomme oppslag eller lange
+batcher, skal vi vurdere en eksplisitt claim/lease-modell i stedet for å holde transaksjonen åpen.
+
 Leveringen er *at least once*: krasj etter broker-ACK, men før database-commit kan gi en ny
 publisering. Adapteren må derfor bruke outbox-radens stabile UUID som mottakerens dedupliserings-ID.
 
