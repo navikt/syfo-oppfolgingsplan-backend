@@ -111,8 +111,9 @@ class OppfolgingsplanService(
             throw e
         } catch (e: Exception) {
             logger.error(
-                "Error when publishing Budstikka varsel {}",
-                kv("eventId", eventId),
+                "Error when publishing Budstikka varsel {}, {}",
+                kv("oppfolgingsplan_uuid", uuid),
+                kv("event_id", eventId),
                 e,
             )
         }
