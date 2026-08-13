@@ -19,16 +19,16 @@ class OutboxTaskTest :
 
         it("processes registered adapters on every replica without leader election") {
             val message = TestDB.database.enqueueTestOutboxMessage()
-            val processor = OutboxProcessor(
+            val worker = OutboxWorker(
                 database = TestDB.database,
                 handlers = listOf(TestOutboxHandler()),
                 clock = Clock.fixed(Instant.parse("2026-08-12T12:00:00Z"), ZoneOffset.UTC),
             )
 
-            val taskJob = launch { OutboxTask(processor, 10.milliseconds).runTask() }
+            val taskJob = launch { OutboxTask(worker, 10.milliseconds).runTask() }
             delay(100)
             taskJob.cancelAndJoin()
 
-            TestDB.database.findOutboxMessage(message.uuid)?.status shouldBe OutboxStatus.SENT
+            TestDB.database.findOutboxMessage(message)?.status shouldBe OutboxStatus.SENT
         }
     })

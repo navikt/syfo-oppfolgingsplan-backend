@@ -9,29 +9,45 @@ data class OutboxMessage(
     val dedupKey: String,
     val externalRef: String,
     val payload: String,
-    val scheduledAt: Instant,
+    val availableAt: Instant,
     val status: OutboxStatus,
-    val attemptCount: Int,
-    val lastAttemptAt: Instant?,
+    val failureCount: Int,
+    val lastFailureAt: Instant?,
     val createdAt: Instant,
     val sentAt: Instant?,
     val cancellationReason: OutboxCancellationReason? = null,
+    val claimToken: UUID? = null,
+    val leaseUntil: Instant? = null,
 ) {
+    init {
+        require(failureCount >= 0) { "failureCount must not be negative" }
+        require((failureCount == 0) == (lastFailureAt == null)) {
+            "lastFailureAt must be present exactly when failureCount is positive"
+        }
+        when (status) {
+            OutboxStatus.READY -> require(sentAt == null && cancellationReason == null && claimToken == null && leaseUntil == null)
+            OutboxStatus.CLAIMED -> require(sentAt == null && cancellationReason == null && claimToken != null && leaseUntil != null)
+            OutboxStatus.SENT -> require(sentAt != null && cancellationReason == null && claimToken == null && leaseUntil == null)
+            OutboxStatus.CANCELLED -> require(sentAt == null && cancellationReason != null && claimToken == null && leaseUntil == null)
+        }
+    }
+
     override fun toString(): String = "OutboxMessage(uuid=$uuid, messageType=$messageType, status=$status, " +
-        "scheduledAt=$scheduledAt, attemptCount=$attemptCount)"
+        "availableAt=$availableAt, failureCount=$failureCount)"
 }
 
 /**
- * Command for enqueuing one domain event. [dedupKey] and [externalRef] must use opaque identifiers,
- * and [payload] must contain only the minimum data needed by the handler. Never store national
- * identity numbers, organisation numbers, names, free text, or notification content here.
+ * Command for enqueuing one immutable domain event. [dedupKey] and [externalRef] must use opaque
+ * identifiers, and [payload] must contain only the minimum data needed by the handler. Never store
+ * national identity numbers, organisation numbers, names, free text, or notification content here.
+ * A later opt-in creates a new command generation instead of mutating a terminal command.
  */
 data class NewOutboxMessage(
     val messageType: OutboxMessageType,
     val dedupKey: String,
     val externalRef: String,
     val payload: String,
-    val scheduledAt: Instant,
+    val availableAt: Instant,
     val uuid: UUID = UUID.randomUUID(),
 ) {
     init {
@@ -42,36 +58,26 @@ data class NewOutboxMessage(
 }
 
 /**
- * Closed set of commands supported by this application. [value] is the stable database contract;
- * enum constant names may therefore be refactored without rewriting persisted rows.
+ * Implemented by an adapter-owned enum whose explicit [value] is the stable database contract.
+ * Keeping the enum with its adapter prevents the inactive core from advertising unsupported types.
  */
-enum class OutboxMessageType(val value: String) {
-    OPPFOLGINGSPLAN_CREATED("OPPFOLGINGSPLAN_CREATED"),
-    OPPFOLGINGSPLAN_FOUR_WEEK_REMINDER("OPPFOLGINGSPLAN_FOUR_WEEK_REMINDER"),
-    OPPFOLGINGSPLAN_EVALUATION_REMINDER("OPPFOLGINGSPLAN_EVALUATION_REMINDER"),
-    ;
-
-    companion object {
-        fun fromDatabaseValue(value: String): OutboxMessageType = entries.singleOrNull { it.value == value }
-            ?: error("Unknown outbox message type: $value")
-    }
+interface OutboxMessageType {
+    val value: String
 }
 
 enum class OutboxStatus {
     READY,
+    CLAIMED,
     SENT,
     CANCELLED,
 }
 
-/** Low-cardinality domain reason for deliberately not delivering a previously scheduled command. */
+/** General, low-cardinality reason for deliberately not delivering a scheduled command. */
 enum class OutboxCancellationReason(val value: String) {
     NO_LONGER_REQUESTED("NO_LONGER_REQUESTED"),
     SOURCE_NOT_FOUND("SOURCE_NOT_FOUND"),
     SOURCE_NO_LONGER_ELIGIBLE("SOURCE_NO_LONGER_ELIGIBLE"),
-    PLAN_ALREADY_CREATED("PLAN_ALREADY_CREATED"),
     SUPERSEDED("SUPERSEDED"),
-    NO_ELIGIBLE_RECIPIENT("NO_ELIGIBLE_RECIPIENT"),
-    NO_RELEVANT_SICK_LEAVE("NO_RELEVANT_SICK_LEAVE"),
     ;
 
     companion object {

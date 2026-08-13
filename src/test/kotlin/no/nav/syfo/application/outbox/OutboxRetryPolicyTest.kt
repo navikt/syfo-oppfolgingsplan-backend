@@ -16,24 +16,36 @@ class OutboxRetryPolicyTest :
             val policy = ExponentialOutboxRetryPolicy(
                 initialDelay = 1.minutes,
                 maximumDelay = 10.minutes,
+                jitterRatio = 0.0,
             )
 
-            policy.nextRetryAt(message(attemptCount = 0), failedAt) shouldBe failedAt.plusSeconds(60)
-            policy.nextRetryAt(message(attemptCount = 3), failedAt) shouldBe failedAt.plusSeconds(8 * 60)
-            policy.nextRetryAt(message(attemptCount = 20), failedAt) shouldBe failedAt.plusSeconds(10 * 60)
+            policy.nextRetryAt(message(failureCount = 0), failedAt) shouldBe failedAt.plusSeconds(60)
+            policy.nextRetryAt(message(failureCount = 3), failedAt) shouldBe failedAt.plusSeconds(8 * 60)
+            policy.nextRetryAt(message(failureCount = 20), failedAt) shouldBe failedAt.plusSeconds(10 * 60)
+        }
+
+        it("adds bounded jitter without exceeding the capped delay") {
+            val policy = ExponentialOutboxRetryPolicy(
+                initialDelay = 10.minutes,
+                maximumDelay = 10.minutes,
+                jitterRatio = 0.2,
+                randomDouble = { 0.5 },
+            )
+
+            policy.nextRetryAt(message(failureCount = 0), failedAt) shouldBe failedAt.plusSeconds(9 * 60)
         }
     })
 
-private fun message(attemptCount: Int) = OutboxMessage(
+private fun message(failureCount: Int) = OutboxMessage(
     uuid = UUID.randomUUID(),
     messageType = TEST_IMMEDIATE_MESSAGE,
     dedupKey = "dedup-key",
     externalRef = "external-ref",
     payload = "{}",
-    scheduledAt = Instant.EPOCH,
+    availableAt = Instant.EPOCH,
     status = OutboxStatus.READY,
-    attemptCount = attemptCount,
-    lastAttemptAt = null,
+    failureCount = failureCount,
+    lastFailureAt = if (failureCount == 0) null else Instant.EPOCH,
     createdAt = Instant.EPOCH,
     sentAt = null,
 )

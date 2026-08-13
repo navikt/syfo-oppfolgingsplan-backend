@@ -6,7 +6,7 @@ import kotlin.time.Duration.Companion.minutes
 
 /** Generic scheduler. It is registered only when at least one domain adapter is introduced. */
 class OutboxTask(
-    private val processor: OutboxProcessor,
+    private val worker: OutboxWorker,
     interval: Duration = 1.minutes,
 ) : RecurringTask(
     name = requireNotNull(OutboxTask::class.qualifiedName),
@@ -14,19 +14,20 @@ class OutboxTask(
     shouldExecute = { true },
 ) {
     override suspend fun execute() {
-        val result = processor.processReadyMessages()
+        val result = worker.runOnce()
         if (result.processed == 0) {
             log.debug("No ready outbox messages found")
             return
         }
 
         log.info(
-            "Processed {} outbox messages: sent={}, cancelled={}, deferred={}, retryScheduled={}",
+            "Processed {} outbox messages: sent={}, cancelled={}, deferred={}, retryScheduled={}, claimLost={}",
             result.processed,
             result.sent,
             result.cancelled,
             result.deferred,
             result.retryScheduled,
+            result.claimLost,
         )
     }
 }

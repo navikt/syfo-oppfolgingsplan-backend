@@ -3,7 +3,6 @@ package no.nav.syfo.application.database
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
-import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import java.sql.Connection
 
@@ -24,24 +23,6 @@ internal suspend fun <T> DatabaseInterface.exposedTransaction(
         readOnly = readOnly,
     ) {
         this.maxAttempts = maxAttempts
-        block()
-    }
-}
-
-/**
- * Suspended counterpart for transactions that include a suspending side effect. This is used by
- * the outbox worker while it holds a row lock until delivery has been acknowledged.
- */
-internal suspend fun <T> DatabaseInterface.suspendedExposedTransaction(
-    readOnly: Boolean = false,
-    block: suspend JdbcTransaction.() -> T,
-): T = withContext(Dispatchers.IO) {
-    suspendTransaction(
-        db = exposedDatabase,
-        transactionIsolation = Connection.TRANSACTION_REPEATABLE_READ,
-        readOnly = readOnly,
-    ) {
-        maxAttempts = 1
         block()
     }
 }

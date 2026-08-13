@@ -2,7 +2,11 @@ package no.nav.syfo.application.outbox
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.kotest.matchers.ints.shouldBeExactly
 import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -10,160 +14,86 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.database.exposedTransaction
-import no.nav.syfo.application.outbox.db.claimNextReadyOutboxMessage
+import no.nav.syfo.application.outbox.db.claimOutboxMessages
+import no.nav.syfo.application.outbox.db.deferOutboxMessage
 import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
 import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.db.markOutboxMessageCancelled
 import no.nav.syfo.application.outbox.db.markOutboxMessageSent
-import no.nav.syfo.application.outbox.db.reactivateCancelledOutboxMessage
+import no.nav.syfo.application.outbox.db.recordOutboxMessageFailure
 import no.nav.syfo.application.outbox.domain.NewOutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
-import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import no.nav.syfo.application.outbox.domain.OutboxStatus
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.time.Duration.Companion.minutes
 
 class OutboxDAOTest :
     DescribeSpec({
+        val now = Instant.parse("2026-08-12T12:00:00Z")
+
         beforeTest { TestDB.clearAllData() }
 
         describe("enqueueOutboxMessage") {
             it("is idempotent for message type and dedup key") {
                 val first = TestDB.database.enqueueTestOutboxMessage(dedupKey = "same-domain-command")
+
                 val insertedAgain = TestDB.database.exposedTransaction {
                     enqueueOutboxMessage(
                         NewOutboxMessage(
                             messageType = TEST_IMMEDIATE_MESSAGE,
-                            dedupKey = "same-domain-command",
+                            dedupKey = first.dedupKey,
                             externalRef = "another-reference",
                             payload = "{}",
-                            scheduledAt = Instant.now(),
+                            availableAt = now,
                         ),
                     )
                 }
 
                 insertedAgain shouldBe false
-                TestDB.database.exposedTransaction {
-                    findOutboxMessage(TEST_IMMEDIATE_MESSAGE, "same-domain-command")
-                } shouldBe first
+                TestDB.database.findOutboxMessage(TEST_IMMEDIATE_MESSAGE, first.dedupKey) shouldBe first
             }
 
-            it("does not revive a terminal message") {
-                val first = TestDB.database.enqueueTestOutboxMessage(dedupKey = "terminal-command")
+            it("keeps commands immutable and uses a new generation for a later opt-in") {
+                val original = TestDB.database.enqueueTestOutboxMessage(dedupKey = "generation-1")
+                val claim = TestDB.database.claim(now).single()
                 TestDB.database.exposedTransaction {
-                    markOutboxMessageCancelled(first.uuid, OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE)
-                }
-
-                val duplicate = TestDB.database.enqueueTestOutboxMessage(dedupKey = "terminal-command")
-
-                duplicate.uuid shouldBe first.uuid
-                duplicate.status shouldBe OutboxStatus.CANCELLED
-                duplicate.cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
-            }
-
-            it("explicitly reactivates a cancelled scheduled message") {
-                val original = TestDB.database.enqueueTestOutboxMessage(
-                    messageType = TEST_SCHEDULED_MESSAGE,
-                    dedupKey = "reminder-opt-in",
-                    externalRef = "old-reference",
-                    payload = "{\"version\":1}",
-                )
-                TestDB.database.exposedTransaction {
-                    markOutboxMessageCancelled(original.uuid, OutboxCancellationReason.NO_LONGER_REQUESTED)
-                }
-                val rescheduledAt = Instant.parse("2026-09-09T10:00:00Z")
-
-                val reactivated = TestDB.database.exposedTransaction {
-                    reactivateCancelledOutboxMessage(
-                        NewOutboxMessage(
-                            messageType = TEST_SCHEDULED_MESSAGE,
-                            dedupKey = "reminder-opt-in",
-                            externalRef = "current-reference",
-                            payload = "{\"version\":2}",
-                            scheduledAt = rescheduledAt,
-                        ),
+                    markOutboxMessageCancelled(
+                        claim.uuid,
+                        claim.claimToken.shouldNotBeNull(),
+                        OutboxCancellationReason.NO_LONGER_REQUESTED,
                     )
-                }
-                val persisted = TestDB.database.exposedTransaction {
-                    findOutboxMessage(TEST_SCHEDULED_MESSAGE, "reminder-opt-in")
-                }
+                } shouldBe true
 
-                reactivated shouldBe true
-                persisted?.uuid shouldBe original.uuid
-                persisted?.status shouldBe OutboxStatus.READY
-                persisted?.externalRef shouldBe "current-reference"
-                persisted?.payload shouldBe "{\"version\": 2}"
-                persisted?.scheduledAt shouldBe rescheduledAt
-                persisted?.cancellationReason.shouldBeNull()
-            }
+                val laterGeneration = TestDB.database.enqueueTestOutboxMessage(dedupKey = "generation-2")
 
-            it("never reactivates a message that was already sent") {
-                val sent = TestDB.database.enqueueTestOutboxMessage(dedupKey = "already-sent")
-                TestDB.database.exposedTransaction {
-                    markOutboxMessageSent(sent.uuid, Instant.parse("2026-08-12T12:00:00Z"))
-                }
-
-                val reactivated = TestDB.database.exposedTransaction {
-                    reactivateCancelledOutboxMessage(
-                        NewOutboxMessage(
-                            messageType = TEST_IMMEDIATE_MESSAGE,
-                            dedupKey = "already-sent",
-                            externalRef = "reference",
-                            payload = "{}",
-                            scheduledAt = Instant.EPOCH,
-                        ),
-                    )
-                }
-
-                reactivated shouldBe false
-                TestDB.database.exposedTransaction {
-                    findOutboxMessage(sent.uuid)
-                }?.status shouldBe OutboxStatus.SENT
-            }
-
-            it("allows the same dedup key for different message types") {
-                val immediate = TestDB.database.enqueueTestOutboxMessage(
-                    messageType = TEST_IMMEDIATE_MESSAGE,
-                    dedupKey = "shared-reference",
-                )
-                val scheduled = TestDB.database.enqueueTestOutboxMessage(
-                    messageType = TEST_SCHEDULED_MESSAGE,
-                    dedupKey = "shared-reference",
-                )
-
-                immediate.messageType shouldBe TEST_IMMEDIATE_MESSAGE
-                scheduled.messageType shouldBe TEST_SCHEDULED_MESSAGE
-                (immediate.uuid == scheduled.uuid) shouldBe false
+                (laterGeneration.uuid == original.uuid) shouldBe false
+                TestDB.database.findOutboxMessage(original)?.status shouldBe OutboxStatus.CANCELLED
+                TestDB.database.findOutboxMessage(laterGeneration)?.status shouldBe OutboxStatus.READY
             }
 
             it("fails instead of silently ignoring a uuid collision for another command") {
                 val sharedUuid = UUID.randomUUID()
-                TestDB.database.enqueueTestOutboxMessage(
-                    uuid = sharedUuid,
-                    messageType = TEST_IMMEDIATE_MESSAGE,
-                    dedupKey = "first-command",
-                )
+                TestDB.database.enqueueTestOutboxMessage(uuid = sharedUuid, dedupKey = "first-command")
 
                 shouldThrow<Exception> {
                     TestDB.database.exposedTransaction {
                         enqueueOutboxMessage(
                             NewOutboxMessage(
                                 uuid = sharedUuid,
-                                messageType = TEST_SCHEDULED_MESSAGE,
+                                messageType = TEST_IMMEDIATE_MESSAGE,
                                 dedupKey = "second-command",
                                 externalRef = "another-reference",
                                 payload = "{}",
-                                scheduledAt = Instant.EPOCH,
+                                availableAt = now,
                             ),
                         )
                     }
                 }
 
-                TestDB.database.exposedTransaction {
-                    findOutboxMessage(TEST_SCHEDULED_MESSAGE, "second-command")
-                }.shouldBeNull()
+                TestDB.database.findOutboxMessage(TEST_IMMEDIATE_MESSAGE, "second-command").shouldBeNull()
             }
 
             it("replays a concurrent idempotent domain transaction after serialization failure") {
@@ -176,15 +106,7 @@ class OutboxDAOTest :
                 coroutineScope {
                     val first = async(Dispatchers.IO) {
                         TestDB.database.exposedTransaction {
-                            enqueueOutboxMessage(
-                                NewOutboxMessage(
-                                    messageType = TEST_IMMEDIATE_MESSAGE,
-                                    dedupKey = dedupKey,
-                                    externalRef = "first-reference",
-                                    payload = "{}",
-                                    scheduledAt = Instant.EPOCH,
-                                ),
-                            ).also {
+                            enqueueOutboxMessage(newMessage(dedupKey, "first-reference", now)).also {
                                 firstInsertCompleted.countDown()
                                 allowFirstCommit.await()
                             }
@@ -195,15 +117,7 @@ class OutboxDAOTest :
                         TestDB.database.exposedTransaction(maxAttempts = 3) {
                             secondAttempts.incrementAndGet()
                             secondAttemptStarted.countDown()
-                            enqueueOutboxMessage(
-                                NewOutboxMessage(
-                                    messageType = TEST_IMMEDIATE_MESSAGE,
-                                    dedupKey = dedupKey,
-                                    externalRef = "second-reference",
-                                    payload = "{}",
-                                    scheduledAt = Instant.EPOCH,
-                                ),
-                            )
+                            enqueueOutboxMessage(newMessage(dedupKey, "second-reference", now))
                         }
                     }
                     secondAttemptStarted.await()
@@ -215,103 +129,166 @@ class OutboxDAOTest :
                 }
 
                 secondAttempts.get() shouldBe 2
-                TestDB.database.exposedTransaction {
-                    findOutboxMessage(TEST_IMMEDIATE_MESSAGE, dedupKey)
-                }?.externalRef shouldBe "first-reference"
+                TestDB.database.findOutboxMessage(TEST_IMMEDIATE_MESSAGE, dedupKey)?.externalRef shouldBe "first-reference"
             }
 
             it("rejects malformed JSON payloads in the database") {
                 shouldThrow<Exception> {
                     TestDB.database.exposedTransaction {
                         enqueueOutboxMessage(
-                            NewOutboxMessage(
-                                uuid = UUID.randomUUID(),
-                                messageType = TEST_IMMEDIATE_MESSAGE,
-                                dedupKey = "invalid-json",
-                                externalRef = "reference",
-                                payload = "not-json",
-                                scheduledAt = Instant.EPOCH,
-                            ),
+                            newMessage("invalid-json", "reference", now).copy(payload = "not-json"),
                         )
                     }
                 }
             }
         }
 
-        describe("claimNextReadyOutboxMessage") {
-            it("claims only due messages for the requested type") {
-                val now = Instant.parse("2026-08-12T12:00:00Z")
-                val due = TestDB.database.enqueueTestOutboxMessage(
-                    messageType = TEST_SCHEDULED_MESSAGE,
-                    scheduledAt = now.minusSeconds(1),
-                )
-                TestDB.database.enqueueTestOutboxMessage(
-                    messageType = TEST_SCHEDULED_MESSAGE,
-                    scheduledAt = now.plusSeconds(1),
-                )
-                TestDB.database.enqueueTestOutboxMessage(
-                    messageType = TEST_IMMEDIATE_MESSAGE,
-                    scheduledAt = now.minusSeconds(2),
-                )
+        describe("claimOutboxMessages") {
+            it("claims only due messages and persists a lease token") {
+                val due = TestDB.database.enqueueTestOutboxMessage(availableAt = now.minusSeconds(1))
+                TestDB.database.enqueueTestOutboxMessage(availableAt = now.plusSeconds(1))
 
-                val claimed = TestDB.database.exposedTransaction {
-                    claimNextReadyOutboxMessage(TEST_SCHEDULED_MESSAGE, now)
-                }
+                val claimed = TestDB.database.claim(now).single()
 
-                claimed?.uuid shouldBe due.uuid
+                claimed.uuid shouldBe due.uuid
+                claimed.status shouldBe OutboxStatus.CLAIMED
+                claimed.claimToken.shouldNotBeNull()
+                claimed.leaseUntil shouldBe now.plusSeconds(5 * 60)
+                TestDB.database.findOutboxMessage(due) shouldBe claimed
             }
 
-            it("returns null for an empty type-specific queue") {
-                TestDB.database.enqueueTestOutboxMessage(messageType = TEST_IMMEDIATE_MESSAGE)
+            it("lets concurrent replicas claim disjoint rows without waiting") {
+                val firstMessage = TestDB.database.enqueueTestOutboxMessage(availableAt = now.minusSeconds(2))
+                val secondMessage = TestDB.database.enqueueTestOutboxMessage(availableAt = now.minusSeconds(1))
+                val firstClaimed = CountDownLatch(1)
+                val releaseFirstClaim = CountDownLatch(1)
 
-                val claimed = TestDB.database.exposedTransaction {
-                    claimNextReadyOutboxMessage(TEST_SCHEDULED_MESSAGE, Instant.now())
+                val claims = coroutineScope {
+                    val first = async(Dispatchers.IO) {
+                        TestDB.database.exposedTransaction {
+                            claimOutboxMessages(TEST_IMMEDIATE_MESSAGE, now, 1, 5.minutes).also {
+                                firstClaimed.countDown()
+                                releaseFirstClaim.await()
+                            }
+                        }
+                    }
+                    firstClaimed.await()
+                    val second = async(Dispatchers.IO) {
+                        TestDB.database.claim(now, limit = 1)
+                    }
+                    val secondResult = second.await()
+                    releaseFirstClaim.countDown()
+                    first.await() + secondResult
                 }
 
-                claimed.shouldBeNull()
+                claims.map { it.uuid } shouldContainExactlyInAnyOrder listOf(firstMessage.uuid, secondMessage.uuid)
+                claims.map { it.claimToken }.distinct().size shouldBeExactly 2
+            }
+
+            it("reclaims an expired lease with a new token") {
+                val firstClaim = TestDB.database.run {
+                    enqueueTestOutboxMessage(availableAt = now)
+                    claim(now).single()
+                }
+
+                TestDB.database.claim(now.plusSeconds(299)).shouldBeEmpty()
+                val reclaimed = TestDB.database.claim(now.plusSeconds(300)).single()
+
+                reclaimed.uuid shouldBe firstClaim.uuid
+                (reclaimed.claimToken == firstClaim.claimToken) shouldBe false
+                reclaimed.leaseUntil shouldBe now.plusSeconds(600)
             }
 
             it("uses uuid as a deterministic tie-breaker") {
                 val lowerUuid = UUID.fromString("00000000-0000-0000-0000-000000000001")
                 val higherUuid = UUID.fromString("00000000-0000-0000-0000-000000000002")
-                val scheduledAt = Instant.parse("2026-08-12T12:00:00Z")
-                TestDB.database.enqueueTestOutboxMessage(uuid = higherUuid, scheduledAt = scheduledAt)
-                TestDB.database.enqueueTestOutboxMessage(uuid = lowerUuid, scheduledAt = scheduledAt)
+                TestDB.database.enqueueTestOutboxMessage(uuid = higherUuid, availableAt = now)
+                TestDB.database.enqueueTestOutboxMessage(uuid = lowerUuid, availableAt = now)
                 TestDB.database.exposedTransaction {
                     exec("UPDATE outbox SET created_at = '2026-08-12T11:00:00Z'")
                 }
 
-                val claimed = TestDB.database.exposedTransaction {
-                    claimNextReadyOutboxMessage(TEST_IMMEDIATE_MESSAGE, scheduledAt)
-                }
-
-                claimed?.uuid shouldBe lowerUuid
+                TestDB.database.claim(now, limit = 1).single().uuid shouldBe lowerUuid
             }
         }
 
-        describe("OutboxMessageType") {
-            it("persists every supported domain message type using its stable database value") {
-                val evaluationReminder = OutboxMessageType.OPPFOLGINGSPLAN_EVALUATION_REMINDER
-
-                val persisted = TestDB.database.enqueueTestOutboxMessage(messageType = evaluationReminder)
+        describe("claim-guarded transitions") {
+            it("prevents a stale claimant from overwriting a newer claim") {
+                TestDB.database.enqueueTestOutboxMessage(availableAt = now)
+                val staleClaim = TestDB.database.claim(now).single()
+                val currentClaim = TestDB.database.claim(now.plusSeconds(300)).single()
 
                 TestDB.database.exposedTransaction {
-                    findOutboxMessage(evaluationReminder, persisted.dedupKey)
-                }?.messageType shouldBe evaluationReminder
+                    markOutboxMessageSent(staleClaim.uuid, staleClaim.claimToken.shouldNotBeNull(), now.plusSeconds(301))
+                } shouldBe false
+                TestDB.database.exposedTransaction {
+                    markOutboxMessageSent(currentClaim.uuid, currentClaim.claimToken.shouldNotBeNull(), now.plusSeconds(302))
+                } shouldBe true
+
+                val persisted = TestDB.database.findOutboxMessage(currentClaim).shouldNotBeNull()
+                persisted.status shouldBe OutboxStatus.SENT
+                persisted.sentAt shouldBe now.plusSeconds(302)
+                persisted.claimToken.shouldBeNull()
+                persisted.leaseUntil.shouldBeNull()
             }
 
-            it("rejects unknown persisted message types") {
-                shouldThrow<IllegalStateException> {
-                    OutboxMessageType.fromDatabaseValue("OPPFOLGINGSPLAN_EVALUATION_REMINER")
-                }
+            it("returns deferred commands to READY without spending a technical failure") {
+                TestDB.database.enqueueTestOutboxMessage(availableAt = now)
+                val claim = TestDB.database.claim(now).single()
+                val deferredUntil = now.plusSeconds(3600)
+
+                TestDB.database.exposedTransaction {
+                    deferOutboxMessage(claim.uuid, claim.claimToken.shouldNotBeNull(), deferredUntil)
+                } shouldBe true
+
+                val persisted = TestDB.database.findOutboxMessage(claim).shouldNotBeNull()
+                persisted.status shouldBe OutboxStatus.READY
+                persisted.availableAt shouldBe deferredUntil
+                persisted.failureCount shouldBeExactly 0
+                persisted.claimToken.shouldBeNull()
+            }
+
+            it("records a technical failure and schedules a retry") {
+                TestDB.database.enqueueTestOutboxMessage(availableAt = now)
+                val claim = TestDB.database.claim(now).single()
+                val failedAt = now.plusSeconds(1)
+                val retryAt = now.plusSeconds(61)
+
+                TestDB.database.exposedTransaction {
+                    recordOutboxMessageFailure(
+                        claim.uuid,
+                        claim.claimToken.shouldNotBeNull(),
+                        failedAt,
+                        retryAt,
+                    )
+                } shouldBe true
+
+                val persisted = TestDB.database.findOutboxMessage(claim).shouldNotBeNull()
+                persisted.status shouldBe OutboxStatus.READY
+                persisted.failureCount shouldBeExactly 1
+                persisted.lastFailureAt shouldBe failedAt
+                persisted.availableAt shouldBe retryAt
             }
         }
 
-        describe("OutboxCancellationReason") {
-            it("rejects unknown persisted cancellation reasons") {
+        describe("persisted types") {
+            it("round-trips the stable message type") {
+                val persisted = TestDB.database.enqueueTestOutboxMessage()
+                persisted.messageType shouldBe TestOutboxMessageType.CREATED
+            }
+
+            it("rejects unknown cancellation reasons") {
                 shouldThrow<IllegalStateException> {
                     OutboxCancellationReason.fromDatabaseValue("SOMETHING_UNBOUNDED")
                 }
             }
         }
     })
+
+private fun newMessage(dedupKey: String, externalRef: String, availableAt: Instant) = NewOutboxMessage(
+    messageType = TEST_IMMEDIATE_MESSAGE,
+    dedupKey = dedupKey,
+    externalRef = externalRef,
+    payload = "{}",
+    availableAt = availableAt,
+)

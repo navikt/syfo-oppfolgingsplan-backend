@@ -11,7 +11,10 @@ import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.inList
+import org.jetbrains.exposed.v1.core.isNotNull
 import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.core.or
 import org.jetbrains.exposed.v1.core.plus
 import org.jetbrains.exposed.v1.core.statements.StatementType
 import org.jetbrains.exposed.v1.core.statements.UpdateStatement
@@ -22,21 +25,18 @@ import org.jetbrains.exposed.v1.jdbc.update
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
+import kotlin.time.Duration
 
 /**
- * Inserts a message once. The unique message type + dedup key pair makes repeated domain commands
- * idempotent without replacing a terminal message.
- *
- * Returning only whether this call inserted avoids a second, snapshot-sensitive read when two
- * repeatable-read transactions enqueue the same command. Concurrent transactions can still get a
- * PostgreSQL serialization failure while resolving the unique conflict; the surrounding pure
- * database transaction must enable automatic replay through `exposedTransaction(maxAttempts > 1)`.
+ * Inserts an immutable command once. Concurrent duplicate inserts can raise PostgreSQL 40001 under
+ * REPEATABLE READ, so the surrounding pure database transaction must opt into replay with
+ * `exposedTransaction(maxAttempts > 1)`.
  */
 fun JdbcTransaction.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = requireNotNull(
     exec(
         stmt = """
             INSERT INTO outbox (
-                uuid, message_type, dedup_key, external_ref, payload, scheduled_at, status, attempt_count
+                uuid, message_type, dedup_key, external_ref, payload, available_at, status, failure_count
             )
             VALUES (?, ?, ?, ?, ?::jsonb, ?, 'READY', 0)
             ON CONFLICT (message_type, dedup_key) DO NOTHING
@@ -48,89 +48,120 @@ fun JdbcTransaction.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = r
             OutboxTable.dedupKey.columnType to message.dedupKey,
             OutboxTable.externalRef.columnType to message.externalRef,
             OutboxTable.payload.columnType to message.payload,
-            OutboxTable.scheduledAt.columnType to message.scheduledAt.atUtcOffset(),
+            OutboxTable.availableAt.columnType to message.availableAt.atUtcOffset(),
         ),
-        // PostgreSQL RETURNING produces a result set even though this is an INSERT.
         explicitStatementType = StatementType.SELECT,
     ) { resultSet -> resultSet.next() },
 )
 
 /**
- * Explicitly schedules a previously cancelled command again, for example when a user opts back
- * into a reminder. Normal enqueue deliberately never changes a terminal message.
+ * Claims due READY rows and expired claims in one short transaction. The returned rows carry a new
+ * claim token. Handler work must happen only after the transaction commits, and every later state
+ * transition must present that token so a stale claimant cannot overwrite a newer claim.
  */
-fun JdbcTransaction.reactivateCancelledOutboxMessage(message: NewOutboxMessage): Boolean = OutboxTable.update({
-    (OutboxTable.messageType eq message.messageType.value) and
-        (OutboxTable.dedupKey eq message.dedupKey) and
-        (OutboxTable.status eq OutboxStatus.CANCELLED)
-}) {
-    it[externalRef] = message.externalRef
-    it[payload] = message.payload
-    it[scheduledAt] = message.scheduledAt.atUtcOffset()
-    it[status] = OutboxStatus.READY
-    it[attemptCount] = 0
-    it[lastAttemptAt] = null
-    it[sentAt] = null
-    it[cancellationReason] = null
-} == 1
-
-fun JdbcTransaction.claimNextReadyOutboxMessage(
+fun JdbcTransaction.claimOutboxMessages(
     messageType: OutboxMessageType,
     now: Instant,
-): OutboxMessage? = OutboxTable
-    .selectAll()
-    .where {
-        (OutboxTable.status eq OutboxStatus.READY) and
-            (OutboxTable.messageType eq messageType.value) and
-            (OutboxTable.scheduledAt lessEq now.atUtcOffset())
-    }
-    .orderBy(
-        OutboxTable.scheduledAt to SortOrder.ASC,
-        OutboxTable.createdAt to SortOrder.ASC,
-        OutboxTable.uuid to SortOrder.ASC,
-    )
-    .limit(1)
-    .forUpdate(
-        ForUpdateOption.PostgreSQL.ForUpdate(
-            ForUpdateOption.PostgreSQL.MODE.SKIP_LOCKED,
-        ),
-    )
-    .singleOrNull()
-    ?.toOutboxMessage()
+    limit: Int,
+    leaseDuration: Duration,
+): List<OutboxMessage> {
+    require(limit > 0) { "limit must be greater than zero" }
+    require(leaseDuration.isFinite()) { "leaseDuration must be finite" }
+    require(leaseDuration.inWholeMilliseconds > 0) { "leaseDuration must be at least one millisecond" }
 
-fun JdbcTransaction.markOutboxMessageSent(uuid: UUID, sentAt: Instant) {
-    updateReadyMessage(uuid, "marked sent") {
-        it[status] = OutboxStatus.SENT
-        it[OutboxTable.sentAt] = sentAt.atUtcOffset()
+    val nowAtUtc = now.atUtcOffset()
+    val candidates = OutboxTable
+        .selectAll()
+        .where {
+            (OutboxTable.messageType eq messageType.value) and
+                (
+                    ((OutboxTable.status eq OutboxStatus.READY) and (OutboxTable.availableAt lessEq nowAtUtc)) or
+                        (
+                            (OutboxTable.status eq OutboxStatus.CLAIMED) and
+                                OutboxTable.leaseUntil.isNotNull() and
+                                (OutboxTable.leaseUntil lessEq nowAtUtc)
+                            )
+                    )
+        }
+        .orderBy(
+            OutboxTable.availableAt to SortOrder.ASC,
+            OutboxTable.createdAt to SortOrder.ASC,
+            OutboxTable.uuid to SortOrder.ASC,
+        )
+        .limit(limit)
+        .forUpdate(
+            ForUpdateOption.PostgreSQL.ForUpdate(
+                ForUpdateOption.PostgreSQL.MODE.SKIP_LOCKED,
+            ),
+        )
+        .toList()
+
+    if (candidates.isEmpty()) return emptyList()
+
+    val claimToken = UUID.randomUUID()
+    val leaseUntil = now.plusMillis(leaseDuration.inWholeMilliseconds)
+    val candidateIds = candidates.map { it[OutboxTable.uuid] }
+    val updatedRows = OutboxTable.update({ OutboxTable.uuid inList candidateIds }) {
+        it[status] = OutboxStatus.CLAIMED
+        it[OutboxTable.claimToken] = claimToken
+        it[OutboxTable.leaseUntil] = leaseUntil.atUtcOffset()
     }
+    check(updatedRows == candidates.size) { "Expected to claim ${candidates.size} outbox rows, updated $updatedRows" }
+
+    return candidates.map {
+        it.toOutboxMessage(messageType).copy(
+            status = OutboxStatus.CLAIMED,
+            claimToken = claimToken,
+            leaseUntil = leaseUntil,
+        )
+    }
+}
+
+fun JdbcTransaction.markOutboxMessageSent(
+    uuid: UUID,
+    claimToken: UUID,
+    sentAt: Instant,
+): Boolean = updateClaimedMessage(uuid, claimToken) {
+    it[status] = OutboxStatus.SENT
+    it[OutboxTable.sentAt] = sentAt.atUtcOffset()
+    it[OutboxTable.claimToken] = null
+    it[leaseUntil] = null
 }
 
 fun JdbcTransaction.markOutboxMessageCancelled(
     uuid: UUID,
+    claimToken: UUID,
     reason: OutboxCancellationReason,
-) {
-    updateReadyMessage(uuid, "marked cancelled") {
-        it[status] = OutboxStatus.CANCELLED
-        it[cancellationReason] = reason.value
-    }
+): Boolean = updateClaimedMessage(uuid, claimToken) {
+    it[status] = OutboxStatus.CANCELLED
+    it[cancellationReason] = reason.value
+    it[OutboxTable.claimToken] = null
+    it[leaseUntil] = null
 }
 
-fun JdbcTransaction.deferOutboxMessage(uuid: UUID, until: Instant) {
-    updateReadyMessage(uuid, "deferred") {
-        it[scheduledAt] = until.atUtcOffset()
-    }
+fun JdbcTransaction.deferOutboxMessage(
+    uuid: UUID,
+    claimToken: UUID,
+    until: Instant,
+): Boolean = updateClaimedMessage(uuid, claimToken) {
+    it[status] = OutboxStatus.READY
+    it[availableAt] = until.atUtcOffset()
+    it[OutboxTable.claimToken] = null
+    it[leaseUntil] = null
 }
 
 fun JdbcTransaction.recordOutboxMessageFailure(
     uuid: UUID,
+    claimToken: UUID,
     failedAt: Instant,
     retryAt: Instant,
-) {
-    updateReadyMessage(uuid, "rescheduled after failure") {
-        it[attemptCount] = attemptCount + 1
-        it[lastAttemptAt] = failedAt.atUtcOffset()
-        it[scheduledAt] = retryAt.atUtcOffset()
-    }
+): Boolean = updateClaimedMessage(uuid, claimToken) {
+    it[status] = OutboxStatus.READY
+    it[failureCount] = failureCount + 1
+    it[lastFailureAt] = failedAt.atUtcOffset()
+    it[availableAt] = retryAt.atUtcOffset()
+    it[OutboxTable.claimToken] = null
+    it[leaseUntil] = null
 }
 
 fun JdbcTransaction.findOutboxMessage(
@@ -143,46 +174,39 @@ fun JdbcTransaction.findOutboxMessage(
             (OutboxTable.dedupKey eq dedupKey)
     }
     .singleOrNull()
-    ?.toOutboxMessage()
+    ?.toOutboxMessage(messageType)
 
-fun JdbcTransaction.findOutboxMessage(uuid: UUID): OutboxMessage? = OutboxTable
-    .selectAll()
-    .where { OutboxTable.uuid eq uuid }
-    .singleOrNull()
-    ?.toOutboxMessage()
-
-suspend fun DatabaseInterface.findOutboxMessage(
+internal suspend fun DatabaseInterface.findOutboxMessage(
     messageType: OutboxMessageType,
     dedupKey: String,
 ): OutboxMessage? = exposedTransaction(readOnly = true) {
     findOutboxMessage(messageType, dedupKey)
 }
 
-suspend fun DatabaseInterface.findOutboxMessage(uuid: UUID): OutboxMessage? = exposedTransaction(readOnly = true) {
-    findOutboxMessage(uuid)
-}
-
-private fun JdbcTransaction.updateReadyMessage(
+private fun JdbcTransaction.updateClaimedMessage(
     uuid: UUID,
-    operation: String,
+    claimToken: UUID,
     body: OutboxTable.(UpdateStatement) -> Unit,
-) {
-    val updatedRows = OutboxTable.update({
-        (OutboxTable.uuid eq uuid) and (OutboxTable.status eq OutboxStatus.READY)
-    }, body = body)
-    check(updatedRows == 1) { "Ready outbox message $uuid was not $operation" }
-}
+): Boolean = OutboxTable.update({
+    (OutboxTable.uuid eq uuid) and
+        (OutboxTable.status eq OutboxStatus.CLAIMED) and
+        (OutboxTable.claimToken eq claimToken)
+}, body = body) == 1
 
-private fun ResultRow.toOutboxMessage(): OutboxMessage = OutboxMessage(
+private fun ResultRow.toOutboxMessage(messageType: OutboxMessageType): OutboxMessage = OutboxMessage(
     uuid = this[OutboxTable.uuid],
-    messageType = OutboxMessageType.fromDatabaseValue(this[OutboxTable.messageType]),
+    messageType = messageType.also {
+        check(it.value == this[OutboxTable.messageType]) { "Outbox message type changed while reading a filtered row" }
+    },
     dedupKey = this[OutboxTable.dedupKey],
     externalRef = this[OutboxTable.externalRef],
     payload = this[OutboxTable.payload],
-    scheduledAt = this[OutboxTable.scheduledAt].toInstant(),
+    availableAt = this[OutboxTable.availableAt].toInstant(),
     status = this[OutboxTable.status],
-    attemptCount = this[OutboxTable.attemptCount],
-    lastAttemptAt = this[OutboxTable.lastAttemptAt]?.toInstant(),
+    claimToken = this[OutboxTable.claimToken],
+    leaseUntil = this[OutboxTable.leaseUntil]?.toInstant(),
+    failureCount = this[OutboxTable.failureCount],
+    lastFailureAt = this[OutboxTable.lastFailureAt]?.toInstant(),
     createdAt = this[OutboxTable.createdAt].toInstant(),
     sentAt = this[OutboxTable.sentAt]?.toInstant(),
     cancellationReason = this[OutboxTable.cancellationReason]?.let(OutboxCancellationReason::fromDatabaseValue),
