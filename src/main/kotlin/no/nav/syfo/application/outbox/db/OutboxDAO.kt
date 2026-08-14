@@ -36,7 +36,14 @@ data class OutboxQueueSnapshot(
     val maxFailureCount: Int,
 )
 
-/** Inserts an immutable command on the caller's existing JDBC transaction. */
+/**
+ * Inserts an immutable command using the caller's existing JDBC transaction.
+ *
+ * This JDBC seam is intentional: adapters with existing JDBC persistence must enqueue on the same
+ * [Connection] as their domain change to preserve the transactional-outbox guarantee. The function
+ * never commits or opens a separate Exposed transaction; transaction ownership remains with the
+ * caller. Independent outbox operations use the Exposed APIs below.
+ */
 fun Connection.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = prepareStatement(
     """
         INSERT INTO outbox (
