@@ -3,6 +3,7 @@ package no.nav.syfo.application.outbox
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.metric.METRICS_NS
@@ -114,10 +115,10 @@ class OutboxWorker(
             currentCoroutineContext().ensureActive()
             if (between(batchStartedAt, clock.instant()).toMillis() >= config.leaseBudgetMillis) {
                 log.warn(
-                    "Stopping outbox batch because lease budget is spent, messageType={}, unprocessedCount={}, claimedCount={}",
-                    handler.messageType,
-                    claimed.size - index,
-                    claimed.size,
+                    "Stopping outbox batch because the lease budget is spent; unprocessed rows keep their lease {} {} {}",
+                    kv("message_type", handler.messageType.value),
+                    kv("unprocessed_count", claimed.size - index),
+                    kv("claimed_count", claimed.size),
                 )
                 break
             }
@@ -130,10 +131,10 @@ class OutboxWorker(
                 consecutiveFailures++
                 incrementMetric(handler.messageType, "processing_failed")
                 log.error(
-                    "Failed to process claimed outbox message, outboxUuid={}, messageType={}, exceptionType={}",
-                    message.uuid,
-                    handler.messageType,
-                    e.javaClass.name,
+                    "Failed to process claimed outbox message {} {} {}",
+                    kv("outbox_uuid", message.uuid),
+                    kv("message_type", handler.messageType.value),
+                    kv("error_type", e.javaClass.name),
                 )
                 if (consecutiveFailures >= config.maxConsecutiveFailures) {
                     logBatchAbort(handler.messageType, consecutiveFailures)
@@ -153,10 +154,10 @@ class OutboxWorker(
                     result = result.copy(retryScheduled = result.retryScheduled + 1)
                     incrementMetric(handler.messageType, "retry_scheduled")
                     log.error(
-                        "Failed to handle outbox message, outboxUuid={}, messageType={}, exceptionType={}",
-                        message.uuid,
-                        handler.messageType,
-                        attempt.cause.javaClass.name,
+                        "Failed to handle outbox message; retry scheduled {} {} {}",
+                        kv("outbox_uuid", message.uuid),
+                        kv("message_type", handler.messageType.value),
+                        kv("error_type", attempt.cause.javaClass.name),
                     )
                 }
                 ProcessAttempt.ClaimLost -> {
@@ -164,9 +165,9 @@ class OutboxWorker(
                     result = result.copy(claimLost = result.claimLost + 1)
                     incrementMetric(handler.messageType, "claim_lost")
                     log.warn(
-                        "Ignored stale outbox completion because the claim was lost, outboxUuid={}, messageType={}",
-                        message.uuid,
-                        handler.messageType,
+                        "Ignored stale outbox completion because the claim was lost {} {}",
+                        kv("outbox_uuid", message.uuid),
+                        kv("message_type", handler.messageType.value),
                     )
                 }
             }
@@ -212,9 +213,9 @@ class OutboxWorker(
 
     private fun logBatchAbort(messageType: OutboxMessageType, consecutiveFailures: Int) {
         log.error(
-            "Aborting outbox batch after {} consecutive failures for messageType={}",
-            consecutiveFailures,
-            messageType,
+            "Aborting outbox batch after consecutive failures {} {}",
+            kv("message_type", messageType.value),
+            kv("consecutive_failure_count", consecutiveFailures),
         )
     }
 
