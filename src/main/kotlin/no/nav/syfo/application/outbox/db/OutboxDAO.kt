@@ -22,10 +22,19 @@ import org.jetbrains.exposed.v1.core.vendors.ForUpdateOption
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import java.sql.Connection
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.time.Duration
+
+data class OutboxQueueSnapshot(
+    val dueReadyCount: Long,
+    val oldestDueAt: Instant?,
+    val expiredClaimCount: Long,
+    val retryingCount: Long,
+    val maxFailureCount: Int,
+)
 
 /**
  * Inserts an immutable command once. Concurrent duplicate inserts can raise PostgreSQL 40001 under
@@ -120,10 +129,10 @@ fun JdbcTransaction.claimOutboxMessages(
 fun JdbcTransaction.markOutboxMessageSent(
     uuid: UUID,
     claimToken: UUID,
-    sentAt: Instant,
+    completedAt: Instant,
 ): Boolean = updateClaimedMessage(uuid, claimToken) {
     it[status] = OutboxStatus.SENT
-    it[OutboxTable.sentAt] = sentAt.atUtcOffset()
+    it[OutboxTable.completedAt] = completedAt.atUtcOffset()
     it[OutboxTable.claimToken] = null
     it[leaseUntil] = null
 }
@@ -132,9 +141,11 @@ fun JdbcTransaction.markOutboxMessageCancelled(
     uuid: UUID,
     claimToken: UUID,
     reason: OutboxCancellationReason,
+    completedAt: Instant,
 ): Boolean = updateClaimedMessage(uuid, claimToken) {
     it[status] = OutboxStatus.CANCELLED
     it[cancellationReason] = reason.value
+    it[OutboxTable.completedAt] = completedAt.atUtcOffset()
     it[OutboxTable.claimToken] = null
     it[leaseUntil] = null
 }
@@ -146,6 +157,8 @@ fun JdbcTransaction.deferOutboxMessage(
 ): Boolean = updateClaimedMessage(uuid, claimToken) {
     it[status] = OutboxStatus.READY
     it[availableAt] = until.atUtcOffset()
+    it[failureCount] = 0
+    it[lastFailureAt] = null
     it[OutboxTable.claimToken] = null
     it[leaseUntil] = null
 }
@@ -175,6 +188,95 @@ fun JdbcTransaction.findOutboxMessage(
     }
     .singleOrNull()
     ?.toOutboxMessage(messageType)
+
+fun JdbcTransaction.readOutboxQueueSnapshot(
+    messageType: OutboxMessageType,
+    now: Instant,
+): OutboxQueueSnapshot = requireNotNull(
+    exec(
+        stmt = """
+            SELECT
+                (
+                    SELECT count(*)
+                    FROM outbox
+                    WHERE message_type = ? AND status = 'READY' AND available_at <= ?
+                ) AS due_ready_count,
+                (
+                    SELECT min(available_at)
+                    FROM outbox
+                    WHERE message_type = ? AND status = 'READY' AND available_at <= ?
+                ) AS oldest_due_at,
+                (
+                    SELECT count(*)
+                    FROM outbox
+                    WHERE message_type = ? AND status = 'CLAIMED' AND lease_until <= ?
+                ) AS expired_claim_count,
+                (
+                    SELECT count(*)
+                    FROM outbox
+                    WHERE message_type = ?
+                      AND status IN ('READY', 'CLAIMED')
+                      AND failure_count > 0
+                ) AS retrying_count,
+                (
+                    SELECT COALESCE(max(failure_count), 0)
+                    FROM outbox
+                    WHERE message_type = ?
+                      AND status IN ('READY', 'CLAIMED')
+                      AND failure_count > 0
+                ) AS max_failure_count
+        """.trimIndent(),
+        args = listOf(
+            OutboxTable.messageType.columnType to messageType.value,
+            OutboxTable.availableAt.columnType to now.atUtcOffset(),
+            OutboxTable.messageType.columnType to messageType.value,
+            OutboxTable.availableAt.columnType to now.atUtcOffset(),
+            OutboxTable.messageType.columnType to messageType.value,
+            OutboxTable.leaseUntil.columnType to now.atUtcOffset(),
+            OutboxTable.messageType.columnType to messageType.value,
+            OutboxTable.messageType.columnType to messageType.value,
+        ),
+        explicitStatementType = StatementType.SELECT,
+    ) { resultSet ->
+        resultSet.next()
+        OutboxQueueSnapshot(
+            dueReadyCount = resultSet.getLong("due_ready_count"),
+            oldestDueAt = resultSet.getObject("oldest_due_at", java.time.OffsetDateTime::class.java)?.toInstant(),
+            expiredClaimCount = resultSet.getLong("expired_claim_count"),
+            retryingCount = resultSet.getLong("retrying_count"),
+            maxFailureCount = resultSet.getInt("max_failure_count"),
+        )
+    },
+)
+
+fun JdbcTransaction.deleteTerminalOutboxMessages(
+    messageType: OutboxMessageType,
+    completedBefore: Instant,
+    batchSize: Int,
+): Int {
+    require(batchSize > 0) { "batchSize must be greater than zero" }
+    val statement = """
+        WITH candidates AS (
+            SELECT uuid
+            FROM outbox
+            WHERE message_type = ?
+              AND status IN ('SENT', 'CANCELLED')
+              AND completed_at <= ?
+            ORDER BY completed_at, uuid
+            LIMIT ?
+            FOR UPDATE SKIP LOCKED
+        )
+        DELETE FROM outbox
+        USING candidates
+        WHERE outbox.uuid = candidates.uuid
+    """.trimIndent()
+    return (connection.connection as Connection).prepareStatement(statement).use {
+        it.setString(1, messageType.value)
+        it.setObject(2, completedBefore.atUtcOffset())
+        it.setInt(3, batchSize)
+        it.executeUpdate()
+    }
+}
 
 internal suspend fun DatabaseInterface.findOutboxMessage(
     messageType: OutboxMessageType,
@@ -208,7 +310,7 @@ private fun ResultRow.toOutboxMessage(messageType: OutboxMessageType): OutboxMes
     failureCount = this[OutboxTable.failureCount],
     lastFailureAt = this[OutboxTable.lastFailureAt]?.toInstant(),
     createdAt = this[OutboxTable.createdAt].toInstant(),
-    sentAt = this[OutboxTable.sentAt]?.toInstant(),
+    completedAt = this[OutboxTable.completedAt]?.toInstant(),
     cancellationReason = this[OutboxTable.cancellationReason]?.let(OutboxCancellationReason::fromDatabaseValue),
 )
 

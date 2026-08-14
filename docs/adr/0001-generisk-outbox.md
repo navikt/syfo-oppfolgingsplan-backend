@@ -90,6 +90,7 @@ beregner nytt `available_at`. Standard er eksponentiell ventetid med jitter fra 
 til maksimalt én time. Antall tekniske feil og siste feiltidspunkt lagres for metrikk, varsling og
 feilsøking. Kjernen har ingen vilkårlig grense som permanent kaster en melding etter et kort
 driftsavbrudd; en eventuell poison-policy må innføres eksplisitt sammen med alarm og recovery.
+En vellykket `Deferred` nullstiller den sammenhengende tekniske feilsekvensen.
 
 ### Rullerende deploy
 
@@ -106,7 +107,10 @@ bestillingsgenerasjoner og kontrakter.
 
 Før første adapter aktiveres må den dokumentere hvor lenge samme domenekommando realistisk kan
 oppstå på nytt. Det intervallet bestemmer hvor lenge terminale rader må beholdes for idempotens, og
-det skal innføres cleanup som sletter dem etterpå. Kjernen aktiveres ikke før slik retention er valgt.
+det skal innføres cleanup som sletter dem etterpå. Kjernen tilbyr én lederkoordinert, batchet
+retention-task som appen konfigurerer per meldingstype. `completed_at` lagres for både `SENT` og
+`CANCELLED`, slik at samme cleanup fungerer for umiddelbare og planlagte kommandoer. Kjernen
+aktiveres ikke før slik retention er valgt.
 
 Denne ADR-en standardiserer worker-protokollen, ikke en delt binæravhengighet. En framtidig lib skal
 bare trekkes ut dersom claim/lease-, batch- og observability-koden kan deles med et lite interface.
@@ -120,4 +124,5 @@ forblir app-eid.
 - Krasj og cancellation recoveres automatisk etter lease expiry.
 - Stale workere kan ikke overskrive en nyere claim.
 - Kafka-/brokerfeil og domeneutsettelse har forskjellige mekanismer.
-- Operasjonelle alarmer må følge alder, utløpte claims og tekniske feil for usendte rader.
+- Kjernen eksponerer lavkardinale målinger for køalder, backlog, utløpte claims og tekniske feil.
+- Adapteren må definere operative alarmer for sine meldingstyper før aktivering.

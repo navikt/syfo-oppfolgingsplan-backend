@@ -11,6 +11,7 @@ import no.nav.syfo.application.outbox.db.claimOutboxMessages
 import no.nav.syfo.application.outbox.db.deferOutboxMessage
 import no.nav.syfo.application.outbox.db.markOutboxMessageCancelled
 import no.nav.syfo.application.outbox.db.markOutboxMessageSent
+import no.nav.syfo.application.outbox.db.readOutboxQueueSnapshot
 import no.nav.syfo.application.outbox.db.recordOutboxMessageFailure
 import no.nav.syfo.application.outbox.domain.OutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
@@ -82,8 +83,17 @@ class OutboxWorker(
         }
     }
 
-    suspend fun runOnce(): OutboxBatchResult = handlersByTypeValue.values.fold(OutboxBatchResult()) { total, handler ->
-        total + processClaimedBatch(handler)
+    suspend fun runOnce(): OutboxBatchResult {
+        var total = OutboxBatchResult()
+        for (handler in handlersByTypeValue.values) {
+            total += processClaimedBatch(handler)
+            val observedAt = clock.instant()
+            val snapshot = database.exposedTransaction(readOnly = true) {
+                readOutboxQueueSnapshot(handler.messageType, observedAt)
+            }
+            OutboxQueueMetrics.observe(handler.messageType, snapshot, observedAt)
+        }
+        return total
     }
 
     private suspend fun processClaimedBatch(handler: OutboxMessageHandler): OutboxBatchResult {
@@ -192,7 +202,8 @@ class OutboxWorker(
         val transitioned = database.exposedTransaction {
             when (outcome) {
                 OutboxResult.Sent -> markOutboxMessageSent(message.uuid, claimToken, clock.instant())
-                is OutboxResult.Cancelled -> markOutboxMessageCancelled(message.uuid, claimToken, outcome.reason)
+                is OutboxResult.Cancelled ->
+                    markOutboxMessageCancelled(message.uuid, claimToken, outcome.reason, clock.instant())
                 is OutboxResult.Deferred -> deferOutboxMessage(message.uuid, claimToken, outcome.until)
             }
         }

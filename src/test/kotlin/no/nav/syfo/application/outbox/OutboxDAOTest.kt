@@ -16,14 +16,17 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.outbox.db.claimOutboxMessages
 import no.nav.syfo.application.outbox.db.deferOutboxMessage
+import no.nav.syfo.application.outbox.db.deleteTerminalOutboxMessages
 import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
 import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.db.markOutboxMessageCancelled
 import no.nav.syfo.application.outbox.db.markOutboxMessageSent
+import no.nav.syfo.application.outbox.db.readOutboxQueueSnapshot
 import no.nav.syfo.application.outbox.db.recordOutboxMessageFailure
 import no.nav.syfo.application.outbox.domain.NewOutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxStatus
+import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.CountDownLatch
@@ -64,6 +67,7 @@ class OutboxDAOTest :
                         claim.uuid,
                         claim.claimToken.shouldNotBeNull(),
                         OutboxCancellationReason.NO_LONGER_REQUESTED,
+                        now,
                     )
                 } shouldBe true
 
@@ -227,7 +231,7 @@ class OutboxDAOTest :
 
                 val persisted = TestDB.database.findOutboxMessage(currentClaim).shouldNotBeNull()
                 persisted.status shouldBe OutboxStatus.SENT
-                persisted.sentAt shouldBe now.plusSeconds(302)
+                persisted.completedAt shouldBe now.plusSeconds(302)
                 persisted.claimToken.shouldBeNull()
                 persisted.leaseUntil.shouldBeNull()
             }
@@ -268,6 +272,95 @@ class OutboxDAOTest :
                 persisted.failureCount shouldBeExactly 1
                 persisted.lastFailureAt shouldBe failedAt
                 persisted.availableAt shouldBe retryAt
+            }
+
+            it("starts a new technical failure sequence after a successful domain deferral") {
+                TestDB.database.enqueueTestOutboxMessage(availableAt = now)
+                val failedClaim = TestDB.database.claim(now).single()
+                val retryAt = now.plusSeconds(60)
+                TestDB.database.exposedTransaction {
+                    recordOutboxMessageFailure(
+                        failedClaim.uuid,
+                        failedClaim.claimToken.shouldNotBeNull(),
+                        failedAt = now,
+                        retryAt = retryAt,
+                    )
+                }
+                val retryClaim = TestDB.database.claim(retryAt).single()
+
+                TestDB.database.exposedTransaction {
+                    deferOutboxMessage(
+                        retryClaim.uuid,
+                        retryClaim.claimToken.shouldNotBeNull(),
+                        until = retryAt.plusSeconds(3600),
+                    )
+                } shouldBe true
+
+                val persisted = TestDB.database.findOutboxMessage(retryClaim).shouldNotBeNull()
+                persisted.failureCount shouldBeExactly 0
+                persisted.lastFailureAt.shouldBeNull()
+                val snapshot = TestDB.database.exposedTransaction(readOnly = true) {
+                    readOutboxQueueSnapshot(TEST_IMMEDIATE_MESSAGE, retryAt.plusSeconds(1))
+                }
+                snapshot.retryingCount shouldBe 0
+                snapshot.maxFailureCount shouldBe 0
+            }
+        }
+
+        describe("retention") {
+            it("deletes terminal messages in bounded batches") {
+                TestDB.database.enqueueTestOutboxMessage(dedupKey = "sent", availableAt = now)
+                TestDB.database.enqueueTestOutboxMessage(dedupKey = "cancelled", availableAt = now)
+                val claims = TestDB.database.claim(now)
+                val completedAt = now.minus(Duration.ofDays(100))
+                TestDB.database.exposedTransaction {
+                    markOutboxMessageSent(claims[0].uuid, claims[0].claimToken.shouldNotBeNull(), completedAt)
+                    markOutboxMessageCancelled(
+                        claims[1].uuid,
+                        claims[1].claimToken.shouldNotBeNull(),
+                        OutboxCancellationReason.NO_LONGER_REQUESTED,
+                        completedAt,
+                    )
+                }
+
+                TestDB.database.exposedTransaction {
+                    deleteTerminalOutboxMessages(
+                        TEST_IMMEDIATE_MESSAGE,
+                        completedBefore = now.minus(Duration.ofDays(90)),
+                        batchSize = 1,
+                    )
+                } shouldBe 1
+                TestDB.database.exposedTransaction {
+                    deleteTerminalOutboxMessages(
+                        TEST_IMMEDIATE_MESSAGE,
+                        completedBefore = now.minus(Duration.ofDays(90)),
+                        batchSize = 1,
+                    )
+                } shouldBe 1
+            }
+        }
+
+        describe("queue observability") {
+            it("reports unresolved failures while their retry is waiting in backoff") {
+                TestDB.database.enqueueTestOutboxMessage(availableAt = now)
+                val claim = TestDB.database.claim(now).single()
+                TestDB.database.exposedTransaction {
+                    recordOutboxMessageFailure(
+                        claim.uuid,
+                        claim.claimToken.shouldNotBeNull(),
+                        failedAt = now,
+                        retryAt = now.plusSeconds(3600),
+                    )
+                    exec("UPDATE outbox SET failure_count = 6 WHERE uuid = '${claim.uuid}'")
+                }
+
+                val snapshot = TestDB.database.exposedTransaction(readOnly = true) {
+                    readOutboxQueueSnapshot(TEST_IMMEDIATE_MESSAGE, now.plusSeconds(1))
+                }
+
+                snapshot.dueReadyCount shouldBe 0
+                snapshot.retryingCount shouldBe 1
+                snapshot.maxFailureCount shouldBe 6
             }
         }
 

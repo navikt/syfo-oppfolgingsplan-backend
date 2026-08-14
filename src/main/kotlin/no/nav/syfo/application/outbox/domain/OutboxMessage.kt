@@ -14,7 +14,7 @@ data class OutboxMessage(
     val failureCount: Int,
     val lastFailureAt: Instant?,
     val createdAt: Instant,
-    val sentAt: Instant?,
+    val completedAt: Instant?,
     val cancellationReason: OutboxCancellationReason? = null,
     val claimToken: UUID? = null,
     val leaseUntil: Instant? = null,
@@ -25,10 +25,10 @@ data class OutboxMessage(
             "lastFailureAt must be present exactly when failureCount is positive"
         }
         when (status) {
-            OutboxStatus.READY -> require(sentAt == null && cancellationReason == null && claimToken == null && leaseUntil == null)
-            OutboxStatus.CLAIMED -> require(sentAt == null && cancellationReason == null && claimToken != null && leaseUntil != null)
-            OutboxStatus.SENT -> require(sentAt != null && cancellationReason == null && claimToken == null && leaseUntil == null)
-            OutboxStatus.CANCELLED -> require(sentAt == null && cancellationReason != null && claimToken == null && leaseUntil == null)
+            OutboxStatus.READY -> require(completedAt == null && cancellationReason == null && claimToken == null && leaseUntil == null)
+            OutboxStatus.CLAIMED -> require(completedAt == null && cancellationReason == null && claimToken != null && leaseUntil != null)
+            OutboxStatus.SENT -> require(completedAt != null && cancellationReason == null && claimToken == null && leaseUntil == null)
+            OutboxStatus.CANCELLED -> require(completedAt != null && cancellationReason != null && claimToken == null && leaseUntil == null)
         }
     }
 

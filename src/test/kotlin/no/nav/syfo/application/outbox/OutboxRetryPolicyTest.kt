@@ -47,5 +47,5 @@ private fun message(failureCount: Int) = OutboxMessage(
     failureCount = failureCount,
     lastFailureAt = if (failureCount == 0) null else Instant.EPOCH,
     createdAt = Instant.EPOCH,
-    sentAt = null,
+    completedAt = null,
 )

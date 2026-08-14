@@ -40,7 +40,7 @@ class OutboxWorkerTest :
                 handler.handledMessages shouldBe listOf(message.uuid)
                 val persisted = TestDB.database.findOutboxMessage(message).shouldNotBeNull()
                 persisted.status shouldBe OutboxStatus.SENT
-                persisted.sentAt.shouldNotBeNull()
+                persisted.completedAt.shouldNotBeNull()
                 persisted.claimToken.shouldBeNull()
                 persisted.leaseUntil.shouldBeNull()
             }

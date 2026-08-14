@@ -50,16 +50,22 @@ class OutboxSchemaTest :
                     "failure_count",
                     "last_failure_at",
                     "created_at",
-                    "sent_at",
+                    "completed_at",
                     "cancellation_reason",
                 )
                 columns["uuid"] shouldBe false
                 columns["payload"] shouldBe false
-                columns["sent_at"] shouldBe true
+                columns["completed_at"] shouldBe true
                 columns["cancellation_reason"] shouldBe true
                 columns["claim_token"] shouldBe true
                 columns["lease_until"] shouldBe true
-                indexes shouldContainAll setOf("uq_outbox_message", "idx_outbox_ready", "idx_outbox_expired_claim")
+                indexes shouldContainAll setOf(
+                    "uq_outbox_message",
+                    "idx_outbox_ready",
+                    "idx_outbox_expired_claim",
+                    "idx_outbox_unresolved_failure",
+                    "idx_outbox_terminal_retention",
+                )
             }
 
             it("rejects state metadata combinations that the domain cannot represent") {
