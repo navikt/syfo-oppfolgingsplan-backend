@@ -9,8 +9,8 @@ import no.nav.syfo.util.logger
 import kotlin.time.Duration
 
 /**
- * Runs periodically while [shouldExecute] permits it. Tasks must explicitly choose all-replica
- * execution or use the [LeaderElection] constructor; there is no implicit coordination policy.
+ * Runs periodically while [shouldExecute] permits it. Coordination policy is supplied explicitly
+ * by the caller.
  */
 abstract class RecurringTask(
     name: String,
