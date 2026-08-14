@@ -29,3 +29,33 @@ spec:
           labels:
             namespace: team-esyfo
             severity: warning
+        - alert: OppfolgingsplanOutboxOldestDueTooOld
+          expr: syfo_oppfolgingsplan_backend_outbox_oldest_due_age_seconds{namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_CREATED"} > 900
+          for: 10m
+          annotations:
+            consequence: Opprettelsesvarsler til Budstikka har vært klare for levering i mer enn 15 minutter.
+            action: "Sjekk outbox-loggene, Kafka/Budstikka-tilgjengelighet og failure_count på READY-rader."
+            summary: Oppfølgingsplan-outboxen leverer ikke varsler raskt nok.
+          labels:
+            namespace: team-esyfo
+            severity: critical
+        - alert: OppfolgingsplanOutboxExpiredClaims
+          expr: syfo_oppfolgingsplan_backend_outbox_expired_claims{namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_CREATED"} > 0
+          for: 10m
+          annotations:
+            consequence: Outbox-claims har forblitt utløpt og kan gi forsinkelse eller duplikate leveringsforsøk.
+            action: "Sjekk pod-restarts, handler-timeout, Kafka-latens og lease-budsjett i outbox-loggene."
+            summary: Oppfølgingsplan-outboxen har en vedvarende backlog av utløpte claims.
+          labels:
+            namespace: team-esyfo
+            severity: warning
+        - alert: OppfolgingsplanOutboxRepeatedFailures
+          expr: syfo_oppfolgingsplan_backend_outbox_max_failure_count{namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_CREATED"} > 5
+          for: 10m
+          annotations:
+            consequence: Minst ett opprettelsesvarsel har feilet gjentatte ganger, også om meldingen for øyeblikket venter i backoff.
+            action: "Sjekk outbox-loggene, Budstikka/Kafka-tilgjengelighet og failure_count på ikke-terminale rader."
+            summary: Oppfølgingsplan-outboxen har et varsel med vedvarende tekniske feil.
+          labels:
+            namespace: team-esyfo
+            severity: critical

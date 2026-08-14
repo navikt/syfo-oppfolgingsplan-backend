@@ -273,22 +273,16 @@ fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
     }
 }
 
-fun DatabaseInterface.findVarselPublishedAtByOppfolgingsplanId(
-    oppfolgingsplanId: UUID,
-): Instant? = connection.use { connection ->
+fun DatabaseInterface.findEventId(oppfolgingsplanId: UUID): UUID? = connection.use { connection ->
     connection.prepareStatement(
         """
-        SELECT varsel_published_at
+        SELECT event_id
         FROM oppfolgingsplan
         WHERE uuid = ?
         """.trimIndent(),
     ).use {
         it.setObject(1, oppfolgingsplanId)
         val resultSet = it.executeQuery()
-        if (resultSet.next()) {
-            resultSet.getTimestamp("varsel_published_at")?.toInstant()
-        } else {
-            null
-        }
+        if (resultSet.next()) resultSet.getObject("event_id", UUID::class.java) else null
     }
 }

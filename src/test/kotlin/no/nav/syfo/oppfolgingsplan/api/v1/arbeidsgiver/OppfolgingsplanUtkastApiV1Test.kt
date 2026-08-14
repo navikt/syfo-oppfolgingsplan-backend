@@ -77,7 +77,6 @@ class OppfolgingsplanUtkastApiV1Test :
             database = testDb,
             esyfovarselProducer = esyfovarselProducerMock,
             pdlService = pdlService,
-            budstikkaPublisher = mockk(relaxed = true),
             aaregService = mockk<AaregService>(relaxed = true),
             unntaksvurderingService = mockk(relaxed = true),
         )
