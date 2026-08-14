@@ -92,9 +92,9 @@ fun JdbcTransaction.claimOutboxMessages(
         .where {
             (OutboxTable.messageType eq messageType.value) and
                 (
-                    ((OutboxTable.status eq OutboxStatus.READY) and (OutboxTable.availableAt lessEq nowAtUtc)) or
+                    ((OutboxTable.status eq OutboxStatus.READY.name) and (OutboxTable.availableAt lessEq nowAtUtc)) or
                         (
-                            (OutboxTable.status eq OutboxStatus.CLAIMED) and
+                            (OutboxTable.status eq OutboxStatus.CLAIMED.name) and
                                 OutboxTable.leaseUntil.isNotNull() and
                                 (OutboxTable.leaseUntil lessEq nowAtUtc)
                             )
@@ -119,7 +119,7 @@ fun JdbcTransaction.claimOutboxMessages(
     val leaseUntil = now.plusMillis(leaseDuration.inWholeMilliseconds)
     val candidateIds = candidates.map { it[OutboxTable.uuid] }
     val updatedRows = OutboxTable.update({ OutboxTable.uuid inList candidateIds }) {
-        it[status] = OutboxStatus.CLAIMED
+        it[status] = OutboxStatus.CLAIMED.name
         it[OutboxTable.claimToken] = claimToken
         it[OutboxTable.leaseUntil] = leaseUntil.atUtcOffset()
     }
@@ -139,7 +139,7 @@ fun JdbcTransaction.markOutboxMessageSent(
     claimToken: UUID,
     completedAt: Instant,
 ): Boolean = updateClaimedMessage(uuid, claimToken) {
-    it[status] = OutboxStatus.SENT
+    it[status] = OutboxStatus.SENT.name
     it[OutboxTable.completedAt] = completedAt.atUtcOffset()
     it[OutboxTable.claimToken] = null
     it[leaseUntil] = null
@@ -151,7 +151,7 @@ fun JdbcTransaction.markOutboxMessageCancelled(
     reason: OutboxCancellationReason,
     completedAt: Instant,
 ): Boolean = updateClaimedMessage(uuid, claimToken) {
-    it[status] = OutboxStatus.CANCELLED
+    it[status] = OutboxStatus.CANCELLED.name
     it[cancellationReason] = reason.value
     it[OutboxTable.completedAt] = completedAt.atUtcOffset()
     it[OutboxTable.claimToken] = null
@@ -163,7 +163,7 @@ fun JdbcTransaction.deferOutboxMessage(
     claimToken: UUID,
     until: Instant,
 ): Boolean = updateClaimedMessage(uuid, claimToken) {
-    it[status] = OutboxStatus.READY
+    it[status] = OutboxStatus.READY.name
     it[availableAt] = until.atUtcOffset()
     it[failureCount] = 0
     it[lastFailureAt] = null
@@ -177,7 +177,7 @@ fun JdbcTransaction.recordOutboxMessageFailure(
     failedAt: Instant,
     retryAt: Instant,
 ): Boolean = updateClaimedMessage(uuid, claimToken) {
-    it[status] = OutboxStatus.READY
+    it[status] = OutboxStatus.READY.name
     it[failureCount] = failureCount + 1
     it[lastFailureAt] = failedAt.atUtcOffset()
     it[availableAt] = retryAt.atUtcOffset()
@@ -299,7 +299,7 @@ private fun JdbcTransaction.updateClaimedMessage(
     body: OutboxTable.(UpdateStatement) -> Unit,
 ): Boolean = OutboxTable.update({
     (OutboxTable.uuid eq uuid) and
-        (OutboxTable.status eq OutboxStatus.CLAIMED) and
+        (OutboxTable.status eq OutboxStatus.CLAIMED.name) and
         (OutboxTable.claimToken eq claimToken)
 }, body = body) == 1
 
@@ -312,7 +312,7 @@ private fun ResultRow.toOutboxMessage(messageType: OutboxMessageType): OutboxMes
     externalRef = this[OutboxTable.externalRef],
     payload = this[OutboxTable.payload],
     availableAt = this[OutboxTable.availableAt].toInstant(),
-    status = this[OutboxTable.status],
+    status = OutboxStatus.valueOf(this[OutboxTable.status]),
     claimToken = this[OutboxTable.claimToken],
     leaseUntil = this[OutboxTable.leaseUntil]?.toInstant(),
     failureCount = this[OutboxTable.failureCount],

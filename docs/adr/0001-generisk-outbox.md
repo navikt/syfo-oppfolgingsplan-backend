@@ -120,6 +120,10 @@ bare trekkes ut dersom claim/lease-, batch- og observability-koden kan deles med
 Flyway-versjonering, appens meldingstyper, payload, domeneevaluering, retry-/poison-policy og retention
 forblir app-eid.
 
+Flyway er autoritativ for databaseskjemaet. `OutboxTable` speiler kolonner, defaults, constraints og
+indekser for typesikre queries, og en `MigrationUtils`-test feiler dersom mappingen og det migrerte
+PostgreSQL-skjemaet drifter fra hverandre.
+
 ## Konsekvenser
 
 - Alle replikaer kan arbeide parallelt uten leader election.

@@ -107,6 +107,8 @@ dependencies {
     testImplementation("org.testcontainers:testcontainers:$testcontainersVersion")
     testImplementation("org.testcontainers:kafka:$testcontainersVersion")
     testImplementation("org.testcontainers:postgresql:$testcontainersVersion")
+    testImplementation("org.jetbrains.exposed:exposed-migration-core:$exposedVersion")
+    testImplementation("org.jetbrains.exposed:exposed-migration-jdbc:$exposedVersion")
 }
 
 application {
