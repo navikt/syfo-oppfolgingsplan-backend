@@ -18,6 +18,10 @@ import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.kafka.stringProducerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
+import no.nav.syfo.application.outbox.OutboxRetentionPolicy
+import no.nav.syfo.application.outbox.OutboxRetentionTask
+import no.nav.syfo.application.outbox.OutboxTask
+import no.nav.syfo.application.outbox.OutboxWorker
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
@@ -36,6 +40,8 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
@@ -61,6 +67,7 @@ import org.koin.core.scope.Scope
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
 import org.koin.logger.slf4jLogger
+import java.time.Duration
 
 fun Application.configureDependencies() {
     install(Koin) {
@@ -227,7 +234,6 @@ private fun servicesModule() = module {
         OppfolgingsplanService(
             database = get(),
             esyfovarselProducer = get(),
-            budstikkaPublisher = get(),
             pdlService = get(),
             aaregService = get(),
             unntaksvurderingService = get(),
@@ -237,6 +243,26 @@ private fun servicesModule() = module {
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }
+    single { OppfolgingsplanCreatedOutboxHandler(database = get(), publisher = get()) }
+    single {
+        OutboxWorker(
+            database = get(),
+            handlers = listOf(get<OppfolgingsplanCreatedOutboxHandler>()),
+        )
+    }
+    single { OutboxTask(worker = get()) }
+    single {
+        OutboxRetentionTask(
+            database = get(),
+            leaderElection = get(),
+            policies = listOf(
+                OutboxRetentionPolicy(
+                    messageType = OppfolgingsplanOutboxMessageType.CREATED,
+                    retention = Duration.ofDays(90),
+                ),
+            ),
+        )
+    }
     single {
         SoftDeleteOppfolgingsplanerTask(
             leaderElection = get(),

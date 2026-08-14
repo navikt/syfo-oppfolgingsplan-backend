@@ -1,8 +1,8 @@
 package no.nav.syfo.oppfolgingsplan.db
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
+import no.nav.syfo.application.outbox.domain.NewOutboxMessage
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
@@ -10,6 +10,7 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
@@ -50,7 +51,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             created_at,
             event_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), gen_random_uuid())
-        RETURNING uuid
+        RETURNING uuid, event_id, created_at
     """.trimIndent()
 
     val deleteStatement = """
@@ -70,7 +71,7 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             }
         }
 
-        val uuid = connection.prepareStatement(insertStatement).use {
+        val (uuid, eventId, createdAt) = connection.prepareStatement(insertStatement).use {
             it.setString(1, sykmeldt.fnr)
             it.setString(2, sykmeldt.navn)
             it.setString(3, sykmeldt.narmestelederId)
@@ -92,8 +93,24 @@ fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
             }
             val resultSet = it.executeQuery()
             resultSet.next()
-            resultSet.getObject("uuid", UUID::class.java)
+            Triple(
+                resultSet.getObject("uuid", UUID::class.java),
+                resultSet.getObject("event_id", UUID::class.java),
+                resultSet.getTimestamp("created_at").toInstant(),
+            )
         }
+        check(
+            connection.enqueueOutboxMessage(
+                NewOutboxMessage(
+                    uuid = eventId,
+                    messageType = OppfolgingsplanOutboxMessageType.CREATED,
+                    dedupKey = uuid.toString(),
+                    externalRef = uuid.toString(),
+                    payload = "{}",
+                    availableAt = createdAt,
+                ),
+            ),
+        ) { "A new oppfolgingsplan must create a new outbox command" }
         connection.commit()
         return uuid
     }
@@ -402,45 +419,6 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
             it.setInt(2, batchSize)
             it.executeUpdate()
         }.also { connection.commit() }
-    }
-}
-
-suspend fun DatabaseInterface.findEventId(
-    oppfolgingsplanId: UUID,
-): UUID = withContext(Dispatchers.IO) {
-    val statement = """
-        SELECT event_id 
-        FROM oppfolgingsplan
-        WHERE uuid = ?
-    """.trimIndent()
-
-    connection.use { connection ->
-        connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setObject(1, oppfolgingsplanId)
-            preparedStatement.executeQuery().use { resultSet ->
-                if (resultSet.next()) {
-                    resultSet.getObject("event_id", UUID::class.java)
-                } else {
-                    throw IllegalStateException("Oppfolgingsplan not found")
-                }
-            }
-        }
-    }
-}
-
-suspend fun DatabaseInterface.setVarselPublished(oppfolgingsplanId: UUID) = withContext(Dispatchers.IO) {
-    val statement = """
-        UPDATE oppfolgingsplan
-        SET varsel_published_at = NOW()
-        WHERE uuid = ?
-    """.trimIndent()
-
-    connection.use { connection ->
-        connection.prepareStatement(statement).use { preparedStatement ->
-            preparedStatement.setObject(1, oppfolgingsplanId)
-            preparedStatement.executeUpdate()
-        }
-        connection.commit()
     }
 }
 
