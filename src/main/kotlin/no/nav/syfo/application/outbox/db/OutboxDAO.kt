@@ -36,32 +36,33 @@ data class OutboxQueueSnapshot(
     val maxFailureCount: Int,
 )
 
+/** Inserts an immutable command on the caller's existing JDBC transaction. */
+fun Connection.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = prepareStatement(
+    """
+        INSERT INTO outbox (
+            uuid, message_type, dedup_key, external_ref, payload, available_at, status, failure_count
+        )
+        VALUES (?, ?, ?, ?, ?::jsonb, ?, 'READY', 0)
+        ON CONFLICT (message_type, dedup_key) DO NOTHING
+        RETURNING uuid
+    """.trimIndent(),
+).use { statement ->
+    statement.setObject(1, message.uuid)
+    statement.setString(2, message.messageType.value)
+    statement.setString(3, message.dedupKey)
+    statement.setString(4, message.externalRef)
+    statement.setString(5, message.payload)
+    statement.setObject(6, message.availableAt.atUtcOffset())
+    statement.executeQuery().use { resultSet -> resultSet.next() }
+}
+
 /**
- * Inserts an immutable command once. Concurrent duplicate inserts can raise PostgreSQL 40001 under
- * REPEATABLE READ, so the surrounding pure database transaction must opt into replay with
- * `exposedTransaction(maxAttempts > 1)`.
+ * Exposed adapter for [Connection.enqueueOutboxMessage]. Concurrent duplicate inserts can raise
+ * PostgreSQL 40001 under REPEATABLE READ, so the surrounding pure database transaction must opt
+ * into replay with `exposedTransaction(maxAttempts > 1)`.
  */
-fun JdbcTransaction.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = requireNotNull(
-    exec(
-        stmt = """
-            INSERT INTO outbox (
-                uuid, message_type, dedup_key, external_ref, payload, available_at, status, failure_count
-            )
-            VALUES (?, ?, ?, ?, ?::jsonb, ?, 'READY', 0)
-            ON CONFLICT (message_type, dedup_key) DO NOTHING
-            RETURNING uuid
-        """.trimIndent(),
-        args = listOf(
-            OutboxTable.uuid.columnType to message.uuid,
-            OutboxTable.messageType.columnType to message.messageType.value,
-            OutboxTable.dedupKey.columnType to message.dedupKey,
-            OutboxTable.externalRef.columnType to message.externalRef,
-            OutboxTable.payload.columnType to message.payload,
-            OutboxTable.availableAt.columnType to message.availableAt.atUtcOffset(),
-        ),
-        explicitStatementType = StatementType.SELECT,
-    ) { resultSet -> resultSet.next() },
-)
+fun JdbcTransaction.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = (connection.connection as Connection)
+    .enqueueOutboxMessage(message)
 
 /**
  * Claims due READY rows and expired claims in one short transaction. The returned rows carry a new

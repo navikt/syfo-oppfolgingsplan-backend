@@ -31,7 +31,9 @@ eksplisitt, stabil databaseverdi som lagres som `TEXT`. En ny enumverdi lander s
 adapter, handler og adapterspesifikke enqueue-funksjon. Databaseverdier er append-only og skal ikke
 gjenbrukes eller endres etter at de er tatt i bruk.
 
-En domenetransaksjon oppretter outbox-raden sammen med tilstanden som utløser meldingen.
+En domenetransaksjon oppretter outbox-raden sammen med tilstanden som utløser meldingen. Enqueue kan
+bruke callerens eksisterende JDBC-connection direkte; Exposed-adapteren delegerer til samme
+implementasjon. Dermed krever ikke innføring av outbox at eksisterende domenepersistens skrives om.
 `UNIQUE (message_type, dedup_key)` gjør kommandoen idempotent. `available_at` uttrykker når
 kommandoen tidligst kan behandles; umiddelbare meldinger bruker nåtid.
 
@@ -41,9 +43,10 @@ kan kanselleres, men reaktiveres eller muteres aldri. Dette unngår at en samtid
 overskrive en nyere brukerintensjon.
 
 PostgreSQL kan svare med serialization failure når to `REPEATABLE READ`-transaksjoner oppretter
-samme dedup-nøkkel samtidig. Enqueue skal derfor ligge i en ren databasetransaksjon med automatisk
-replay (`exposedTransaction(maxAttempts > 1)`). Blokken må ikke inneholde eksterne sideeffekter,
-siden hele domenetransaksjonen kan kjøres på nytt.
+samme dedup-nøkkel samtidig. Adaptere hvor dette kan skje må derfor bruke en ren databasetransaksjon
+med automatisk replay, for eksempel `exposedTransaction(maxAttempts > 1)`. Blokken må ikke
+inneholde eksterne sideeffekter, siden hele domenetransaksjonen kan kjøres på nytt. Adaptere med en
+garantert ny dedup-nøkkel kan beholde eksisterende transaksjonssemantikk.
 
 Outbox-raden inneholder en typeuavhengig `external_ref` og et lite JSON-payload. Dedup-nøkkel og
 referanse skal bruke ugjennomsiktige ID-er; payload skal begrenses til det handleren faktisk trenger.

@@ -40,6 +40,17 @@ class OutboxDAOTest :
         beforeTest { TestDB.clearAllData() }
 
         describe("enqueueOutboxMessage") {
+            it("participates in the caller's JDBC transaction") {
+                val message = newMessage("jdbc-transaction", "reference", now)
+
+                TestDB.database.connection.use { connection ->
+                    connection.enqueueOutboxMessage(message) shouldBe true
+                    connection.rollback()
+                }
+
+                TestDB.database.findOutboxMessage(message.messageType, message.dedupKey).shouldBeNull()
+            }
+
             it("is idempotent for message type and dedup key") {
                 val first = TestDB.database.enqueueTestOutboxMessage(dedupKey = "same-domain-command")
 
