@@ -30,8 +30,9 @@ paths:
         - Oppfølgingsplan
       summary: Hent oversikt over mine oppfølgingsplaner
       description: |
-        Returnerer metadata for alle oppfølgingsplaner som tilhører innlogget sykmeldt.
+        Returnerer metadata for alle oppfølgingsplaner og aktuelle unntaksvurderinger som tilhører innlogget sykmeldt.
         Planer grupperes i aktive (evalueringsdato >= i dag) og tidligere planer.
+        Unntaksvurderinger returneres i en egen liste, nyeste først, og er aldri inkludert i planlistene.
       operationId: getSykmeldtOppfolgingsplanOversikt
       security:
         - bearerAuth: []
@@ -241,6 +242,7 @@ components:
       required:
         - aktiveOppfolgingsplaner
         - tidligerePlaner
+        - unntaksvurderinger
       properties:
         aktiveOppfolgingsplaner:
           type: array
@@ -252,6 +254,43 @@ components:
           description: Oppfølgingsplaner med evalueringsdato < i dag
           items:
             $ref: '#/components/schemas/OppfolgingsplanMetadata'
+        unntaksvurderinger:
+          type: array
+          description: Aktuelle unntaksvurderinger, nyeste først. Organisasjon tilhører hvert enkelt element.
+          items:
+            $ref: '#/components/schemas/UnntaksvurderingMetadata'
+
+    UnntaksvurderingMetadata:
+      type: object
+      required:
+        - id
+        - meldtTidspunkt
+        - meldtAv
+        - organization
+      properties:
+        id:
+          type: string
+          format: uuid
+        meldtTidspunkt:
+          type: string
+          format: date-time
+        meldtAv:
+          $ref: '#/components/schemas/MeldtAv'
+        organization:
+          $ref: '#/components/schemas/OrganizationDetails'
+
+    MeldtAv:
+      type: object
+      required:
+        - rolle
+      properties:
+        navn:
+          type: string
+          nullable: true
+        rolle:
+          type: string
+          enum:
+            - ARBEIDSGIVER
 
     OppfolgingsplanResponse:
       type: object

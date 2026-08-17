@@ -31,14 +31,26 @@ suspend fun DatabaseInterface.persistUnntaksvurdering(
 suspend fun DatabaseInterface.findAllUnntaksvurderingerBy(
     sykmeldtFnr: String,
     organisasjonsnummer: String,
+): List<PersistedUnntaksvurdering> = findAllVisibleUnntaksvurderingerBy(sykmeldtFnr, organisasjonsnummer)
+
+suspend fun DatabaseInterface.findAllUnntaksvurderingerBy(
+    sykmeldtFnr: String,
+): List<PersistedUnntaksvurdering> = findAllVisibleUnntaksvurderingerBy(sykmeldtFnr)
+
+private suspend fun DatabaseInterface.findAllVisibleUnntaksvurderingerBy(
+    sykmeldtFnr: String,
+    organisasjonsnummer: String? = null,
 ): List<PersistedUnntaksvurdering> = exposedTransaction(readOnly = true) {
+    val condition = (UnntaksvurderingTable.sykmeldtFnr eq sykmeldtFnr) and
+        UnntaksvurderingTable.skjultFra.isNull()
+    val conditionForOrganization = organisasjonsnummer?.let {
+        condition and (UnntaksvurderingTable.organisasjonsnummer eq it)
+    } ?: condition
+
     UnntaksvurderingTable
         .selectAll()
-        .where {
-            (UnntaksvurderingTable.sykmeldtFnr eq sykmeldtFnr) and
-                (UnntaksvurderingTable.organisasjonsnummer eq organisasjonsnummer) and
-                UnntaksvurderingTable.skjultFra.isNull()
-        }.orderBy(UnntaksvurderingTable.createdAt to SortOrder.DESC)
+        .where { conditionForOrganization }
+        .orderBy(UnntaksvurderingTable.createdAt to SortOrder.DESC)
         .map { it.toPersistedUnntaksvurdering() }
 }
 

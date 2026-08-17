@@ -44,6 +44,13 @@ class UnntaksvurderingService(
         .map { getAndSetNarmesteLederFullName(it) }
         .map { it.toUnntaksvurderingMetadata(sykmeldt.getOrganizationName()) }
 
+    suspend fun getUnntaksvurderingerForSykmeldt(
+        sykmeldtFnr: String,
+    ): List<UnntaksvurderingMetadata> = database
+        .findAllUnntaksvurderingerBy(sykmeldtFnr)
+        .map { getAndSetNarmesteLederFullName(it) }
+        .map { it.toUnntaksvurderingMetadata(organisasjonsnavn = null) }
+
     suspend fun softDeleteExpiredUnntaksvurderinger(): Int = runSoftDeleteBatchLoop {
         database.softDeleteExpiredUnntaksvurderinger()
     }

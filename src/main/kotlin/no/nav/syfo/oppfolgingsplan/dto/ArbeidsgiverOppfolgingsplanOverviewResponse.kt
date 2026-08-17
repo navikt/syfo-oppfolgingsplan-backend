@@ -41,6 +41,7 @@ data class ArbeidsgiverOppfolgingsplanOverviewResponse(
 data class SykmeldtOppfolgingsplanOverviewResponse(
     val aktiveOppfolgingsplaner: List<OppfolgingsplanMetadata>,
     val tidligerePlaner: List<OppfolgingsplanMetadata>,
+    val unntaksvurderinger: List<UnntaksvurderingMetadata>,
 )
 
 enum class GjeldendeStatus {

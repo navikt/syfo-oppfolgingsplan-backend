@@ -68,6 +68,7 @@ fun Route.registerApiV1(
         registerSykmeldtOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
+            unntaksvurderingService,
             pdfGenService,
         )
     }

@@ -32,6 +32,7 @@ import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
+import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
@@ -41,15 +42,20 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
+import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
+import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredUnntaksvurderinger
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
+import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
+import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -73,6 +79,7 @@ class OppfolgingsplanApiV1Test :
         val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
         val isTilgangskontrollServiceMock = IsTilgangskontrollService(isTilgangskontrollClientMock)
         val pdlServiceMock = mockk<PdlService>(relaxed = true)
+        val unntaksvurderingService = UnntaksvurderingService(testDb, pdlServiceMock)
         val environment: Environment = LocalEnvironment()
         val aaregServiceMock = mockk<AaregService>(relaxed = true)
 
@@ -108,9 +115,9 @@ class OppfolgingsplanApiV1Test :
                                 esyfovarselProducer = esyfovarselProducerMock,
                                 pdlService = pdlServiceMock,
                                 aaregService = aaregServiceMock,
-                                unntaksvurderingService = mockk(relaxed = true),
+                                unntaksvurderingService = unntaksvurderingService,
                             ),
-                            unntaksvurderingService = mockk(relaxed = true),
+                            unntaksvurderingService = unntaksvurderingService,
                             pdfGenService = pdfGenService,
                             isDialogmeldingService = IsDialogmeldingService(isDialogmeldingClientMock),
                             dokarkivService = dokarkivServiceMock,
@@ -264,6 +271,78 @@ class OppfolgingsplanApiV1Test :
                         overview.tidligerePlaner.size shouldBe 1
                         overview.tidligerePlaner.first().id shouldBe firstPlanUUID
                         overview.tidligerePlaner.first().organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
+                        overview.unntaksvurderinger shouldBe emptyList()
+                    }
+                }
+
+                it("GET /oppfolgingsplaner/oversikt should return current unntaksvurderinger newest first outside plan lists") {
+                    val sykmeldtFnr = "12345678901"
+                    val oldestSykmeldt = defaultSykmeldt().copy(
+                        fnr = sykmeldtFnr,
+                        orgnummer = "111111111",
+                    )
+                    val hiddenSykmeldt = defaultSykmeldt().copy(
+                        fnr = sykmeldtFnr,
+                        orgnummer = "222222222",
+                    )
+                    val newestSykmeldt = defaultSykmeldt().copy(
+                        fnr = sykmeldtFnr,
+                        orgnummer = "333333333",
+                    )
+                    val sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(testDb)
+
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = sykmeldtFnr,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+
+                        val oldestId = testDb.persistUnntaksvurdering(
+                            "10987654321",
+                            oldestSykmeldt,
+                            "Eldste arbeidsgiver",
+                        )
+                        testDb.persistUnntaksvurdering(
+                            "10987654322",
+                            hiddenSykmeldt,
+                            "Skjult arbeidsgiver",
+                        )
+                        val newestId = testDb.persistUnntaksvurdering(
+                            "10987654323",
+                            newestSykmeldt,
+                            "Nyeste arbeidsgiver",
+                        )
+                        sykmeldingsperiodeRepository.storeSykmeldingsperioder(
+                            listOf(
+                                SykmeldingsperiodeToStore(
+                                    sykmeldtFnr = sykmeldtFnr,
+                                    organisasjonsnummer = hiddenSykmeldt.orgnummer,
+                                    sykmeldingId = "expired-sykmelding",
+                                    fom = LocalDate.now().minusMonths(8),
+                                    tom = LocalDate.now().minusMonths(7),
+                                ),
+                            ),
+                        )
+                        testDb.softDeleteExpiredUnntaksvurderinger()
+
+                        val response = client.get {
+                            url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                            bearerAuth("******")
+                        }
+
+                        response.status shouldBe HttpStatusCode.OK
+                        val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
+                        overview.aktiveOppfolgingsplaner shouldBe emptyList()
+                        overview.tidligerePlaner shouldBe emptyList()
+                        overview.unntaksvurderinger.map { it.id } shouldBe listOf(newestId, oldestId)
+                        overview.unntaksvurderinger.map { it.organization.orgNumber } shouldBe listOf(
+                            newestSykmeldt.orgnummer,
+                            oldestSykmeldt.orgnummer,
+                        )
+                        overview.unntaksvurderinger.map { it.meldtAv.navn } shouldBe listOf(
+                            "Nyeste arbeidsgiver",
+                            "Eldste arbeidsgiver",
+                        )
                     }
                 }
 
@@ -291,6 +370,7 @@ class OppfolgingsplanApiV1Test :
                         val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
                         overview.aktiveOppfolgingsplaner shouldBe emptyList()
                         overview.tidligerePlaner shouldBe emptyList()
+                        overview.unntaksvurderinger shouldBe emptyList()
                     }
                 }
             }

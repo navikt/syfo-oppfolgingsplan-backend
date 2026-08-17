@@ -13,6 +13,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.toResponse
 import no.nav.syfo.oppfolgingsplan.db.domain.toSykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
@@ -21,6 +22,7 @@ import java.util.UUID
 fun Route.registerSykmeldtOppfolgingsplanApiV1(
     texasHttpClient: TexasHttpClient,
     oppfolgingsplanService: OppfolgingsplanService,
+    unntaksvurderingService: UnntaksvurderingService,
     pdfGenService: PdfGenService,
 ) {
     val logger = logger()
@@ -53,7 +55,9 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
             val oppfolgingsplaner =
                 oppfolgingsplanService
                     .getPersistedOppfolgingsplanListBy(brukerFnr.value)
-                    .toSykmeldtOppfolgingsplanOverviewResponse()
+                    .toSykmeldtOppfolgingsplanOverviewResponse(
+                        unntaksvurderinger = unntaksvurderingService.getUnntaksvurderingerForSykmeldt(brukerFnr.value),
+                    )
 
             call.respond(HttpStatusCode.OK, oppfolgingsplaner)
         }

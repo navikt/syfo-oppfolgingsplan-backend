@@ -6,6 +6,7 @@ import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponseData
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
+import no.nav.syfo.oppfolgingsplan.dto.UnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.math.BigDecimal
 import java.time.Instant
@@ -76,12 +77,15 @@ fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanRe
     ),
 )
 
-fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(): SykmeldtOppfolgingsplanOverviewResponse {
+fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(
+    unntaksvurderinger: List<UnntaksvurderingMetadata> = emptyList(),
+): SykmeldtOppfolgingsplanOverviewResponse {
     val (aktivePlaner, tidligerePlaner) = partitionByNewestPlanPerOrg()
 
     return SykmeldtOppfolgingsplanOverviewResponse(
         aktiveOppfolgingsplaner = aktivePlaner.map { it.toOppfolgingsplanMetadata() },
         tidligerePlaner = tidligerePlaner.map { it.toOppfolgingsplanMetadata() },
+        unntaksvurderinger = unntaksvurderinger,
     )
 }
 
