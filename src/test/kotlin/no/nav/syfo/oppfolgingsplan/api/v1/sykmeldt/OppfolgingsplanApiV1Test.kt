@@ -355,6 +355,11 @@ class OppfolgingsplanApiV1Test :
                             newestSykmeldt.orgnummer,
                             oldestSykmeldt.orgnummer,
                         )
+                        overview.unntaksvurderinger.map { it.organization.orgName } shouldBe listOf(
+                            "Test AS",
+                            "Test AS",
+                            "Test AS",
+                        )
                         overview.unntaksvurderinger.map { it.meldtAv.navn } shouldBe listOf(
                             "Nyeste arbeidsgiver",
                             "Tidligere vurdering fra samme arbeidsgiver",

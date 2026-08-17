@@ -3,7 +3,6 @@ package no.nav.syfo.oppfolgingsplan.service
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.domain.toUnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.db.existsAktivPlanOrUtkast
@@ -42,14 +41,14 @@ class UnntaksvurderingService(
     ): List<UnntaksvurderingMetadata> = database
         .findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
         .map { getAndSetNarmesteLederFullName(it) }
-        .map { it.toUnntaksvurderingMetadata(sykmeldt.getOrganizationName()) }
+        .map { it.toUnntaksvurderingMetadata() }
 
     suspend fun getUnntaksvurderingerForSykmeldt(
         sykmeldtFnr: String,
     ): List<UnntaksvurderingMetadata> = database
         .findAllUnntaksvurderingerBy(sykmeldtFnr)
         .map { getAndSetNarmesteLederFullName(it) }
-        .map { it.toUnntaksvurderingMetadata(organisasjonsnavn = null) }
+        .map { it.toUnntaksvurderingMetadata() }
 
     suspend fun softDeleteExpiredUnntaksvurderinger(): Int = runSoftDeleteBatchLoop {
         database.softDeleteExpiredUnntaksvurderinger()

@@ -3,6 +3,7 @@ package no.nav.syfo.oppfolgingsplan.db
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -23,6 +24,7 @@ suspend fun DatabaseInterface.persistUnntaksvurdering(
     UnntaksvurderingTable.insertReturning(listOf(UnntaksvurderingTable.uuid)) {
         it[UnntaksvurderingTable.sykmeldtFnr] = sykmeldt.fnr
         it[UnntaksvurderingTable.organisasjonsnummer] = sykmeldt.orgnummer
+        it[UnntaksvurderingTable.organisasjonsnavn] = sykmeldt.getOrganizationName()
         it[UnntaksvurderingTable.narmesteLederFnr] = narmesteLederFnr
         it[UnntaksvurderingTable.narmesteLederFullName] = narmesteLederFullName
     }.single()[UnntaksvurderingTable.uuid]
@@ -101,6 +103,7 @@ private fun ResultRow.toPersistedUnntaksvurdering(): PersistedUnntaksvurdering =
     uuid = this[UnntaksvurderingTable.uuid],
     sykmeldtFnr = this[UnntaksvurderingTable.sykmeldtFnr],
     organisasjonsnummer = this[UnntaksvurderingTable.organisasjonsnummer],
+    organisasjonsnavn = this[UnntaksvurderingTable.organisasjonsnavn],
     narmesteLederFnr = this[UnntaksvurderingTable.narmesteLederFnr],
     narmesteLederFullName = this[UnntaksvurderingTable.narmesteLederFullName],
     createdAt = this[UnntaksvurderingTable.createdAt].toInstant(),
