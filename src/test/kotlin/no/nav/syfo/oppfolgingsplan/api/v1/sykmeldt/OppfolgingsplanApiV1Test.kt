@@ -275,7 +275,7 @@ class OppfolgingsplanApiV1Test :
                     }
                 }
 
-                it("GET /oppfolgingsplaner/oversikt should return current unntaksvurderinger newest first outside plan lists") {
+                it("GET /oppfolgingsplaner/oversikt should return latest visible unntaksvurderinger and ignore private drafts") {
                     val sykmeldtFnr = "12345678901"
                     val oldestSykmeldt = defaultSykmeldt().copy(
                         fnr = sykmeldtFnr,
@@ -307,10 +307,21 @@ class OppfolgingsplanApiV1Test :
                             hiddenSykmeldt,
                             "Skjult arbeidsgiver",
                         )
+                        testDb.persistUnntaksvurdering(
+                            "10987654323",
+                            newestSykmeldt,
+                            "Tidligere vurdering fra samme arbeidsgiver",
+                        )
                         val newestId = testDb.persistUnntaksvurdering(
                             "10987654323",
                             newestSykmeldt,
                             "Nyeste arbeidsgiver",
+                        )
+                        testDb.persistOppfolgingsplanUtkast(
+                            defaultPersistedOppfolgingsplanUtkast().copy(
+                                sykmeldtFnr = sykmeldtFnr,
+                                organisasjonsnummer = newestSykmeldt.orgnummer,
+                            ),
                         )
                         sykmeldingsperiodeRepository.storeSykmeldingsperioder(
                             listOf(

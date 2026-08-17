@@ -10,6 +10,10 @@ import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.toSykmeldtOppfolgingsplanOverviewResponse
+import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
+import no.nav.syfo.oppfolgingsplan.dto.MeldtAv
+import no.nav.syfo.oppfolgingsplan.dto.MeldtAvRolle
+import no.nav.syfo.oppfolgingsplan.dto.UnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
@@ -449,5 +453,81 @@ class PersistedOppfolgingsplanTest :
                 )
                 result.tidligerePlaner.shouldBeEmpty()
             }
+
+            it("should return only the newest unntaksvurdering per organization") {
+                val olderUnntak = unntaksvurdering(
+                    organisasjonsnummer = "org1",
+                    meldtTidspunkt = Instant.parse("2024-01-01T10:00:00Z"),
+                )
+                val newerUnntak = unntaksvurdering(
+                    organisasjonsnummer = "org1",
+                    meldtTidspunkt = Instant.parse("2024-06-01T10:00:00Z"),
+                )
+
+                val result = emptyList<PersistedOppfolgingsplan>()
+                    .toSykmeldtOppfolgingsplanOverviewResponse(listOf(olderUnntak, newerUnntak))
+
+                result.unntaksvurderinger.map { it.id } shouldBe listOf(newerUnntak.id)
+            }
+
+            it("should hide an unntaksvurdering when a finalized plan is the latest visible status") {
+                val unntak = unntaksvurdering(
+                    organisasjonsnummer = "org1",
+                    meldtTidspunkt = Instant.parse("2024-01-01T10:00:00Z"),
+                )
+                val plan = defaultPersistedOppfolgingsplan().copy(
+                    organisasjonsnummer = "org1",
+                    createdAt = Instant.parse("2024-06-01T10:00:00Z"),
+                )
+
+                val result = listOf(plan)
+                    .toSykmeldtOppfolgingsplanOverviewResponse(listOf(unntak))
+
+                result.unntaksvurderinger.shouldBeEmpty()
+            }
+
+            it("should keep latest unntaksvurderinger for other organizations sorted newest first") {
+                val supersededUnntak = unntaksvurdering(
+                    organisasjonsnummer = "org1",
+                    meldtTidspunkt = Instant.parse("2024-01-01T10:00:00Z"),
+                )
+                val olderCurrentUnntak = unntaksvurdering(
+                    organisasjonsnummer = "org2",
+                    meldtTidspunkt = Instant.parse("2024-03-01T10:00:00Z"),
+                )
+                val newerCurrentUnntak = unntaksvurdering(
+                    organisasjonsnummer = "org3",
+                    meldtTidspunkt = Instant.parse("2024-05-01T10:00:00Z"),
+                )
+                val plan = defaultPersistedOppfolgingsplan().copy(
+                    organisasjonsnummer = "org1",
+                    createdAt = Instant.parse("2024-02-01T10:00:00Z"),
+                )
+
+                val result = listOf(plan).toSykmeldtOppfolgingsplanOverviewResponse(
+                    listOf(supersededUnntak, olderCurrentUnntak, newerCurrentUnntak),
+                )
+
+                result.unntaksvurderinger.map { it.id } shouldBe listOf(
+                    newerCurrentUnntak.id,
+                    olderCurrentUnntak.id,
+                )
+            }
         }
     })
+
+private fun unntaksvurdering(
+    organisasjonsnummer: String,
+    meldtTidspunkt: Instant,
+): UnntaksvurderingMetadata = UnntaksvurderingMetadata(
+    id = UUID.randomUUID(),
+    meldtTidspunkt = meldtTidspunkt,
+    meldtAv = MeldtAv(
+        navn = "Nærmeste leder",
+        rolle = MeldtAvRolle.ARBEIDSGIVER,
+    ),
+    organization = OrganizationDetails(
+        orgNumber = organisasjonsnummer,
+        orgName = null,
+    ),
+)

@@ -85,8 +85,30 @@ fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(
     return SykmeldtOppfolgingsplanOverviewResponse(
         aktiveOppfolgingsplaner = aktivePlaner.map { it.toOppfolgingsplanMetadata() },
         tidligerePlaner = tidligerePlaner.map { it.toOppfolgingsplanMetadata() },
-        unntaksvurderinger = unntaksvurderinger,
+        unntaksvurderinger = latestVisibleUnntaksvurderinger(unntaksvurderinger),
     )
+}
+
+/**
+ * The sykmeldt should only see the latest immutable status per organization.
+ * Drafts are private to the employer and intentionally do not participate here.
+ */
+private fun List<PersistedOppfolgingsplan>.latestVisibleUnntaksvurderinger(
+    unntaksvurderinger: List<UnntaksvurderingMetadata>,
+): List<UnntaksvurderingMetadata> {
+    val latestPlanTimestampByOrganization = groupBy { it.organisasjonsnummer }
+        .mapValues { (_, planer) -> planer.maxOf { it.createdAt } }
+
+    return unntaksvurderinger
+        .groupBy { it.organization.orgNumber }
+        .mapNotNull { (organisasjonsnummer, vurderinger) ->
+            val latestUnntaksvurdering = vurderinger.maxByOrNull { it.meldtTidspunkt }
+            val latestPlanTimestamp = latestPlanTimestampByOrganization[organisasjonsnummer]
+
+            latestUnntaksvurdering?.takeIf {
+                latestPlanTimestamp == null || it.meldtTidspunkt.isAfter(latestPlanTimestamp)
+            }
+        }.sortedByDescending { it.meldtTidspunkt }
 }
 
 private fun List<PersistedOppfolgingsplan>.partitionByNewestPlanPerOrg(): Pair<List<PersistedOppfolgingsplan>, List<PersistedOppfolgingsplan>> {
