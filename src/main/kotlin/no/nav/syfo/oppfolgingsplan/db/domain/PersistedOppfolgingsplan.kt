@@ -81,12 +81,30 @@ fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(
     unntaksvurderinger: List<UnntaksvurderingMetadata> = emptyList(),
 ): SykmeldtOppfolgingsplanOverviewResponse {
     val (aktivePlaner, tidligerePlaner) = partitionByNewestPlanPerOrg()
+    val sorterteUnntaksvurderinger = unntaksvurderinger.sortedByDescending { it.meldtTidspunkt }
 
     return SykmeldtOppfolgingsplanOverviewResponse(
         aktiveOppfolgingsplaner = aktivePlaner.map { it.toOppfolgingsplanMetadata() },
         tidligerePlaner = tidligerePlaner.map { it.toOppfolgingsplanMetadata() },
-        unntaksvurderinger = unntaksvurderinger.sortedByDescending { it.meldtTidspunkt },
+        unntaksvurderinger = sorterteUnntaksvurderinger,
+        gjeldendeUnntaksvurderinger = finnGjeldendeUnntaksvurderinger(sorterteUnntaksvurderinger),
     )
+}
+
+private fun List<PersistedOppfolgingsplan>.finnGjeldendeUnntaksvurderinger(
+    sorterteUnntaksvurderinger: List<UnntaksvurderingMetadata>,
+): List<UnntaksvurderingMetadata> {
+    val nyestePlanTidspunktPerOrganisasjon = groupBy { it.organisasjonsnummer }
+        .mapValues { (_, planer) -> planer.maxOf { it.createdAt } }
+
+    return sorterteUnntaksvurderinger
+        .distinctBy { it.organization.orgNumber }
+        .filter { unntaksvurdering ->
+            val nyestePlanTidspunkt = nyestePlanTidspunktPerOrganisasjon[
+                unntaksvurdering.organization.orgNumber,
+            ]
+            nyestePlanTidspunkt == null || unntaksvurdering.meldtTidspunkt > nyestePlanTidspunkt
+        }
 }
 
 private fun List<PersistedOppfolgingsplan>.partitionByNewestPlanPerOrg(): Pair<List<PersistedOppfolgingsplan>, List<PersistedOppfolgingsplan>> {

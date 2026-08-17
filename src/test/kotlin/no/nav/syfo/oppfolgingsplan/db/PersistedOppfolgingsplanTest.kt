@@ -468,6 +468,7 @@ class PersistedOppfolgingsplanTest :
                     .toSykmeldtOppfolgingsplanOverviewResponse(listOf(olderUnntak, newerUnntak))
 
                 result.unntaksvurderinger.map { it.id } shouldBe listOf(newerUnntak.id, olderUnntak.id)
+                result.gjeldendeUnntaksvurderinger.map { it.id } shouldBe listOf(newerUnntak.id)
             }
 
             it("should keep an unntaksvurdering in history when a newer finalized plan exists") {
@@ -484,6 +485,7 @@ class PersistedOppfolgingsplanTest :
                     .toSykmeldtOppfolgingsplanOverviewResponse(listOf(unntak))
 
                 result.unntaksvurderinger.map { it.id } shouldBe listOf(unntak.id)
+                result.gjeldendeUnntaksvurderinger.shouldBeEmpty()
             }
 
             it("should sort unntaksvurderinger across organizations without removing history") {
@@ -513,6 +515,25 @@ class PersistedOppfolgingsplanTest :
                     middleUnntak.id,
                     oldestUnntak.id,
                 )
+                result.gjeldendeUnntaksvurderinger.map { it.id } shouldBe listOf(
+                    newestUnntak.id,
+                    middleUnntak.id,
+                )
+            }
+
+            it("should return an unntaksvurdering as current when it is newer than the latest finalized plan") {
+                val plan = defaultPersistedOppfolgingsplan().copy(
+                    organisasjonsnummer = "org1",
+                    createdAt = Instant.parse("2024-02-01T10:00:00Z"),
+                )
+                val unntak = unntaksvurdering(
+                    organisasjonsnummer = "org1",
+                    meldtTidspunkt = Instant.parse("2024-03-01T10:00:00Z"),
+                )
+
+                val result = listOf(plan).toSykmeldtOppfolgingsplanOverviewResponse(listOf(unntak))
+
+                result.gjeldendeUnntaksvurderinger.map { it.id } shouldBe listOf(unntak.id)
             }
         }
     })

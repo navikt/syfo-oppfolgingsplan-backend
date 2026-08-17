@@ -272,6 +272,7 @@ class OppfolgingsplanApiV1Test :
                         overview.tidligerePlaner.first().id shouldBe firstPlanUUID
                         overview.tidligerePlaner.first().organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
                         overview.unntaksvurderinger shouldBe emptyList()
+                        overview.gjeldendeUnntaksvurderinger shouldBe emptyList()
                     }
                 }
 
@@ -365,6 +366,10 @@ class OppfolgingsplanApiV1Test :
                             "Tidligere vurdering fra samme arbeidsgiver",
                             "Eldste arbeidsgiver",
                         )
+                        overview.gjeldendeUnntaksvurderinger.map { it.id } shouldBe listOf(
+                            newestId,
+                            oldestId,
+                        )
                     }
                 }
 
@@ -393,6 +398,7 @@ class OppfolgingsplanApiV1Test :
                         overview.aktiveOppfolgingsplaner shouldBe emptyList()
                         overview.tidligerePlaner shouldBe emptyList()
                         overview.unntaksvurderinger shouldBe emptyList()
+                        overview.gjeldendeUnntaksvurderinger shouldBe emptyList()
                     }
                 }
             }

@@ -243,6 +243,7 @@ components:
         - aktiveOppfolgingsplaner
         - tidligerePlaner
         - unntaksvurderinger
+        - gjeldendeUnntaksvurderinger
       properties:
         aktiveOppfolgingsplaner:
           type: array
@@ -260,6 +261,14 @@ components:
             Alle synlige unntaksvurderinger, nyeste først. Listen er historikk;
             en senere ferdigstilt plan fjerner ikke tidligere vurderinger.
             Organisasjon tilhører hvert enkelt element.
+          items:
+            $ref: '#/components/schemas/UnntaksvurderingMetadata'
+        gjeldendeUnntaksvurderinger:
+          type: array
+          description: >
+            Autoritativ delmengde av unntaksvurderinger som gjelder nå, maksimalt én per
+            organisasjon og nyeste først. En unntaksvurdering gjelder når den er nyere enn
+            siste ferdigstilte plan for samme organisasjon.
           items:
             $ref: '#/components/schemas/UnntaksvurderingMetadata'
 
