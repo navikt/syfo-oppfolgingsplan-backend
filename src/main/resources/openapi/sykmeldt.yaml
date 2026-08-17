@@ -257,10 +257,9 @@ components:
         unntaksvurderinger:
           type: array
           description: >
-            Seneste synlige unntaksvurdering per organisasjon, nyeste først.
-            En senere ferdigstilt plan erstatter unntaksvurderingen som gjeldende
-            status. Arbeidsgivers utkast er ikke synlige for sykmeldt og påvirker
-            derfor ikke listen. Organisasjon tilhører hvert enkelt element.
+            Alle synlige unntaksvurderinger, nyeste først. Listen er historikk;
+            en senere ferdigstilt plan fjerner ikke tidligere vurderinger.
+            Organisasjon tilhører hvert enkelt element.
           items:
             $ref: '#/components/schemas/UnntaksvurderingMetadata'
 

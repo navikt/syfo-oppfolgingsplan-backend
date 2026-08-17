@@ -275,7 +275,7 @@ class OppfolgingsplanApiV1Test :
                     }
                 }
 
-                it("GET /oppfolgingsplaner/oversikt should return latest visible unntaksvurderinger and ignore private drafts") {
+                it("GET /oppfolgingsplaner/oversikt should return all visible unntaksvurderinger and ignore private drafts") {
                     val sykmeldtFnr = "12345678901"
                     val oldestSykmeldt = defaultSykmeldt().copy(
                         fnr = sykmeldtFnr,
@@ -307,7 +307,7 @@ class OppfolgingsplanApiV1Test :
                             hiddenSykmeldt,
                             "Skjult arbeidsgiver",
                         )
-                        testDb.persistUnntaksvurdering(
+                        val previousNewestOrganizationId = testDb.persistUnntaksvurdering(
                             "10987654323",
                             newestSykmeldt,
                             "Tidligere vurdering fra samme arbeidsgiver",
@@ -345,13 +345,19 @@ class OppfolgingsplanApiV1Test :
                         val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
                         overview.aktiveOppfolgingsplaner shouldBe emptyList()
                         overview.tidligerePlaner shouldBe emptyList()
-                        overview.unntaksvurderinger.map { it.id } shouldBe listOf(newestId, oldestId)
+                        overview.unntaksvurderinger.map { it.id } shouldBe listOf(
+                            newestId,
+                            previousNewestOrganizationId,
+                            oldestId,
+                        )
                         overview.unntaksvurderinger.map { it.organization.orgNumber } shouldBe listOf(
+                            newestSykmeldt.orgnummer,
                             newestSykmeldt.orgnummer,
                             oldestSykmeldt.orgnummer,
                         )
                         overview.unntaksvurderinger.map { it.meldtAv.navn } shouldBe listOf(
                             "Nyeste arbeidsgiver",
+                            "Tidligere vurdering fra samme arbeidsgiver",
                             "Eldste arbeidsgiver",
                         )
                     }

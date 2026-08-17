@@ -454,7 +454,7 @@ class PersistedOppfolgingsplanTest :
                 result.tidligerePlaner.shouldBeEmpty()
             }
 
-            it("should return only the newest unntaksvurdering per organization") {
+            it("should return all unntaksvurderinger newest first") {
                 val olderUnntak = unntaksvurdering(
                     organisasjonsnummer = "org1",
                     meldtTidspunkt = Instant.parse("2024-01-01T10:00:00Z"),
@@ -467,10 +467,10 @@ class PersistedOppfolgingsplanTest :
                 val result = emptyList<PersistedOppfolgingsplan>()
                     .toSykmeldtOppfolgingsplanOverviewResponse(listOf(olderUnntak, newerUnntak))
 
-                result.unntaksvurderinger.map { it.id } shouldBe listOf(newerUnntak.id)
+                result.unntaksvurderinger.map { it.id } shouldBe listOf(newerUnntak.id, olderUnntak.id)
             }
 
-            it("should hide an unntaksvurdering when a finalized plan is the latest visible status") {
+            it("should keep an unntaksvurdering in history when a newer finalized plan exists") {
                 val unntak = unntaksvurdering(
                     organisasjonsnummer = "org1",
                     meldtTidspunkt = Instant.parse("2024-01-01T10:00:00Z"),
@@ -483,19 +483,19 @@ class PersistedOppfolgingsplanTest :
                 val result = listOf(plan)
                     .toSykmeldtOppfolgingsplanOverviewResponse(listOf(unntak))
 
-                result.unntaksvurderinger.shouldBeEmpty()
+                result.unntaksvurderinger.map { it.id } shouldBe listOf(unntak.id)
             }
 
-            it("should keep latest unntaksvurderinger for other organizations sorted newest first") {
-                val supersededUnntak = unntaksvurdering(
+            it("should sort unntaksvurderinger across organizations without removing history") {
+                val oldestUnntak = unntaksvurdering(
                     organisasjonsnummer = "org1",
                     meldtTidspunkt = Instant.parse("2024-01-01T10:00:00Z"),
                 )
-                val olderCurrentUnntak = unntaksvurdering(
+                val middleUnntak = unntaksvurdering(
                     organisasjonsnummer = "org2",
                     meldtTidspunkt = Instant.parse("2024-03-01T10:00:00Z"),
                 )
-                val newerCurrentUnntak = unntaksvurdering(
+                val newestUnntak = unntaksvurdering(
                     organisasjonsnummer = "org3",
                     meldtTidspunkt = Instant.parse("2024-05-01T10:00:00Z"),
                 )
@@ -505,12 +505,13 @@ class PersistedOppfolgingsplanTest :
                 )
 
                 val result = listOf(plan).toSykmeldtOppfolgingsplanOverviewResponse(
-                    listOf(supersededUnntak, olderCurrentUnntak, newerCurrentUnntak),
+                    listOf(oldestUnntak, middleUnntak, newestUnntak),
                 )
 
                 result.unntaksvurderinger.map { it.id } shouldBe listOf(
-                    newerCurrentUnntak.id,
-                    olderCurrentUnntak.id,
+                    newestUnntak.id,
+                    middleUnntak.id,
+                    oldestUnntak.id,
                 )
             }
         }
