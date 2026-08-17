@@ -5,8 +5,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.db.domain.toStatus
-import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
+import no.nav.syfo.oppfolgingsplan.db.domain.isPaaminnelseBestiltInCurrentSykemeldingsperiode
+import no.nav.syfo.oppfolgingsplan.db.existsOppfolgingsplanCreatedAfter
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
 import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelse
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
@@ -14,6 +14,9 @@ import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatusDto
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import java.time.Clock
 import java.time.LocalDate
+import java.util.UUID
+
+const val PAAMINNELSE_ETTER_DAGER = 24L
 
 class PaaminnelseService(
     private val database: DatabaseInterface,
@@ -23,69 +26,110 @@ class PaaminnelseService(
     suspend fun getPaaminnelseStatus(
         sykmeldt: Sykmeldt,
     ): PaaminnelseStatusDto = withContext(Dispatchers.IO) {
-        getPaaminnelseStatusInternal(sykmeldt, LocalDate.now(clock))
+        resolvePaaminnelseStatus(sykmeldt, LocalDate.now(clock)).toPaaminnelseStatusDto(sykmeldt)
     }
 
     suspend fun activatePaaminnelse(
         sykmeldt: Sykmeldt,
     ): PaaminnelseStatusDto = withContext(Dispatchers.IO) {
-        val status = getPaaminnelseStatusInternal(sykmeldt, LocalDate.now(clock))
-        requireVisiblePaaminnelseStatus(status)
-        database.upsertPaaminnelse(
-            sykmeldt = sykmeldt,
-            bestilt = true,
-        )
-        PaaminnelseStatusDto(PaaminnelseStatus.BESTILT, status.synligFra)
+        updatePaaminnelse(sykmeldt, bestilt = true)
     }
 
     suspend fun deactivatePaaminnelse(
         sykmeldt: Sykmeldt,
     ): PaaminnelseStatusDto = withContext(Dispatchers.IO) {
-        val status = getPaaminnelseStatusInternal(sykmeldt, LocalDate.now(clock))
-        requireVisiblePaaminnelseStatus(status)
-        database.upsertPaaminnelse(
-            sykmeldt = sykmeldt,
-            bestilt = false,
-        )
-        PaaminnelseStatusDto(PaaminnelseStatus.TILGJENGELIG, status.synligFra)
+        updatePaaminnelse(sykmeldt, bestilt = false)
     }
 
     internal fun erInnenforBestillingsvindu(
-        synligFra: LocalDate,
-    ): Boolean = LocalDate.now(clock).isBefore(synligFra.plusDays(PAAMINNELLSE_ETTER_DAGER))
+        sykmeldingsperiodeFom: LocalDate,
+    ): Boolean {
+        val sisteBestillingsdag = sykmeldingsperiodeFom.plusDays(PAAMINNELSE_ETTER_DAGER)
+        val now = LocalDate.now(clock)
+        return now in sykmeldingsperiodeFom..sisteBestillingsdag
+    }
 
-    private fun getPaaminnelseStatusInternal(
+    private fun resolvePaaminnelseStatus(
         sykmeldt: Sykmeldt,
         today: LocalDate,
-    ): PaaminnelseStatusDto {
-        val synligFra = sykmeldingsperiodeRepository.findEarliestFom(
+    ): PaaminnelseStatusInternal {
+        if (sykmeldt.aktivSykmelding != true) return PaaminnelseStatusInternal.Skjult
+
+        val earliestSykmeldingsperiode = sykmeldingsperiodeRepository.findEarliestSykmeldingsperiode(
             sykmeldtFnr = sykmeldt.fnr,
             organisasjonsnummer = sykmeldt.orgnummer,
             today = today,
         )
 
-        return when {
-            sykmeldt.aktivSykmelding != true -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT, synligFra)
-            synligFra == null -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT)
-            database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
-                .any { it.createdAt >= synligFra.atStartOfDay(clock.zone).toInstant() } ->
-                PaaminnelseStatusDto(PaaminnelseStatus.SKJULT, synligFra)
+        if (earliestSykmeldingsperiode == null) return PaaminnelseStatusInternal.Skjult
 
-            !erInnenforBestillingsvindu(synligFra) -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT, synligFra)
-            else -> PaaminnelseStatusDto(
-                status = database.findPaaminnelseBy(sykmeldt.fnr, sykmeldt.orgnummer).toStatus(),
-                synligFra = synligFra,
-            )
+        val sykmeldingsperiodeFom = earliestSykmeldingsperiode.fom
+        if (!erInnenforBestillingsvindu(sykmeldingsperiodeFom)) return PaaminnelseStatusInternal.Skjult
+
+        val harAktivOppfolgingsplan = database.existsOppfolgingsplanCreatedAfter(
+            sykmeldtFnr = sykmeldt.fnr,
+            organisasjonsnummer = sykmeldt.orgnummer,
+            createdAfter = sykmeldingsperiodeFom.atStartOfDay(clock.zone).toInstant(),
+        )
+        if (harAktivOppfolgingsplan) return PaaminnelseStatusInternal.Skjult
+
+        return PaaminnelseStatusInternal.PaaminnelseTilgjengelig(
+            sykmeldingsperiodeId = earliestSykmeldingsperiode.id,
+        )
+    }
+
+    private fun updatePaaminnelse(
+        sykmeldt: Sykmeldt,
+        bestilt: Boolean,
+    ): PaaminnelseStatusDto {
+        val paaminnelse = resolvePaaminnelseStatus(sykmeldt, LocalDate.now(clock))
+            .requirePaaminnelseTilgjengelig()
+        database.upsertPaaminnelse(
+            sykmeldt = sykmeldt,
+            bestilt = bestilt,
+            sykmeldingsperiodeId = paaminnelse.sykmeldingsperiodeId,
+        )
+
+        return PaaminnelseStatusDto(
+            if (bestilt) PaaminnelseStatus.BESTILT else PaaminnelseStatus.TILGJENGELIG,
+        )
+    }
+
+    private fun throwPaaminnelseUtilgjengelig(): Nothing =
+        throw BadRequestException("Kan ikke endre påminnelse når påminnelse er utilgjengelig")
+
+    private sealed interface PaaminnelseStatusInternal {
+        data object Skjult : PaaminnelseStatusInternal
+
+        data class PaaminnelseTilgjengelig(
+            val sykmeldingsperiodeId: UUID,
+        ) : PaaminnelseStatusInternal
+    }
+
+    private fun PaaminnelseStatusInternal.requirePaaminnelseTilgjengelig():
+        PaaminnelseStatusInternal.PaaminnelseTilgjengelig =
+        when (this) {
+            is PaaminnelseStatusInternal.Skjult -> throwPaaminnelseUtilgjengelig()
+            is PaaminnelseStatusInternal.PaaminnelseTilgjengelig -> this
         }
-    }
 
-    private fun requireVisiblePaaminnelseStatus(status: PaaminnelseStatusDto) {
-        if (status.status == PaaminnelseStatus.SKJULT) {
-            throw BadRequestException("Kan ikke endre påminnelse når påminnelse er skjult")
+    private fun PaaminnelseStatusInternal.toPaaminnelseStatusDto(
+        sykmeldt: Sykmeldt,
+    ): PaaminnelseStatusDto =
+        when (this) {
+            is PaaminnelseStatusInternal.Skjult -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT)
+            is PaaminnelseStatusInternal.PaaminnelseTilgjengelig -> {
+                val paaminnelse = database.findPaaminnelseBy(
+                    sykmeldtFnr = sykmeldt.fnr,
+                    organisasjonsnummer = sykmeldt.orgnummer,
+                )
+                PaaminnelseStatusDto(
+                    if (paaminnelse?.isPaaminnelseBestiltInCurrentSykemeldingsperiode(sykmeldingsperiodeId) == true) {
+                        PaaminnelseStatus.BESTILT
+                    } else {
+                        PaaminnelseStatus.TILGJENGELIG
+                    },
+                )
+            }
         }
-    }
-
-    private companion object {
-        const val PAAMINNELLSE_ETTER_DAGER = 24L
-    }
 }

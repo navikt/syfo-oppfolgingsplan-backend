@@ -111,7 +111,7 @@ class SykmeldingsperiodeRepositoryTest :
             }
         }
 
-        describe("findEarliestFom") {
+        describe("findEarliestSykmeldingsperiode") {
             it("returns earliest fom in a continuous chain ending in an active period today") {
                 repository.storeSykmeldingsperioder(
                     listOf(
@@ -133,13 +133,13 @@ class SykmeldingsperiodeRepositoryTest :
                     ),
                 )
 
-                val earliestFom = repository.findEarliestFom(
+                val earliestSykmeldingsperiode = repository.findEarliestSykmeldingsperiode(
                     sykmeldtFnr = sykmeldtFnr,
                     organisasjonsnummer = organisasjonsnummer,
                     today = today,
                 )
 
-                earliestFom shouldBe LocalDate.of(2025, 5, 15)
+                earliestSykmeldingsperiode?.fom shouldBe LocalDate.of(2025, 5, 15)
             }
 
             it("stops at the first gap when searching backwards") {
@@ -158,13 +158,13 @@ class SykmeldingsperiodeRepositoryTest :
                     ),
                 )
 
-                val earliestFom = repository.findEarliestFom(
+                val earliestSykmeldingsperiode = repository.findEarliestSykmeldingsperiode(
                     sykmeldtFnr = sykmeldtFnr,
                     organisasjonsnummer = organisasjonsnummer,
                     today = today,
                 )
 
-                earliestFom shouldBe LocalDate.of(2025, 6, 1)
+                earliestSykmeldingsperiode?.fom shouldBe LocalDate.of(2025, 6, 1)
             }
 
             it("treats overlapping and adjacent periods as continuous") {
@@ -188,13 +188,13 @@ class SykmeldingsperiodeRepositoryTest :
                     ),
                 )
 
-                val earliestFom = repository.findEarliestFom(
+                val earliestSykmeldingsperiode = repository.findEarliestSykmeldingsperiode(
                     sykmeldtFnr = sykmeldtFnr,
                     organisasjonsnummer = organisasjonsnummer,
                     today = today,
                 )
 
-                earliestFom shouldBe LocalDate.of(2025, 5, 20)
+                earliestSykmeldingsperiode?.fom shouldBe LocalDate.of(2025, 5, 20)
             }
 
             it("returns null when no non-invalidated period is active today") {
@@ -208,13 +208,13 @@ class SykmeldingsperiodeRepositoryTest :
                     ),
                 )
 
-                val earliestFom = repository.findEarliestFom(
+                val earliestSykmeldingsperiode = repository.findEarliestSykmeldingsperiode(
                     sykmeldtFnr = sykmeldtFnr,
                     organisasjonsnummer = organisasjonsnummer,
                     today = today,
                 )
 
-                earliestFom shouldBe null
+                earliestSykmeldingsperiode shouldBe null
             }
 
             it("ignores invalidated periods when finding the continuous chain") {
@@ -234,13 +234,13 @@ class SykmeldingsperiodeRepositoryTest :
                 )
                 repository.invalidateSykmelding("sykmelding-invalidated")
 
-                val earliestFom = repository.findEarliestFom(
+                val earliestSykmeldingsperiode = repository.findEarliestSykmeldingsperiode(
                     sykmeldtFnr = sykmeldtFnr,
                     organisasjonsnummer = organisasjonsnummer,
                     today = today,
                 )
 
-                earliestFom shouldBe LocalDate.of(2025, 6, 1)
+                earliestSykmeldingsperiode?.fom shouldBe LocalDate.of(2025, 6, 1)
             }
 
             it("does not include periods that ended more than 50 days before today") {
@@ -259,13 +259,13 @@ class SykmeldingsperiodeRepositoryTest :
                     ),
                 )
 
-                val earliestFom = repository.findEarliestFom(
+                val earliestSykmeldingsperiode = repository.findEarliestSykmeldingsperiode(
                     sykmeldtFnr = sykmeldtFnr,
                     organisasjonsnummer = organisasjonsnummer,
                     today = today,
                 )
 
-                earliestFom shouldBe LocalDate.of(2025, 5, 1)
+                earliestSykmeldingsperiode?.fom shouldBe LocalDate.of(2025, 5, 1)
             }
         }
     })

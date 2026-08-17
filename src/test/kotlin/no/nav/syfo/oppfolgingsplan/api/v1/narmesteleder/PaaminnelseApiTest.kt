@@ -168,7 +168,6 @@ class PaaminnelseApiTest :
                     response.status shouldBe HttpStatusCode.OK
                     response.body<PaaminnelseStatusDto>() shouldBe PaaminnelseStatusDto(
                         status = PaaminnelseStatus.TILGJENGELIG,
-                        synligFra = startDato,
                     )
                 }
             }
@@ -196,7 +195,6 @@ class PaaminnelseApiTest :
                     response.status shouldBe HttpStatusCode.OK
                     response.body<PaaminnelseStatusDto>() shouldBe PaaminnelseStatusDto(
                         status = PaaminnelseStatus.SKJULT,
-                        synligFra = startDato,
                     )
                 }
             }
@@ -222,6 +220,7 @@ class PaaminnelseApiTest :
                     persisted?.bestilt shouldBe true
                     persisted?.sykmeldtFnr shouldBe "12345678901"
                     persisted?.organisasjonsnummer shouldBe "orgnummer"
+                    persisted?.sykmeldingsperiodeId shouldBe repository.findBySykmeldingId("sykmelding-1").single().id
                 }
             }
 
@@ -331,6 +330,7 @@ class PaaminnelseApiTest :
                     testDb.upsertPaaminnelse(
                         sykmeldt = defaultSykmeldt(),
                         bestilt = true,
+                        sykmeldingsperiodeId = repository.findBySykmeldingId("sykmelding-1").single().id,
                     )
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,

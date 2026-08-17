@@ -94,14 +94,14 @@ class SykmeldingsperiodeRepository(
         }
     }
 
-    fun findEarliestFom(
+    fun findEarliestSykmeldingsperiode(
         sykmeldtFnr: String,
         organisasjonsnummer: String,
         today: LocalDate,
-    ): LocalDate? {
+    ): PersistedSykmeldingsperiode? {
         val lookbackDate = today.minusDays(FIND_EARLIEST_FOM_LOOKBACK_DAYS.toLong())
         val statement = """
-            SELECT fom, tom
+            SELECT *
             FROM sykmeldingsperiode
             WHERE sykmeldt_fnr = ?
               AND organisasjonsnummer = ?
@@ -121,14 +121,14 @@ class SykmeldingsperiodeRepository(
                 preparedStatement.executeQuery().use { resultSet ->
                     buildList {
                         while (resultSet.next()) {
-                            add(resultSet.toSykmeldingsperiodeInterval())
+                            add(resultSet.toPersistedSykmeldingsperiode())
                         }
                     }
                 }
             }
         }
 
-        return sykmeldingsperioder.findEarliestContinuousFom(today)
+        return sykmeldingsperioder.findEarliestContinuousSykmeldingsperiode(today)
     }
 
     private companion object {
@@ -147,21 +147,11 @@ private fun ResultSet.toPersistedSykmeldingsperiode(): PersistedSykmeldingsperio
     createdAt = getTimestamp("created_at").toInstant(),
 )
 
-private data class SykmeldingsperiodeInterval(
-    val fom: LocalDate,
-    val tom: LocalDate,
-)
-
-private fun ResultSet.toSykmeldingsperiodeInterval(): SykmeldingsperiodeInterval = SykmeldingsperiodeInterval(
-    fom = getDate("fom").toLocalDate(),
-    tom = getDate("tom").toLocalDate(),
-)
-
-private fun List<SykmeldingsperiodeInterval>.findEarliestContinuousFom(
+private fun List<PersistedSykmeldingsperiode>.findEarliestContinuousSykmeldingsperiode(
     today: LocalDate,
-): LocalDate? {
+): PersistedSykmeldingsperiode? {
     val periodsSortedForBackwardTraversal = sortedWith(
-        compareByDescending<SykmeldingsperiodeInterval> { it.tom }.thenByDescending { it.fom },
+        compareByDescending<PersistedSykmeldingsperiode> { it.tom }.thenByDescending { it.fom },
     )
 
     val activePeriods = periodsSortedForBackwardTraversal.filter { period ->
@@ -171,13 +161,13 @@ private fun List<SykmeldingsperiodeInterval>.findEarliestContinuousFom(
         return null
     }
 
-    var earliestFom = activePeriods.minOf { it.fom }
+    var earliestPeriod = activePeriods.minBy { it.fom }
 
     for (period in periodsSortedForBackwardTraversal) {
-        if (period.fom.isBefore(earliestFom) && !period.tom.plusDays(1).isBefore(earliestFom)) {
-            earliestFom = period.fom
+        if (period.fom.isBefore(earliestPeriod.fom) && !period.tom.plusDays(1).isBefore(earliestPeriod.fom)) {
+            earliestPeriod = period
         }
     }
 
-    return earliestFom
+    return earliestPeriod
 }
