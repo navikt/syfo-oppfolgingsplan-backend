@@ -30,9 +30,9 @@ paths:
         - Oppfølgingsplan
       summary: Hent oversikt over mine oppfølgingsplaner
       description: |
-        Returnerer metadata for alle oppfølgingsplaner og aktuelle unntaksvurderinger som tilhører innlogget sykmeldt.
-        Nyeste plan per organisasjon regnes som aktiv; øvrige planer er tidligere planer.
-        Unntaksvurderinger returneres i en egen liste, nyeste først, og er aldri inkludert i planlistene.
+        Returnerer ferdigstilte planer og synlige unntaksvurderinger gruppert per virksomhet.
+        Hendelsene er sortert nyeste først, slik at første hendelse er gjeldende for virksomheten.
+        Arbeidsgivers utkast eksponeres ikke.
       operationId: getSykmeldtOppfolgingsplanOversikt
       security:
         - bearerAuth: []
@@ -240,29 +240,96 @@ components:
     SykmeldtOppfolgingsplanOverview:
       type: object
       required:
-        - aktiveOppfolgingsplaner
-        - tidligerePlaner
-        - unntaksvurderinger
+        - virksomheter
       properties:
-        aktiveOppfolgingsplaner:
+        virksomheter:
           type: array
-          description: Nyeste oppfølgingsplan per organisasjon
+          description: Virksomheter med minst én ferdigstilt plan eller synlig unntaksvurdering, sortert etter nyeste hendelse.
           items:
-            $ref: '#/components/schemas/OppfolgingsplanMetadata'
-        tidligerePlaner:
-          type: array
-          description: Øvrige oppfølgingsplaner per organisasjon
-          items:
-            $ref: '#/components/schemas/OppfolgingsplanMetadata'
-        unntaksvurderinger:
+            $ref: '#/components/schemas/SykmeldtVirksomhetsoversikt'
+
+    SykmeldtVirksomhetsoversikt:
+      type: object
+      required:
+        - organization
+        - oppfolgingsplanhendelser
+      properties:
+        organization:
+          $ref: '#/components/schemas/OrganizationDetails'
+        oppfolgingsplanhendelser:
           type: array
           description: >
-            Alle synlige unntaksvurderinger, nyeste først. Listen er historikk;
-            en senere ferdigstilt plan fjerner ikke tidligere vurderinger.
-            Organisasjon tilhører hvert enkelt element, og gjeldende-flagget er
-            autoritativt beregnet i backend.
+            Alle ferdigstilte planer og synlige unntaksvurderinger for virksomheten,
+            sortert nyeste først. Første hendelse er gjeldende. Utkast inngår aldri.
           items:
-            $ref: '#/components/schemas/SykmeldtUnntaksvurdering'
+            $ref: '#/components/schemas/SykmeldtOppfolgingsplanhendelse'
+
+    SykmeldtOppfolgingsplanhendelse:
+      oneOf:
+        - $ref: '#/components/schemas/FerdigstiltPlanHendelse'
+        - $ref: '#/components/schemas/PlanIkkeNodvendigHendelse'
+      discriminator:
+        propertyName: type
+        mapping:
+          FERDIGSTILT_PLAN: '#/components/schemas/FerdigstiltPlanHendelse'
+          PLAN_IKKE_NODVENDIG: '#/components/schemas/PlanIkkeNodvendigHendelse'
+
+    FerdigstiltPlanHendelse:
+      type: object
+      required:
+        - type
+        - id
+        - evalueringsDato
+        - ferdigstiltTidspunkt
+      properties:
+        type:
+          type: string
+          enum:
+            - FERDIGSTILT_PLAN
+        id:
+          type: string
+          format: uuid
+        evalueringsDato:
+          type: string
+          format: date
+        deltMedLegeTidspunkt:
+          type: string
+          format: date-time
+          nullable: true
+        deltMedVeilederTidspunkt:
+          type: string
+          format: date-time
+          nullable: true
+        ferdigstiltTidspunkt:
+          type: string
+          format: date-time
+        stillingstittel:
+          type: string
+          nullable: true
+        stillingsprosent:
+          type: number
+          nullable: true
+
+    PlanIkkeNodvendigHendelse:
+      type: object
+      required:
+        - type
+        - id
+        - meldtTidspunkt
+        - meldtAv
+      properties:
+        type:
+          type: string
+          enum:
+            - PLAN_IKKE_NODVENDIG
+        id:
+          type: string
+          format: uuid
+        meldtTidspunkt:
+          type: string
+          format: date-time
+        meldtAv:
+          $ref: '#/components/schemas/MeldtAv'
 
     UnntaksvurderingMetadata:
       type: object
@@ -282,20 +349,6 @@ components:
           $ref: '#/components/schemas/MeldtAv'
         organization:
           $ref: '#/components/schemas/OrganizationDetails'
-
-    SykmeldtUnntaksvurdering:
-      allOf:
-        - $ref: '#/components/schemas/UnntaksvurderingMetadata'
-        - type: object
-          required:
-            - gjeldende
-          properties:
-            gjeldende:
-              type: boolean
-              description: >
-                Om unntaksvurderingen gjelder nå. Maksimalt én gjeldende per organisasjon:
-                den nyeste vurderingen, og bare når den er nyere enn siste ferdigstilte
-                plan for samme organisasjon.
 
     MeldtAv:
       type: object

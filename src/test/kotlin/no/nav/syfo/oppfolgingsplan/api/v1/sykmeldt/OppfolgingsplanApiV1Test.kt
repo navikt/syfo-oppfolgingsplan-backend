@@ -44,7 +44,9 @@ import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredUnntaksvurderinger
+import no.nav.syfo.oppfolgingsplan.dto.FerdigstiltPlanHendelse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
+import no.nav.syfo.oppfolgingsplan.dto.PlanIkkeNodvendigHendelse
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
@@ -242,11 +244,15 @@ class OppfolgingsplanApiV1Test :
                                 .copy(
                                     narmesteLederId = narmestelederId,
                                     evalueringsdato = LocalDate.now().minus(45, ChronoUnit.DAYS),
+                                    createdAt = Instant.parse("2025-01-01T10:00:00Z"),
                                 ),
                         )
                         val latestPlanUUID = testDb.persistOppfolgingsplan(
                             defaultPersistedOppfolgingsplan()
-                                .copy(narmesteLederId = narmestelederId),
+                                .copy(
+                                    narmesteLederId = narmestelederId,
+                                    createdAt = Instant.parse("2025-02-01T10:00:00Z"),
+                                ),
                         )
                         testDb.persistOppfolgingsplanUtkast(
                             defaultPersistedOppfolgingsplanUtkast()
@@ -266,12 +272,11 @@ class OppfolgingsplanApiV1Test :
                         // Assert
                         response.status shouldBe HttpStatusCode.OK
                         val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
-                        overview.aktiveOppfolgingsplaner.firstOrNull()?.id shouldBe latestPlanUUID
-                        overview.aktiveOppfolgingsplaner.first().organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
-                        overview.tidligerePlaner.size shouldBe 1
-                        overview.tidligerePlaner.first().id shouldBe firstPlanUUID
-                        overview.tidligerePlaner.first().organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
-                        overview.unntaksvurderinger shouldBe emptyList()
+                        overview.virksomheter.size shouldBe 1
+                        val virksomhet = overview.virksomheter.single()
+                        virksomhet.organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
+                        virksomhet.oppfolgingsplanhendelser.map { it.id } shouldBe listOf(latestPlanUUID, firstPlanUUID)
+                        virksomhet.oppfolgingsplanhendelser.all { it is FerdigstiltPlanHendelse } shouldBe true
                     }
                 }
 
@@ -343,32 +348,27 @@ class OppfolgingsplanApiV1Test :
 
                         response.status shouldBe HttpStatusCode.OK
                         val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
-                        overview.aktiveOppfolgingsplaner shouldBe emptyList()
-                        overview.tidligerePlaner shouldBe emptyList()
-                        overview.unntaksvurderinger.map { it.id } shouldBe listOf(
-                            newestId,
-                            previousNewestOrganizationId,
-                            oldestId,
-                        )
-                        overview.unntaksvurderinger.map { it.organization.orgNumber } shouldBe listOf(
-                            newestSykmeldt.orgnummer,
+                        overview.virksomheter.map { it.organization.orgNumber }.toSet() shouldBe setOf(
                             newestSykmeldt.orgnummer,
                             oldestSykmeldt.orgnummer,
                         )
-                        overview.unntaksvurderinger.map { it.organization.orgName } shouldBe listOf(
-                            "Test AS",
-                            "Test AS",
-                            "Test AS",
-                        )
-                        overview.unntaksvurderinger.map { it.meldtAv.navn } shouldBe listOf(
+                        overview.virksomheter.map { it.organization.orgName }.toSet() shouldBe setOf("Test AS")
+
+                        val newestOrganizationEvents = overview.virksomheter
+                            .single { it.organization.orgNumber == newestSykmeldt.orgnummer }
+                            .oppfolgingsplanhendelser
+                        newestOrganizationEvents.map { it.id } shouldBe listOf(newestId, previousNewestOrganizationId)
+                        newestOrganizationEvents.map { (it as PlanIkkeNodvendigHendelse).meldtAv.navn } shouldBe listOf(
                             "Nyeste arbeidsgiver",
                             "Tidligere vurdering fra samme arbeidsgiver",
-                            "Eldste arbeidsgiver",
                         )
-                        overview.unntaksvurderinger.filter { it.gjeldende }.map { it.id } shouldBe listOf(
-                            newestId,
-                            oldestId,
-                        )
+
+                        val oldestOrganizationEvents = overview.virksomheter
+                            .single { it.organization.orgNumber == oldestSykmeldt.orgnummer }
+                            .oppfolgingsplanhendelser
+                        oldestOrganizationEvents.map { it.id } shouldBe listOf(oldestId)
+                        (oldestOrganizationEvents.single() as PlanIkkeNodvendigHendelse).meldtAv.navn shouldBe
+                            "Eldste arbeidsgiver"
                     }
                 }
 
@@ -394,9 +394,7 @@ class OppfolgingsplanApiV1Test :
 
                         response.status shouldBe HttpStatusCode.OK
                         val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
-                        overview.aktiveOppfolgingsplaner shouldBe emptyList()
-                        overview.tidligerePlaner shouldBe emptyList()
-                        overview.unntaksvurderinger shouldBe emptyList()
+                        overview.virksomheter shouldBe emptyList()
                     }
                 }
             }

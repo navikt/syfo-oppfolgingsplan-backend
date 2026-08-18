@@ -38,12 +38,6 @@ data class ArbeidsgiverOppfolgingsplanOverviewResponse(
     val oversikt: OversiktResponseData,
 )
 
-data class SykmeldtOppfolgingsplanOverviewResponse(
-    val aktiveOppfolgingsplaner: List<OppfolgingsplanMetadata>,
-    val tidligerePlaner: List<OppfolgingsplanMetadata>,
-    val unntaksvurderinger: List<SykmeldtUnntaksvurdering>,
-)
-
 enum class GjeldendeStatus {
     AKTIV_PLAN,
     UTKAST,
@@ -65,24 +59,6 @@ data class UnntaksvurderingMetadata(
     val meldtTidspunkt: Instant,
     val meldtAv: MeldtAv,
     val organization: OrganizationDetails,
-)
-
-data class SykmeldtUnntaksvurdering(
-    val id: UUID,
-    val meldtTidspunkt: Instant,
-    val meldtAv: MeldtAv,
-    val organization: OrganizationDetails,
-    val gjeldende: Boolean,
-)
-
-fun UnntaksvurderingMetadata.tilSykmeldtUnntaksvurdering(
-    gjeldende: Boolean,
-): SykmeldtUnntaksvurdering = SykmeldtUnntaksvurdering(
-    id = id,
-    meldtTidspunkt = meldtTidspunkt,
-    meldtAv = meldtAv,
-    organization = organization,
-    gjeldende = gjeldende,
 )
 
 fun utledGjeldendeStatus(
