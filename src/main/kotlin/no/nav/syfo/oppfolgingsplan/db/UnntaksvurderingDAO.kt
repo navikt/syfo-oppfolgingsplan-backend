@@ -8,6 +8,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.andIfNotNull
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.jdbc.insertReturning
@@ -32,27 +33,15 @@ suspend fun DatabaseInterface.persistUnntaksvurdering(
 
 suspend fun DatabaseInterface.findAllUnntaksvurderingerBy(
     sykmeldtFnr: String,
-    organisasjonsnummer: String,
-): List<PersistedUnntaksvurdering> = findAllVisibleUnntaksvurderingerBy(sykmeldtFnr, organisasjonsnummer)
-
-suspend fun DatabaseInterface.findAllUnntaksvurderingerBy(
-    sykmeldtFnr: String,
-): List<PersistedUnntaksvurdering> = findAllVisibleUnntaksvurderingerBy(sykmeldtFnr)
-
-private suspend fun DatabaseInterface.findAllVisibleUnntaksvurderingerBy(
-    sykmeldtFnr: String,
     organisasjonsnummer: String? = null,
 ): List<PersistedUnntaksvurdering> = exposedTransaction(readOnly = true) {
-    val condition = (UnntaksvurderingTable.sykmeldtFnr eq sykmeldtFnr) and
-        UnntaksvurderingTable.skjultFra.isNull()
-    val conditionForOrganization = organisasjonsnummer?.let {
-        condition and (UnntaksvurderingTable.organisasjonsnummer eq it)
-    } ?: condition
-
     UnntaksvurderingTable
         .selectAll()
-        .where { conditionForOrganization }
-        .orderBy(UnntaksvurderingTable.createdAt to SortOrder.DESC)
+        .where {
+            (UnntaksvurderingTable.sykmeldtFnr eq sykmeldtFnr) and
+                UnntaksvurderingTable.skjultFra.isNull() andIfNotNull
+                organisasjonsnummer?.let { UnntaksvurderingTable.organisasjonsnummer eq it }
+        }.orderBy(UnntaksvurderingTable.createdAt to SortOrder.DESC)
         .map { it.toPersistedUnntaksvurdering() }
 }
 

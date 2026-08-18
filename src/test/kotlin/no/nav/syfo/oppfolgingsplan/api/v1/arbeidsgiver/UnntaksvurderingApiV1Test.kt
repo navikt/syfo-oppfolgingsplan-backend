@@ -172,6 +172,33 @@ class UnntaksvurderingApiV1Test :
                 }
             }
 
+            it("falls back to live organization name for rows persisted before organisasjonsnavn existed") {
+                withTestApplication {
+                    texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val uuid = testDb.persistUnntaksvurdering(pidInnlogetBruker, sykmeldt, "Maren Hegna")
+                    testDb.connection.use { connection ->
+                        connection
+                            .prepareStatement("UPDATE unntaksvurdering SET organisasjonsnavn = NULL WHERE uuid = ?")
+                            .use { statement ->
+                                statement.setObject(1, uuid)
+                                statement.executeUpdate()
+                            }
+                        connection.commit()
+                    }
+
+                    val response = client.get {
+                        url("/api/v1/arbeidsgiver/$narmestelederId/oppfolgingsplaner/oversikt")
+                        bearerAuth("Bearer token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.OK
+                    val overview = response.body<ArbeidsgiverOppfolgingsplanOverviewResponse>().oversikt
+                    overview.unntaksvurderinger.single().organization.orgName shouldBe "Test AS"
+                }
+            }
+
             it("returns status AKTIV_PLAN when a plan exists alongside unntaksvurderinger") {
                 withTestApplication {
                     texasClientMock.defaultMocks(clientId = environment.syfoOppfolgingsplanFrontendClientId)

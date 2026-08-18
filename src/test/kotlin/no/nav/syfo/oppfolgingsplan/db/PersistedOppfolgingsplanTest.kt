@@ -324,7 +324,7 @@ class PersistedOppfolgingsplanTest :
         describe("toSykmeldtOppfolgingsplanOverviewResponse") {
             it("should return empty lists when no plans exist") {
                 val result = emptyList<PersistedOppfolgingsplan>()
-                    .toSykmeldtOppfolgingsplanOverviewResponse()
+                    .toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
                 result.aktiveOppfolgingsplaner.shouldBeEmpty()
                 result.tidligerePlaner.shouldBeEmpty()
@@ -332,7 +332,7 @@ class PersistedOppfolgingsplanTest :
 
             it("should return single plan as active when only one plan exists") {
                 val plan = defaultPersistedOppfolgingsplan()
-                val result = listOf(plan).toSykmeldtOppfolgingsplanOverviewResponse()
+                val result = listOf(plan).toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
                 result.aktiveOppfolgingsplaner shouldHaveSize 1
                 result.aktiveOppfolgingsplaner[0].id shouldBe plan.uuid
@@ -349,7 +349,7 @@ class PersistedOppfolgingsplanTest :
                     createdAt = Instant.parse("2024-06-01T10:00:00Z"),
                 )
 
-                val result = listOf(olderPlan, newerPlan).toSykmeldtOppfolgingsplanOverviewResponse()
+                val result = listOf(olderPlan, newerPlan).toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
                 result.aktiveOppfolgingsplaner shouldHaveSize 1
                 result.aktiveOppfolgingsplaner[0].id shouldBe newerPlan.uuid
@@ -374,7 +374,7 @@ class PersistedOppfolgingsplanTest :
                     createdAt = Instant.parse("2024-03-01T10:00:00Z"),
                 )
 
-                val result = listOf(org1Plan1, org1Plan2, org2Plan1).toSykmeldtOppfolgingsplanOverviewResponse()
+                val result = listOf(org1Plan1, org1Plan2, org2Plan1).toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
                 result.aktiveOppfolgingsplaner shouldHaveSize 2
                 result.aktiveOppfolgingsplaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
@@ -413,7 +413,7 @@ class PersistedOppfolgingsplanTest :
                 )
 
                 val result = listOf(org1Oldest, org1Middle, org1Newest, org2Oldest, org2Newest)
-                    .toSykmeldtOppfolgingsplanOverviewResponse()
+                    .toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
                 result.aktiveOppfolgingsplaner shouldHaveSize 2
                 result.aktiveOppfolgingsplaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
@@ -443,7 +443,7 @@ class PersistedOppfolgingsplanTest :
                     organisasjonsnummer = "org3",
                 )
 
-                val result = listOf(org1Plan, org2Plan, org3Plan).toSykmeldtOppfolgingsplanOverviewResponse()
+                val result = listOf(org1Plan, org2Plan, org3Plan).toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
                 result.aktiveOppfolgingsplaner shouldHaveSize 3
                 result.aktiveOppfolgingsplaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
@@ -468,7 +468,7 @@ class PersistedOppfolgingsplanTest :
                     .toSykmeldtOppfolgingsplanOverviewResponse(listOf(olderUnntak, newerUnntak))
 
                 result.unntaksvurderinger.map { it.id } shouldBe listOf(newerUnntak.id, olderUnntak.id)
-                result.gjeldendeUnntaksvurderinger.map { it.id } shouldBe listOf(newerUnntak.id)
+                result.unntaksvurderinger.map { it.gjeldende } shouldBe listOf(true, false)
             }
 
             it("should keep an unntaksvurdering in history when a newer finalized plan exists") {
@@ -485,7 +485,7 @@ class PersistedOppfolgingsplanTest :
                     .toSykmeldtOppfolgingsplanOverviewResponse(listOf(unntak))
 
                 result.unntaksvurderinger.map { it.id } shouldBe listOf(unntak.id)
-                result.gjeldendeUnntaksvurderinger.shouldBeEmpty()
+                result.unntaksvurderinger.single().gjeldende shouldBe false
             }
 
             it("should sort unntaksvurderinger across organizations without removing history") {
@@ -515,10 +515,7 @@ class PersistedOppfolgingsplanTest :
                     middleUnntak.id,
                     oldestUnntak.id,
                 )
-                result.gjeldendeUnntaksvurderinger.map { it.id } shouldBe listOf(
-                    newestUnntak.id,
-                    middleUnntak.id,
-                )
+                result.unntaksvurderinger.map { it.gjeldende } shouldBe listOf(true, true, false)
             }
 
             it("should return an unntaksvurdering as current when it is newer than the latest finalized plan") {
@@ -533,7 +530,7 @@ class PersistedOppfolgingsplanTest :
 
                 val result = listOf(plan).toSykmeldtOppfolgingsplanOverviewResponse(listOf(unntak))
 
-                result.gjeldendeUnntaksvurderinger.map { it.id } shouldBe listOf(unntak.id)
+                result.unntaksvurderinger.single { it.gjeldende }.id shouldBe unntak.id
             }
         }
     })

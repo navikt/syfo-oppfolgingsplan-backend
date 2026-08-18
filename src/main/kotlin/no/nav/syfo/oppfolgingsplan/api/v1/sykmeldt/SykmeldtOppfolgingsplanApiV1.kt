@@ -52,14 +52,10 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
          */
         get("/oversikt") {
             val brukerFnr = call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
-            val oppfolgingsplaner =
-                oppfolgingsplanService
-                    .getPersistedOppfolgingsplanListBy(brukerFnr.value)
-                    .toSykmeldtOppfolgingsplanOverviewResponse(
-                        unntaksvurderinger = unntaksvurderingService.getUnntaksvurderingerForSykmeldt(brukerFnr.value),
-                    )
+            val oppfolgingsplaner = oppfolgingsplanService.getPersistedOppfolgingsplanListBy(brukerFnr.value)
+            val unntaksvurderinger = unntaksvurderingService.getUnntaksvurderingerForSykmeldt(brukerFnr.value)
 
-            call.respond(HttpStatusCode.OK, oppfolgingsplaner)
+            call.respond(HttpStatusCode.OK, oppfolgingsplaner.toSykmeldtOppfolgingsplanOverviewResponse(unntaksvurderinger))
         }
 
         /**

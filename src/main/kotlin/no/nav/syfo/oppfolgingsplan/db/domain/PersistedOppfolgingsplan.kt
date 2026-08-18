@@ -6,8 +6,10 @@ import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponseData
 import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
+import no.nav.syfo.oppfolgingsplan.dto.SykmeldtUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.dto.UnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
+import no.nav.syfo.oppfolgingsplan.dto.tilSykmeldtUnntaksvurdering
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -78,33 +80,34 @@ fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanRe
 )
 
 fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(
-    unntaksvurderinger: List<UnntaksvurderingMetadata> = emptyList(),
+    unntaksvurderinger: List<UnntaksvurderingMetadata>,
 ): SykmeldtOppfolgingsplanOverviewResponse {
     val (aktivePlaner, tidligerePlaner) = partitionByNewestPlanPerOrg()
-    val sorterteUnntaksvurderinger = unntaksvurderinger.sortedByDescending { it.meldtTidspunkt }
 
     return SykmeldtOppfolgingsplanOverviewResponse(
         aktiveOppfolgingsplaner = aktivePlaner.map { it.toOppfolgingsplanMetadata() },
         tidligerePlaner = tidligerePlaner.map { it.toOppfolgingsplanMetadata() },
-        unntaksvurderinger = sorterteUnntaksvurderinger,
-        gjeldendeUnntaksvurderinger = finnGjeldendeUnntaksvurderinger(sorterteUnntaksvurderinger),
+        unntaksvurderinger = tilSykmeldtUnntaksvurderinger(unntaksvurderinger, aktivePlaner),
     )
 }
 
-private fun List<PersistedOppfolgingsplan>.finnGjeldendeUnntaksvurderinger(
-    sorterteUnntaksvurderinger: List<UnntaksvurderingMetadata>,
-): List<UnntaksvurderingMetadata> {
-    val nyestePlanTidspunktPerOrganisasjon = groupBy { it.organisasjonsnummer }
-        .mapValues { (_, planer) -> planer.maxOf { it.createdAt } }
-
-    return sorterteUnntaksvurderinger
+/**
+ * En unntaksvurdering er gjeldende når den er nyeste vurdering for sin organisasjon og nyere enn
+ * organisasjonens nyeste ferdigstilte plan — maksimalt én gjeldende per organisasjon.
+ */
+private fun tilSykmeldtUnntaksvurderinger(
+    unntaksvurderinger: List<UnntaksvurderingMetadata>,
+    nyestePlanPerOrganisasjon: List<PersistedOppfolgingsplan>,
+): List<SykmeldtUnntaksvurdering> {
+    val nyestePlanTidspunkt = nyestePlanPerOrganisasjon.associate { it.organisasjonsnummer to it.createdAt }
+    val sorterte = unntaksvurderinger.sortedByDescending { it.meldtTidspunkt }
+    val gjeldendeIder = sorterte
         .distinctBy { it.organization.orgNumber }
-        .filter { unntaksvurdering ->
-            val nyestePlanTidspunkt = nyestePlanTidspunktPerOrganisasjon[
-                unntaksvurdering.organization.orgNumber,
-            ]
-            nyestePlanTidspunkt == null || unntaksvurdering.meldtTidspunkt > nyestePlanTidspunkt
-        }
+        .filter { it.meldtTidspunkt > (nyestePlanTidspunkt[it.organization.orgNumber] ?: Instant.MIN) }
+        .map { it.id }
+        .toSet()
+
+    return sorterte.map { it.tilSykmeldtUnntaksvurdering(gjeldende = it.id in gjeldendeIder) }
 }
 
 private fun List<PersistedOppfolgingsplan>.partitionByNewestPlanPerOrg(): Pair<List<PersistedOppfolgingsplan>, List<PersistedOppfolgingsplan>> {

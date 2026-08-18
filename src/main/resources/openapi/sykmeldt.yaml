@@ -31,7 +31,7 @@ paths:
       summary: Hent oversikt over mine oppfølgingsplaner
       description: |
         Returnerer metadata for alle oppfølgingsplaner og aktuelle unntaksvurderinger som tilhører innlogget sykmeldt.
-        Planer grupperes i aktive (evalueringsdato >= i dag) og tidligere planer.
+        Nyeste plan per organisasjon regnes som aktiv; øvrige planer er tidligere planer.
         Unntaksvurderinger returneres i en egen liste, nyeste først, og er aldri inkludert i planlistene.
       operationId: getSykmeldtOppfolgingsplanOversikt
       security:
@@ -243,7 +243,6 @@ components:
         - aktiveOppfolgingsplaner
         - tidligerePlaner
         - unntaksvurderinger
-        - gjeldendeUnntaksvurderinger
       properties:
         aktiveOppfolgingsplaner:
           type: array
@@ -260,17 +259,10 @@ components:
           description: >
             Alle synlige unntaksvurderinger, nyeste først. Listen er historikk;
             en senere ferdigstilt plan fjerner ikke tidligere vurderinger.
-            Organisasjon tilhører hvert enkelt element.
+            Organisasjon tilhører hvert enkelt element, og gjeldende-flagget er
+            autoritativt beregnet i backend.
           items:
-            $ref: '#/components/schemas/UnntaksvurderingMetadata'
-        gjeldendeUnntaksvurderinger:
-          type: array
-          description: >
-            Autoritativ delmengde av unntaksvurderinger som gjelder nå, maksimalt én per
-            organisasjon og nyeste først. En unntaksvurdering gjelder når den er nyere enn
-            siste ferdigstilte plan for samme organisasjon.
-          items:
-            $ref: '#/components/schemas/UnntaksvurderingMetadata'
+            $ref: '#/components/schemas/SykmeldtUnntaksvurdering'
 
     UnntaksvurderingMetadata:
       type: object
@@ -290,6 +282,20 @@ components:
           $ref: '#/components/schemas/MeldtAv'
         organization:
           $ref: '#/components/schemas/OrganizationDetails'
+
+    SykmeldtUnntaksvurdering:
+      allOf:
+        - $ref: '#/components/schemas/UnntaksvurderingMetadata'
+        - type: object
+          required:
+            - gjeldende
+          properties:
+            gjeldende:
+              type: boolean
+              description: >
+                Om unntaksvurderingen gjelder nå. Maksimalt én gjeldende per organisasjon:
+                den nyeste vurderingen, og bare når den er nyere enn siste ferdigstilte
+                plan for samme organisasjon.
 
     MeldtAv:
       type: object

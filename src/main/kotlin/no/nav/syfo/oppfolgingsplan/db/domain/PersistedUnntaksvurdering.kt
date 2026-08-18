@@ -18,7 +18,13 @@ data class PersistedUnntaksvurdering(
     val skjultFra: Instant? = null,
 )
 
-fun PersistedUnntaksvurdering.toUnntaksvurderingMetadata(): UnntaksvurderingMetadata = UnntaksvurderingMetadata(
+/**
+ * [organisasjonsnavnFallback] dekker rader persistert før organisasjonsnavn-kolonnen fantes;
+ * den lagrede verdien er alltid førstevalget.
+ */
+fun PersistedUnntaksvurdering.toUnntaksvurderingMetadata(
+    organisasjonsnavnFallback: String? = null,
+): UnntaksvurderingMetadata = UnntaksvurderingMetadata(
     id = uuid,
     meldtTidspunkt = createdAt,
     meldtAv = MeldtAv(
@@ -27,6 +33,6 @@ fun PersistedUnntaksvurdering.toUnntaksvurderingMetadata(): UnntaksvurderingMeta
     ),
     organization = OrganizationDetails(
         orgNumber = organisasjonsnummer,
-        orgName = organisasjonsnavn,
+        orgName = organisasjonsnavn ?: organisasjonsnavnFallback,
     ),
 )
