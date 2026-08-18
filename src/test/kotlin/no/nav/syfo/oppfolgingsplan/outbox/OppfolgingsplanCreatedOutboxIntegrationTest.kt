@@ -1,5 +1,9 @@
 package no.nav.syfo.oppfolgingsplan.outbox
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -13,6 +17,7 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.outbox.OutboxWorker
 import no.nav.syfo.application.outbox.db.findOutboxMessage
+import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxStatus
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
@@ -24,6 +29,7 @@ import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
@@ -133,7 +139,62 @@ class OppfolgingsplanCreatedOutboxIntegrationTest :
 
                 worker.runOnce().cancelled shouldBe 1
 
-                TestDB.database.findCreatedMessage(planUuid).status shouldBe OutboxStatus.CANCELLED
+                TestDB.database.findCreatedMessage(planUuid).let { message ->
+                    message.status shouldBe OutboxStatus.CANCELLED
+                    message.cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
+                }
+                coVerify(exactly = 0) { publisher.publishOppfolgingsplanCreated(any(), any(), any()) }
+            }
+
+            it("cancels with source not found when the atomic source invariant is broken") {
+                val planUuid = TestDB.database.createOppfolgingsplan()
+                val outboxMessage = TestDB.database.findCreatedMessage(planUuid)
+                TestDB.database.deletePlan(planUuid)
+                val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+                val worker = OutboxWorker(
+                    database = TestDB.database,
+                    handlers = listOf(OppfolgingsplanCreatedOutboxHandler(TestDB.database, publisher)),
+                    clock = clock,
+                )
+                val handlerLogger = LoggerFactory.getLogger(OppfolgingsplanCreatedOutboxHandler::class.java) as Logger
+                val appender = ListAppender<ILoggingEvent>().apply { start() }
+                handlerLogger.addAppender(appender)
+
+                try {
+                    worker.runOnce().cancelled shouldBe 1
+
+                    TestDB.database.findCreatedMessage(planUuid).let { message ->
+                        message.status shouldBe OutboxStatus.CANCELLED
+                        message.cancellationReason shouldBe OutboxCancellationReason.SOURCE_NOT_FOUND
+                    }
+                    appender.list.any {
+                        it.level == Level.ERROR &&
+                            it.formattedMessage.contains(outboxMessage.uuid.toString()) &&
+                            it.formattedMessage.contains(OutboxCancellationReason.SOURCE_NOT_FOUND.value)
+                    } shouldBe true
+                    coVerify(exactly = 0) { publisher.publishOppfolgingsplanCreated(any(), any(), any()) }
+                } finally {
+                    handlerLogger.detachAppender(appender)
+                    appender.stop()
+                }
+            }
+
+            it("cancels a notification when the plan was feilregistrert") {
+                val planUuid = TestDB.database.createOppfolgingsplan()
+                TestDB.database.setPlanFeilregistrert(planUuid, now)
+                val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+                val worker = OutboxWorker(
+                    database = TestDB.database,
+                    handlers = listOf(OppfolgingsplanCreatedOutboxHandler(TestDB.database, publisher)),
+                    clock = clock,
+                )
+
+                worker.runOnce().cancelled shouldBe 1
+
+                TestDB.database.findCreatedMessage(planUuid).let { message ->
+                    message.status shouldBe OutboxStatus.CANCELLED
+                    message.cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
+                }
                 coVerify(exactly = 0) { publisher.publishOppfolgingsplanCreated(any(), any(), any()) }
             }
         }
@@ -161,6 +222,26 @@ private fun DatabaseInterface.setPlanHidden(
     connection.prepareStatement("UPDATE oppfolgingsplan SET skjult_fra = ? WHERE uuid = ?").use {
         it.setObject(1, hiddenAt.atOffset(ZoneOffset.UTC))
         it.setObject(2, planUuid)
+        it.executeUpdate()
+    }
+    connection.commit()
+}
+
+private fun DatabaseInterface.setPlanFeilregistrert(
+    planUuid: UUID,
+    feilregistrertAt: Instant,
+) = connection.use { connection ->
+    connection.prepareStatement("UPDATE oppfolgingsplan SET feilregistrert = ? WHERE uuid = ?").use {
+        it.setObject(1, feilregistrertAt.atOffset(ZoneOffset.UTC))
+        it.setObject(2, planUuid)
+        it.executeUpdate()
+    }
+    connection.commit()
+}
+
+private fun DatabaseInterface.deletePlan(planUuid: UUID) = connection.use { connection ->
+    connection.prepareStatement("DELETE FROM oppfolgingsplan WHERE uuid = ?").use {
+        it.setObject(1, planUuid)
         it.executeUpdate()
     }
     connection.commit()

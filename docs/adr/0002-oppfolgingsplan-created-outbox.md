@@ -20,9 +20,11 @@ nye operasjonen er outbox-inserten før commit. Kommandoen har:
 - tomt JSON-payload; handleren henter mottakeren fra fersk domenetilstand
 - planens opprettelsestidspunkt som `available_at`
 
-Handleren avbryter leveringen dersom planen er skjult, feilregistrert eller borte. Etter Kafka-ACK
-markerer workeren outbox-raden som `SENT`. Dersom databaseoppdateringen feiler etter ACK, brukes
-samme event-ID ved retry, og Budstikka dedupliserer.
+Handleren avbryter leveringen dersom planen er skjult eller feilregistrert og lagrer
+`SOURCE_NO_LONGER_ELIGIBLE`. En manglende plan bryter invarianten om atomisk plan/outbox-opprettelse;
+det logges derfor som feil før kommandoen avsluttes med `SOURCE_NOT_FOUND`, fremfor å retryes for
+alltid. Etter Kafka-ACK markerer workeren outbox-raden som `SENT`. Dersom databaseoppdateringen
+feiler etter ACK, brukes samme event-ID ved retry, og Budstikka dedupliserer.
 
 Alle replikaer kjører worker uten leader election. Kafka-kallet er tidsbegrenset i produsenten og er
 kortere enn outbox-leasen.
@@ -40,8 +42,12 @@ av en outbox-kompatibel versjon.
 
 ## Retention og observability
 
-`SENT` og `CANCELLED` for denne meldingstypen slettes 90 dager etter `completed_at`. Den generiske,
-lederkoordinerte retention-tasken sletter i små, avgrensede transaksjoner.
+`SENT` og `CANCELLED` for denne meldingstypen slettes 90 dager etter `completed_at`. Kommandoen kan
+bare oppstå i den atomiske planopprettelsen; det finnes ingen reconciler eller reaktivering som kan
+opprette den på nytt. Terminal retention er derfor et app-eid operasjonelt og personvernmessig
+vindu, ikke en forutsetning for idempotens. Den generiske, lederkoordinerte retention-tasken sletter
+i små, avgrensede transaksjoner. Budstikka eier separat retention for sine egne inbox- og
+delivery-tabeller.
 
 Worker eksponerer lavkardinale målinger for antall leveringsklare rader, alder på eldste rad,
 utløpte claims og uløste tekniske feil. Dev og prod varsler på vedvarende køalder, utløpte leases og
