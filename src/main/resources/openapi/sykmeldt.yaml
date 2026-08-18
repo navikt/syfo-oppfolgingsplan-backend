@@ -246,12 +246,12 @@ components:
       properties:
         aktiveOppfolgingsplaner:
           type: array
-          description: Oppfølgingsplaner med evalueringsdato >= i dag
+          description: Nyeste oppfølgingsplan per organisasjon
           items:
             $ref: '#/components/schemas/OppfolgingsplanMetadata'
         tidligerePlaner:
           type: array
-          description: Oppfølgingsplaner med evalueringsdato < i dag
+          description: Øvrige oppfølgingsplaner per organisasjon
           items:
             $ref: '#/components/schemas/OppfolgingsplanMetadata'
         unntaksvurderinger:

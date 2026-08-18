@@ -46,7 +46,7 @@ class UnntaksvurderingDAOTest :
                     .narmesteLederFullName shouldBe null
             }
 
-            it("allows null organisasjonsnavn for safe fallback") {
+            it("allows null organisasjonsnavn when the source has no name") {
                 val sykmeldtUtenOrganisasjonsnavn = sykmeldt.copy(sykmeldinger = null)
 
                 testDb.persistUnntaksvurdering(narmesteLederFnr, sykmeldtUtenOrganisasjonsnavn, null)

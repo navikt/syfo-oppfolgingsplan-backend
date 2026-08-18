@@ -3,7 +3,6 @@ package no.nav.syfo.oppfolgingsplan.service
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.domain.toUnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.db.existsAktivPlanOrUtkast
@@ -41,7 +40,7 @@ class UnntaksvurderingService(
         sykmeldt: Sykmeldt,
     ): List<UnntaksvurderingMetadata> = database
         .findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
-        .tilMetadataMedNavn(organisasjonsnavnFallback = sykmeldt.getOrganizationName())
+        .tilMetadataMedNavn()
 
     suspend fun getUnntaksvurderingerForSykmeldt(
         sykmeldtFnr: String,
@@ -53,10 +52,8 @@ class UnntaksvurderingService(
         database.softDeleteExpiredUnntaksvurderinger()
     }
 
-    private suspend fun List<PersistedUnntaksvurdering>.tilMetadataMedNavn(
-        organisasjonsnavnFallback: String? = null,
-    ): List<UnntaksvurderingMetadata> = backfillNarmesteLederFullName()
-        .map { it.toUnntaksvurderingMetadata(organisasjonsnavnFallback) }
+    private suspend fun List<PersistedUnntaksvurdering>.tilMetadataMedNavn(): List<UnntaksvurderingMetadata> = backfillNarmesteLederFullName()
+        .map { it.toUnntaksvurderingMetadata() }
 
     /**
      * Ledernavnet persisteres ved opprettelse, men kolonnen er nullable for eldre rader. Manglende
