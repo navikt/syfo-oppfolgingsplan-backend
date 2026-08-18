@@ -8,11 +8,21 @@ import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.util.logger
 import kotlin.time.Duration
 
+/**
+ * Runs periodically while [shouldExecute] permits it. Coordination policy is supplied explicitly
+ * by the caller.
+ */
 abstract class RecurringTask(
     name: String,
     private val interval: Duration,
-    private val leaderElection: LeaderElection,
+    private val shouldExecute: suspend () -> Boolean,
 ) {
+    constructor(
+        name: String,
+        interval: Duration,
+        leaderElection: LeaderElection,
+    ) : this(name, interval, leaderElection::isLeader)
+
     protected val log = logger(name)
     protected val taskName: String = name
 
@@ -22,7 +32,7 @@ abstract class RecurringTask(
         try {
             while (isActive) {
                 try {
-                    if (leaderElection.isLeader()) {
+                    if (shouldExecute()) {
                         execute()
                     }
                 } catch (ex: CancellationException) {

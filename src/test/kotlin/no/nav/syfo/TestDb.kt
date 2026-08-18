@@ -37,7 +37,7 @@ class TestDatabase(
                 jdbcUrl = connectionName
                 username = dbUsername
                 password = dbPassword
-                maximumPoolSize = 1
+                maximumPoolSize = 4
                 minimumIdle = 1
                 isAutoCommit = false
                 connectionTimeout = 10_000
@@ -94,6 +94,7 @@ class TestDB private constructor() {
             it
                 .prepareStatement(
                     """
+                    DELETE FROM outbox;
                     DELETE FROM unntaksvurdering;
                     DELETE FROM paaminnelse;
                     DELETE FROM sykmeldingsperiode;
@@ -103,8 +104,29 @@ class TestDB private constructor() {
                 ).use { ps -> ps.executeUpdate() }
             it.commit()
         }
+
+        fun createIsolatedDatabase(): TestDatabaseConnection {
+            val databaseName = "test_${UUID.randomUUID().toString().replace("-", "")}"
+            database.connection.use { connection ->
+                connection.autoCommit = true
+                connection.createStatement().use { statement ->
+                    statement.execute("CREATE DATABASE $databaseName")
+                }
+            }
+            return TestDatabaseConnection(
+                jdbcUrl = psqlContainer.jdbcUrl.substringBeforeLast('/') + "/$databaseName",
+                username = psqlContainer.username,
+                password = psqlContainer.password,
+            )
+        }
     }
 }
+
+data class TestDatabaseConnection(
+    val jdbcUrl: String,
+    val username: String,
+    val password: String,
+)
 
 fun DatabaseInterface.persistOppfolgingsplan(
     persistedOppfolgingsplan: PersistedOppfolgingsplan,
