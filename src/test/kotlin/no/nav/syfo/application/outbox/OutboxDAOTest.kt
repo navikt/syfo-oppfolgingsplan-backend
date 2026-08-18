@@ -159,6 +159,32 @@ class OutboxDAOTest :
         }
 
         describe("claimOutboxMessages") {
+            it("replays a claim that encounters a stale repeatable-read snapshot") {
+                TestDB.database.enqueueTestOutboxMessage(availableAt = now)
+                val staleSnapshotEstablished = CountDownLatch(1)
+                val competingClaimCommitted = CountDownLatch(1)
+                val attempts = AtomicInteger(0)
+
+                coroutineScope {
+                    val staleClaim = async(Dispatchers.IO) {
+                        TestDB.database.exposedTransaction(maxAttempts = 3) {
+                            if (attempts.incrementAndGet() == 1) {
+                                exec("SELECT 1")
+                                staleSnapshotEstablished.countDown()
+                                competingClaimCommitted.await()
+                            }
+                            claimOutboxMessages(TEST_IMMEDIATE_MESSAGE, now, 1, 5.minutes)
+                        }
+                    }
+
+                    staleSnapshotEstablished.await()
+                    TestDB.database.claim(now).single()
+                    competingClaimCommitted.countDown()
+                    staleClaim.await().shouldBeEmpty()
+                }
+                attempts.get() shouldBeExactly 2
+            }
+
             it("claims only due messages and persists a lease token") {
                 val due = TestDB.database.enqueueTestOutboxMessage(availableAt = now.minusSeconds(1))
                 TestDB.database.enqueueTestOutboxMessage(availableAt = now.plusSeconds(1))
