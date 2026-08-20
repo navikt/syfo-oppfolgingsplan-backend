@@ -42,6 +42,7 @@ import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
+import no.nav.syfo.oppfolgingsplan.outbox.PaaminnelseOutboxHandler
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
@@ -216,6 +217,7 @@ private fun kafkeProducerModule() = module {
                     },
             ),
             env().minSideSykmeldtOppfolgingsplanUrl,
+            env().minSideNarmesteLederOppfolgingsplanUrl,
         )
     }
 }
@@ -244,10 +246,14 @@ private fun servicesModule() = module {
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }
     single { OppfolgingsplanCreatedOutboxHandler(database = get(), publisher = get()) }
+    single { PaaminnelseOutboxHandler(database = get(), publisher = get()) }
     single {
         OutboxWorker(
             database = get(),
-            handlers = listOf(get<OppfolgingsplanCreatedOutboxHandler>()),
+            handlers = listOf(
+                get<OppfolgingsplanCreatedOutboxHandler>(),
+                get<PaaminnelseOutboxHandler>(),
+            ),
         )
     }
     single { OutboxTask(worker = get()) }
@@ -258,6 +264,10 @@ private fun servicesModule() = module {
             policies = listOf(
                 OutboxRetentionPolicy(
                     messageType = OppfolgingsplanOutboxMessageType.CREATED,
+                    retention = Duration.ofDays(90),
+                ),
+                OutboxRetentionPolicy(
+                    messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE,
                     retention = Duration.ofDays(90),
                 ),
             ),

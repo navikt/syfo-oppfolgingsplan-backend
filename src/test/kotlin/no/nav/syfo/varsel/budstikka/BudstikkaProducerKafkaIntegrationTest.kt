@@ -55,7 +55,11 @@ class BudstikkaProducerKafkaIntegrationTest :
                     consumer.poll(Duration.ofMillis(100))
 
                     runBlocking {
-                        BudstikkaProducer(kafkaProducer, oppfolgingsplanUrl).publishOppfolgingsplanCreated(
+                        BudstikkaProducer(
+                            kafkaProducer,
+                            oppfolgingsplanUrl,
+                            "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver",
+                        ).publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
                             eventId = eventId,

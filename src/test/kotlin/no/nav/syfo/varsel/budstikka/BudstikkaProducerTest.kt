@@ -15,6 +15,7 @@ import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.PAAMINNELSE_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -30,7 +31,11 @@ class BudstikkaProducerTest :
     DescribeSpec({
         val kafkaProducerMock = mockk<KafkaProducer<String, String>>()
         val budstikkaOppfolgingsplanSykmeldtUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
-        val producer = BudstikkaProducer(kafkaProducerMock, budstikkaOppfolgingsplanSykmeldtUrl)
+        val producer = BudstikkaProducer(
+            kafkaProducerMock,
+            budstikkaOppfolgingsplanSykmeldtUrl,
+            "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver",
+        )
 
         beforeTest {
             clearAllMocks(currentThreadOnly = true)
@@ -98,6 +103,42 @@ class BudstikkaProducerTest :
                 verify(exactly = 1) { failedFuture.get(250, TimeUnit.MILLISECONDS) }
             }
         }
+
+//        describe("publishPaaminnelse") {
+//            it("sends a dispatch to the narmeste leder") {
+//                val future = mockk<Future<RecordMetadata>>()
+//                val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
+//                val paaminnelseUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
+//                val expectedDispatch = Budstikka.brukervarselCreate(
+//                    eventId = EventId(eventId),
+//                    reference = paaminnelseUuid.toString(),
+//                    sykmeldt = PersonIdentifier(narmesteLederFnr),
+//                    varseltype = Varseltype.BESKJED,
+//                    text = PAAMINNELSE_BUDSTIKKA_TEXT,
+//                    link = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver",
+//                    sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+//                )
+//                every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
+//                every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
+//
+//                producer.publishPaaminnelse(
+//                    paaminnelseUuid = paaminnelseUuid,
+//                    eventId = eventId,
+//                )
+//
+//                verify(exactly = 1) {
+//                    kafkaProducerMock.send(
+//                        withArg {
+//                            it.topic() shouldBe expectedDispatch.topic
+//                            it.key() shouldBe expectedDispatch.key
+//                            it.value() shouldBe expectedDispatch.value
+//                            it.headers().associate { header -> header.key() to header.value().toList() } shouldBe
+//                                expectedDispatch.headerBytes().mapValues { (_, value) -> value.toList() }
+//                        },
+//                    )
+//                }
+//            }
+//        }
     })
 
 private fun createRecordMetadata(): RecordMetadata = RecordMetadata(

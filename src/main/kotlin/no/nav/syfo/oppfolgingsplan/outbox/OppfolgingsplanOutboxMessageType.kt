@@ -6,4 +6,5 @@ enum class OppfolgingsplanOutboxMessageType(
     override val value: String,
 ) : OutboxMessageType {
     CREATED("OPPFOLGINGSPLAN_CREATED"),
+    PAAMINNELSE("PAAMINNELSE_OPPFOLGINGSPLAN"),
 }
