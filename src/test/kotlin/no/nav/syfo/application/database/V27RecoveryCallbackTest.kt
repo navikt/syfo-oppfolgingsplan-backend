@@ -9,7 +9,7 @@ import java.util.UUID
 
 class V27RecoveryCallbackTest :
     FunSpec({
-        test("records canonical V27 history only when its complete schema already exists") {
+        test("records canonical V27 and V28 history only when their complete schemas already exist") {
             PsqlContainer().use { container ->
                 container.start()
 
@@ -29,6 +29,8 @@ class V27RecoveryCallbackTest :
                                 ADD COLUMN sykmeldingsperiode_id UUID NOT NULL REFERENCES sykmeldingsperiode(id);
                             ALTER TABLE paaminnelse
                                 DROP COLUMN outbox_at;
+                            ALTER TABLE unntaksvurdering
+                                ADD COLUMN organisasjonsnavn TEXT;
                             """.trimIndent(),
                         )
                     }
@@ -54,7 +56,7 @@ class V27RecoveryCallbackTest :
                     }
                 }
 
-                flyway("27").migrate().migrationsExecuted shouldBe 0
+                flyway("28").migrate().migrationsExecuted shouldBe 0
 
                 DriverManager.getConnection(container.jdbcUrl, container.username, container.password).use { connection ->
                     connection.createStatement().use { statement ->
@@ -70,17 +72,27 @@ class V27RecoveryCallbackTest :
                                       AND script = 'V27__update_paaminnelse_table.sql'
                                       AND checksum = -836683551
                                       AND success
+                                ),
+                                EXISTS (
+                                    SELECT 1 FROM flyway_schema_history
+                                    WHERE version = '28'
+                                      AND description = 'add organisasjonsnavn to unntaksvurdering'
+                                      AND type = 'SQL'
+                                      AND script = 'V28__add_organisasjonsnavn_to_unntaksvurdering.sql'
+                                      AND checksum = 954084108
+                                      AND success
                                 )
                             """.trimIndent(),
                         ).use { result ->
                             result.next() shouldBe true
                             result.getLong(1) shouldBe 1
                             result.getBoolean(2) shouldBe true
+                            result.getBoolean(3) shouldBe true
                         }
                     }
                 }
 
-                flyway("27").migrate().migrationsExecuted shouldBe 0
+                flyway("28").migrate().migrationsExecuted shouldBe 0
             }
         }
     })
