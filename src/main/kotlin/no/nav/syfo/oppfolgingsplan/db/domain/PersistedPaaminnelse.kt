@@ -12,5 +12,5 @@ data class PersistedPaaminnelse(
     val updatedAt: Instant,
 )
 
-fun PersistedPaaminnelse.isPaaminnelseBestiltInCurrentSykemeldingsperiode(sykmeldingsperiodeId: UUID): Boolean =
-    this.bestilt && this.sykmeldingsperiodeId == sykmeldingsperiodeId
+fun PersistedPaaminnelse.isPaaminnelseBestiltInCurrentSykemeldingsperiode(sykmeldingsperiodeId: UUID): Boolean = this.bestilt &&
+    this.sykmeldingsperiodeId == sykmeldingsperiodeId

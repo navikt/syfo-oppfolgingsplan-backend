@@ -95,8 +95,9 @@ class PaaminnelseService(
         )
     }
 
-    private fun throwPaaminnelseUtilgjengelig(): Nothing =
-        throw BadRequestException("Kan ikke endre påminnelse når påminnelse er utilgjengelig")
+    private fun throwPaaminnelseUtilgjengelig(): Nothing = throw BadRequestException(
+        "Kan ikke endre påminnelse når påminnelse er utilgjengelig",
+    )
 
     private sealed interface PaaminnelseStatusInternal {
         data object Skjult : PaaminnelseStatusInternal
@@ -106,30 +107,27 @@ class PaaminnelseService(
         ) : PaaminnelseStatusInternal
     }
 
-    private fun PaaminnelseStatusInternal.requirePaaminnelseTilgjengelig():
-        PaaminnelseStatusInternal.PaaminnelseTilgjengelig =
-        when (this) {
-            is PaaminnelseStatusInternal.Skjult -> throwPaaminnelseUtilgjengelig()
-            is PaaminnelseStatusInternal.PaaminnelseTilgjengelig -> this
-        }
+    private fun PaaminnelseStatusInternal.requirePaaminnelseTilgjengelig(): PaaminnelseStatusInternal.PaaminnelseTilgjengelig = when (this) {
+        is PaaminnelseStatusInternal.Skjult -> throwPaaminnelseUtilgjengelig()
+        is PaaminnelseStatusInternal.PaaminnelseTilgjengelig -> this
+    }
 
     private fun PaaminnelseStatusInternal.toPaaminnelseStatusDto(
         sykmeldt: Sykmeldt,
-    ): PaaminnelseStatusDto =
-        when (this) {
-            is PaaminnelseStatusInternal.Skjult -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT)
-            is PaaminnelseStatusInternal.PaaminnelseTilgjengelig -> {
-                val paaminnelse = database.findPaaminnelseBy(
-                    sykmeldtFnr = sykmeldt.fnr,
-                    organisasjonsnummer = sykmeldt.orgnummer,
-                )
-                PaaminnelseStatusDto(
-                    if (paaminnelse?.isPaaminnelseBestiltInCurrentSykemeldingsperiode(sykmeldingsperiodeId) == true) {
-                        PaaminnelseStatus.BESTILT
-                    } else {
-                        PaaminnelseStatus.TILGJENGELIG
-                    },
-                )
-            }
+    ): PaaminnelseStatusDto = when (this) {
+        is PaaminnelseStatusInternal.Skjult -> PaaminnelseStatusDto(PaaminnelseStatus.SKJULT)
+        is PaaminnelseStatusInternal.PaaminnelseTilgjengelig -> {
+            val paaminnelse = database.findPaaminnelseBy(
+                sykmeldtFnr = sykmeldt.fnr,
+                organisasjonsnummer = sykmeldt.orgnummer,
+            )
+            PaaminnelseStatusDto(
+                if (paaminnelse?.isPaaminnelseBestiltInCurrentSykemeldingsperiode(sykmeldingsperiodeId) == true) {
+                    PaaminnelseStatus.BESTILT
+                } else {
+                    PaaminnelseStatus.TILGJENGELIG
+                },
+            )
         }
+    }
 }
