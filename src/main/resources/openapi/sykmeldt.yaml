@@ -251,10 +251,10 @@ components:
     SykmeldtVirksomhetsoversikt:
       type: object
       required:
-        - organization
+        - virksomhet
         - oppfolgingsplanhendelser
       properties:
-        organization:
+        virksomhet:
           $ref: '#/components/schemas/OrganizationDetails'
         oppfolgingsplanhendelser:
           type: array

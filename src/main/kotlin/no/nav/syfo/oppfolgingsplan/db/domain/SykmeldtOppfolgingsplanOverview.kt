@@ -16,7 +16,7 @@ fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(
     val unntakshendelser = unntaksvurderinger.map { it.toSykmeldtHendelse() }
 
     val virksomheter = (planhendelser + unntakshendelser)
-        .groupBy { it.organization.orgNumber }
+        .groupBy { it.virksomhet.orgNumber }
         .values
         .map { it.toVirksomhetsoversikt() }
         .sortedWith(virksomhetsoversiktComparator)
@@ -25,8 +25,8 @@ fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(
     return SykmeldtOppfolgingsplanOverviewResponse(virksomheter)
 }
 
-private fun PersistedOppfolgingsplan.toSykmeldtHendelse() = HendelseMedOrganisasjon(
-    organization = OrganizationDetails(
+private fun PersistedOppfolgingsplan.toSykmeldtHendelse() = HendelseMedVirksomhet(
+    virksomhet = OrganizationDetails(
         orgNumber = organisasjonsnummer,
         orgName = organisasjonsnavn,
     ),
@@ -42,8 +42,8 @@ private fun PersistedOppfolgingsplan.toSykmeldtHendelse() = HendelseMedOrganisas
     ),
 )
 
-private fun UnntaksvurderingMetadata.toSykmeldtHendelse() = HendelseMedOrganisasjon(
-    organization = organization,
+private fun UnntaksvurderingMetadata.toSykmeldtHendelse() = HendelseMedVirksomhet(
+    virksomhet = organization,
     tidspunkt = meldtTidspunkt,
     hendelse = PlanIkkeNodvendigHendelse(
         id = id,
@@ -52,31 +52,31 @@ private fun UnntaksvurderingMetadata.toSykmeldtHendelse() = HendelseMedOrganisas
     ),
 )
 
-private fun List<HendelseMedOrganisasjon>.toVirksomhetsoversikt(): SorterbarVirksomhetsoversikt {
+private fun List<HendelseMedVirksomhet>.toVirksomhetsoversikt(): SorterbarVirksomhetsoversikt {
     val sorterteHendelser = sortedWith(hendelseComparator)
     val nyesteHendelse = sorterteHendelser.first()
     return SorterbarVirksomhetsoversikt(
         oversikt = SykmeldtVirksomhetsoversikt(
-            organization = nyesteHendelse.organization,
+            virksomhet = nyesteHendelse.virksomhet,
             oppfolgingsplanhendelser = sorterteHendelser.map { it.hendelse },
         ),
         nyesteHendelse = nyesteHendelse,
     )
 }
 
-private data class HendelseMedOrganisasjon(
-    val organization: OrganizationDetails,
+private data class HendelseMedVirksomhet(
+    val virksomhet: OrganizationDetails,
     val tidspunkt: Instant,
     val hendelse: SykmeldtOppfolgingsplanHendelse,
 )
 
 private data class SorterbarVirksomhetsoversikt(
     val oversikt: SykmeldtVirksomhetsoversikt,
-    val nyesteHendelse: HendelseMedOrganisasjon,
+    val nyesteHendelse: HendelseMedVirksomhet,
 )
 
 private val hendelseComparator =
-    compareByDescending<HendelseMedOrganisasjon> { it.tidspunkt }
+    compareByDescending<HendelseMedVirksomhet> { it.tidspunkt }
         .thenByDescending { it.hendelse.id.toString() }
 
 private val virksomhetsoversiktComparator =

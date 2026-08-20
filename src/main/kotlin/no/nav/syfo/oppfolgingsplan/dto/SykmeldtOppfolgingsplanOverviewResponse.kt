@@ -13,7 +13,7 @@ data class SykmeldtOppfolgingsplanOverviewResponse(
 )
 
 data class SykmeldtVirksomhetsoversikt(
-    val organization: OrganizationDetails,
+    val virksomhet: OrganizationDetails,
     val oppfolgingsplanhendelser: List<SykmeldtOppfolgingsplanHendelse>,
 )
 

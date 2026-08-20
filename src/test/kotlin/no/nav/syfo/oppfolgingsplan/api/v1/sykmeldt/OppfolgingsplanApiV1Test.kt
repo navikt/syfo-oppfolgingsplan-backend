@@ -274,7 +274,7 @@ class OppfolgingsplanApiV1Test :
                         val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
                         overview.virksomheter.size shouldBe 1
                         val virksomhet = overview.virksomheter.single()
-                        virksomhet.organization.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
+                        virksomhet.virksomhet.orgNumber shouldBe defaultPersistedOppfolgingsplan().organisasjonsnummer
                         virksomhet.oppfolgingsplanhendelser.map { it.id } shouldBe listOf(latestPlanUUID, firstPlanUUID)
                         virksomhet.oppfolgingsplanhendelser.all { it is FerdigstiltPlanHendelse } shouldBe true
                     }
@@ -348,14 +348,14 @@ class OppfolgingsplanApiV1Test :
 
                         response.status shouldBe HttpStatusCode.OK
                         val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
-                        overview.virksomheter.map { it.organization.orgNumber }.toSet() shouldBe setOf(
+                        overview.virksomheter.map { it.virksomhet.orgNumber }.toSet() shouldBe setOf(
                             newestSykmeldt.orgnummer,
                             oldestSykmeldt.orgnummer,
                         )
-                        overview.virksomheter.map { it.organization.orgName }.toSet() shouldBe setOf("Test AS")
+                        overview.virksomheter.map { it.virksomhet.orgName }.toSet() shouldBe setOf("Test AS")
 
                         val newestOrganizationEvents = overview.virksomheter
-                            .single { it.organization.orgNumber == newestSykmeldt.orgnummer }
+                            .single { it.virksomhet.orgNumber == newestSykmeldt.orgnummer }
                             .oppfolgingsplanhendelser
                         newestOrganizationEvents.map { it.id } shouldBe listOf(newestId, previousNewestOrganizationId)
                         newestOrganizationEvents.map { (it as PlanIkkeNodvendigHendelse).meldtAv.navn } shouldBe listOf(
@@ -364,7 +364,7 @@ class OppfolgingsplanApiV1Test :
                         )
 
                         val oldestOrganizationEvents = overview.virksomheter
-                            .single { it.organization.orgNumber == oldestSykmeldt.orgnummer }
+                            .single { it.virksomhet.orgNumber == oldestSykmeldt.orgnummer }
                             .oppfolgingsplanhendelser
                         oldestOrganizationEvents.map { it.id } shouldBe listOf(oldestId)
                         (oldestOrganizationEvents.single() as PlanIkkeNodvendigHendelse).meldtAv.navn shouldBe

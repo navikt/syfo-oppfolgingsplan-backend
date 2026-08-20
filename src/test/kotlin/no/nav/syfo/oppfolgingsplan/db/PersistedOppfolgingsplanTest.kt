@@ -324,14 +324,14 @@ class PersistedOppfolgingsplanTest :
         }
 
         describe("toSykmeldtOppfolgingsplanOverviewResponse") {
-            it("should return no virksomheter when no events exist") {
+            it("returnerer ingen virksomheter når det ikke finnes hendelser") {
                 val result = emptyList<PersistedOppfolgingsplan>()
                     .toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
                 result.virksomheter.shouldBeEmpty()
             }
 
-            it("should group plans by organization and sort newest event first") {
+            it("grupperer planer per virksomhet og sorterer nyeste hendelse først") {
                 val olderPlan = defaultPersistedOppfolgingsplan().copy(
                     uuid = UUID.randomUUID(),
                     organisasjonsnummer = "org1",
@@ -348,7 +348,7 @@ class PersistedOppfolgingsplanTest :
                 val result = listOf(olderPlan, newerPlan).toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
                 result.virksomheter shouldHaveSize 1
-                result.virksomheter.single().organization shouldBe OrganizationDetails("org1", "Virksomhet 1")
+                result.virksomheter.single().virksomhet shouldBe OrganizationDetails("org1", "Virksomhet 1")
                 result.virksomheter.single().oppfolgingsplanhendelser.map { it.id } shouldBe
                     listOf(newerPlan.uuid, olderPlan.uuid)
                 result.virksomheter.single().oppfolgingsplanhendelser.forEach {
@@ -356,7 +356,7 @@ class PersistedOppfolgingsplanTest :
                 }
             }
 
-            it("should combine plan and unntak as one ordered event stream") {
+            it("kombinerer plan og unntak som én sortert hendelsesstrøm") {
                 val olderUnntak = unntaksvurdering(
                     organisasjonsnummer = "org1",
                     meldtTidspunkt = Instant.parse("2024-01-01T10:00:00Z"),
@@ -381,7 +381,7 @@ class PersistedOppfolgingsplanTest :
                 hendelser[2].shouldBeInstanceOf<PlanIkkeNodvendigHendelse>()
             }
 
-            it("should sort organizations by their newest event and use its organization snapshot") {
+            it("sorterer virksomheter etter nyeste hendelse og bruker virksomhetens nyeste navnesnapshot") {
                 val olderPlan = defaultPersistedOppfolgingsplan().copy(
                     uuid = UUID.randomUUID(),
                     organisasjonsnummer = "org1",
@@ -402,8 +402,8 @@ class PersistedOppfolgingsplanTest :
                     listOf(middleUnntak, newestUnntak),
                 )
 
-                result.virksomheter.map { it.organization.orgNumber } shouldBe listOf("org1", "org2")
-                result.virksomheter.first().organization.orgName shouldBe "Nytt navn"
+                result.virksomheter.map { it.virksomhet.orgNumber } shouldBe listOf("org1", "org2")
+                result.virksomheter.first().virksomhet.orgName shouldBe "Nytt navn"
             }
         }
     })
