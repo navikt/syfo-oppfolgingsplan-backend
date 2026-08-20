@@ -11,6 +11,8 @@ class ApplicationEnvironmentTest :
                     "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
                 LocalEnvironment().dineSykmeldteOversiktUrl shouldBe
                     "https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte"
+                LocalEnvironment().minSideNarmesteLederOppfolgingsplanUrl shouldBe
+                    "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver"
             }
         }
     })

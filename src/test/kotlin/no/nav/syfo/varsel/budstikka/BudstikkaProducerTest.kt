@@ -38,10 +38,12 @@ class BudstikkaProducerTest :
         val kafkaProducerMock = mockk<KafkaProducer<String, String>>()
         val budstikkaOppfolgingsplanSykmeldtUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
         val dineSykmeldteOversiktUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplaner"
+        val narmesteLederOppfolgingsplanUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver"
         val producer = BudstikkaProducer(
             kafkaProducerMock,
             budstikkaOppfolgingsplanSykmeldtUrl,
             dineSykmeldteOversiktUrl,
+            narmesteLederOppfolgingsplanUrl,
         )
 
         beforeTest {

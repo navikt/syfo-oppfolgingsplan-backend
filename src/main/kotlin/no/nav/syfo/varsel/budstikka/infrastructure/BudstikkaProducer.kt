@@ -51,11 +51,13 @@ val EVALUERINGS_PAAMINNELSE_EMAIL_HTML = """
       </tbody>
     </table>
 """.trimIndent()
+const val PAAMINNELSE_BUDSTIKKA_TEXT = "Husk å lage en oppfølgingsplan sammen med den ansatte."
 
 class BudstikkaProducer(
     private val producer: KafkaProducer<String, String>,
     private val budstikkaOppfolgingsplanSykmeldtUrl: String,
     private val dineSykmeldteOversiktUrl: String,
+    private val budstikkaOppfolgingsplanNarmesteLederUrl: String,
 ) : BudstikkaPublisher {
     private val log = logger()
 
@@ -120,13 +122,40 @@ class BudstikkaProducer(
         publish(dispatch, ARBEIDSGIVERVARSEL_CREATE, eventId)
     }
 
+    override suspend fun publishPaaminnelse(
+        paaminnelseUuid: UUID,
+        sykmeldtFnr: String,
+        orgnummer: String,
+        eventId: UUID,
+        narmestelederId: String,
+    ): Unit = withContext(Dispatchers.IO) {
+//        val dispatch = Budstikka.arbeidsgivervarselCreate(
+//            eventId = EventId(eventId),
+//            reference = paaminnelseUuid.toString(),
+//            orgnummer = Orgnummer(orgnummer),
+//            recipient = Arbeidsgiver.NarmesteLeder(sykmeldt),
+//            varseltype = Varseltype.BESKJED,
+//            text = PAAMINNELSE_BUDSTIKKA_TEXT,
+//            link = "$budstikkaOppfolgingsplanNarmesteLederUrl/$narmestelederId",
+//            sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+//        )
+//
+//        publish(dispatch, paaminnelseUuid, eventId)
+
+        log.info(
+            "Processed paaminnelse pending Budstikka contract support {}, {}, {}",
+            kv("paaminnelse_uuid", paaminnelseUuid),
+            kv("event_id", eventId),
+            kv("target_url", budstikkaOppfolgingsplanNarmesteLederUrl),
+        )
+    }
+
     private fun publish(
         dispatch: EncodedDispatch,
         dispatchType: String,
         eventId: UUID,
     ) {
         val record = dispatch.toProducerRecord()
-
         log.info(
             "Publiserer Budstikka dispatch {}, {}, {}",
             kv("topic", dispatch.topic),

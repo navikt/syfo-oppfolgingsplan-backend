@@ -12,6 +12,7 @@ enum class OppfolgingsplanOutboxMessageType(
     EVALUERING_PAAMINNELSE_DINE_SYKMELDTE(
         "OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_DINE_SYKMELDTE",
     ),
+    PAAMINNELSE("PAAMINNELSE_OPPFOLGINGSPLAN"),
     ;
 
     val channelMetricLabel: String?
@@ -19,6 +20,7 @@ enum class OppfolgingsplanOutboxMessageType(
             CREATED -> null
             EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER -> "min_side_arbeidsgiver"
             EVALUERING_PAAMINNELSE_DINE_SYKMELDTE -> "dine_sykmeldte"
+            PAAMINNELSE -> "dine_sykmeldte"
         }
 
     companion object {

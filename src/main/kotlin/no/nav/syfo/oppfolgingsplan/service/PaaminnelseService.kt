@@ -9,6 +9,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.isPaaminnelseBestiltInCurrentSykeme
 import no.nav.syfo.oppfolgingsplan.db.existsOppfolgingsplanCreatedAfter
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
 import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelse
+import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelseAndEnqueue
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatusDto
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
@@ -75,6 +76,7 @@ class PaaminnelseService(
 
         return PaaminnelseStatusInternal.PaaminnelseTilgjengelig(
             sykmeldingsperiodeId = earliestSykmeldingsperiode.id,
+            sykmeldingsperiodeFom = sykmeldingsperiodeFom,
         )
     }
 
@@ -84,26 +86,38 @@ class PaaminnelseService(
     ): PaaminnelseStatusDto {
         val paaminnelse = resolvePaaminnelseStatus(sykmeldt, LocalDate.now(clock))
             .requirePaaminnelseTilgjengelig()
-        database.upsertPaaminnelse(
-            sykmeldt = sykmeldt,
-            bestilt = bestilt,
-            sykmeldingsperiodeId = paaminnelse.sykmeldingsperiodeId,
-        )
+        if (bestilt) {
+            database.upsertPaaminnelseAndEnqueue(
+                sykmeldt = sykmeldt,
+                sykmeldingsperiodeId = paaminnelse.sykmeldingsperiodeId,
+                narmestelederId = sykmeldt.narmestelederId,
+                availableAt = paaminnelse.sykmeldingsperiodeFom
+                    .plusDays(PAAMINNELSE_ETTER_DAGER)
+                    .atStartOfDay(clock.zone)
+                    .toInstant(),
+            )
+        } else {
+            database.upsertPaaminnelse(
+                sykmeldt = sykmeldt,
+                bestilt = false,
+                sykmeldingsperiodeId = paaminnelse.sykmeldingsperiodeId,
+            )
+        }
 
         return PaaminnelseStatusDto(
             if (bestilt) PaaminnelseStatus.BESTILT else PaaminnelseStatus.TILGJENGELIG,
         )
     }
 
-    private fun throwPaaminnelseUtilgjengelig(): Nothing = throw BadRequestException(
-        "Kan ikke endre påminnelse når påminnelse er utilgjengelig",
-    )
+    private fun throwPaaminnelseUtilgjengelig(): Nothing =
+        throw BadRequestException("Kan ikke endre påminnelse når påminnelse er utilgjengelig")
 
     private sealed interface PaaminnelseStatusInternal {
         data object Skjult : PaaminnelseStatusInternal
 
         data class PaaminnelseTilgjengelig(
             val sykmeldingsperiodeId: UUID,
+            val sykmeldingsperiodeFom: LocalDate,
         ) : PaaminnelseStatusInternal
     }
 

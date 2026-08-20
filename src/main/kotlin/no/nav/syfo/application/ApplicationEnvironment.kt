@@ -13,6 +13,7 @@ interface Environment {
     val valkeyEnvironment: ValkeyEnvironment
     val minSideSykmeldtOppfolgingsplanUrl: String
     val dineSykmeldteOversiktUrl: String
+    val minSideNarmesteLederOppfolgingsplanUrl: String
     val dineSykmeldteBaseUrl: String
     val dokarkivBaseUrl: String
     val dokarkivScope: String
@@ -62,6 +63,8 @@ data class NaisEnvironment(
     ),
     override val minSideSykmeldtOppfolgingsplanUrl: String = getEnvVar("MIN_SIDE_SYKMELDT_OPPFOLGINGSPLAN_URL"),
     override val dineSykmeldteOversiktUrl: String = getEnvVar("DINE_SYKMELDTE_OVERSIKT_URL"),
+    override val minSideNarmesteLederOppfolgingsplanUrl: String =
+        getEnvVar("MIN_SIDE_NARMESTE_LEDER_OPPFOLGINGSPLAN_URL"),
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
     override val dokarkivBaseUrl: String = getEnvVar("DOKARKIV_URL"),
@@ -118,6 +121,8 @@ data class LocalEnvironment(
     ),
     override val minSideSykmeldtOppfolgingsplanUrl: String = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt",
     override val dineSykmeldteOversiktUrl: String = "https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte",
+    override val minSideNarmesteLederOppfolgingsplanUrl: String =
+        "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver",
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",

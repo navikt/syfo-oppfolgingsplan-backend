@@ -134,3 +134,5 @@ spec:
       value: api://dev-gcp.team-esyfo.esyfo-narmesteleder/.default
     - name: DINE_SYKMELDTE_OVERSIKT_URL
       value: https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte
+    - name: MIN_SIDE_NARMESTE_LEDER_OPPFOLGINGSPLAN_URL
+      value: https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte
