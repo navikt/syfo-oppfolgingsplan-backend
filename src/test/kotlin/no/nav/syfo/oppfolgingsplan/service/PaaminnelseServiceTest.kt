@@ -54,7 +54,6 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.SKJULT
-                status.synligFra shouldBe null
             }
 
             it("returns SKJULT when bestillingsvinduet has passed") {
@@ -66,7 +65,6 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.SKJULT
-                status.synligFra shouldBe LocalDate.of(2025, 5, 1)
             }
 
             it("returns TILGJENGELIG inside the window when no paaminnelse is ordered") {
@@ -78,7 +76,6 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.TILGJENGELIG
-                status.synligFra shouldBe LocalDate.of(2025, 6, 1)
             }
 
             it("returns TILGJENGELIG when an oppfolgingsplan exists from after synligFra") {
@@ -96,7 +93,6 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.TILGJENGELIG
-                status.synligFra shouldBe synligFra
             }
 
             it("returns SKJULT when an oppfolgingsplan already exists but from prior to current syketilfelle") {
@@ -109,7 +105,6 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.SKJULT
-                status.synligFra shouldBe LocalDate.of(2025, 6, 1)
             }
 
             it("returns TILGJENGELIG on day 23 after synligFra") {
@@ -122,10 +117,9 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.TILGJENGELIG
-                status.synligFra shouldBe synligFra
             }
 
-            it("returns SKJULT on day 24 after synligFra") {
+            it("returns TILGJENGELIG on day 24 after synligFra") {
                 val synligFra = LocalDate.of(2025, 5, 26)
                 seedSyketilfelle(
                     startDato = synligFra,
@@ -134,8 +128,19 @@ class PaaminnelseServiceTest :
 
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
+                status.status shouldBe PaaminnelseStatus.TILGJENGELIG
+            }
+
+            it("returns SKJULT on day 25 after synligFra") {
+                val synligFra = LocalDate.of(2025, 5, 25)
+                seedSyketilfelle(
+                    startDato = synligFra,
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+
+                val status = service.getPaaminnelseStatus(defaultSykmeldt())
+
                 status.status shouldBe PaaminnelseStatus.SKJULT
-                status.synligFra shouldBe synligFra
             }
 
             it("returns BESTILT inside the window when paaminnelse is ordered") {
@@ -148,7 +153,22 @@ class PaaminnelseServiceTest :
                 val status = service.getPaaminnelseStatus(defaultSykmeldt())
 
                 status.status shouldBe PaaminnelseStatus.BESTILT
-                status.synligFra shouldBe LocalDate.of(2025, 6, 1)
+            }
+
+            it("returns TILGJENGELIG when paaminnelse belongs to a previous syketilfelle") {
+                val previousSyketilfelleStart = LocalDate.of(2025, 5, 1)
+                seedSyketilfelle(previousSyketilfelleStart, LocalDate.of(2025, 5, 31))
+                val previousSykmeldingsperiodeId = repository.findBySykmeldingId("sykmelding-service").single().id
+                TestDB.database.upsertPaaminnelse(
+                    sykmeldt = defaultSykmeldt(),
+                    bestilt = true,
+                    sykmeldingsperiodeId = previousSykmeldingsperiodeId,
+                )
+                seedSyketilfelle(LocalDate.of(2025, 6, 10), LocalDate.of(2025, 6, 30))
+
+                val status = service.getPaaminnelseStatus(defaultSykmeldt())
+
+                status.status shouldBe PaaminnelseStatus.TILGJENGELIG
             }
         }
 
@@ -164,8 +184,7 @@ class PaaminnelseServiceTest :
 
                 bestilt.status shouldBe PaaminnelseStatus.BESTILT
                 avbestilt.status shouldBe PaaminnelseStatus.TILGJENGELIG
-                bestilt.synligFra shouldBe LocalDate.of(2025, 6, 1)
-                avbestilt.synligFra shouldBe LocalDate.of(2025, 6, 1)
+                TestDB.database.findPaaminnelseBy("12345678901", "orgnummer")?.bestilt shouldBe false
             }
 
             it("rejects activatePaaminnelse when status is SKJULT because an oppfolgingsplan already exists in the current syketilfelle") {
@@ -195,6 +214,7 @@ class PaaminnelseServiceTest :
                 TestDB.database.upsertPaaminnelse(
                     sykmeldt = defaultSykmeldt(),
                     bestilt = true,
+                    sykmeldingsperiodeId = repository.findBySykmeldingId("sykmelding-service").single().id,
                 )
 
                 shouldThrow<BadRequestException> {

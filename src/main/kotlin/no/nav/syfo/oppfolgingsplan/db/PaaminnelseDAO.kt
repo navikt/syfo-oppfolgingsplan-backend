@@ -4,10 +4,12 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedPaaminnelse
 import java.sql.ResultSet
+import java.util.UUID
 
 fun DatabaseInterface.upsertPaaminnelse(
     sykmeldt: Sykmeldt,
     bestilt: Boolean,
+    sykmeldingsperiodeId: UUID,
 ): PersistedPaaminnelse {
     val statement =
         """
@@ -16,10 +18,12 @@ fun DatabaseInterface.upsertPaaminnelse(
             sykmeldt_fnr,
             bestilt,
             created_at,
-            updated_at
-        ) VALUES (?, ?, ?, NOW(), NOW())
+            updated_at,
+            sykmeldingsperiode_id
+        ) VALUES (?, ?, ?, NOW(), NOW(), ?)
         ON CONFLICT (sykmeldt_fnr, organisasjonsnummer) DO UPDATE SET
             bestilt = EXCLUDED.bestilt,
+            sykmeldingsperiode_id = EXCLUDED.sykmeldingsperiode_id,
             updated_at = NOW()
         RETURNING *
         """.trimIndent()
@@ -30,6 +34,7 @@ fun DatabaseInterface.upsertPaaminnelse(
             preparedStatement.setString(++idx, sykmeldt.orgnummer)
             preparedStatement.setString(++idx, sykmeldt.fnr)
             preparedStatement.setBoolean(++idx, bestilt)
+            preparedStatement.setObject(++idx, sykmeldingsperiodeId)
 
             val resultSet = preparedStatement.executeQuery()
             connection.commit()
@@ -72,6 +77,7 @@ private fun ResultSet.toPersistedPaaminnelse(): PersistedPaaminnelse = Persisted
     organisasjonsnummer = getString("organisasjonsnummer"),
     sykmeldtFnr = getString("sykmeldt_fnr"),
     bestilt = getBoolean("bestilt"),
+    sykmeldingsperiodeId = getObject("sykmeldingsperiode_id", UUID::class.java),
     createdAt = getTimestamp("created_at").toInstant(),
     updatedAt = getTimestamp("updated_at").toInstant(),
 )

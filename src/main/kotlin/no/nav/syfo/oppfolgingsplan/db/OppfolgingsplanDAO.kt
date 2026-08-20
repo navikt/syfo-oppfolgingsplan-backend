@@ -156,6 +156,36 @@ fun DatabaseInterface.findAllOppfolgingsplanerBy(
     }
 }
 
+fun DatabaseInterface.existsOppfolgingsplanCreatedAfter(
+    sykmeldtFnr: String,
+    organisasjonsnummer: String,
+    createdAfter: Instant,
+): Boolean {
+    val statement = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM oppfolgingsplan
+            WHERE sykmeldt_fnr = ?
+            AND organisasjonsnummer = ?
+            AND created_at >= ?
+            AND skjult_fra IS NULL
+            AND feilregistrert IS NULL
+        )
+    """.trimIndent()
+
+    return connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, sykmeldtFnr)
+            preparedStatement.setString(2, organisasjonsnummer)
+            preparedStatement.setTimestamp(3, Timestamp.from(createdAfter))
+            preparedStatement.executeQuery().use { resultSet ->
+                resultSet.next()
+                resultSet.getBoolean(1)
+            }
+        }
+    }
+}
+
 fun DatabaseInterface.findOppfolgingsplanBy(
     uuid: UUID,
     inkluderSkjulte: Boolean = false,
