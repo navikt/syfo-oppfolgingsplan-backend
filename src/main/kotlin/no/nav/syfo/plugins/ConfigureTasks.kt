@@ -3,6 +3,8 @@ package no.nav.syfo.plugins
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopping
 import kotlinx.coroutines.launch
+import no.nav.syfo.application.outbox.OutboxRetentionTask
+import no.nav.syfo.application.outbox.OutboxTask
 import no.nav.syfo.dokumentporten.SendOppfolgingsplanTask
 import no.nav.syfo.oppfolgingsplan.task.CleanupUtkastTask
 import no.nav.syfo.oppfolgingsplan.task.SoftDeleteOppfolgingsplanerTask
@@ -13,12 +15,16 @@ import org.koin.ktor.ext.inject
 fun Application.configureBackgroundTasks() {
     val sendDialogTask by inject<SendOppfolgingsplanTask>()
     val cleanupUtkastTask by inject<CleanupUtkastTask>()
+    val outboxTask by inject<OutboxTask>()
+    val outboxRetentionTask by inject<OutboxRetentionTask>()
     val softDeleteOppfolgingsplanerTask by inject<SoftDeleteOppfolgingsplanerTask>()
     val softDeleteUnntaksvurderingerTask by inject<SoftDeleteUnntaksvurderingerTask>()
     val sykmeldingsperiodeConsumer by inject<SykmeldingsperiodeConsumer>()
 
     val sendDialogTaskJob = launch { sendDialogTask.runTask() }
     val cleanupUtkastTaskJob = launch { cleanupUtkastTask.runTask() }
+    val outboxTaskJob = launch { outboxTask.runTask() }
+    val outboxRetentionTaskJob = launch { outboxRetentionTask.runTask() }
     val softDeleteOppfolgingsplanerTaskJob = launch { softDeleteOppfolgingsplanerTask.runTask() }
     val softDeleteUnntaksvurderingerTaskJob = launch { softDeleteUnntaksvurderingerTask.runTask() }
     val sykmeldingsperiodeConsumerJob = launch { sykmeldingsperiodeConsumer.runConsumer() }
@@ -26,6 +32,8 @@ fun Application.configureBackgroundTasks() {
         sykmeldingsperiodeConsumer.stop()
         sendDialogTaskJob.cancel()
         cleanupUtkastTaskJob.cancel()
+        outboxTaskJob.cancel()
+        outboxRetentionTaskJob.cancel()
         softDeleteOppfolgingsplanerTaskJob.cancel()
         softDeleteUnntaksvurderingerTaskJob.cancel()
         sykmeldingsperiodeConsumerJob.cancel()

@@ -99,7 +99,9 @@ class OutboxWorker(
 
     private suspend fun processClaimedBatch(handler: OutboxMessageHandler): OutboxBatchResult {
         val batchStartedAt = clock.instant()
-        val claimed = database.exposedTransaction {
+        // The claim is pure database work and safe to replay when REPEATABLE READ surfaces 40001
+        // during a replica race. Handler side effects run only after this transaction commits.
+        val claimed = database.exposedTransaction(maxAttempts = 3) {
             claimOutboxMessages(
                 messageType = handler.messageType,
                 now = batchStartedAt,

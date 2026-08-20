@@ -53,7 +53,6 @@ import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
-import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import java.time.Instant
 import java.util.UUID
 
@@ -64,7 +63,6 @@ class UnntaksvurderingApiV1Test :
         val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
         val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
         val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
-        val budstikkaPublisherMock = mockk<BudstikkaPublisher>()
         val testDb = TestDB.database
         val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
         val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
@@ -89,7 +87,6 @@ class UnntaksvurderingApiV1Test :
         val oppfolgingsplanService = OppfolgingsplanService(
             database = testDb,
             esyfovarselProducer = esyfovarselProducerMock,
-            budstikkaPublisher = budstikkaPublisherMock,
             pdlService = pdlServiceMock,
             aaregService = aaregServiceMock,
             unntaksvurderingService = unntaksvurderingService,
