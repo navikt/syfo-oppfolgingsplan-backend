@@ -31,6 +31,7 @@ class UnntaksvurderingDAOTest :
                 result.first().uuid shouldBe uuid
                 result.first().sykmeldtFnr shouldBe sykmeldt.fnr
                 result.first().organisasjonsnummer shouldBe sykmeldt.orgnummer
+                result.first().organisasjonsnavn shouldBe "Test AS"
                 result.first().narmesteLederFnr shouldBe narmesteLederFnr
                 result.first().narmesteLederFullName shouldBe "Maren Hegna"
                 result.first().createdAt.shouldNotBeNull()
@@ -43,6 +44,16 @@ class UnntaksvurderingDAOTest :
                 testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
                     .first()
                     .narmesteLederFullName shouldBe null
+            }
+
+            it("allows null organisasjonsnavn when the source has no name") {
+                val sykmeldtUtenOrganisasjonsnavn = sykmeldt.copy(sykmeldinger = null)
+
+                testDb.persistUnntaksvurdering(narmesteLederFnr, sykmeldtUtenOrganisasjonsnavn, null)
+
+                testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+                    .first()
+                    .organisasjonsnavn shouldBe null
             }
 
             it("returns newest first") {

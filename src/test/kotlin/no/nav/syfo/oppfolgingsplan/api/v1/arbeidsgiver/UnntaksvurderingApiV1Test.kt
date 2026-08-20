@@ -165,6 +165,7 @@ class UnntaksvurderingApiV1Test :
                     overview.unntaksvurderinger.first().meldtAv.navn shouldBe "Maren Hegna"
                     overview.unntaksvurderinger.first().meldtAv.rolle shouldBe MeldtAvRolle.ARBEIDSGIVER
                     overview.unntaksvurderinger.first().organization.orgNumber shouldBe sykmeldt.orgnummer
+                    overview.unntaksvurderinger.first().organization.orgName shouldBe "Test AS"
                     overview.gjeldendeStatus shouldBe GjeldendeStatus.IKKE_AKTUELT
                     overview.tidligerePlaner shouldBe emptyList()
                     overview.aktivPlan shouldBe null

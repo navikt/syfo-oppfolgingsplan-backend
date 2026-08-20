@@ -3,13 +3,19 @@ package no.nav.syfo.oppfolgingsplan.db
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldBeEmpty
-import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.types.shouldBeInstanceOf
 import no.nav.syfo.defaultFormSnapshot
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.domain.toSykmeldtOppfolgingsplanOverviewResponse
+import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
+import no.nav.syfo.oppfolgingsplan.dto.FerdigstiltPlanHendelse
+import no.nav.syfo.oppfolgingsplan.dto.MeldtAv
+import no.nav.syfo.oppfolgingsplan.dto.MeldtAvRolle
+import no.nav.syfo.oppfolgingsplan.dto.PlanIkkeNodvendigHendelse
+import no.nav.syfo.oppfolgingsplan.dto.UnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldOption
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.CheckboxGroupFieldSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.DateFieldSnapshot
@@ -318,136 +324,103 @@ class PersistedOppfolgingsplanTest :
         }
 
         describe("toSykmeldtOppfolgingsplanOverviewResponse") {
-            it("should return empty lists when no plans exist") {
+            it("returnerer ingen virksomheter når det ikke finnes hendelser") {
                 val result = emptyList<PersistedOppfolgingsplan>()
-                    .toSykmeldtOppfolgingsplanOverviewResponse()
+                    .toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
-                result.aktiveOppfolgingsplaner.shouldBeEmpty()
-                result.tidligerePlaner.shouldBeEmpty()
+                result.virksomheter.shouldBeEmpty()
             }
 
-            it("should return single plan as active when only one plan exists") {
-                val plan = defaultPersistedOppfolgingsplan()
-                val result = listOf(plan).toSykmeldtOppfolgingsplanOverviewResponse()
-
-                result.aktiveOppfolgingsplaner shouldHaveSize 1
-                result.aktiveOppfolgingsplaner[0].id shouldBe plan.uuid
-                result.tidligerePlaner.shouldBeEmpty()
-            }
-
-            it("should return newest plan as active and older as tidligere for single org") {
+            it("grupperer planer per virksomhet og sorterer nyeste hendelse først") {
                 val olderPlan = defaultPersistedOppfolgingsplan().copy(
                     uuid = UUID.randomUUID(),
+                    organisasjonsnummer = "org1",
+                    organisasjonsnavn = "Virksomhet 1",
                     createdAt = Instant.parse("2024-01-01T10:00:00Z"),
                 )
                 val newerPlan = defaultPersistedOppfolgingsplan().copy(
                     uuid = UUID.randomUUID(),
+                    organisasjonsnummer = "org1",
+                    organisasjonsnavn = "Virksomhet 1",
                     createdAt = Instant.parse("2024-06-01T10:00:00Z"),
                 )
 
-                val result = listOf(olderPlan, newerPlan).toSykmeldtOppfolgingsplanOverviewResponse()
+                val result = listOf(olderPlan, newerPlan).toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
 
-                result.aktiveOppfolgingsplaner shouldHaveSize 1
-                result.aktiveOppfolgingsplaner[0].id shouldBe newerPlan.uuid
-                result.tidligerePlaner shouldHaveSize 1
-                result.tidligerePlaner[0].id shouldBe olderPlan.uuid
+                result.virksomheter shouldHaveSize 1
+                result.virksomheter.single().virksomhet shouldBe OrganizationDetails("org1", "Virksomhet 1")
+                result.virksomheter.single().oppfolgingsplanhendelser.map { it.id } shouldBe
+                    listOf(newerPlan.uuid, olderPlan.uuid)
+                result.virksomheter.single().oppfolgingsplanhendelser.forEach {
+                    it.shouldBeInstanceOf<FerdigstiltPlanHendelse>()
+                }
             }
 
-            it("should return newest plan per org as active when multiple orgs") {
-                val org1Plan1 = defaultPersistedOppfolgingsplan().copy(
+            it("kombinerer plan og unntak som én sortert hendelsesstrøm") {
+                val olderUnntak = unntaksvurdering(
+                    organisasjonsnummer = "org1",
+                    meldtTidspunkt = Instant.parse("2024-01-01T10:00:00Z"),
+                )
+                val plan = defaultPersistedOppfolgingsplan().copy(
                     uuid = UUID.randomUUID(),
                     organisasjonsnummer = "org1",
-                    createdAt = Instant.parse("2024-01-01T10:00:00Z"),
-                )
-                val org1Plan2 = defaultPersistedOppfolgingsplan().copy(
-                    uuid = UUID.randomUUID(),
-                    organisasjonsnummer = "org1",
-                    createdAt = Instant.parse("2024-06-01T10:00:00Z"),
-                )
-                val org2Plan1 = defaultPersistedOppfolgingsplan().copy(
-                    uuid = UUID.randomUUID(),
-                    organisasjonsnummer = "org2",
                     createdAt = Instant.parse("2024-03-01T10:00:00Z"),
                 )
-
-                val result = listOf(org1Plan1, org1Plan2, org2Plan1).toSykmeldtOppfolgingsplanOverviewResponse()
-
-                result.aktiveOppfolgingsplaner shouldHaveSize 2
-                result.aktiveOppfolgingsplaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
-                    org1Plan2.uuid,
-                    org2Plan1.uuid,
+                val newerUnntak = unntaksvurdering(
+                    organisasjonsnummer = "org1",
+                    meldtTidspunkt = Instant.parse("2024-06-01T10:00:00Z"),
                 )
-                result.tidligerePlaner shouldHaveSize 1
-                result.tidligerePlaner[0].id shouldBe org1Plan1.uuid
+
+                val result = listOf(plan)
+                    .toSykmeldtOppfolgingsplanOverviewResponse(listOf(olderUnntak, newerUnntak))
+
+                val hendelser = result.virksomheter.single().oppfolgingsplanhendelser
+                hendelser.map { it.id } shouldBe listOf(newerUnntak.id, plan.uuid, olderUnntak.id)
+                hendelser[0].shouldBeInstanceOf<PlanIkkeNodvendigHendelse>()
+                hendelser[1].shouldBeInstanceOf<FerdigstiltPlanHendelse>()
+                hendelser[2].shouldBeInstanceOf<PlanIkkeNodvendigHendelse>()
             }
 
-            it("should handle multiple orgs with multiple plans each") {
-                val org1Oldest = defaultPersistedOppfolgingsplan().copy(
+            it("sorterer virksomheter etter nyeste hendelse og bruker virksomhetens nyeste navnesnapshot") {
+                val olderPlan = defaultPersistedOppfolgingsplan().copy(
                     uuid = UUID.randomUUID(),
                     organisasjonsnummer = "org1",
-                    createdAt = Instant.parse("2023-01-01T10:00:00Z"),
-                )
-                val org1Middle = defaultPersistedOppfolgingsplan().copy(
-                    uuid = UUID.randomUUID(),
-                    organisasjonsnummer = "org1",
+                    organisasjonsnavn = "Gammelt navn",
                     createdAt = Instant.parse("2024-01-01T10:00:00Z"),
                 )
-                val org1Newest = defaultPersistedOppfolgingsplan().copy(
-                    uuid = UUID.randomUUID(),
+                val middleUnntak = unntaksvurdering(
+                    organisasjonsnummer = "org2",
+                    meldtTidspunkt = Instant.parse("2024-03-01T10:00:00Z"),
+                )
+                val newestUnntak = unntaksvurdering(
                     organisasjonsnummer = "org1",
-                    createdAt = Instant.parse("2024-06-01T10:00:00Z"),
-                )
-                val org2Oldest = defaultPersistedOppfolgingsplan().copy(
-                    uuid = UUID.randomUUID(),
-                    organisasjonsnummer = "org2",
-                    createdAt = Instant.parse("2023-06-01T10:00:00Z"),
-                )
-                val org2Newest = defaultPersistedOppfolgingsplan().copy(
-                    uuid = UUID.randomUUID(),
-                    organisasjonsnummer = "org2",
-                    createdAt = Instant.parse("2024-12-01T10:00:00Z"),
+                    meldtTidspunkt = Instant.parse("2024-05-01T10:00:00Z"),
+                    organisasjonsnavn = "Nytt navn",
                 )
 
-                val result = listOf(org1Oldest, org1Middle, org1Newest, org2Oldest, org2Newest)
-                    .toSykmeldtOppfolgingsplanOverviewResponse()
-
-                result.aktiveOppfolgingsplaner shouldHaveSize 2
-                result.aktiveOppfolgingsplaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
-                    org1Newest.uuid,
-                    org2Newest.uuid,
+                val result = listOf(olderPlan).toSykmeldtOppfolgingsplanOverviewResponse(
+                    listOf(middleUnntak, newestUnntak),
                 )
 
-                result.tidligerePlaner shouldHaveSize 3
-                result.tidligerePlaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
-                    org1Oldest.uuid,
-                    org1Middle.uuid,
-                    org2Oldest.uuid,
-                )
-            }
-
-            it("should handle single plan per multiple orgs - all should be active") {
-                val org1Plan = defaultPersistedOppfolgingsplan().copy(
-                    uuid = UUID.randomUUID(),
-                    organisasjonsnummer = "org1",
-                )
-                val org2Plan = defaultPersistedOppfolgingsplan().copy(
-                    uuid = UUID.randomUUID(),
-                    organisasjonsnummer = "org2",
-                )
-                val org3Plan = defaultPersistedOppfolgingsplan().copy(
-                    uuid = UUID.randomUUID(),
-                    organisasjonsnummer = "org3",
-                )
-
-                val result = listOf(org1Plan, org2Plan, org3Plan).toSykmeldtOppfolgingsplanOverviewResponse()
-
-                result.aktiveOppfolgingsplaner shouldHaveSize 3
-                result.aktiveOppfolgingsplaner.map { it.id } shouldContainExactlyInAnyOrder listOf(
-                    org1Plan.uuid,
-                    org2Plan.uuid,
-                    org3Plan.uuid,
-                )
-                result.tidligerePlaner.shouldBeEmpty()
+                result.virksomheter.map { it.virksomhet.orgNumber } shouldBe listOf("org1", "org2")
+                result.virksomheter.first().virksomhet.orgName shouldBe "Nytt navn"
             }
         }
     })
+
+private fun unntaksvurdering(
+    organisasjonsnummer: String,
+    meldtTidspunkt: Instant,
+    organisasjonsnavn: String? = null,
+): UnntaksvurderingMetadata = UnntaksvurderingMetadata(
+    id = UUID.randomUUID(),
+    meldtTidspunkt = meldtTidspunkt,
+    meldtAv = MeldtAv(
+        navn = "Nærmeste leder",
+        rolle = MeldtAvRolle.ARBEIDSGIVER,
+    ),
+    organization = OrganizationDetails(
+        orgNumber = organisasjonsnummer,
+        orgName = organisasjonsnavn,
+    ),
+)

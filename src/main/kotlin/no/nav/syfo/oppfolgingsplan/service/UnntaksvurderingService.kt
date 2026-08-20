@@ -3,7 +3,6 @@ package no.nav.syfo.oppfolgingsplan.service
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.domain.toUnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.db.existsAktivPlanOrUtkast
@@ -41,21 +40,43 @@ class UnntaksvurderingService(
         sykmeldt: Sykmeldt,
     ): List<UnntaksvurderingMetadata> = database
         .findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer)
-        .map { getAndSetNarmesteLederFullName(it) }
-        .map { it.toUnntaksvurderingMetadata(sykmeldt.getOrganizationName()) }
+        .tilMetadataMedNavn()
+
+    suspend fun getUnntaksvurderingerForSykmeldt(
+        sykmeldtFnr: String,
+    ): List<UnntaksvurderingMetadata> = database
+        .findAllUnntaksvurderingerBy(sykmeldtFnr)
+        .tilMetadataMedNavn()
 
     suspend fun softDeleteExpiredUnntaksvurderinger(): Int = runSoftDeleteBatchLoop {
         database.softDeleteExpiredUnntaksvurderinger()
     }
 
-    private suspend fun getAndSetNarmesteLederFullName(
-        unntaksvurdering: PersistedUnntaksvurdering,
-    ): PersistedUnntaksvurdering = if (unntaksvurdering.narmesteLederFullName.isNullOrEmpty()) {
-        pdlService.getNameFor(unntaksvurdering.narmesteLederFnr)?.let { narmesteLederName ->
-            database.setUnntaksvurderingNarmesteLederFullName(unntaksvurdering.uuid, narmesteLederName)
-            unntaksvurdering.copy(narmesteLederFullName = narmesteLederName)
-        } ?: unntaksvurdering
-    } else {
-        unntaksvurdering
+    private suspend fun List<PersistedUnntaksvurdering>.tilMetadataMedNavn(): List<UnntaksvurderingMetadata> = backfillNarmesteLederFullName()
+        .map { it.toUnntaksvurderingMetadata() }
+
+    /**
+     * Ledernavnet persisteres ved opprettelse, men kolonnen er nullable for eldre rader. Manglende
+     * navn slås opp i PDL (ett oppslag per unikt fnr) og skrives tilbake, slik at oppslaget bare
+     * skjer én gang per rad.
+     */
+    private suspend fun List<PersistedUnntaksvurdering>.backfillNarmesteLederFullName(): List<PersistedUnntaksvurdering> {
+        val navnPerFnr = filter { it.narmesteLederFullName.isNullOrEmpty() }
+            .map { it.narmesteLederFnr }
+            .distinct()
+            .mapNotNull { fnr -> pdlService.getNameFor(fnr)?.let { navn -> fnr to navn } }
+            .toMap()
+
+        if (navnPerFnr.isEmpty()) return this
+
+        return map { unntaksvurdering ->
+            val navn = navnPerFnr[unntaksvurdering.narmesteLederFnr]
+            if (unntaksvurdering.narmesteLederFullName.isNullOrEmpty() && navn != null) {
+                database.setUnntaksvurderingNarmesteLederFullName(unntaksvurdering.uuid, navn)
+                unntaksvurdering.copy(narmesteLederFullName = navn)
+            } else {
+                unntaksvurdering
+            }
+        }
     }
 }

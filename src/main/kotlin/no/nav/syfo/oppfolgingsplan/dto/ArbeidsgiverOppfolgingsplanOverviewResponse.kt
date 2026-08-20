@@ -38,11 +38,6 @@ data class ArbeidsgiverOppfolgingsplanOverviewResponse(
     val oversikt: OversiktResponseData,
 )
 
-data class SykmeldtOppfolgingsplanOverviewResponse(
-    val aktiveOppfolgingsplaner: List<OppfolgingsplanMetadata>,
-    val tidligerePlaner: List<OppfolgingsplanMetadata>,
-)
-
 enum class GjeldendeStatus {
     AKTIV_PLAN,
     UTKAST,

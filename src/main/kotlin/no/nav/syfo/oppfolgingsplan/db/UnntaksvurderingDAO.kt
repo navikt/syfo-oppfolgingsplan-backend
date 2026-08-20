@@ -3,10 +3,12 @@ package no.nav.syfo.oppfolgingsplan.db
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.andIfNotNull
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.jdbc.insertReturning
@@ -23,6 +25,7 @@ suspend fun DatabaseInterface.persistUnntaksvurdering(
     UnntaksvurderingTable.insertReturning(listOf(UnntaksvurderingTable.uuid)) {
         it[UnntaksvurderingTable.sykmeldtFnr] = sykmeldt.fnr
         it[UnntaksvurderingTable.organisasjonsnummer] = sykmeldt.orgnummer
+        it[UnntaksvurderingTable.organisasjonsnavn] = sykmeldt.getOrganizationName()
         it[UnntaksvurderingTable.narmesteLederFnr] = narmesteLederFnr
         it[UnntaksvurderingTable.narmesteLederFullName] = narmesteLederFullName
     }.single()[UnntaksvurderingTable.uuid]
@@ -30,14 +33,14 @@ suspend fun DatabaseInterface.persistUnntaksvurdering(
 
 suspend fun DatabaseInterface.findAllUnntaksvurderingerBy(
     sykmeldtFnr: String,
-    organisasjonsnummer: String,
+    organisasjonsnummer: String? = null,
 ): List<PersistedUnntaksvurdering> = exposedTransaction(readOnly = true) {
     UnntaksvurderingTable
         .selectAll()
         .where {
             (UnntaksvurderingTable.sykmeldtFnr eq sykmeldtFnr) and
-                (UnntaksvurderingTable.organisasjonsnummer eq organisasjonsnummer) and
-                UnntaksvurderingTable.skjultFra.isNull()
+                UnntaksvurderingTable.skjultFra.isNull() andIfNotNull
+                organisasjonsnummer?.let { UnntaksvurderingTable.organisasjonsnummer eq it }
         }.orderBy(UnntaksvurderingTable.createdAt to SortOrder.DESC)
         .map { it.toPersistedUnntaksvurdering() }
 }
@@ -89,6 +92,7 @@ private fun ResultRow.toPersistedUnntaksvurdering(): PersistedUnntaksvurdering =
     uuid = this[UnntaksvurderingTable.uuid],
     sykmeldtFnr = this[UnntaksvurderingTable.sykmeldtFnr],
     organisasjonsnummer = this[UnntaksvurderingTable.organisasjonsnummer],
+    organisasjonsnavn = this[UnntaksvurderingTable.organisasjonsnavn],
     narmesteLederFnr = this[UnntaksvurderingTable.narmesteLederFnr],
     narmesteLederFullName = this[UnntaksvurderingTable.narmesteLederFullName],
     createdAt = this[UnntaksvurderingTable.createdAt].toInstant(),

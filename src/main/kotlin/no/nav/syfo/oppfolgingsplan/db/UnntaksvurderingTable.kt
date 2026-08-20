@@ -9,6 +9,7 @@ internal object UnntaksvurderingTable : Table("unntaksvurdering") {
     val uuid = javaUUID("uuid").databaseGenerated()
     val sykmeldtFnr = text("sykmeldt_fnr")
     val organisasjonsnummer = text("organisasjonsnummer")
+    val organisasjonsnavn = text("organisasjonsnavn").nullable()
     val narmesteLederFnr = text("narmeste_leder_fnr")
     val narmesteLederFullName = text("narmeste_leder_full_name").nullable()
     val createdAt = timestampWithTimeZone("created_at").databaseGenerated()

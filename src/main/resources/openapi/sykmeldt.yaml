@@ -30,8 +30,9 @@ paths:
         - Oppfølgingsplan
       summary: Hent oversikt over mine oppfølgingsplaner
       description: |
-        Returnerer metadata for alle oppfølgingsplaner som tilhører innlogget sykmeldt.
-        Planer grupperes i aktive (evalueringsdato >= i dag) og tidligere planer.
+        Returnerer ferdigstilte planer og synlige unntaksvurderinger gruppert per virksomhet.
+        Hendelsene er sortert nyeste først, slik at første hendelse er gjeldende for virksomheten.
+        Arbeidsgivers utkast eksponeres ikke.
       operationId: getSykmeldtOppfolgingsplanOversikt
       security:
         - bearerAuth: []
@@ -239,19 +240,128 @@ components:
     SykmeldtOppfolgingsplanOverview:
       type: object
       required:
-        - aktiveOppfolgingsplaner
-        - tidligerePlaner
+        - virksomheter
       properties:
-        aktiveOppfolgingsplaner:
+        virksomheter:
           type: array
-          description: Oppfølgingsplaner med evalueringsdato >= i dag
+          description: Virksomheter med minst én ferdigstilt plan eller synlig unntaksvurdering, sortert etter nyeste hendelse.
           items:
-            $ref: '#/components/schemas/OppfolgingsplanMetadata'
-        tidligerePlaner:
+            $ref: '#/components/schemas/SykmeldtVirksomhetsoversikt'
+
+    SykmeldtVirksomhetsoversikt:
+      type: object
+      required:
+        - virksomhet
+        - oppfolgingsplanhendelser
+      properties:
+        virksomhet:
+          $ref: '#/components/schemas/OrganizationDetails'
+        oppfolgingsplanhendelser:
           type: array
-          description: Oppfølgingsplaner med evalueringsdato < i dag
+          description: >
+            Alle ferdigstilte planer og synlige unntaksvurderinger for virksomheten,
+            sortert nyeste først. Første hendelse er gjeldende. Utkast inngår aldri.
           items:
-            $ref: '#/components/schemas/OppfolgingsplanMetadata'
+            $ref: '#/components/schemas/SykmeldtOppfolgingsplanhendelse'
+
+    SykmeldtOppfolgingsplanhendelse:
+      oneOf:
+        - $ref: '#/components/schemas/FerdigstiltPlanHendelse'
+        - $ref: '#/components/schemas/PlanIkkeNodvendigHendelse'
+      discriminator:
+        propertyName: type
+        mapping:
+          FERDIGSTILT_PLAN: '#/components/schemas/FerdigstiltPlanHendelse'
+          PLAN_IKKE_NODVENDIG: '#/components/schemas/PlanIkkeNodvendigHendelse'
+
+    FerdigstiltPlanHendelse:
+      type: object
+      required:
+        - type
+        - id
+        - evalueringsDato
+        - ferdigstiltTidspunkt
+      properties:
+        type:
+          type: string
+          enum:
+            - FERDIGSTILT_PLAN
+        id:
+          type: string
+          format: uuid
+        evalueringsDato:
+          type: string
+          format: date
+        deltMedLegeTidspunkt:
+          type: string
+          format: date-time
+          nullable: true
+        deltMedVeilederTidspunkt:
+          type: string
+          format: date-time
+          nullable: true
+        ferdigstiltTidspunkt:
+          type: string
+          format: date-time
+        stillingstittel:
+          type: string
+          nullable: true
+        stillingsprosent:
+          type: number
+          nullable: true
+
+    PlanIkkeNodvendigHendelse:
+      type: object
+      required:
+        - type
+        - id
+        - meldtTidspunkt
+        - meldtAv
+      properties:
+        type:
+          type: string
+          enum:
+            - PLAN_IKKE_NODVENDIG
+        id:
+          type: string
+          format: uuid
+        meldtTidspunkt:
+          type: string
+          format: date-time
+        meldtAv:
+          $ref: '#/components/schemas/MeldtAv'
+
+    UnntaksvurderingMetadata:
+      type: object
+      required:
+        - id
+        - meldtTidspunkt
+        - meldtAv
+        - organization
+      properties:
+        id:
+          type: string
+          format: uuid
+        meldtTidspunkt:
+          type: string
+          format: date-time
+        meldtAv:
+          $ref: '#/components/schemas/MeldtAv'
+        organization:
+          $ref: '#/components/schemas/OrganizationDetails'
+
+    MeldtAv:
+      type: object
+      required:
+        - rolle
+      properties:
+        navn:
+          type: string
+          nullable: true
+        rolle:
+          type: string
+          enum:
+            - ARBEIDSGIVER
 
     OppfolgingsplanResponse:
       type: object

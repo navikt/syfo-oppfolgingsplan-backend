@@ -5,7 +5,6 @@ import no.nav.syfo.oppfolgingsplan.domain.OrganizationDetails
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanMetadata
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponseData
-import no.nav.syfo.oppfolgingsplan.dto.SykmeldtOppfolgingsplanOverviewResponse
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import java.math.BigDecimal
 import java.time.Instant
@@ -75,22 +74,3 @@ fun PersistedOppfolgingsplan.toResponse(canEditPlan: Boolean): OppfolgingsplanRe
         stillingsprosent = stillingsprosent,
     ),
 )
-
-fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(): SykmeldtOppfolgingsplanOverviewResponse {
-    val (aktivePlaner, tidligerePlaner) = partitionByNewestPlanPerOrg()
-
-    return SykmeldtOppfolgingsplanOverviewResponse(
-        aktiveOppfolgingsplaner = aktivePlaner.map { it.toOppfolgingsplanMetadata() },
-        tidligerePlaner = tidligerePlaner.map { it.toOppfolgingsplanMetadata() },
-    )
-}
-
-private fun List<PersistedOppfolgingsplan>.partitionByNewestPlanPerOrg(): Pair<List<PersistedOppfolgingsplan>, List<PersistedOppfolgingsplan>> {
-    val sortedPerOrg = groupBy { it.organisasjonsnummer }
-        .mapValues { (_, planer) -> planer.sortedByDescending { it.createdAt } }
-
-    val aktive = sortedPerOrg.values.mapNotNull { it.firstOrNull() }
-    val tidligere = sortedPerOrg.values.flatMap { it.drop(1) }
-
-    return aktive to tidligere
-}

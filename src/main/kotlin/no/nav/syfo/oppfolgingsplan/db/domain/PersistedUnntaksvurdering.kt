@@ -11,15 +11,14 @@ data class PersistedUnntaksvurdering(
     val uuid: UUID,
     val sykmeldtFnr: String,
     val organisasjonsnummer: String,
+    val organisasjonsnavn: String?,
     val narmesteLederFnr: String,
     val narmesteLederFullName: String?,
     val createdAt: Instant,
     val skjultFra: Instant? = null,
 )
 
-fun PersistedUnntaksvurdering.toUnntaksvurderingMetadata(
-    organisasjonsnavn: String?,
-): UnntaksvurderingMetadata = UnntaksvurderingMetadata(
+fun PersistedUnntaksvurdering.toUnntaksvurderingMetadata(): UnntaksvurderingMetadata = UnntaksvurderingMetadata(
     id = uuid,
     meldtTidspunkt = createdAt,
     meldtAv = MeldtAv(
