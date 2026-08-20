@@ -7,6 +7,7 @@ import no.nav.syfo.oppfolgingsplan.db.domain.PersistedUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.domain.toUnntaksvurderingMetadata
 import no.nav.syfo.oppfolgingsplan.db.existsAktivPlanOrUtkast
 import no.nav.syfo.oppfolgingsplan.db.findAllUnntaksvurderingerBy
+import no.nav.syfo.oppfolgingsplan.db.findAllUnntaksvurderingerBySykmeldtFnr
 import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.setUnntaksvurderingNarmesteLederFullName
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredUnntaksvurderinger
@@ -47,6 +48,10 @@ class UnntaksvurderingService(
     ): List<UnntaksvurderingMetadata> = database
         .findAllUnntaksvurderingerBy(sykmeldtFnr)
         .tilMetadataMedNavn()
+
+    suspend fun getPersistedUnntaksvurderingerForSykmeldt(
+        sykmeldtFnr: String,
+    ): List<PersistedUnntaksvurdering> = database.findAllUnntaksvurderingerBySykmeldtFnr(sykmeldtFnr)
 
     suspend fun softDeleteExpiredUnntaksvurderinger(): Int = runSoftDeleteBatchLoop {
         database.softDeleteExpiredUnntaksvurderinger()

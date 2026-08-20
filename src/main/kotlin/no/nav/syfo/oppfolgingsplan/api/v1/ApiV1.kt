@@ -82,6 +82,7 @@ fun Route.registerApiV1(
         registerVeilederOppfolgingsplanApiV1(
             texasHttpClient,
             oppfolgingsplanService,
+            unntaksvurderingService,
             isTilgangskontrollService,
             pdfGenService,
         )
