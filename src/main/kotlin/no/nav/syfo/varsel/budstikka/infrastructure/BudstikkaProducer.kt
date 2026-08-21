@@ -6,6 +6,7 @@ import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EncodedDispatch
 import no.nav.budstikka.contract.EventId
+import no.nav.budstikka.contract.Orgnummer
 import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
@@ -20,14 +21,20 @@ import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 private const val BUDSTIKKA_DISPATCH_TYPE = "BrukervarselCreate"
 private const val BUDSTIKKA_SEND_TIMEOUT_MILLIS = 250L
 const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Din arbeidsgiver har laget en oppfølgingsplan for deg"
+const val PAAMINNELSE_BUDSTIKKA_TEXT = "Husk å lage en oppfølgingsplan sammen med den ansatte."
 
 class BudstikkaProducer(
     private val producer: KafkaProducer<String, String>,
     private val budstikkaOppfolgingsplanSykmeldtUrl: String,
+    private val budstikkaOppfolgingsplanNarmesteLederUrl: String,
 ) : BudstikkaPublisher {
     private val log = logger()
 
-    override suspend fun publishOppfolgingsplanCreated(oppfolgingsplanUuid: UUID, sykmeldtFnr: String, eventId: UUID): Unit = withContext(Dispatchers.IO) {
+    override suspend fun publishOppfolgingsplanCreated(
+        oppfolgingsplanUuid: UUID,
+        sykmeldtFnr: String,
+        eventId: UUID,
+    ): Unit = withContext(Dispatchers.IO) {
         val dispatch = Budstikka.brukervarselCreate(
             eventId = EventId(eventId),
             reference = oppfolgingsplanUuid.toString(),
@@ -37,13 +44,51 @@ class BudstikkaProducer(
             link = budstikkaOppfolgingsplanSykmeldtUrl,
             sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
         )
-        val record = dispatch.toProducerRecord()
+        publish(dispatch, oppfolgingsplanUuid, eventId)
+    }
 
+    override suspend fun publishPaaminnelse(
+        paaminnelseUuid: UUID,
+        sykmeldtFnr: String,
+        orgnummer: String,
+        eventId: UUID,
+        narmestelederId: String,
+    ): Unit = withContext(Dispatchers.IO) {
+//        val dispatch = Budstikka.arbeidsgivervarselCreate(
+//            eventId = EventId(eventId),
+//            reference = paaminnelseUuid.toString(),
+//            orgnummer = Orgnummer(orgnummer),
+//            recipient = Arbeidsgiver.NarmesteLeder(sykmeldt),
+//            varseltype = Varseltype.BESKJED,
+//            text = PAAMINNELSE_BUDSTIKKA_TEXT,
+//            link = "$budstikkaOppfolgingsplanNarmesteLederUrl/$narmestelederId",
+//            sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+//        )
+//
+//        publish(dispatch, paaminnelseUuid, eventId)
+
+        log.info(
+            "Sent paaminnelse with values:",
+            kv("paaminnelseUuid", paaminnelseUuid.toString()),
+            kv("sykmeldtFnr", sykmeldtFnr),
+            kv("orgnummer", orgnummer),
+            kv("eventId", eventId),
+            kv("narmestelederId", narmestelederId),
+            kv("link", "$budstikkaOppfolgingsplanNarmesteLederUrl/$narmestelederId"),
+        )
+    }
+
+    private fun publish(
+        dispatch: EncodedDispatch,
+        referenceUuid: UUID,
+        eventId: UUID,
+    ) {
+        val record = dispatch.toProducerRecord()
         log.info(
             "Publiserer Budstikka dispatch {}, {}, {}, {}",
             kv("topic", dispatch.topic),
             kv("type", BUDSTIKKA_DISPATCH_TYPE),
-            kv("oppfolgingsplan_uuid", oppfolgingsplanUuid),
+            kv("reference_uuid", referenceUuid),
             kv("event_id", eventId),
         )
         try {
@@ -53,7 +98,7 @@ class BudstikkaProducer(
                 "Publisert til akkumulator, timeout på get. Ukjent utfall {}, {}, {}, {}",
                 kv("topic", dispatch.topic),
                 kv("type", BUDSTIKKA_DISPATCH_TYPE),
-                kv("oppfolgingsplan_uuid", oppfolgingsplanUuid),
+                kv("reference_uuid", referenceUuid),
                 kv("event_id", eventId),
                 e,
             )
@@ -63,7 +108,7 @@ class BudstikkaProducer(
                 "Publisering av Budstikka dispatch timet ut. Ikke levert {}, {}, {}, {}",
                 kv("topic", dispatch.topic),
                 kv("type", BUDSTIKKA_DISPATCH_TYPE),
-                kv("oppfolgingsplan_uuid", oppfolgingsplanUuid),
+                kv("reference_uuid", referenceUuid),
                 kv("event_id", eventId),
                 e,
             )
@@ -73,7 +118,7 @@ class BudstikkaProducer(
                 "Feilet ved publisering av Budstikka dispatch til {}, {}, {}, {}",
                 kv("topic", dispatch.topic),
                 kv("type", BUDSTIKKA_DISPATCH_TYPE),
-                kv("oppfolgingsplan_uuid", oppfolgingsplanUuid),
+                kv("reference_uuid", referenceUuid),
                 kv("event_id", eventId),
                 e,
             )

@@ -8,4 +8,12 @@ interface BudstikkaPublisher {
         sykmeldtFnr: String,
         eventId: UUID,
     )
+
+    suspend fun publishPaaminnelse(
+        paaminnelseUuid: UUID,
+        sykmeldtFnr: String,
+        orgnummer: String,
+        eventId: UUID,
+        narmestelederId: String,
+    )
 }

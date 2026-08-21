@@ -123,3 +123,5 @@ spec:
       value: prod-gcp:team-esyfo:syfo-oppfolgingsplan-frontend
     - name: MIN_SIDE_SYKMELDT_OPPFOLGINGSPLAN_URL
       value: https://www.nav.no/syk/oppfolgingsplan/sykmeldt
+    - name: MIN_SIDE_NARMESTE_LEDER_OPPFOLGINGSPLAN_URL
+      value: https://www.nav.no/arbeidsgiver/sykmeldte

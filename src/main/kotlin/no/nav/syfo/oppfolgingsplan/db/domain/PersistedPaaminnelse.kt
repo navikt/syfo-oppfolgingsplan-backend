@@ -4,6 +4,7 @@ import java.time.Instant
 import java.util.UUID
 
 data class PersistedPaaminnelse(
+    val uuid: UUID,
     val organisasjonsnummer: String,
     val sykmeldtFnr: String,
     val bestilt: Boolean,
