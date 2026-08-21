@@ -71,6 +71,22 @@ class UnntaksvurderingDAOTest :
                 testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, "annetorgnummer").shouldBeEmpty()
                 testDb.findAllUnntaksvurderingerBy("99999999999", sykmeldt.orgnummer).shouldBeEmpty()
             }
+
+            it("returns unntaksvurderinger for all arbeidsforhold for a sykmeldt") {
+                val first = testDb.persistUnntaksvurdering(narmesteLederFnr, sykmeldt, null)
+                val second = testDb.persistUnntaksvurdering(
+                    narmesteLederFnr,
+                    sykmeldt.copy(orgnummer = "annetorgnummer"),
+                    null,
+                )
+                testDb.persistUnntaksvurdering(
+                    narmesteLederFnr,
+                    sykmeldt.copy(fnr = "99999999999"),
+                    null,
+                )
+
+                testDb.findAllUnntaksvurderingerBySykmeldtFnr(sykmeldt.fnr).map { it.uuid } shouldBe listOf(second, first)
+            }
         }
 
         describe("softDeleteExpiredUnntaksvurderinger") {

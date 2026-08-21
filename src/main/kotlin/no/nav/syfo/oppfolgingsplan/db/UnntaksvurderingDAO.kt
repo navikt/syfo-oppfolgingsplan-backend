@@ -45,6 +45,21 @@ suspend fun DatabaseInterface.findAllUnntaksvurderingerBy(
         .map { it.toPersistedUnntaksvurdering() }
 }
 
+suspend fun DatabaseInterface.findAllUnntaksvurderingerBySykmeldtFnr(
+    sykmeldtFnr: String,
+): List<PersistedUnntaksvurdering> = exposedTransaction(readOnly = true) {
+    UnntaksvurderingTable
+        .selectAll()
+        .where {
+            (UnntaksvurderingTable.sykmeldtFnr eq sykmeldtFnr) and
+                UnntaksvurderingTable.skjultFra.isNull()
+        }.orderBy(
+            UnntaksvurderingTable.createdAt to SortOrder.DESC,
+            UnntaksvurderingTable.uuid to SortOrder.DESC,
+        )
+        .map { it.toPersistedUnntaksvurdering() }
+}
+
 suspend fun DatabaseInterface.softDeleteExpiredUnntaksvurderinger(
     batchSize: Int = 1000,
 ): Int = exposedTransaction {
