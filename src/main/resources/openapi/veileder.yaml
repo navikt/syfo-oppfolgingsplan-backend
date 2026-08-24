@@ -25,7 +25,7 @@ tags:
     description: Veileder-operasjoner for oppfølgingsplaner
 
 paths:
-  /api/v1/veileder/oppfolgingsplaner:
+  /api/v1/veileder/oppfolgingsplaner/query:
     post:
       tags:
         - Oppfølgingsplan
@@ -43,7 +43,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/VeilederOppfolgingsplanRequest'
+              $ref: '#/components/schemas/SykmeldtReadRequest'
       responses:
         '200':
           description: Liste med oppfølgingsplaner som er delt med Nav
@@ -53,6 +53,38 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/VeilederOppfolgingsplanResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/veileder/unntaksvurderinger/query:
+    post:
+      tags:
+        - Oppfølgingsplan
+      summary: Hent unntaksvurderinger for en sykmeldt
+      description: |
+        Returnerer unntaksvurderinger meldt av arbeidsgiver for en gitt sykmeldt.
+
+        Veileder må ha tilgang til brukerens enhet via istilgangskontroll.
+      operationId: getVeilederUnntaksvurderinger
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SykmeldtReadRequest'
+      responses:
+        '200':
+          description: Unntaksvurderinger, nyeste først
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VeilederUnntaksvurderingerResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -208,7 +240,7 @@ components:
           nullable: true
           description: URL-path som forårsaket feilen
 
-    VeilederOppfolgingsplanRequest:
+    SykmeldtReadRequest:
       type: object
       required:
         - sykmeldtFnr
@@ -225,7 +257,7 @@ components:
         - uuid
         - sykmeldtNavn
         - virksomhetsnavn
-        - virksomhetsnummer
+        - organisasjonsnummer
         - evalueringsDato
         - ferdigstiltTidspunkt
         - deltMedNavTidspunkt
@@ -258,3 +290,40 @@ components:
           type: string
           format: date-time
           description: Tidspunkt planen ble delt med Nav
+
+    VeilederUnntaksvurderingerResponse:
+      type: object
+      required:
+        - unntaksvurderinger
+      properties:
+        unntaksvurderinger:
+          type: array
+          items:
+            $ref: '#/components/schemas/VeilederUnntaksvurderingResponse'
+
+    VeilederUnntaksvurderingResponse:
+      type: object
+      required:
+        - uuid
+        - fnr
+        - virksomhetsnummer
+        - meldtTidspunkt
+      properties:
+        uuid:
+          type: string
+          format: uuid
+          description: Unik identifikator for unntaksvurderingen
+        fnr:
+          type: string
+          description: Fødselsnummer for den sykmeldte
+        organisasjonsnummer:
+          type: string
+          description: Organisasjonsnummer for virksomheten
+        organisasjonsnavn:
+          type: string
+          nullable: true
+          description: Navn på virksomheten
+        meldtTidspunkt:
+          type: string
+          format: date-time
+          description: Tidspunkt arbeidsgiver meldte unntaksvurderingen
