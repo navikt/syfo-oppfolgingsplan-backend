@@ -32,18 +32,16 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
     isTilgangskontrollService: IsTilgangskontrollService,
     pdfGenService: PdfGenService,
 ) {
-    suspend fun ApplicationCall.receiveVeilederSykmeldtQuery(): VeilederSykmeldtQuery {
-        val innloggetBruker = principal<BrukerPrincipal>()
-            ?: throw ApiErrorException.Unauthorized("No user principal found in request")
-        val sykmeldtFnr = try {
-            receive<SykmeldtReadRequest>().sykmeldtFnr
+    fun ApplicationCall.requireVeilederToken(): String = principal<BrukerPrincipal>()?.token
+        ?: throw ApiErrorException.Unauthorized("No user principal found in request")
+
+    suspend fun ApplicationCall.receiveSykmeldtFnr(): Fodselsnummer {
+        val request = try {
+            receive<SykmeldtReadRequest>()
         } catch (e: Exception) {
             throw ApiErrorException.BadRequest("Request is missing sykmeldtFnr: ${e.message}", e)
         }
-        return VeilederSykmeldtQuery(
-            sykmeldtFnr = Fodselsnummer(value = sykmeldtFnr),
-            token = innloggetBruker.token,
-        )
+        return Fodselsnummer(value = request.sykmeldtFnr)
     }
 
     suspend fun validateTilgangToSykmeldt(
@@ -74,13 +72,14 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
         }
 
         post("/query") {
-            val query = call.receiveVeilederSykmeldtQuery()
+            val token = call.requireVeilederToken()
+            val sykmeldtFnr = call.receiveSykmeldtFnr()
             validateTilgangToSykmeldt(
-                sykmeldtFnr = query.sykmeldtFnr,
-                token = query.token,
+                sykmeldtFnr = sykmeldtFnr,
+                token = token,
             )
             val oppfolgingsplaner = oppfolgingsplanService.getPersistedOppfolgingsplanListBy(
-                sykmeldtFnr = query.sykmeldtFnr.value,
+                sykmeldtFnr = sykmeldtFnr.value,
                 inkluderSkjulte = true,
             ).toListOppfolgingsplanVeileder()
 
@@ -89,13 +88,12 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
 
         get("/{uuid}") {
             val uuid = call.parameters.extractAndValidateUUIDParameter()
-            val innloggetBruker = call.principal<BrukerPrincipal>()
-                ?: throw ApiErrorException.Unauthorized("No user principal found in request")
+            val token = call.requireVeilederToken()
 
             val oppfolgingsplan = tryToGetOppfolgingsplanByUuid(uuid)
             validateTilgangToSykmeldt(
                 sykmeldtFnr = Fodselsnummer(value = oppfolgingsplan.sykmeldtFnr),
-                token = innloggetBruker.token,
+                token = token,
             )
             val pdfByteArray = pdfGenService.generatePdf(oppfolgingsplan)
                 ?: throw ApiErrorException.InternalServerError("Could not generate pdf")
@@ -108,24 +106,20 @@ fun Route.registerVeilederOppfolgingsplanApiV1(
 
     route("/unntaksvurderinger") {
         post("/query") {
-            val query = call.receiveVeilederSykmeldtQuery()
+            val token = call.requireVeilederToken()
+            val sykmeldtFnr = call.receiveSykmeldtFnr()
             validateTilgangToSykmeldt(
-                sykmeldtFnr = query.sykmeldtFnr,
-                token = query.token,
+                sykmeldtFnr = sykmeldtFnr,
+                token = token,
             )
 
             val unntaksvurderinger = unntaksvurderingService
-                .getPersistedUnntaksvurderingerForSykmeldt(query.sykmeldtFnr.value)
+                .getPersistedUnntaksvurderingerForSykmeldt(sykmeldtFnr.value)
                 .map(UnntaksvurderingVeileder::from)
 
             call.respond(HttpStatusCode.OK, UnntaksvurderingerVeilederResponse(unntaksvurderinger))
         }
     }
 }
-
-private data class VeilederSykmeldtQuery(
-    val sykmeldtFnr: Fodselsnummer,
-    val token: String,
-)
 
 const val NAV_PERSONIDENT_HEADER = "nav-personident"
