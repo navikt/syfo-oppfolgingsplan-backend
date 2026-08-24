@@ -257,7 +257,7 @@ components:
         - uuid
         - sykmeldtNavn
         - virksomhetsnavn
-        - virksomhetsnummer
+        - organisasjonsnummer
         - evalueringsDato
         - ferdigstiltTidspunkt
         - deltMedNavTidspunkt
@@ -316,10 +316,10 @@ components:
         fnr:
           type: string
           description: Fødselsnummer for den sykmeldte
-        virksomhetsnummer:
+        organisasjonsnummer:
           type: string
           description: Organisasjonsnummer for virksomheten
-        virksomhetsnavn:
+        organisasjonsnavn:
           type: string
           nullable: true
           description: Navn på virksomheten

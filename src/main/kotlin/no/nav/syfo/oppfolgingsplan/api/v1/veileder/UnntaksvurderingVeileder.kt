@@ -11,16 +11,16 @@ data class UnntaksvurderingerVeilederResponse(
 data class UnntaksvurderingVeileder(
     val uuid: UUID,
     val fnr: String,
-    val virksomhetsnummer: String,
-    val virksomhetsnavn: String?,
+    val organisasjonsnummer: String,
+    val organisasjonsnavn: String?,
     val meldtTidspunkt: Instant,
 ) {
     companion object {
         fun from(item: PersistedUnntaksvurdering): UnntaksvurderingVeileder = UnntaksvurderingVeileder(
             uuid = item.uuid,
             fnr = item.sykmeldtFnr,
-            virksomhetsnummer = item.organisasjonsnummer,
-            virksomhetsnavn = item.organisasjonsnavn,
+            organisasjonsnummer = item.organisasjonsnummer,
+            organisasjonsnavn = item.organisasjonsnavn,
             meldtTidspunkt = item.createdAt,
         )
     }

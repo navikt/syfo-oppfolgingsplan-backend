@@ -70,8 +70,8 @@ class VeilederUnntaksvurderingApiV1Test :
                 val responseBody = response.body<UnntaksvurderingerVeilederResponse>()
                 responseBody.unntaksvurderinger.map { it.uuid } shouldBe listOf(second, first)
                 responseBody.unntaksvurderinger.first().fnr shouldBe sykmeldtFnr
-                responseBody.unntaksvurderinger.first().virksomhetsnummer shouldBe "annetorgnummer"
-                responseBody.unntaksvurderinger.first().virksomhetsnavn shouldBe "Test AS"
+                responseBody.unntaksvurderinger.first().organisasjonsnummer shouldBe "annetorgnummer"
+                responseBody.unntaksvurderinger.first().organisasjonsnavn shouldBe "Test AS"
                 coVerify(exactly = 1) {
                     isTilgangskontrollClientMock.harTilgangTilSykmeldt(
                         sykmeldtFnr = eq(Fodselsnummer(sykmeldtFnr)),
