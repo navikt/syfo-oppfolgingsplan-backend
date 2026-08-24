@@ -35,8 +35,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-      - uses: nais/deploy/actions/deploy@fa754451577294aae42872a69b888b3470478ec1 # v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: nais/deploy/actions/deploy@849e900e3cfa7faf7ad1532bb3a3e6499c932199 # v2
         env:
           CLUSTER: dev-gcp
           RESOURCE: nais/alerts-dev.yaml
@@ -51,8 +51,8 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-      - uses: nais/deploy/actions/deploy@fa754451577294aae42872a69b888b3470478ec1 # v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
+      - uses: nais/deploy/actions/deploy@849e900e3cfa7faf7ad1532bb3a3e6499c932199 # v2
         env:
           CLUSTER: prod-gcp
           RESOURCE: nais/alerts-prod.yaml
