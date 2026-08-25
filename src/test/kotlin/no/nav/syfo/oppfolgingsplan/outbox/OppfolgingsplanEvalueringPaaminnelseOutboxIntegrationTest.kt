@@ -456,7 +456,7 @@ private fun sykmeldt(
     sykmeldinger = listOf(DineSykmeldteSykmelding(organisasjonsnavn)),
 )
 
-private fun DatabaseInterface.createOppfolgingsplan(
+private suspend fun DatabaseInterface.createOppfolgingsplan(
     sykmeldt: Sykmeldt = defaultSykmeldt(),
     evalueringPaaminnelse: Boolean,
     evalueringsdato: LocalDate,

@@ -51,8 +51,8 @@ const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
 /**
  * Service for managing oppfølgingsplaner.
  *
- * All database operations are wrapped in withContext(Dispatchers.IO) to avoid blocking
- * Ktor's request handling threads. This is important to maintain good throughput and low latency under load.
+ * Blocking database work is dispatched either by DAO transaction helpers (for example exposedTransaction)
+ * or by explicit withContext(Dispatchers.IO) in this service.
  */
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
@@ -83,15 +83,13 @@ class OppfolgingsplanService(
             null
         }
 
-        return withContext(Dispatchers.IO) {
-            database.persistOppfolgingsplanAndDeleteUtkast(
-                narmesteLederFnr = narmesteLederFnr,
-                sykmeldt = sykmeldt,
-                createOppfolgingsplanRequest = createOppfolgingsplanRequest,
-                stillingstittel = stillingsinformasjon?.stillingstittel,
-                stillingsprosent = stillingsinformasjon?.stillingsprosent,
-            )
-        }
+        return database.persistOppfolgingsplanAndDeleteUtkast(
+            narmesteLederFnr = narmesteLederFnr,
+            sykmeldt = sykmeldt,
+            createOppfolgingsplanRequest = createOppfolgingsplanRequest,
+            stillingstittel = stillingsinformasjon?.stillingstittel,
+            stillingsprosent = stillingsinformasjon?.stillingsprosent,
+        )
     }
 
     suspend fun persistOppfolgingsplanUtkast(

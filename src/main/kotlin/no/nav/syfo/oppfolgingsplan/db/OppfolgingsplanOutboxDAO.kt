@@ -1,10 +1,18 @@
 package no.nav.syfo.oppfolgingsplan.db
 
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.database.exposedTransaction
+import no.nav.syfo.application.outbox.db.OutboxTable
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
-import java.sql.Connection
-import java.sql.Date
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.core.statements.StatementType
+import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
+import org.jetbrains.exposed.v1.jdbc.select
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -39,55 +47,52 @@ fun DatabaseInterface.findOppfolgingsplanVarselSource(
     }
 }
 
-fun DatabaseInterface.findOppfolgingsplanEvalueringPaaminnelseSource(
+suspend fun DatabaseInterface.findOppfolgingsplanEvalueringPaaminnelseSource(
     oppfolgingsplanUuid: UUID,
     clock: Clock = Clock.systemUTC(),
-): OppfolgingsplanEvalueringPaaminnelseSource = connection.use { connection ->
+): OppfolgingsplanEvalueringPaaminnelseSource = exposedTransaction(readOnly = true) {
     val today = LocalDate.now(clock.withZone(ZONE_OSLO))
-    connection.prepareStatement(
-        """
-        SELECT
-            oppfolgingsplan.sykmeldt_fnr,
-            oppfolgingsplan.sykmeldt_full_name,
-            oppfolgingsplan.organisasjonsnummer,
-            oppfolgingsplan.organisasjonsnavn,
-            oppfolgingsplan.evalueringsdato,
-            EXISTS (
-                SELECT 1
-                FROM sykmeldingsperiode
-                WHERE sykmeldingsperiode.sykmeldt_fnr = oppfolgingsplan.sykmeldt_fnr
-                  AND sykmeldingsperiode.organisasjonsnummer = oppfolgingsplan.organisasjonsnummer
-                  AND sykmeldingsperiode.invalidated_at IS NULL
-                  AND sykmeldingsperiode.fom <= ?
-                  AND sykmeldingsperiode.tom >= ?
-            ) AS has_active_sykmeldingsperiode
-        FROM oppfolgingsplan
-        WHERE oppfolgingsplan.uuid = ?
-        """.trimIndent(),
-    ).use { statement ->
-        var index = 0
-        statement.setDate(++index, Date.valueOf(today))
-        statement.setDate(++index, Date.valueOf(today))
-        statement.setObject(++index, oppfolgingsplanUuid)
-        statement.executeQuery().use { resultSet ->
-            when {
-                !resultSet.next() -> OppfolgingsplanEvalueringPaaminnelseSource.NotFound
-                !resultSet.getBoolean("has_active_sykmeldingsperiode") -> OppfolgingsplanEvalueringPaaminnelseSource.NoLongerEligible
-                else -> OppfolgingsplanEvalueringPaaminnelseSource.Eligible(
-                    OppfolgingsplanEvalueringPaaminnelseSourceData(
-                        sykmeldtFnr = resultSet.getString("sykmeldt_fnr"),
-                        sykmeldtFullName = resultSet.getString("sykmeldt_full_name"),
-                        organisasjonsnummer = resultSet.getString("organisasjonsnummer"),
-                        organisasjonsnavn = resultSet.getString("organisasjonsnavn"),
-                        evalueringsdato = resultSet.getDate("evalueringsdato").toLocalDate(),
-                    ),
-                )
-            }
-        }
+    val sourceRow = OppfolgingsplanTable
+        .select(
+            OppfolgingsplanTable.sykmeldtFnr,
+            OppfolgingsplanTable.sykmeldtFullName,
+            OppfolgingsplanTable.organisasjonsnummer,
+            OppfolgingsplanTable.organisasjonsnavn,
+            OppfolgingsplanTable.evalueringsdato,
+        ).where {
+            OppfolgingsplanTable.uuid eq oppfolgingsplanUuid
+        }.singleOrNull()
+        ?: return@exposedTransaction OppfolgingsplanEvalueringPaaminnelseSource.NotFound
+
+    val sykmeldtFnr = sourceRow[OppfolgingsplanTable.sykmeldtFnr]
+    val organisasjonsnummer = sourceRow[OppfolgingsplanTable.organisasjonsnummer]
+    val hasActiveSykmeldingsperiode = SykmeldingsperiodeTable
+        .select(SykmeldingsperiodeTable.id)
+        .where {
+            (SykmeldingsperiodeTable.sykmeldtFnr eq sykmeldtFnr) and
+                (SykmeldingsperiodeTable.organisasjonsnummer eq organisasjonsnummer) and
+                SykmeldingsperiodeTable.invalidatedAt.isNull() and
+                (SykmeldingsperiodeTable.fom lessEq today) and
+                (SykmeldingsperiodeTable.tom greaterEq today)
+        }.limit(1)
+        .any()
+
+    if (!hasActiveSykmeldingsperiode) {
+        return@exposedTransaction OppfolgingsplanEvalueringPaaminnelseSource.NoLongerEligible
     }
+
+    OppfolgingsplanEvalueringPaaminnelseSource.Eligible(
+        OppfolgingsplanEvalueringPaaminnelseSourceData(
+            sykmeldtFnr = sykmeldtFnr,
+            sykmeldtFullName = sourceRow[OppfolgingsplanTable.sykmeldtFullName],
+            organisasjonsnummer = organisasjonsnummer,
+            organisasjonsnavn = sourceRow[OppfolgingsplanTable.organisasjonsnavn],
+            evalueringsdato = sourceRow[OppfolgingsplanTable.evalueringsdato],
+        ),
+    )
 }
 
-fun Connection.cancelReadySupersededEvalueringPaaminnelseRows(
+fun JdbcTransaction.cancelReadySupersededEvalueringPaaminnelseRows(
     sykmeldtFnr: String,
     organisasjonsnummer: String,
     supersedingOppfolgingsplanUuid: UUID,
@@ -97,8 +102,8 @@ fun Connection.cancelReadySupersededEvalueringPaaminnelseRows(
         .associateWith { 0 }
         .toMutableMap()
 
-    prepareStatement(
-        """
+    return exec(
+        stmt = """
         WITH cancelled AS (
             UPDATE outbox
             SET status = 'CANCELLED',
@@ -117,32 +122,28 @@ fun Connection.cancelReadySupersededEvalueringPaaminnelseRows(
         FROM cancelled
         GROUP BY message_type
         """.trimIndent(),
-    ).use { statement ->
-        var index = 0
-        statement.setObject(++index, completedAt.atOffset(ZoneOffset.UTC))
-        statement.setString(++index, OutboxCancellationReason.SUPERSEDED.value)
-        statement.setString(
-            ++index,
-            OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER.value,
-        )
-        statement.setString(
-            ++index,
-            OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE.value,
-        )
-        statement.setString(++index, sykmeldtFnr)
-        statement.setString(++index, organisasjonsnummer)
-        statement.setObject(++index, supersedingOppfolgingsplanUuid)
-
-        statement.executeQuery().use { resultSet ->
-            while (resultSet.next()) {
-                val messageType = OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.single {
-                    it.value == resultSet.getString("message_type")
-                }
-                countByMessageType[messageType] = resultSet.getInt("cancelled_count")
+        args = listOf(
+            OutboxTable.completedAt.columnType to completedAt.atOffset(ZoneOffset.UTC),
+            OutboxTable.cancellationReason.columnType to OutboxCancellationReason.SUPERSEDED.value,
+            OutboxTable.messageType.columnType to
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER.value,
+            OutboxTable.messageType.columnType to
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE.value,
+            OppfolgingsplanTable.sykmeldtFnr.columnType to sykmeldtFnr,
+            OppfolgingsplanTable.organisasjonsnummer.columnType to organisasjonsnummer,
+            OppfolgingsplanTable.uuid.columnType to supersedingOppfolgingsplanUuid,
+        ),
+        explicitStatementType = StatementType.SELECT,
+    ) { resultSet ->
+        while (resultSet.next()) {
+            val messageType = OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.single {
+                it.value == resultSet.getString("message_type")
             }
+            countByMessageType[messageType] = resultSet.getInt("cancelled_count")
         }
+        countByMessageType
     }
-    return countByMessageType
+        ?: error("Cancellation query returned no result set")
 }
 
 sealed interface OppfolgingsplanVarselSource {
