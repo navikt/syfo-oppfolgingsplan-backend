@@ -39,6 +39,11 @@ internal object OutboxTable : Table("outbox") {
             filterCondition = { status eq OutboxStatus.READY.name },
         )
         index(
+            customIndexName = "idx_outbox_ready_message_type_external_ref",
+            columns = arrayOf(messageType, externalRef),
+            filterCondition = { status eq OutboxStatus.READY.name },
+        )
+        index(
             customIndexName = "idx_outbox_expired_claim",
             columns = arrayOf(messageType, leaseUntil, createdAt, uuid),
             filterCondition = { status eq OutboxStatus.CLAIMED.name },

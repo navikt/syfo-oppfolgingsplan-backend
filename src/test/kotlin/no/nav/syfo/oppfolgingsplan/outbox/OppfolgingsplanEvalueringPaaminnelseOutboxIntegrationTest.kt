@@ -6,6 +6,11 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeout
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.database.exposedTransaction
@@ -385,6 +390,75 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
                     }
                 }
             }
+
+            it("replays concurrent replacements after a repeatable-read serialization conflict") {
+                val sykmeldt = defaultSykmeldt().copy(narmestelederId = "leader-concurrent-replacement")
+                val existingPlanUuid = TestDB.database.createOppfolgingsplan(
+                    sykmeldt = sykmeldt,
+                    evalueringPaaminnelse = true,
+                    evalueringsdato = LocalDate.of(2027, 5, 15),
+                )
+                TestDB.database.installReplacementConcurrencyBarrier()
+
+                try {
+                    TestDB.database.connection.use { barrierConnection ->
+                        barrierConnection.createStatement().use {
+                            it.execute("SELECT pg_advisory_lock(438430)")
+                        }
+
+                        val replacements = coroutineScope {
+                            val first = async(Dispatchers.IO) {
+                                TestDB.database.createOppfolgingsplan(
+                                    sykmeldt = sykmeldt.copy(narmestelederId = "leader-concurrent-first"),
+                                    evalueringPaaminnelse = true,
+                                    evalueringsdato = LocalDate.of(2027, 6, 15),
+                                )
+                            }
+                            TestDB.database.awaitDatabaseCondition {
+                                countWaitingReplacementAdvisoryLocks() == 1
+                            }
+
+                            val second = async(Dispatchers.IO) {
+                                TestDB.database.createOppfolgingsplan(
+                                    sykmeldt = sykmeldt.copy(narmestelederId = "leader-concurrent-second"),
+                                    evalueringPaaminnelse = true,
+                                    evalueringsdato = LocalDate.of(2027, 7, 15),
+                                )
+                            }
+                            TestDB.database.awaitDatabaseCondition {
+                                countReplacementTransactionsWaitingForFirst() == 1
+                            }
+
+                            barrierConnection.createStatement().use {
+                                it.execute("SELECT pg_advisory_unlock(438430)")
+                            }
+                            listOf(first.await(), second.await())
+                        }
+
+                        val plans = TestDB.database.findAllOppfolgingsplanerBy(
+                            sykmeldt.fnr,
+                            sykmeldt.orgnummer,
+                        )
+                        plans.shouldHaveSize(3)
+                        replacements.forEach { replacementUuid ->
+                            plans.count { it.uuid == replacementUuid } shouldBe 1
+                            TestDB.database.countEvalueringPaaminnelseRows(replacementUuid) shouldBe 2
+                        }
+                        TestDB.database.replacementTransactionAttemptCount() shouldBe 3
+
+                        OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { messageType ->
+                            TestDB.database.findEvalueringMessage(messageType, existingPlanUuid).status shouldBe
+                                OutboxStatus.CANCELLED
+                            TestDB.database.findEvalueringMessage(messageType, replacements[0]).status shouldBe
+                                OutboxStatus.CANCELLED
+                            TestDB.database.findEvalueringMessage(messageType, replacements[1]).status shouldBe
+                                OutboxStatus.READY
+                        }
+                    }
+                } finally {
+                    TestDB.database.removeReplacementConcurrencyBarrier()
+                }
+            }
         }
 
         describe("business metrics") {
@@ -538,6 +612,122 @@ private fun DatabaseInterface.countEvalueringPaaminnelseRows(
         statement.executeQuery().use { resultSet ->
             resultSet.next()
             resultSet.getInt("row_count")
+        }
+    }
+}
+
+private fun DatabaseInterface.installReplacementConcurrencyBarrier() = connection.use { connection ->
+    connection.createStatement().use { statement ->
+        statement.execute(
+            """
+            CREATE SEQUENCE replacement_transaction_attempts;
+
+            CREATE FUNCTION count_replacement_transaction_attempt()
+            RETURNS TRIGGER AS ${'$'}function${'$'}
+            BEGIN
+                PERFORM nextval('replacement_transaction_attempts');
+                RETURN NEW;
+            END;
+            ${'$'}function${'$'} LANGUAGE plpgsql;
+
+            CREATE TRIGGER count_replacement_transaction_attempt
+            BEFORE INSERT ON oppfolgingsplan
+            FOR EACH ROW
+            EXECUTE FUNCTION count_replacement_transaction_attempt();
+
+            CREATE FUNCTION block_replacement_created_outbox()
+            RETURNS TRIGGER AS ${'$'}function${'$'}
+            BEGIN
+                PERFORM pg_advisory_xact_lock(438430);
+                RETURN NEW;
+            END;
+            ${'$'}function${'$'} LANGUAGE plpgsql;
+
+            CREATE TRIGGER block_replacement_created_outbox
+            BEFORE INSERT ON outbox
+            FOR EACH ROW
+            WHEN (NEW.message_type = 'OPPFOLGINGSPLAN_CREATED')
+            EXECUTE FUNCTION block_replacement_created_outbox();
+            """.trimIndent(),
+        )
+    }
+    connection.commit()
+}
+
+private fun DatabaseInterface.removeReplacementConcurrencyBarrier() = connection.use { connection ->
+    connection.createStatement().use { statement ->
+        statement.execute(
+            """
+            DROP TRIGGER IF EXISTS block_replacement_created_outbox ON outbox;
+            DROP FUNCTION IF EXISTS block_replacement_created_outbox();
+            DROP TRIGGER IF EXISTS count_replacement_transaction_attempt ON oppfolgingsplan;
+            DROP FUNCTION IF EXISTS count_replacement_transaction_attempt();
+            DROP SEQUENCE IF EXISTS replacement_transaction_attempts;
+            """.trimIndent(),
+        )
+    }
+    connection.commit()
+}
+
+private suspend fun DatabaseInterface.awaitDatabaseCondition(condition: DatabaseInterface.() -> Boolean) {
+    withTimeout(10_000) {
+        while (!condition()) {
+            delay(10)
+        }
+    }
+}
+
+private fun DatabaseInterface.countWaitingReplacementAdvisoryLocks(): Int = connection.use { connection ->
+    connection.prepareStatement(
+        """
+        SELECT COUNT(*)
+        FROM pg_locks
+        WHERE locktype = 'advisory'
+          AND classid = 0
+          AND objid = 438430
+          AND objsubid = 1
+          AND NOT granted
+        """.trimIndent(),
+    ).use { statement ->
+        statement.executeQuery().use { resultSet ->
+            resultSet.next()
+            resultSet.getInt(1)
+        }
+    }
+}
+
+private fun DatabaseInterface.countReplacementTransactionsWaitingForFirst(): Int = connection.use { connection ->
+    connection.prepareStatement(
+        """
+        SELECT COUNT(*)
+        FROM pg_locks waiting_transaction
+        JOIN pg_locks blocking_transaction
+          ON blocking_transaction.locktype = 'transactionid'
+         AND blocking_transaction.transactionid = waiting_transaction.transactionid
+         AND blocking_transaction.granted
+        JOIN pg_locks waiting_advisory
+          ON waiting_advisory.pid = blocking_transaction.pid
+         AND waiting_advisory.locktype = 'advisory'
+         AND waiting_advisory.classid = 0
+         AND waiting_advisory.objid = 438430
+         AND waiting_advisory.objsubid = 1
+         AND NOT waiting_advisory.granted
+        WHERE waiting_transaction.locktype = 'transactionid'
+          AND NOT waiting_transaction.granted
+        """.trimIndent(),
+    ).use { statement ->
+        statement.executeQuery().use { resultSet ->
+            resultSet.next()
+            resultSet.getInt(1)
+        }
+    }
+}
+
+private fun DatabaseInterface.replacementTransactionAttemptCount(): Int = connection.use { connection ->
+    connection.createStatement().use { statement ->
+        statement.executeQuery("SELECT last_value FROM replacement_transaction_attempts").use { resultSet ->
+            resultSet.next()
+            resultSet.getInt(1)
         }
     }
 }

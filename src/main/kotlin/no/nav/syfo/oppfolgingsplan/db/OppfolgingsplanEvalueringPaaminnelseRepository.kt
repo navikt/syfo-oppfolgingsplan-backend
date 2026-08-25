@@ -50,7 +50,7 @@ class OppfolgingsplanEvalueringPaaminnelseRepository(
         stillingstittel: String?,
         stillingsprosent: BigDecimal?,
     ): UUID {
-        val persistResult = database.exposedTransaction {
+        val persistResult = database.exposedTransaction(maxAttempts = 3) {
             val utkastCreatedAt = EvalueringPaaminnelseOppfolgingsplanUtkastTable
                 .deleteReturning(returning = listOf(EvalueringPaaminnelseOppfolgingsplanUtkastTable.createdAt)) {
                     EvalueringPaaminnelseOppfolgingsplanUtkastTable.narmesteLederId eq sykmeldt.narmestelederId
