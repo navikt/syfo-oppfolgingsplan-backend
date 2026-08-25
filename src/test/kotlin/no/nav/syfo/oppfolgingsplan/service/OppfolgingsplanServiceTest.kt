@@ -20,8 +20,8 @@ import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.findEventId
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
-import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
+import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
@@ -94,7 +94,7 @@ class OppfolgingsplanServiceTest :
                         aaregService = mockk(relaxed = true),
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanEvalueringPaaminnelseRepository =
-                            OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
                     val plan = defaultPersistedOppfolgingsplan().copy(
@@ -125,7 +125,7 @@ class OppfolgingsplanServiceTest :
                         aaregService = mockk(relaxed = true),
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanEvalueringPaaminnelseRepository =
-                            OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
                     val plan = defaultPersistedOppfolgingsplan()
@@ -156,7 +156,7 @@ class OppfolgingsplanServiceTest :
                         aaregService = aaregService,
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanEvalueringPaaminnelseRepository =
-                            OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -192,7 +192,7 @@ class OppfolgingsplanServiceTest :
                         aaregService = aaregService,
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanEvalueringPaaminnelseRepository =
-                            OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -217,7 +217,7 @@ class OppfolgingsplanServiceTest :
                         aaregService = aaregService,
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanEvalueringPaaminnelseRepository =
-                            OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -288,7 +288,7 @@ class OppfolgingsplanServiceTest :
                         aaregService = mockk(relaxed = true),
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanEvalueringPaaminnelseRepository =
-                            OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
                     )
                     val expiredDraft = defaultPersistedOppfolgingsplanUtkast().copy(
                         narmesteLederId = "leder-expired-default-path",

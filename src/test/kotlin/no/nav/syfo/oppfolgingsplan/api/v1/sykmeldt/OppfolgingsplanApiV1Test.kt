@@ -42,8 +42,8 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
-import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
+import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredUnntaksvurderinger
 import no.nav.syfo.oppfolgingsplan.dto.FerdigstiltPlanHendelse
 import no.nav.syfo.oppfolgingsplan.dto.OppfolgingsplanResponse
@@ -120,7 +120,7 @@ class OppfolgingsplanApiV1Test :
                                 aaregService = aaregServiceMock,
                                 unntaksvurderingService = unntaksvurderingService,
                                 oppfolgingsplanEvalueringPaaminnelseRepository =
-                                    OppfolgingsplanEvalueringPaaminnelseRepository(testDb),
+                                OppfolgingsplanEvalueringPaaminnelseRepository(testDb),
                             ),
                             unntaksvurderingService = unntaksvurderingService,
                             pdfGenService = pdfGenService,
