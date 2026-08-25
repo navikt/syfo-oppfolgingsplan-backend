@@ -3,13 +3,15 @@ package no.nav.syfo.oppfolgingsplan.outbox
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.oppfolgingsplan.db.PaaminnelseOutboxPayload
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedPaaminnelse
+import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import java.util.UUID
 
 class PaaminnelseOutboxHandler(
     database: DatabaseInterface,
+    paaminnelseService: PaaminnelseService,
     private val publisher: BudstikkaPublisher,
-) : SharedPaaminnelseOutboxHandler(database) {
+) : SharedPaaminnelseOutboxHandler(database, paaminnelseService) {
 
     override val messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE
 

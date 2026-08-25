@@ -7,15 +7,18 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.syfo.TestDB
+import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.outbox.OutboxWorker
 import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxStatus
+import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
 import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelse
 import no.nav.syfo.oppfolgingsplan.service.PAAMINNELSE_ETTER_DAGER
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
+import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
@@ -23,6 +26,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.util.UUID
 
 class PaaminnelseOutboxIntegrationTest :
     DescribeSpec({
@@ -115,7 +119,7 @@ class PaaminnelseOutboxIntegrationTest :
             ).shouldNotBeNull()
             val worker = OutboxWorker(
                 database = TestDB.database,
-                handlers = listOf(PaaminnelseOutboxHandler(TestDB.database, mockk(relaxed = true))),
+                handlers = listOf(PaaminnelseOutboxHandler(TestDB.database, service, mockk(relaxed = true))),
                 clock = Clock.fixed(availableAt, zone),
             )
 
@@ -124,7 +128,30 @@ class PaaminnelseOutboxIntegrationTest :
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.PAAMINNELSE,
                 "${paaminnelse.uuid}:${paaminnelse.sykmeldingsperiodeId}",
-            ).shouldNotBeNull().cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
+            ).shouldNotBeNull().cancellationReason shouldBe OutboxCancellationReason.NO_LONGER_REQUESTED
+        }
+
+        it("cancels a reminder when its source has been deleted before delivery") {
+            service.activatePaaminnelse(defaultSykmeldt())
+            val paaminnelse = TestDB.database.findPaaminnelseBy(
+                defaultSykmeldt().fnr,
+                defaultSykmeldt().orgnummer,
+            ).shouldNotBeNull()
+            TestDB.database.deletePaaminnelse(paaminnelse.uuid) shouldBe 1
+            val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+            val worker = OutboxWorker(
+                database = TestDB.database,
+                handlers = listOf(PaaminnelseOutboxHandler(TestDB.database, service, publisher)),
+                clock = Clock.fixed(availableAt, zone),
+            )
+
+            worker.runOnce().cancelled shouldBe 1
+
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.PAAMINNELSE,
+                "${paaminnelse.uuid}:${paaminnelse.sykmeldingsperiodeId}",
+            ).shouldNotBeNull().cancellationReason shouldBe OutboxCancellationReason.SOURCE_NOT_FOUND
+            coVerify(exactly = 0) { publisher.publishPaaminnelse(any(), any(), any(), any(), any()) }
         }
 
         it("cancels a reminder when its sykmeldingsperiode has changed before delivery") {
@@ -152,7 +179,55 @@ class PaaminnelseOutboxIntegrationTest :
             val publisher = mockk<BudstikkaPublisher>(relaxed = true)
             val worker = OutboxWorker(
                 database = TestDB.database,
-                handlers = listOf(PaaminnelseOutboxHandler(TestDB.database, publisher)),
+                handlers = listOf(PaaminnelseOutboxHandler(TestDB.database, service, publisher)),
+                clock = Clock.fixed(availableAt, zone),
+            )
+
+            worker.runOnce().cancelled shouldBe 1
+
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.PAAMINNELSE,
+                "${paaminnelse.uuid}:${paaminnelse.sykmeldingsperiodeId}",
+            ).shouldNotBeNull().cancellationReason shouldBe OutboxCancellationReason.SUPERSEDED
+            coVerify(exactly = 0) { publisher.publishPaaminnelse(any(), any(), any(), any(), any()) }
+        }
+
+        it("cancels a reminder when an oppfolgingsplan has been created before delivery") {
+            service.activatePaaminnelse(defaultSykmeldt())
+            val paaminnelse = TestDB.database.findPaaminnelseBy(
+                defaultSykmeldt().fnr,
+                defaultSykmeldt().orgnummer,
+            ).shouldNotBeNull()
+            TestDB.database.persistOppfolgingsplan(
+                defaultPersistedOppfolgingsplan().copy(createdAt = availableAt),
+            )
+            val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+            val worker = OutboxWorker(
+                database = TestDB.database,
+                handlers = listOf(PaaminnelseOutboxHandler(TestDB.database, service, publisher)),
+                clock = Clock.fixed(availableAt, zone),
+            )
+
+            worker.runOnce().cancelled shouldBe 1
+
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.PAAMINNELSE,
+                "${paaminnelse.uuid}:${paaminnelse.sykmeldingsperiodeId}",
+            ).shouldNotBeNull().cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
+            coVerify(exactly = 0) { publisher.publishPaaminnelse(any(), any(), any(), any(), any()) }
+        }
+
+        it("cancels a reminder when its sykmeldingsperiode is no longer active") {
+            service.activatePaaminnelse(defaultSykmeldt())
+            val paaminnelse = TestDB.database.findPaaminnelseBy(
+                defaultSykmeldt().fnr,
+                defaultSykmeldt().orgnummer,
+            ).shouldNotBeNull()
+            repository.invalidateSykmelding("sykmelding")
+            val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+            val worker = OutboxWorker(
+                database = TestDB.database,
+                handlers = listOf(PaaminnelseOutboxHandler(TestDB.database, service, publisher)),
                 clock = Clock.fixed(availableAt, zone),
             )
 
@@ -179,7 +254,7 @@ class PaaminnelseOutboxIntegrationTest :
             coEvery { publisher.publishPaaminnelse(any(), any(), any(), any(), any()) } returns Unit
             val worker = OutboxWorker(
                 database = TestDB.database,
-                handlers = listOf(PaaminnelseOutboxHandler(TestDB.database, publisher)),
+                handlers = listOf(PaaminnelseOutboxHandler(TestDB.database, service, publisher)),
                 clock = Clock.fixed(availableAt, zone),
             )
 
@@ -210,7 +285,7 @@ class PaaminnelseOutboxIntegrationTest :
             coEvery { publisher.publishPaaminnelseToDineSykmeldte(any(), any(), any(), any(), any()) } returns Unit
             val worker = OutboxWorker(
                 database = TestDB.database,
-                handlers = listOf(PaaminnelseDineSykmeldteOutboxHandler(TestDB.database, publisher)),
+                handlers = listOf(PaaminnelseDineSykmeldteOutboxHandler(TestDB.database, service, publisher)),
                 clock = Clock.fixed(availableAt, zone),
             )
 
@@ -227,3 +302,12 @@ class PaaminnelseOutboxIntegrationTest :
             }
         }
     })
+
+private fun DatabaseInterface.deletePaaminnelse(paaminnelseUuid: UUID): Int = connection.use { connection ->
+    connection.prepareStatement("DELETE FROM paaminnelse WHERE uuid = ?").use { statement ->
+        statement.setObject(1, paaminnelseUuid)
+        statement.executeUpdate()
+    }.also {
+        connection.commit()
+    }
+}

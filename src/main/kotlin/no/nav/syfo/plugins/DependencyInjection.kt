@@ -284,8 +284,8 @@ private fun servicesModule() = module {
             publisher = get(),
         )
     }
-    single { PaaminnelseOutboxHandler(database = get(), publisher = get()) }
-    single { PaaminnelseDineSykmeldteOutboxHandler(database = get(), publisher = get()) }
+    single { PaaminnelseOutboxHandler(database = get(), paaminnelseService = get(), publisher = get()) }
+    single { PaaminnelseDineSykmeldteOutboxHandler(database = get(), paaminnelseService = get(), publisher = get()) }
     single {
         OutboxWorker(
             database = get(),
