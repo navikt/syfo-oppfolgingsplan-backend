@@ -42,6 +42,7 @@ import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
@@ -217,6 +218,7 @@ private fun kafkeProducerModule() = module {
                     },
             ),
             env().minSideSykmeldtOppfolgingsplanUrl,
+            env().dineSykmeldteOversiktUrl,
         )
     }
 }
@@ -248,9 +250,18 @@ private fun servicesModule() = module {
     single { CleanupUtkastTask(get(), get()) }
     single { OppfolgingsplanCreatedOutboxHandler(database = get(), publisher = get()) }
     single {
+        OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxHandler(
+            repository = get(),
+            publisher = get(),
+        )
+    }
+    single {
         OutboxWorker(
             database = get(),
-            handlers = listOf(get<OppfolgingsplanCreatedOutboxHandler>()),
+            handlers = listOf(
+                get<OppfolgingsplanCreatedOutboxHandler>(),
+                get<OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxHandler>(),
+            ),
             observedMessageTypes = OppfolgingsplanOutboxMessageType.entries,
         )
     }

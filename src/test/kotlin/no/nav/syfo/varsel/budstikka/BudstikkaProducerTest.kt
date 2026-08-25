@@ -10,6 +10,8 @@ import io.mockk.mockk
 import io.mockk.verify
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
+import no.nav.budstikka.contract.Oppgavetype
+import no.nav.budstikka.contract.Orgnummer
 import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
@@ -19,6 +21,7 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.TopicPartition
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -30,7 +33,12 @@ class BudstikkaProducerTest :
     DescribeSpec({
         val kafkaProducerMock = mockk<KafkaProducer<String, String>>()
         val budstikkaOppfolgingsplanSykmeldtUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
-        val producer = BudstikkaProducer(kafkaProducerMock, budstikkaOppfolgingsplanSykmeldtUrl)
+        val dineSykmeldteOversiktUrl = "https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte"
+        val producer = BudstikkaProducer(
+            kafkaProducerMock,
+            budstikkaOppfolgingsplanSykmeldtUrl,
+            dineSykmeldteOversiktUrl,
+        )
 
         beforeTest {
             clearAllMocks(currentThreadOnly = true)
@@ -96,6 +104,63 @@ class BudstikkaProducerTest :
 
                 error.message shouldContain "Forced"
                 verify(exactly = 1) { failedFuture.get(250, TimeUnit.MILLISECONDS) }
+            }
+        }
+
+        describe("publishEvalueringPaaminnelseDineSykmeldte") {
+            it("publishes the agreed activity through the Dine Sykmeldte facade") {
+                val future = mockk<Future<RecordMetadata>>()
+                val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
+                val oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
+                val sykmeldtFnr = "00000000000"
+                val organisasjonsnummer = "999999999"
+                val expectedText = """
+                    ARNESEN, HOLM OG BAKKEN
+                    Oppfølging av Kari Normann
+                    Oppdater oppfølgingsplan
+                    mai 2026
+                """.trimIndent()
+                val expectedDispatch = Budstikka.dineSykmeldteVarselCreate(
+                    eventId = EventId(eventId),
+                    reference = oppfolgingsplanUuid.toString(),
+                    sykmeldt = PersonIdentifier(sykmeldtFnr),
+                    orgnummer = Orgnummer(organisasjonsnummer),
+                    oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
+                    text = expectedText,
+                    link = dineSykmeldteOversiktUrl,
+                    sendingWindow = SendingWindow.ONGOING,
+                )
+                every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
+                every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
+
+                producer.publishEvalueringPaaminnelseDineSykmeldte(
+                    oppfolgingsplanUuid = oppfolgingsplanUuid,
+                    sykmeldtFnr = sykmeldtFnr,
+                    organisasjonsnummer = organisasjonsnummer,
+                    organisasjonsnavn = "ARNESEN, HOLM OG BAKKEN",
+                    sykmeldtFullName = "Kari Normann",
+                    evalueringsdato = LocalDate.of(2026, 5, 20),
+                    eventId = eventId,
+                )
+
+                verify(exactly = 1) {
+                    kafkaProducerMock.send(
+                        withArg {
+                            val actualHeaders = it.headers().associate { header ->
+                                header.key() to header.value().toList()
+                            }
+                            val expectedHeaders = expectedDispatch.headerBytes().mapValues { (_, value) ->
+                                value.toList()
+                            }
+                            it.topic() shouldBe expectedDispatch.topic
+                            it.key() shouldBe expectedDispatch.key
+                            it.value() shouldBe expectedDispatch.value
+                            it.value() shouldContain "\"sendingWindow\":\"ONGOING\""
+                            actualHeaders shouldBe expectedHeaders
+                        },
+                    )
+                }
+                verify(exactly = 1) { future.get(250, TimeUnit.MILLISECONDS) }
             }
         }
     })
