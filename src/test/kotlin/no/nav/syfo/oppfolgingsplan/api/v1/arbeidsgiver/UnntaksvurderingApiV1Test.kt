@@ -39,6 +39,7 @@ import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.db.findAllUnntaksvurderingerBy
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
 import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.upsertOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewResponse
@@ -90,6 +91,7 @@ class UnntaksvurderingApiV1Test :
             pdlService = pdlServiceMock,
             aaregService = aaregServiceMock,
             unntaksvurderingService = unntaksvurderingService,
+            oppfolgingsplanEvalueringPaaminnelseRepository = OppfolgingsplanEvalueringPaaminnelseRepository(testDb),
         )
         val environment: Environment = LocalEnvironment()
 

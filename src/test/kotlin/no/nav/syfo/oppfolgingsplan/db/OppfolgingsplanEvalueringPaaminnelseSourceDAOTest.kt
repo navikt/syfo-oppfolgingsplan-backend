@@ -17,7 +17,8 @@ import java.util.UUID
 
 class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
     DescribeSpec({
-        val repository = SykmeldingsperiodeRepository(TestDB.database)
+        val sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(TestDB.database)
+        val oppfolgingsplanEvalueringPaaminnelseRepository = OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database)
         val oslo = ZoneId.of("Europe/Oslo")
         val today = LocalDate.of(2026, 5, 20)
         val todayClock = Clock.fixed(today.atTime(12, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
@@ -39,7 +40,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     organisasjonsnavn = organisasjonsnavn,
                     evalueringsdato = LocalDate.of(2026, 6, 20),
                 )
-                repository.storeSykmeldingsperioder(
+                sykmeldingsperiodeRepository.storeSykmeldingsperioder(
                     listOf(
                         SykmeldingsperiodeToStore(
                             sykmeldtFnr = sykmeldtFnr,
@@ -51,7 +52,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     ),
                 )
 
-                val source = TestDB.database.findOppfolgingsplanEvalueringPaaminnelseSource(
+                val source = oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
                     planUuid,
                     clock = todayClock,
                 )
@@ -78,7 +79,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     organisasjonsnavn = organisasjonsnavn,
                     evalueringsdato = LocalDate.of(2026, 6, 20),
                 )
-                repository.storeSykmeldingsperioder(
+                sykmeldingsperiodeRepository.storeSykmeldingsperioder(
                     listOf(
                         SykmeldingsperiodeToStore(
                             sykmeldtFnr = sykmeldtFnr,
@@ -90,7 +91,10 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     ),
                 )
 
-                TestDB.database.findOppfolgingsplanEvalueringPaaminnelseSource(planUuid, clock = todayClock) shouldBe
+                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
+                    planUuid,
+                    clock = todayClock,
+                ) shouldBe
                     OppfolgingsplanEvalueringPaaminnelseSource.NoLongerEligible
             }
 
@@ -102,7 +106,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     organisasjonsnavn = organisasjonsnavn,
                     evalueringsdato = LocalDate.of(2026, 6, 20),
                 )
-                repository.storeSykmeldingsperioder(
+                sykmeldingsperiodeRepository.storeSykmeldingsperioder(
                     listOf(
                         SykmeldingsperiodeToStore(
                             sykmeldtFnr = sykmeldtFnr,
@@ -114,7 +118,10 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     ),
                 )
 
-                TestDB.database.findOppfolgingsplanEvalueringPaaminnelseSource(planUuid, clock = todayClock) shouldBe
+                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
+                    planUuid,
+                    clock = todayClock,
+                ) shouldBe
                     OppfolgingsplanEvalueringPaaminnelseSource.NoLongerEligible
             }
 
@@ -126,7 +133,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     organisasjonsnavn = organisasjonsnavn,
                     evalueringsdato = LocalDate.of(2026, 6, 20),
                 )
-                repository.storeSykmeldingsperioder(
+                sykmeldingsperiodeRepository.storeSykmeldingsperioder(
                     listOf(
                         SykmeldingsperiodeToStore(
                             sykmeldtFnr = sykmeldtFnr,
@@ -137,14 +144,17 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                         ),
                     ),
                 )
-                repository.invalidateSykmelding("invalidated-sykmelding")
+                sykmeldingsperiodeRepository.invalidateSykmelding("invalidated-sykmelding")
 
-                TestDB.database.findOppfolgingsplanEvalueringPaaminnelseSource(planUuid, clock = todayClock) shouldBe
+                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
+                    planUuid,
+                    clock = todayClock,
+                ) shouldBe
                     OppfolgingsplanEvalueringPaaminnelseSource.NoLongerEligible
             }
 
             it("returns not found when the source oppfolgingsplan does not exist") {
-                TestDB.database.findOppfolgingsplanEvalueringPaaminnelseSource(
+                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
                     UUID.randomUUID(),
                     clock = todayClock,
                 ) shouldBe
@@ -162,7 +172,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     organisasjonsnavn = organisasjonsnavn,
                     evalueringsdato = LocalDate.of(2026, 6, 20),
                 )
-                repository.storeSykmeldingsperioder(
+                sykmeldingsperiodeRepository.storeSykmeldingsperioder(
                     listOf(
                         SykmeldingsperiodeToStore(
                             sykmeldtFnr = sykmeldtFnr,
@@ -174,7 +184,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     ),
                 )
 
-                TestDB.database.findOppfolgingsplanEvalueringPaaminnelseSource(
+                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
                     planUuid,
                     clock = boundaryClock,
                 ) shouldBe OppfolgingsplanEvalueringPaaminnelseSource.Eligible(

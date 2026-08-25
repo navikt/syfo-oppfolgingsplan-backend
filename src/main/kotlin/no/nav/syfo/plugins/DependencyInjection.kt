@@ -40,6 +40,7 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
@@ -230,6 +231,7 @@ private fun servicesModule() = module {
     single { PdlService(get()) }
     single { AaregService(get()) }
     single { UnntaksvurderingService(database = get(), pdlService = get()) }
+    single { OppfolgingsplanEvalueringPaaminnelseRepository(database = get()) }
     single {
         OppfolgingsplanService(
             database = get(),
@@ -237,6 +239,7 @@ private fun servicesModule() = module {
             pdlService = get(),
             aaregService = get(),
             unntaksvurderingService = get(),
+            oppfolgingsplanEvalueringPaaminnelseRepository = get(),
         )
     }
     single { PaaminnelseService(database = get(), sykmeldingsperiodeRepository = get()) }

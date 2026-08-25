@@ -13,6 +13,7 @@ import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.persistOppfolgingsplan
@@ -33,6 +34,7 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             pdlService = mockk(relaxed = true),
             aaregService = mockk(relaxed = true),
             unntaksvurderingService = mockk(relaxed = true),
+            oppfolgingsplanEvalueringPaaminnelseRepository = OppfolgingsplanEvalueringPaaminnelseRepository(testDb),
         )
 
         fun softDeleteAll(batchSize: Int): Pair<Int, Int> {

@@ -14,6 +14,7 @@ import no.nav.syfo.dokumentporten.client.FakeDokumentportenClient
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
@@ -32,6 +33,7 @@ class DokumentportenServiceTest :
             esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
             aaregService = mockk<AaregService>(relaxed = true),
             unntaksvurderingService = mockk(relaxed = true),
+            oppfolgingsplanEvalueringPaaminnelseRepository = OppfolgingsplanEvalueringPaaminnelseRepository(testDb),
         )
 
         beforeTest {

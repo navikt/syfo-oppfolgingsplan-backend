@@ -23,9 +23,9 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
-import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.persistOppfolgingsplanUtkast
 import java.time.Instant
 import java.time.LocalDate
@@ -460,16 +460,17 @@ private suspend fun DatabaseInterface.createOppfolgingsplan(
     sykmeldt: Sykmeldt = defaultSykmeldt(),
     evalueringPaaminnelse: Boolean,
     evalueringsdato: LocalDate,
-): UUID = persistOppfolgingsplanAndDeleteUtkast(
-    narmesteLederFnr = "10987654321",
-    sykmeldt = sykmeldt,
-    createOppfolgingsplanRequest = defaultOppfolgingsplan().copy(
-        evalueringPaaminnelse = evalueringPaaminnelse,
-        evalueringsdato = evalueringsdato,
-    ),
-    stillingstittel = "Systemutvikler",
-    stillingsprosent = null,
-)
+): UUID = OppfolgingsplanEvalueringPaaminnelseRepository(this)
+    .persistOppfolgingsplanAndDeleteUtkast(
+        narmesteLederFnr = "10987654321",
+        sykmeldt = sykmeldt,
+        createOppfolgingsplanRequest = defaultOppfolgingsplan().copy(
+            evalueringPaaminnelse = evalueringPaaminnelse,
+            evalueringsdato = evalueringsdato,
+        ),
+        stillingstittel = "Systemutvikler",
+        stillingsprosent = null,
+    )
 
 private suspend fun DatabaseInterface.findEvalueringMessage(
     messageType: OppfolgingsplanOutboxMessageType,

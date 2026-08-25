@@ -200,7 +200,7 @@ class OppfolgingsplanCreatedOutboxIntegrationTest :
         }
     })
 
-private suspend fun DatabaseInterface.createOppfolgingsplan(
+private fun DatabaseInterface.createOppfolgingsplan(
     narmesteLederId: String = defaultSykmeldt().narmestelederId,
 ): UUID = persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr = "10987654321",

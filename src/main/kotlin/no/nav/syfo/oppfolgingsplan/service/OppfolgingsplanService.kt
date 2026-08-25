@@ -10,6 +10,7 @@ import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
@@ -19,7 +20,6 @@ import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
-import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
@@ -60,6 +60,7 @@ class OppfolgingsplanService(
     private val pdlService: PdlService,
     private val aaregService: AaregService,
     private val unntaksvurderingService: UnntaksvurderingService,
+    private val oppfolgingsplanEvalueringPaaminnelseRepository: OppfolgingsplanEvalueringPaaminnelseRepository,
 ) {
     private val logger = logger()
 
@@ -83,7 +84,7 @@ class OppfolgingsplanService(
             null
         }
 
-        return database.persistOppfolgingsplanAndDeleteUtkast(
+        return oppfolgingsplanEvalueringPaaminnelseRepository.persistOppfolgingsplanAndDeleteUtkast(
             narmesteLederFnr = narmesteLederFnr,
             sykmeldt = sykmeldt,
             createOppfolgingsplanRequest = createOppfolgingsplanRequest,

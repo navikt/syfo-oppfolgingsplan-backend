@@ -1,7 +1,6 @@
 package no.nav.syfo.oppfolgingsplan.db
 
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
 import no.nav.syfo.application.outbox.domain.NewOutboxMessage
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
@@ -11,139 +10,111 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
-import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanEvalueringPaaminnelseOutboxMetrics
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
-import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.deleteReturning
-import org.jetbrains.exposed.v1.jdbc.insertReturning
-import org.jetbrains.exposed.v1.javatime.CurrentTimestampWithTimeZone
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
 import java.math.BigDecimal
+import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Timestamp
+import java.sql.Types
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.util.UUID
 
 private fun logger() = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
-private val ZONE_OSLO: ZoneId = ZoneId.of("Europe/Oslo")
-private const val EVALUERING_PAAMINNELSE_DAYS_BEFORE = 3L
-private const val EVALUERING_PAAMINNELSE_HOUR = 9
 
-suspend fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
+fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
     narmesteLederFnr: String,
     sykmeldt: Sykmeldt,
     createOppfolgingsplanRequest: CreateOppfolgingsplanRequest,
     stillingstittel: String?,
     stillingsprosent: BigDecimal?,
 ): UUID {
-    val persistResult = exposedTransaction {
-        val utkastCreatedAt = OppfolgingsplanUtkastTable
-            .deleteReturning(returning = listOf(OppfolgingsplanUtkastTable.createdAt)) {
-                OppfolgingsplanUtkastTable.narmesteLederId eq sykmeldt.narmestelederId
-            }.singleOrNull()
-            ?.get(OppfolgingsplanUtkastTable.createdAt)
-        val eventId = UUID.randomUUID()
+    val insertStatement = """
+        INSERT INTO oppfolgingsplan (
+            sykmeldt_fnr,
+            sykmeldt_full_name,
+            narmeste_leder_id,
+            narmeste_leder_fnr,
+            organisasjonsnummer,
+            organisasjonsnavn,
+            stillingstittel,
+            stillingsprosent,
+            content,
+            evalueringsdato,
+            evaluering_paaminnelse,
+            evaluering_paaminnelse_outbox_at,
+            skal_deles_med_lege,
+            skal_deles_med_veileder,
+            utkast_created_at,
+            created_at,
+            event_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), gen_random_uuid())
+        RETURNING uuid, event_id, created_at
+    """.trimIndent()
 
-        val insertedOppfolgingsplanRow = OppfolgingsplanTable.insertReturning(
-            returning = listOf(
-                OppfolgingsplanTable.uuid,
-                OppfolgingsplanTable.createdAt,
-            ),
-        ) {
-            it[OppfolgingsplanTable.sykmeldtFnr] = sykmeldt.fnr
-            it[OppfolgingsplanTable.sykmeldtFullName] = sykmeldt.navn
-            it[OppfolgingsplanTable.narmesteLederId] = sykmeldt.narmestelederId
-            it[OppfolgingsplanTable.narmesteLederFnr] = narmesteLederFnr
-            it[OppfolgingsplanTable.organisasjonsnummer] = sykmeldt.orgnummer
-            it[OppfolgingsplanTable.organisasjonsnavn] = sykmeldt.getOrganizationName()
-            it[OppfolgingsplanTable.stillingstittel] = stillingstittel
-            it[OppfolgingsplanTable.stillingsprosent] = stillingsprosent
-            it[OppfolgingsplanTable.content] = createOppfolgingsplanRequest.content.toJsonString()
-            it[OppfolgingsplanTable.evalueringsdato] = createOppfolgingsplanRequest.evalueringsdato
-            it[OppfolgingsplanTable.evalueringPaaminnelse] = createOppfolgingsplanRequest.evalueringPaaminnelse
-            it[OppfolgingsplanTable.evalueringPaaminnelseOutboxAt] = null
-            it[OppfolgingsplanTable.skalDelesMedLege] = false
-            it[OppfolgingsplanTable.skalDelesMedVeileder] = false
-            it[OppfolgingsplanTable.utkastCreatedAt] = utkastCreatedAt
-            it[OppfolgingsplanTable.createdAt] = CurrentTimestampWithTimeZone
-            it[OppfolgingsplanTable.eventId] = eventId
-        }.single()
+    val deleteStatement = """
+        DELETE FROM oppfolgingsplan_utkast
+        WHERE narmeste_leder_id = ?
+        RETURNING created_at
+    """.trimIndent()
 
-        val oppfolgingsplanUuid = insertedOppfolgingsplanRow[OppfolgingsplanTable.uuid]
-        val createdAt = insertedOppfolgingsplanRow[OppfolgingsplanTable.createdAt].toInstant()
+    connection.use { connection ->
+        val utkastCreatedAt = connection.prepareStatement(deleteStatement).use {
+            it.setString(1, sykmeldt.narmestelederId)
+            val resultSet = it.executeQuery()
+            if (resultSet.next()) {
+                resultSet.getTimestamp("created_at").toInstant()
+            } else {
+                null
+            }
+        }
 
-        val supersededReminderCountByChannel = cancelReadySupersededEvalueringPaaminnelseRows(
-            sykmeldtFnr = sykmeldt.fnr,
-            organisasjonsnummer = sykmeldt.orgnummer,
-            supersedingOppfolgingsplanUuid = oppfolgingsplanUuid,
-            completedAt = createdAt,
-        )
-
+        val (uuid, eventId, createdAt) = connection.prepareStatement(insertStatement).use {
+            it.setString(1, sykmeldt.fnr)
+            it.setString(2, sykmeldt.navn)
+            it.setString(3, sykmeldt.narmestelederId)
+            it.setString(4, narmesteLederFnr)
+            it.setString(5, sykmeldt.orgnummer)
+            it.setString(6, sykmeldt.getOrganizationName())
+            it.setString(7, stillingstittel)
+            it.setBigDecimal(8, stillingsprosent)
+            it.setObject(9, createOppfolgingsplanRequest.content.toJsonString(), Types.OTHER)
+            it.setDate(10, Date.valueOf(createOppfolgingsplanRequest.evalueringsdato.toString()))
+            it.setBoolean(11, createOppfolgingsplanRequest.evalueringPaaminnelse)
+            it.setNull(12, Types.TIMESTAMP_WITH_TIMEZONE)
+            it.setBoolean(13, false)
+            it.setBoolean(14, false)
+            if (utkastCreatedAt != null) {
+                it.setTimestamp(15, Timestamp.from(utkastCreatedAt))
+            } else {
+                it.setNull(15, Types.TIMESTAMP)
+            }
+            val resultSet = it.executeQuery()
+            resultSet.next()
+            Triple(
+                resultSet.getObject("uuid", UUID::class.java),
+                resultSet.getObject("event_id", UUID::class.java),
+                resultSet.getTimestamp("created_at").toInstant(),
+            )
+        }
         check(
-            enqueueOutboxMessage(
+            connection.enqueueOutboxMessage(
                 NewOutboxMessage(
                     uuid = eventId,
                     messageType = OppfolgingsplanOutboxMessageType.CREATED,
-                    dedupKey = oppfolgingsplanUuid.toString(),
-                    externalRef = oppfolgingsplanUuid.toString(),
+                    dedupKey = uuid.toString(),
+                    externalRef = uuid.toString(),
                     payload = "{}",
                     availableAt = createdAt,
                 ),
             ),
         ) { "A new oppfolgingsplan must create a new outbox command" }
-
-        val createdReminderCountByChannel = OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes
-            .associateWith { 0 }
-            .toMutableMap()
-        if (createOppfolgingsplanRequest.evalueringPaaminnelse) {
-            OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { channelMessageType ->
-                check(
-                    enqueueOutboxMessage(
-                        NewOutboxMessage(
-                            messageType = channelMessageType,
-                            dedupKey = oppfolgingsplanUuid.toString(),
-                            externalRef = oppfolgingsplanUuid.toString(),
-                            payload = "{}",
-                            availableAt = createOppfolgingsplanRequest.evalueringsdato
-                                .toEvalueringPaaminnelseAvailableAt(),
-                        ),
-                    ),
-                ) {
-                    "A new oppfolgingsplan with evalueringPaaminnelse must create one outbox command per channel"
-                }
-                createdReminderCountByChannel[channelMessageType] = 1
-            }
-        }
-
-        PersistOppfolgingsplanResult(
-            oppfolgingsplanUuid = oppfolgingsplanUuid,
-            createdReminderCountByChannel = createdReminderCountByChannel,
-            supersededReminderCountByChannel = supersededReminderCountByChannel,
-        )
+        connection.commit()
+        return uuid
     }
-
-    OppfolgingsplanEvalueringPaaminnelseOutboxMetrics.incrementCreated(
-        persistResult.createdReminderCountByChannel,
-    )
-    OppfolgingsplanEvalueringPaaminnelseOutboxMetrics.incrementSuperseded(
-        persistResult.supersededReminderCountByChannel,
-    )
-    return persistResult.oppfolgingsplanUuid
 }
-
-private data class PersistOppfolgingsplanResult(
-    val oppfolgingsplanUuid: UUID,
-    val createdReminderCountByChannel: Map<OppfolgingsplanOutboxMessageType, Int>,
-    val supersededReminderCountByChannel: Map<OppfolgingsplanOutboxMessageType, Int>,
-)
-
-private fun LocalDate.toEvalueringPaaminnelseAvailableAt(): Instant = minusDays(EVALUERING_PAAMINNELSE_DAYS_BEFORE)
-    .atTime(EVALUERING_PAAMINNELSE_HOUR, 0)
-    .atZone(ZONE_OSLO)
-    .toInstant()
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
     sykmeldtFnr: String,
