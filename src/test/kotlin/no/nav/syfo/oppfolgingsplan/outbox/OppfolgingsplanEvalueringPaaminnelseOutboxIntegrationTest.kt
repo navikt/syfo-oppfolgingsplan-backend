@@ -66,7 +66,7 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
                 sykmeldtMessage.status shouldBe OutboxStatus.READY
                 arbeidsgiverMessage.availableAt shouldBe expectedAvailableAt
                 sykmeldtMessage.availableAt shouldBe expectedAvailableAt
-                arbeidsgiverMessage.uuid == sykmeldtMessage.uuid shouldBe false
+                (arbeidsgiverMessage.uuid == sykmeldtMessage.uuid) shouldBe false
 
                 OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { messageType ->
                     val message = TestDB.database.findEvalueringMessage(messageType, planUuid)
@@ -494,6 +494,7 @@ private fun DatabaseInterface.rejectCreatedOutboxInserts() = connection.use { co
             ALTER TABLE outbox
             ADD CONSTRAINT reject_created_outbox_test_issue_430
             CHECK (message_type <> 'OPPFOLGINGSPLAN_CREATED')
+            NOT VALID
             """.trimIndent(),
         )
     }
