@@ -12,8 +12,8 @@ import io.mockk.verify
 import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
-import no.nav.budstikka.contract.Oppgavetype
 import no.nav.budstikka.contract.Orgnummer
+import no.nav.budstikka.contract.Oppgavetype
 import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
@@ -22,6 +22,7 @@ import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TITLE
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.PAAMINNELSE_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -48,6 +49,29 @@ class BudstikkaProducerTest :
 
         beforeTest {
             clearAllMocks(currentThreadOnly = true)
+        }
+
+        suspend fun assertDispatchIsSent(
+            expectedDispatch: no.nav.budstikka.contract.EncodedDispatch,
+            publish: suspend () -> Unit,
+        ) {
+            val future = mockk<Future<RecordMetadata>>()
+            every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
+            every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
+
+            publish()
+
+            verify(exactly = 1) {
+                kafkaProducerMock.send(
+                    withArg {
+                        it.topic() shouldBe expectedDispatch.topic
+                        it.key() shouldBe expectedDispatch.key
+                        it.value() shouldBe expectedDispatch.value
+                        it.headers().associate { header -> header.key() to header.value().toList() } shouldBe
+                            expectedDispatch.headerBytes().mapValues { (_, value) -> value.toList() }
+                    },
+                )
+            }
         }
 
         describe("publishOppfolgingsplanCreated") {
@@ -210,6 +234,62 @@ class BudstikkaProducerTest :
                     )
                 }
                 verify(exactly = 1) { future.get(250, TimeUnit.MILLISECONDS) }
+            }
+        }
+
+        describe("publishPaaminnelse") {
+            val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
+            val paaminnelseUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
+            val sykmeldtFnr = "12345678901"
+            val orgnummer = "123456789"
+            val narmestelederId = "narmeste-leder-id"
+            val link = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver"
+
+            it("sends an employer notification to the narmeste leder") {
+                val expectedDispatch = Budstikka.arbeidsgivervarselCreate(
+                    eventId = EventId(eventId),
+                    reference = paaminnelseUuid.toString(),
+                    orgnummer = Orgnummer(orgnummer),
+                    recipient = Arbeidsgivervarsel.NarmesteLeder(PersonIdentifier(sykmeldtFnr)),
+                    tag = "OPPFOELGING",
+                    text = PAAMINNELSE_BUDSTIKKA_TEXT,
+                    link = link,
+                    messageType = Arbeidsgivervarsel.MessageType.BESKJED,
+                    sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+                )
+
+                assertDispatchIsSent(expectedDispatch) {
+                    producer.publishPaaminnelse(
+                        paaminnelseUuid = paaminnelseUuid,
+                        sykmeldtFnr = sykmeldtFnr,
+                        orgnummer = orgnummer,
+                        eventId = eventId,
+                        narmestelederId = narmestelederId,
+                    )
+                }
+            }
+
+            it("sends a Dine Sykmeldte notification") {
+                val expectedDispatch = Budstikka.dineSykmeldteVarselCreate(
+                    eventId = EventId(eventId),
+                    reference = paaminnelseUuid.toString(),
+                    sykmeldt = PersonIdentifier(sykmeldtFnr),
+                    orgnummer = Orgnummer(orgnummer),
+                    oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
+                    text = PAAMINNELSE_BUDSTIKKA_TEXT,
+                    link = link,
+                    sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+                )
+
+                assertDispatchIsSent(expectedDispatch) {
+                    producer.publishPaaminnelseToDineSykmeldte(
+                        paaminnelseUuid = paaminnelseUuid,
+                        sykmeldtFnr = sykmeldtFnr,
+                        orgnummer = orgnummer,
+                        eventId = eventId,
+                        narmestelederId = narmestelederId,
+                    )
+                }
             }
         }
     })

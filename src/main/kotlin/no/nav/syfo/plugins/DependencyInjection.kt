@@ -49,6 +49,7 @@ import no.nav.syfo.oppfolgingsplan.outbox.DineSykmeldteEvalueringspaaminnelseHan
 import no.nav.syfo.oppfolgingsplan.outbox.MinSideArbeidsgiverEvalueringspaaminnelseHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
+import no.nav.syfo.oppfolgingsplan.outbox.PaaminnelseDineSykmeldteOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.PaaminnelseOutboxHandler
 import no.nav.syfo.oppfolgingsplan.service.EvalueringspaaminnelseEligibilityService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
@@ -284,6 +285,7 @@ private fun servicesModule() = module {
         )
     }
     single { PaaminnelseOutboxHandler(database = get(), publisher = get()) }
+    single { PaaminnelseDineSykmeldteOutboxHandler(database = get(), publisher = get()) }
     single {
         OutboxWorker(
             database = get(),
@@ -291,6 +293,7 @@ private fun servicesModule() = module {
                 get<OppfolgingsplanCreatedOutboxHandler>(),
                 get<MinSideArbeidsgiverEvalueringspaaminnelseHandler>(),
                 get<PaaminnelseOutboxHandler>(),
+                get<PaaminnelseDineSykmeldteOutboxHandler>(),
                 get<DineSykmeldteEvalueringspaaminnelseHandler>(),
             ),
             observedMessageTypes = OppfolgingsplanOutboxMessageType.entries,
@@ -308,6 +311,10 @@ private fun servicesModule() = module {
                 ),
                 OutboxRetentionPolicy(
                     messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE,
+                    retention = Duration.ofDays(90),
+                ),
+                OutboxRetentionPolicy(
+                    messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_DINE_SYKMELDTE,
                     retention = Duration.ofDays(90),
                 ),
                 OutboxRetentionPolicy(

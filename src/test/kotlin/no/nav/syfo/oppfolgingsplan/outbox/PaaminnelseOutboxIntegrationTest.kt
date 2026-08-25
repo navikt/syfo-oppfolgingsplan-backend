@@ -67,6 +67,10 @@ class PaaminnelseOutboxIntegrationTest :
                 OppfolgingsplanOutboxMessageType.PAAMINNELSE,
                 "${paaminnelse.uuid}:${paaminnelse.sykmeldingsperiodeId}",
             ).shouldNotBeNull()
+            val dineSykmeldteMessage = TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.PAAMINNELSE_DINE_SYKMELDTE,
+                "${paaminnelse.uuid}:${paaminnelse.sykmeldingsperiodeId}",
+            ).shouldNotBeNull()
 
             message.externalRef shouldBe paaminnelse.uuid.toString()
             message.availableAt shouldBe availableAt
@@ -74,6 +78,9 @@ class PaaminnelseOutboxIntegrationTest :
             message.payload.contains(defaultSykmeldt().fnr) shouldBe false
             message.payload.contains(defaultSykmeldt().orgnummer) shouldBe false
             message.payload.contains(narmestelederId) shouldBe true
+            dineSykmeldteMessage.externalRef shouldBe paaminnelse.uuid.toString()
+            dineSykmeldteMessage.availableAt shouldBe availableAt
+            dineSykmeldteMessage.status shouldBe OutboxStatus.READY
         }
 
         it("keeps the scheduled outbox command when a reminder is ordered again") {
@@ -93,6 +100,10 @@ class PaaminnelseOutboxIntegrationTest :
                 OppfolgingsplanOutboxMessageType.PAAMINNELSE,
                 "${paaminnelse.uuid}:${paaminnelse.sykmeldingsperiodeId}",
             ) shouldBe firstMessage
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.PAAMINNELSE_DINE_SYKMELDTE,
+                "${paaminnelse.uuid}:${paaminnelse.sykmeldingsperiodeId}",
+            ).shouldNotBeNull()
         }
 
         it("cancels a reminder that has been deactivated before delivery") {
@@ -176,6 +187,37 @@ class PaaminnelseOutboxIntegrationTest :
 
             coVerify(exactly = 1) {
                 publisher.publishPaaminnelse(
+                    paaminnelseUuid = paaminnelse.uuid,
+                    eventId = message.uuid,
+                    sykmeldtFnr = defaultSykmeldt().fnr,
+                    orgnummer = defaultSykmeldt().orgnummer,
+                    narmestelederId = narmestelederId,
+                )
+            }
+        }
+
+        it("publishes an active reminder to Dine Sykmeldte with its own outbox event ID") {
+            service.activatePaaminnelse(defaultSykmeldt())
+            val paaminnelse = TestDB.database.findPaaminnelseBy(
+                defaultSykmeldt().fnr,
+                defaultSykmeldt().orgnummer,
+            ).shouldNotBeNull()
+            val message = TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.PAAMINNELSE_DINE_SYKMELDTE,
+                "${paaminnelse.uuid}:${paaminnelse.sykmeldingsperiodeId}",
+            ).shouldNotBeNull()
+            val publisher = mockk<BudstikkaPublisher>()
+            coEvery { publisher.publishPaaminnelseToDineSykmeldte(any(), any(), any(), any(), any()) } returns Unit
+            val worker = OutboxWorker(
+                database = TestDB.database,
+                handlers = listOf(PaaminnelseDineSykmeldteOutboxHandler(TestDB.database, publisher)),
+                clock = Clock.fixed(availableAt, zone),
+            )
+
+            worker.runOnce().sent shouldBe 1
+
+            coVerify(exactly = 1) {
+                publisher.publishPaaminnelseToDineSykmeldte(
                     paaminnelseUuid = paaminnelse.uuid,
                     eventId = message.uuid,
                     sykmeldtFnr = defaultSykmeldt().fnr,

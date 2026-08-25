@@ -2,6 +2,7 @@ package no.nav.syfo.varsel.budstikka.infrastructure
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.kv
 import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
@@ -24,7 +25,8 @@ private const val BRUKERVARSEL_CREATE = "BrukervarselCreate"
 private const val LEDERVARSEL_CREATE = "LedervarselCreate"
 private const val ARBEIDSGIVERVARSEL_CREATE = "ArbeidsgivervarselCreate"
 private const val BUDSTIKKA_SEND_TIMEOUT_MILLIS = 250L
-private const val OPPFOELGING_TAG = "Oppfølging"
+private const val EVALUERINGS_PAAMINNELSE_ARBEIDSGIVER_TAG = "Oppfølging"
+private const val PAAMINNELSE_ARBEIDSGIVER_TAG = "OPPFOELGING"
 const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Din arbeidsgiver har laget en oppfølgingsplan for deg"
 const val EVALUERINGS_PAAMINNELSE_TEXT = "Oppdater oppfølgingsplan"
 const val EVALUERINGS_PAAMINNELSE_EMAIL_TITLE = "Oppdater oppfølgingsplanen"
@@ -51,7 +53,7 @@ val EVALUERINGS_PAAMINNELSE_EMAIL_HTML = """
       </tbody>
     </table>
 """.trimIndent()
-const val PAAMINNELSE_BUDSTIKKA_TEXT = "Husk å lage en oppfølgingsplan sammen med den ansatte."
+const val PAAMINNELSE_BUDSTIKKA_TEXT = "Start oppfølgingsplan"
 
 class BudstikkaProducer(
     private val producer: KafkaProducer<String, String>,
@@ -113,7 +115,7 @@ class BudstikkaProducer(
                 emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
                 emailHtmlBody = EVALUERINGS_PAAMINNELSE_EMAIL_HTML,
             ),
-            tag = OPPFOELGING_TAG,
+            tag = EVALUERINGS_PAAMINNELSE_ARBEIDSGIVER_TAG,
             text = EVALUERINGS_PAAMINNELSE_TEXT,
             link = dineSykmeldteOversiktUrl,
             messageType = Arbeidsgivervarsel.MessageType.BESKJED,
@@ -129,37 +131,64 @@ class BudstikkaProducer(
         eventId: UUID,
         narmestelederId: String,
     ): Unit = withContext(Dispatchers.IO) {
-//        val dispatch = Budstikka.arbeidsgivervarselCreate(
-//            eventId = EventId(eventId),
-//            reference = paaminnelseUuid.toString(),
-//            orgnummer = Orgnummer(orgnummer),
-//            recipient = Arbeidsgiver.NarmesteLeder(sykmeldt),
-//            varseltype = Varseltype.BESKJED,
-//            text = PAAMINNELSE_BUDSTIKKA_TEXT,
-//            link = "$budstikkaOppfolgingsplanNarmesteLederUrl/$narmestelederId",
-//            sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
-//        )
-//
-//        publish(dispatch, paaminnelseUuid, eventId)
-
-        log.info(
-            "Processed paaminnelse pending Budstikka contract support {}, {}, {}",
-            kv("paaminnelse_uuid", paaminnelseUuid),
-            kv("event_id", eventId),
-            kv("target_url", budstikkaOppfolgingsplanNarmesteLederUrl),
+        val dispatch = Budstikka.arbeidsgivervarselCreate(
+            eventId = EventId(eventId),
+            reference = paaminnelseUuid.toString(),
+            orgnummer = Orgnummer(orgnummer),
+            recipient = Arbeidsgivervarsel.NarmesteLeder(PersonIdentifier(sykmeldtFnr)),
+            tag = PAAMINNELSE_ARBEIDSGIVER_TAG,
+            text = PAAMINNELSE_BUDSTIKKA_TEXT,
+            link = budstikkaOppfolgingsplanNarmesteLederUrl,
+            messageType = Arbeidsgivervarsel.MessageType.BESKJED,
+            sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
         )
+
+        publish(dispatch, paaminnelseUuid, eventId)
+    }
+
+    override suspend fun publishPaaminnelseToDineSykmeldte(
+        paaminnelseUuid: UUID,
+        sykmeldtFnr: String,
+        orgnummer: String,
+        eventId: UUID,
+        narmestelederId: String,
+    ): Unit = withContext(Dispatchers.IO) {
+        val dispatch = Budstikka.dineSykmeldteVarselCreate(
+            eventId = EventId(eventId),
+            reference = paaminnelseUuid.toString(),
+            sykmeldt = PersonIdentifier(sykmeldtFnr),
+            orgnummer = Orgnummer(orgnummer),
+            oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
+            text = PAAMINNELSE_BUDSTIKKA_TEXT,
+            link = budstikkaOppfolgingsplanNarmesteLederUrl,
+            sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+        )
+
+        publish(dispatch, paaminnelseUuid, eventId)
     }
 
     private fun publish(
         dispatch: EncodedDispatch,
         dispatchType: String,
         eventId: UUID,
+    ) = publish(dispatch, kv("type", dispatchType), eventId)
+
+    private fun publish(
+        dispatch: EncodedDispatch,
+        referenceUuid: UUID,
+        eventId: UUID,
+    ) = publish(dispatch, kv("reference_uuid", referenceUuid), eventId)
+
+    private fun publish(
+        dispatch: EncodedDispatch,
+        dispatchContext: StructuredArgument,
+        eventId: UUID,
     ) {
         val record = dispatch.toProducerRecord()
         log.info(
             "Publiserer Budstikka dispatch {}, {}, {}",
             kv("topic", dispatch.topic),
-            kv("type", dispatchType),
+            dispatchContext,
             kv("event_id", eventId),
         )
         try {
@@ -168,7 +197,7 @@ class BudstikkaProducer(
             log.error(
                 "Publisert til akkumulator, timeout på get. Ukjent utfall {}, {}, {}",
                 kv("topic", dispatch.topic),
-                kv("type", dispatchType),
+                dispatchContext,
                 kv("event_id", eventId),
                 e,
             )
@@ -177,7 +206,7 @@ class BudstikkaProducer(
             log.error(
                 "Publisering av Budstikka dispatch timet ut. Ikke levert {}, {}, {}",
                 kv("topic", dispatch.topic),
-                kv("type", dispatchType),
+                dispatchContext,
                 kv("event_id", eventId),
                 e,
             )
@@ -186,7 +215,7 @@ class BudstikkaProducer(
             log.error(
                 "Feilet ved publisering av Budstikka dispatch til {}, {}, {}",
                 kv("topic", dispatch.topic),
-                kv("type", dispatchType),
+                dispatchContext,
                 kv("event_id", eventId),
                 e,
             )

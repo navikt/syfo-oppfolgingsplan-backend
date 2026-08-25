@@ -51,6 +51,20 @@ fun DatabaseInterface.upsertPaaminnelseAndEnqueue(
             availableAt = availableAt,
         ),
     )
+    connection.enqueueOutboxMessage(
+        NewOutboxMessage(
+            messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_DINE_SYKMELDTE,
+            dedupKey = "${paaminnelse.uuid}:$sykmeldingsperiodeId",
+            externalRef = paaminnelse.uuid.toString(),
+            payload = configuredJacksonMapper.writeValueAsString(
+                PaaminnelseOutboxPayload(
+                    sykmeldingsperiodeId = sykmeldingsperiodeId,
+                    narmestelederId = narmestelederId,
+                ),
+            ),
+            availableAt = availableAt,
+        ),
+    )
     connection.commit()
     paaminnelse
 }
