@@ -251,6 +251,7 @@ private fun servicesModule() = module {
         OutboxWorker(
             database = get(),
             handlers = listOf(get<OppfolgingsplanCreatedOutboxHandler>()),
+            observedMessageTypes = OppfolgingsplanOutboxMessageType.entries,
         )
     }
     single { OutboxTask(worker = get()) }
@@ -261,6 +262,14 @@ private fun servicesModule() = module {
             policies = listOf(
                 OutboxRetentionPolicy(
                     messageType = OppfolgingsplanOutboxMessageType.CREATED,
+                    retention = Duration.ofDays(90),
+                ),
+                OutboxRetentionPolicy(
+                    messageType = OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                    retention = Duration.ofDays(90),
+                ),
+                OutboxRetentionPolicy(
+                    messageType = OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
                     retention = Duration.ofDays(90),
                 ),
             ),

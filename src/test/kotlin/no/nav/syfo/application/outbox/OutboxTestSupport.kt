@@ -17,10 +17,12 @@ import kotlin.time.Duration.Companion.minutes
 
 enum class TestOutboxMessageType(override val value: String) : OutboxMessageType {
     CREATED("TEST_OPPFOLGINGSPLAN_CREATED"),
+    STAGED("TEST_STAGED_WITHOUT_HANDLER"),
 }
 
 val TEST_IMMEDIATE_MESSAGE = TestOutboxMessageType.CREATED
 val TEST_SCHEDULED_MESSAGE = TestOutboxMessageType.CREATED
+val TEST_STAGED_MESSAGE = TestOutboxMessageType.STAGED
 
 suspend fun DatabaseInterface.enqueueTestOutboxMessage(
     messageType: OutboxMessageType = TEST_IMMEDIATE_MESSAGE,

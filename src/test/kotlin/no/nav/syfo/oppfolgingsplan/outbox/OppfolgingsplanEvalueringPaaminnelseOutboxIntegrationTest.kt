@@ -56,7 +56,7 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
         describe("evaluation reminder outbox rows on finalized plans") {
             it("creates exactly two READY rows with independent uuids when evalueringPaaminnelse=true") {
                 val sykmeldt = defaultSykmeldt()
-                val evalueringsdato = LocalDate.of(2026, 1, 15)
+                val evalueringsdato = LocalDate.of(2030, 1, 15)
                 val planUuid = TestDB.database.createOppfolgingsplan(
                     sykmeldt = sykmeldt,
                     evalueringPaaminnelse = true,
@@ -99,7 +99,7 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
             }
 
             it("uses Europe/Oslo winter scheduling at 09:00") {
-                val evalueringsdato = LocalDate.of(2026, 1, 15)
+                val evalueringsdato = LocalDate.of(2030, 1, 15)
                 val planUuid = TestDB.database.createOppfolgingsplan(
                     evalueringPaaminnelse = true,
                     evalueringsdato = evalueringsdato,
@@ -112,19 +112,19 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
             }
 
             it("uses calendar-based DST scheduling at 09:00 Europe/Oslo") {
-                val evalueringsdato = LocalDate.of(2026, 4, 1)
+                val evalueringsdato = LocalDate.of(2032, 4, 1)
                 val planUuid = TestDB.database.createOppfolgingsplan(
                     evalueringPaaminnelse = true,
                     evalueringsdato = evalueringsdato,
                 )
-                val expectedAvailableAt = Instant.parse("2026-03-29T07:00:00Z")
+                val expectedAvailableAt = Instant.parse("2032-03-29T07:00:00Z")
 
                 OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { messageType ->
                     TestDB.database.findEvalueringMessage(messageType, planUuid).availableAt shouldBe expectedAvailableAt
                 }
             }
 
-            it("does not clamp past schedules") {
+            it("clamps past schedules to the persisted plan creation timestamp") {
                 val evalueringsdato = LocalDate.of(2020, 1, 10)
                 val planUuid = TestDB.database.createOppfolgingsplan(
                     evalueringPaaminnelse = true,
@@ -136,7 +136,7 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
                     planUuid,
                 )
 
-                message.availableAt.isBefore(plan.createdAt) shouldBe true
+                message.availableAt shouldBe plan.createdAt
             }
 
             it("deduplicates retries for the same plan and channel") {
@@ -397,72 +397,55 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
                 }
             }
 
-            it("replays concurrent replacements after a repeatable-read serialization conflict") {
-                val sykmeldt = defaultSykmeldt().copy(narmestelederId = "leader-concurrent-replacement")
-                val existingPlanUuid = TestDB.database.createOppfolgingsplan(
-                    sykmeldt = sykmeldt,
-                    evalueringPaaminnelse = true,
-                    evalueringsdato = LocalDate.of(2027, 5, 15),
-                )
-                TestDB.database.installReplacementConcurrencyBarrier()
+            it("serializes two concurrent first plans so only the last plan retains READY reminders") {
+                val sykmeldt = defaultSykmeldt().copy(narmestelederId = "leader-concurrent-first")
 
-                try {
-                    TestDB.database.connection.use { barrierConnection ->
-                        barrierConnection.createStatement().use {
-                            it.execute("SELECT pg_advisory_lock(438430)")
-                        }
-
-                        val replacements = coroutineScope {
-                            val first = async(Dispatchers.IO) {
-                                TestDB.database.createOppfolgingsplan(
-                                    sykmeldt = sykmeldt.copy(narmestelederId = "leader-concurrent-first"),
-                                    evalueringPaaminnelse = true,
-                                    evalueringsdato = LocalDate.of(2027, 6, 15),
-                                )
-                            }
-                            TestDB.database.awaitDatabaseCondition {
-                                countWaitingReplacementAdvisoryLocks() == 1
-                            }
-
-                            val second = async(Dispatchers.IO) {
-                                TestDB.database.createOppfolgingsplan(
-                                    sykmeldt = sykmeldt.copy(narmestelederId = "leader-concurrent-second"),
-                                    evalueringPaaminnelse = true,
-                                    evalueringsdato = LocalDate.of(2027, 7, 15),
-                                )
-                            }
-                            TestDB.database.awaitDatabaseCondition {
-                                countReplacementTransactionsWaitingForFirst() == 1
-                            }
-
-                            barrierConnection.createStatement().use {
-                                it.execute("SELECT pg_advisory_unlock(438430)")
-                            }
-                            listOf(first.await(), second.await())
-                        }
-
-                        val plans = TestDB.database.findAllOppfolgingsplanerBy(
-                            sykmeldt.fnr,
-                            sykmeldt.orgnummer,
-                        )
-                        plans.shouldHaveSize(3)
-                        replacements.forEach { replacementUuid ->
-                            plans.count { it.uuid == replacementUuid } shouldBe 1
-                            TestDB.database.countEvalueringPaaminnelseRows(replacementUuid) shouldBe 2
-                        }
-                        TestDB.database.replacementTransactionAttemptCount() shouldBe 3
-
-                        OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { messageType ->
-                            TestDB.database.findEvalueringMessage(messageType, existingPlanUuid).status shouldBe
-                                OutboxStatus.CANCELLED
-                            TestDB.database.findEvalueringMessage(messageType, replacements[0]).status shouldBe
-                                OutboxStatus.CANCELLED
-                            TestDB.database.findEvalueringMessage(messageType, replacements[1]).status shouldBe
-                                OutboxStatus.READY
-                        }
+                TestDB.database.connection.use { barrierConnection ->
+                    barrierConnection.prepareStatement(
+                        "SELECT pg_advisory_lock(hashtextextended(? || ':' || ?, 0))",
+                    ).use {
+                        it.setString(1, sykmeldt.fnr)
+                        it.setString(2, sykmeldt.orgnummer)
+                        it.execute()
                     }
-                } finally {
-                    TestDB.database.removeReplacementConcurrencyBarrier()
+
+                    val plans = coroutineScope {
+                        val first = async(Dispatchers.IO) {
+                            TestDB.database.createOppfolgingsplan(
+                                sykmeldt = sykmeldt,
+                                evalueringPaaminnelse = true,
+                                evalueringsdato = LocalDate.of(2027, 6, 15),
+                            )
+                        }
+                        TestDB.database.awaitDatabaseCondition { countWaitingAdvisoryLocks() == 1 }
+
+                        val second = async(Dispatchers.IO) {
+                            TestDB.database.createOppfolgingsplan(
+                                sykmeldt = sykmeldt.copy(narmestelederId = "leader-concurrent-second"),
+                                evalueringPaaminnelse = true,
+                                evalueringsdato = LocalDate.of(2027, 7, 15),
+                            )
+                        }
+                        TestDB.database.awaitDatabaseCondition { countWaitingAdvisoryLocks() == 2 }
+
+                        barrierConnection.prepareStatement(
+                            "SELECT pg_advisory_unlock(hashtextextended(? || ':' || ?, 0))",
+                        ).use {
+                            it.setString(1, sykmeldt.fnr)
+                            it.setString(2, sykmeldt.orgnummer)
+                            it.execute()
+                        }
+                        listOf(first.await(), second.await())
+                    }
+
+                    TestDB.database.findAllOppfolgingsplanerBy(sykmeldt.fnr, sykmeldt.orgnummer)
+                        .shouldHaveSize(2)
+                    OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { messageType ->
+                        TestDB.database.findEvalueringMessage(messageType, plans[0]).status shouldBe
+                            OutboxStatus.CANCELLED
+                        TestDB.database.findEvalueringMessage(messageType, plans[1]).status shouldBe
+                            OutboxStatus.READY
+                    }
                 }
             }
         }
@@ -626,59 +609,6 @@ private fun DatabaseInterface.countEvalueringPaaminnelseRows(
     }
 }
 
-private fun DatabaseInterface.installReplacementConcurrencyBarrier() = connection.use { connection ->
-    connection.createStatement().use { statement ->
-        statement.execute(
-            """
-            CREATE SEQUENCE replacement_transaction_attempts;
-
-            CREATE FUNCTION count_replacement_transaction_attempt()
-            RETURNS TRIGGER AS ${'$'}function${'$'}
-            BEGIN
-                PERFORM nextval('replacement_transaction_attempts');
-                RETURN NEW;
-            END;
-            ${'$'}function${'$'} LANGUAGE plpgsql;
-
-            CREATE TRIGGER count_replacement_transaction_attempt
-            BEFORE INSERT ON oppfolgingsplan
-            FOR EACH ROW
-            EXECUTE FUNCTION count_replacement_transaction_attempt();
-
-            CREATE FUNCTION block_replacement_created_outbox()
-            RETURNS TRIGGER AS ${'$'}function${'$'}
-            BEGIN
-                PERFORM pg_advisory_xact_lock(438430);
-                RETURN NEW;
-            END;
-            ${'$'}function${'$'} LANGUAGE plpgsql;
-
-            CREATE TRIGGER block_replacement_created_outbox
-            BEFORE INSERT ON outbox
-            FOR EACH ROW
-            WHEN (NEW.message_type = 'OPPFOLGINGSPLAN_CREATED')
-            EXECUTE FUNCTION block_replacement_created_outbox();
-            """.trimIndent(),
-        )
-    }
-    connection.commit()
-}
-
-private fun DatabaseInterface.removeReplacementConcurrencyBarrier() = connection.use { connection ->
-    connection.createStatement().use { statement ->
-        statement.execute(
-            """
-            DROP TRIGGER IF EXISTS block_replacement_created_outbox ON outbox;
-            DROP FUNCTION IF EXISTS block_replacement_created_outbox();
-            DROP TRIGGER IF EXISTS count_replacement_transaction_attempt ON oppfolgingsplan;
-            DROP FUNCTION IF EXISTS count_replacement_transaction_attempt();
-            DROP SEQUENCE IF EXISTS replacement_transaction_attempts;
-            """.trimIndent(),
-        )
-    }
-    connection.commit()
-}
-
 private suspend fun DatabaseInterface.awaitDatabaseCondition(condition: DatabaseInterface.() -> Boolean) {
     withTimeout(10_000) {
         while (!condition()) {
@@ -687,55 +617,16 @@ private suspend fun DatabaseInterface.awaitDatabaseCondition(condition: Database
     }
 }
 
-private fun DatabaseInterface.countWaitingReplacementAdvisoryLocks(): Int = connection.use { connection ->
+private fun DatabaseInterface.countWaitingAdvisoryLocks(): Int = connection.use { connection ->
     connection.prepareStatement(
         """
         SELECT COUNT(*)
         FROM pg_locks
         WHERE locktype = 'advisory'
-          AND classid = 0
-          AND objid = 438430
-          AND objsubid = 1
           AND NOT granted
         """.trimIndent(),
     ).use { statement ->
         statement.executeQuery().use { resultSet ->
-            resultSet.next()
-            resultSet.getInt(1)
-        }
-    }
-}
-
-private fun DatabaseInterface.countReplacementTransactionsWaitingForFirst(): Int = connection.use { connection ->
-    connection.prepareStatement(
-        """
-        SELECT COUNT(*)
-        FROM pg_locks waiting_transaction
-        JOIN pg_locks blocking_transaction
-          ON blocking_transaction.locktype = 'transactionid'
-         AND blocking_transaction.transactionid = waiting_transaction.transactionid
-         AND blocking_transaction.granted
-        JOIN pg_locks waiting_advisory
-          ON waiting_advisory.pid = blocking_transaction.pid
-         AND waiting_advisory.locktype = 'advisory'
-         AND waiting_advisory.classid = 0
-         AND waiting_advisory.objid = 438430
-         AND waiting_advisory.objsubid = 1
-         AND NOT waiting_advisory.granted
-        WHERE waiting_transaction.locktype = 'transactionid'
-          AND NOT waiting_transaction.granted
-        """.trimIndent(),
-    ).use { statement ->
-        statement.executeQuery().use { resultSet ->
-            resultSet.next()
-            resultSet.getInt(1)
-        }
-    }
-}
-
-private fun DatabaseInterface.replacementTransactionAttemptCount(): Int = connection.use { connection ->
-    connection.createStatement().use { statement ->
-        statement.executeQuery("SELECT last_value FROM replacement_transaction_attempts").use { resultSet ->
             resultSet.next()
             resultSet.getInt(1)
         }

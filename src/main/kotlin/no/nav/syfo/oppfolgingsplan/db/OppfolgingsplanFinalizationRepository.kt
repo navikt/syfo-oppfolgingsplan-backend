@@ -12,18 +12,13 @@ import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import no.nav.syfo.oppfolgingsplan.outbox.EvalueringPaaminnelseDefinition
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
-import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.core.java.javaUUID
 import org.jetbrains.exposed.v1.core.statements.StatementType
-import org.jetbrains.exposed.v1.javatime.CurrentTimestampWithTimeZone
-import org.jetbrains.exposed.v1.javatime.date
-import org.jetbrains.exposed.v1.javatime.timestampWithTimeZone
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.deleteReturning
 import org.jetbrains.exposed.v1.jdbc.insertReturning
-import org.jetbrains.exposed.v1.json.jsonb
 import java.math.BigDecimal
+import java.sql.Connection
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
@@ -31,44 +26,49 @@ import java.util.UUID
 class OppfolgingsplanFinalizationRepository(
     private val database: DatabaseInterface,
 ) {
-    suspend fun finalize(command: OppfolgingsplanFinalizationCommand): OppfolgingsplanFinalizationResult = database.exposedTransaction(maxAttempts = 3) {
-        val utkastCreatedAt = EvalueringPaaminnelseOppfolgingsplanUtkastTable
-            .deleteReturning(returning = listOf(EvalueringPaaminnelseOppfolgingsplanUtkastTable.createdAt)) {
-                EvalueringPaaminnelseOppfolgingsplanUtkastTable.narmesteLederId eq command.sykmeldt.narmestelederId
+    suspend fun finalize(command: OppfolgingsplanFinalizationCommand): OppfolgingsplanFinalizationResult = database.exposedTransaction(
+        maxAttempts = 3,
+        transactionIsolation = Connection.TRANSACTION_READ_COMMITTED,
+    ) {
+        acquireFinalizationLock(command.sykmeldt.fnr, command.sykmeldt.orgnummer)
+
+        val utkastCreatedAt = OppfolgingsplanUtkastTable
+            .deleteReturning(returning = listOf(OppfolgingsplanUtkastTable.createdAt)) {
+                OppfolgingsplanUtkastTable.narmesteLederId eq command.sykmeldt.narmestelederId
             }.singleOrNull()
-            ?.get(EvalueringPaaminnelseOppfolgingsplanUtkastTable.createdAt)
+            ?.get(OppfolgingsplanUtkastTable.createdAt)
         val eventId = UUID.randomUUID()
 
-        val insertedOppfolgingsplanRow = EvalueringPaaminnelseOppfolgingsplanTable.insertReturning(
+        val insertedOppfolgingsplanRow = OppfolgingsplanTable.insertReturning(
             returning = listOf(
-                EvalueringPaaminnelseOppfolgingsplanTable.uuid,
-                EvalueringPaaminnelseOppfolgingsplanTable.createdAt,
+                OppfolgingsplanTable.uuid,
+                OppfolgingsplanTable.createdAt,
             ),
         ) {
-            it[EvalueringPaaminnelseOppfolgingsplanTable.sykmeldtFnr] = command.sykmeldt.fnr
-            it[EvalueringPaaminnelseOppfolgingsplanTable.sykmeldtFullName] = command.sykmeldt.navn
-            it[EvalueringPaaminnelseOppfolgingsplanTable.narmesteLederId] = command.sykmeldt.narmestelederId
-            it[EvalueringPaaminnelseOppfolgingsplanTable.narmesteLederFnr] = command.narmesteLederFnr
-            it[EvalueringPaaminnelseOppfolgingsplanTable.organisasjonsnummer] = command.sykmeldt.orgnummer
-            it[EvalueringPaaminnelseOppfolgingsplanTable.organisasjonsnavn] = command.sykmeldt.getOrganizationName()
-            it[EvalueringPaaminnelseOppfolgingsplanTable.stillingstittel] = command.stillingstittel
-            it[EvalueringPaaminnelseOppfolgingsplanTable.stillingsprosent] = command.stillingsprosent
-            it[EvalueringPaaminnelseOppfolgingsplanTable.content] =
+            it[OppfolgingsplanTable.sykmeldtFnr] = command.sykmeldt.fnr
+            it[OppfolgingsplanTable.sykmeldtFullName] = command.sykmeldt.navn
+            it[OppfolgingsplanTable.narmesteLederId] = command.sykmeldt.narmestelederId
+            it[OppfolgingsplanTable.narmesteLederFnr] = command.narmesteLederFnr
+            it[OppfolgingsplanTable.organisasjonsnummer] = command.sykmeldt.orgnummer
+            it[OppfolgingsplanTable.organisasjonsnavn] = command.sykmeldt.getOrganizationName()
+            it[OppfolgingsplanTable.stillingstittel] = command.stillingstittel
+            it[OppfolgingsplanTable.stillingsprosent] = command.stillingsprosent
+            it[OppfolgingsplanTable.content] =
                 command.createOppfolgingsplanRequest.content.toJsonString()
-            it[EvalueringPaaminnelseOppfolgingsplanTable.evalueringsdato] =
+            it[OppfolgingsplanTable.evalueringsdato] =
                 command.createOppfolgingsplanRequest.evalueringsdato
-            it[EvalueringPaaminnelseOppfolgingsplanTable.evalueringPaaminnelse] =
+            it[OppfolgingsplanTable.evalueringPaaminnelse] =
                 command.createOppfolgingsplanRequest.evalueringPaaminnelse
-            it[EvalueringPaaminnelseOppfolgingsplanTable.evalueringPaaminnelseOutboxAt] = null
-            it[EvalueringPaaminnelseOppfolgingsplanTable.skalDelesMedLege] = false
-            it[EvalueringPaaminnelseOppfolgingsplanTable.skalDelesMedVeileder] = false
-            it[EvalueringPaaminnelseOppfolgingsplanTable.utkastCreatedAt] = utkastCreatedAt
-            it[EvalueringPaaminnelseOppfolgingsplanTable.createdAt] = CurrentTimestampWithTimeZone
-            it[EvalueringPaaminnelseOppfolgingsplanTable.eventId] = eventId
+            it[OppfolgingsplanTable.evalueringPaaminnelseOutboxAt] = null
+            it[OppfolgingsplanTable.skalDelesMedLege] = false
+            it[OppfolgingsplanTable.skalDelesMedVeileder] = false
+            it[OppfolgingsplanTable.utkastCreatedAt] = utkastCreatedAt
+            it[OppfolgingsplanTable.createdAt] = org.jetbrains.exposed.v1.javatime.CurrentTimestampWithTimeZone
+            it[OppfolgingsplanTable.eventId] = eventId
         }.single()
 
-        val oppfolgingsplanUuid = insertedOppfolgingsplanRow[EvalueringPaaminnelseOppfolgingsplanTable.uuid]
-        val createdAt = insertedOppfolgingsplanRow[EvalueringPaaminnelseOppfolgingsplanTable.createdAt].toInstant()
+        val oppfolgingsplanUuid = insertedOppfolgingsplanRow[OppfolgingsplanTable.uuid]
+        val createdAt = insertedOppfolgingsplanRow[OppfolgingsplanTable.createdAt].toInstant()
 
         val supersededReminderCountByChannel = cancelReadySupersededEvalueringPaaminnelseRows(
             sykmeldtFnr = command.sykmeldt.fnr,
@@ -101,7 +101,7 @@ class OppfolgingsplanFinalizationRepository(
                         dedupKey = oppfolgingsplanUuid.toString(),
                         externalRef = oppfolgingsplanUuid.toString(),
                         payload = "{}",
-                        availableAt = definition.availableAt,
+                        availableAt = maxOf(definition.availableAt, createdAt),
                     ),
                 ),
             ) {
@@ -115,6 +115,20 @@ class OppfolgingsplanFinalizationRepository(
             createdReminderCountByChannel = createdReminderCountByChannel,
             supersededReminderCountByChannel = supersededReminderCountByChannel,
         )
+    }
+
+    private fun JdbcTransaction.acquireFinalizationLock(
+        sykmeldtFnr: String,
+        organisasjonsnummer: String,
+    ) {
+        exec(
+            stmt = "SELECT pg_advisory_xact_lock(hashtextextended(? || ':' || ?, 0))",
+            args = listOf(
+                OppfolgingsplanTable.sykmeldtFnr.columnType to sykmeldtFnr,
+                OppfolgingsplanTable.organisasjonsnummer.columnType to organisasjonsnummer,
+            ),
+            explicitStatementType = StatementType.SELECT,
+        ) { resultSet -> resultSet.next() }
     }
 
     private fun JdbcTransaction.cancelReadySupersededEvalueringPaaminnelseRows(
@@ -154,9 +168,9 @@ class OppfolgingsplanFinalizationRepository(
                     OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER.value,
                 OutboxTable.messageType.columnType to
                     OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE.value,
-                EvalueringPaaminnelseOppfolgingsplanTable.sykmeldtFnr.columnType to sykmeldtFnr,
-                EvalueringPaaminnelseOppfolgingsplanTable.organisasjonsnummer.columnType to organisasjonsnummer,
-                EvalueringPaaminnelseOppfolgingsplanTable.uuid.columnType to supersedingOppfolgingsplanUuid,
+                OppfolgingsplanTable.sykmeldtFnr.columnType to sykmeldtFnr,
+                OppfolgingsplanTable.organisasjonsnummer.columnType to organisasjonsnummer,
+                OppfolgingsplanTable.uuid.columnType to supersedingOppfolgingsplanUuid,
             ),
             explicitStatementType = StatementType.SELECT,
         ) { resultSet ->
@@ -186,34 +200,3 @@ data class OppfolgingsplanFinalizationResult(
     val createdReminderCountByChannel: Map<OppfolgingsplanOutboxMessageType, Int>,
     val supersededReminderCountByChannel: Map<OppfolgingsplanOutboxMessageType, Int>,
 )
-
-private object EvalueringPaaminnelseOppfolgingsplanTable : Table("oppfolgingsplan") {
-    val uuid = javaUUID("uuid").databaseGenerated()
-    val sykmeldtFnr = text("sykmeldt_fnr")
-    val sykmeldtFullName = text("sykmeldt_full_name")
-    val narmesteLederId = text("narmeste_leder_id")
-    val narmesteLederFnr = text("narmeste_leder_fnr")
-    val organisasjonsnummer = text("organisasjonsnummer")
-    val organisasjonsnavn = text("organisasjonsnavn").nullable()
-    val stillingstittel = text("stillingstittel").nullable()
-    val stillingsprosent = decimal("stillingsprosent", 5, 2).nullable()
-    val content = jsonb<String>("content", { it }, { it })
-    val evalueringsdato = date("evalueringsdato")
-    val evalueringPaaminnelse = bool("evaluering_paaminnelse")
-    val evalueringPaaminnelseOutboxAt = timestampWithTimeZone("evaluering_paaminnelse_outbox_at").nullable()
-    val skalDelesMedLege = bool("skal_deles_med_lege")
-    val skalDelesMedVeileder = bool("skal_deles_med_veileder")
-    val utkastCreatedAt = timestampWithTimeZone("utkast_created_at").nullable()
-    val createdAt = timestampWithTimeZone("created_at")
-    val eventId = javaUUID("event_id").nullable()
-
-    override val primaryKey = PrimaryKey(uuid)
-}
-
-private object EvalueringPaaminnelseOppfolgingsplanUtkastTable : Table("oppfolgingsplan_utkast") {
-    val uuid = javaUUID("uuid").databaseGenerated()
-    val narmesteLederId = text("narmeste_leder_id")
-    val createdAt = timestampWithTimeZone("created_at")
-
-    override val primaryKey = PrimaryKey(uuid)
-}

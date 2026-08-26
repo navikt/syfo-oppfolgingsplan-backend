@@ -41,5 +41,24 @@ class OutboxSchemaTest :
 
                 TestDB.database.findOutboxMessage(message)?.status shouldBe OutboxStatus.READY
             }
+
+            it("creates the reminder supersede index in a valid state") {
+                val indexState = TestDB.database.connection.use { connection ->
+                    connection.prepareStatement(
+                        """
+                        SELECT indexrelid::regclass::text AS index_name, indisvalid
+                        FROM pg_index
+                        WHERE indexrelid = 'idx_outbox_ready_message_type_external_ref'::regclass
+                        """.trimIndent(),
+                    ).use { statement ->
+                        statement.executeQuery().use { resultSet ->
+                            resultSet.next() shouldBe true
+                            resultSet.getString("index_name") to resultSet.getBoolean("indisvalid")
+                        }
+                    }
+                }
+
+                indexState shouldBe ("idx_outbox_ready_message_type_external_ref" to true)
+            }
         }
     })

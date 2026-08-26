@@ -14,6 +14,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.syfo.TestDB
+import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.outbox.OutboxWorker
 import no.nav.syfo.application.outbox.db.findOutboxMessage
@@ -24,10 +25,14 @@ import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.findEventId
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
-import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.persistOppfolgingsplanUtkast
+import no.nav.syfo.pdl.PdlService
+import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import org.slf4j.LoggerFactory
 import java.time.Clock
@@ -200,14 +205,19 @@ class OppfolgingsplanCreatedOutboxIntegrationTest :
         }
     })
 
-private fun DatabaseInterface.createOppfolgingsplan(
+private suspend fun DatabaseInterface.createOppfolgingsplan(
     narmesteLederId: String = defaultSykmeldt().narmestelederId,
-): UUID = persistOppfolgingsplanAndDeleteUtkast(
+): UUID = OppfolgingsplanService(
+    database = this,
+    esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
+    pdlService = mockk<PdlService>(relaxed = true),
+    aaregService = mockk<AaregService>(relaxed = true),
+    unntaksvurderingService = mockk<UnntaksvurderingService>(relaxed = true),
+    oppfolgingsplanFinalizationRepository = OppfolgingsplanFinalizationRepository(this),
+).createOppfolgingsplan(
     narmesteLederFnr = "10987654321",
     sykmeldt = defaultSykmeldt().copy(narmestelederId = narmesteLederId),
     createOppfolgingsplanRequest = defaultOppfolgingsplan(),
-    stillingstittel = "Systemutvikler",
-    stillingsprosent = null,
 )
 
 private suspend fun DatabaseInterface.findCreatedMessage(planUuid: UUID) = findOutboxMessage(

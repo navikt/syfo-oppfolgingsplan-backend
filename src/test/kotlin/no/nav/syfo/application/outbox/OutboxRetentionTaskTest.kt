@@ -8,15 +8,18 @@ import io.mockk.mockk
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.leaderelection.LeaderElection
+import no.nav.syfo.application.outbox.db.claimOutboxMessages
 import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.db.markOutboxMessageCancelled
 import no.nav.syfo.application.outbox.db.markOutboxMessageSent
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxStatus
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
+import kotlin.time.Duration.Companion.minutes
 
 class OutboxRetentionTaskTest :
     DescribeSpec({
@@ -74,5 +77,41 @@ class OutboxRetentionTaskTest :
             }
             TestDB.database.findOutboxMessage(activeMessage)?.status shouldBe OutboxStatus.READY
             TestDB.database.findOutboxMessage(freshTerminalMessage)?.status shouldBe OutboxStatus.SENT
+        }
+
+        it("purges terminal reminder rows but preserves staged READY rows") {
+            val terminalType = OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER
+            val readyType = OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE
+            val terminal = TestDB.database.enqueueTestOutboxMessage(
+                messageType = terminalType,
+                availableAt = completedAt,
+            )
+            val ready = TestDB.database.enqueueTestOutboxMessage(
+                messageType = readyType,
+                availableAt = completedAt,
+            )
+            val claim = TestDB.database.exposedTransaction {
+                claimOutboxMessages(
+                    terminalType,
+                    completedAt,
+                    1,
+                    5.minutes,
+                ).single()
+            }
+            TestDB.database.exposedTransaction {
+                markOutboxMessageSent(claim.uuid, claim.claimToken.shouldNotBeNull(), completedAt)
+            }
+
+            OutboxRetentionTask(
+                database = TestDB.database,
+                leaderElection = mockk<LeaderElection>(),
+                policies = OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.map {
+                    OutboxRetentionPolicy(it, Duration.ofDays(90))
+                },
+                clock = Clock.fixed(now, ZoneOffset.UTC),
+            ).execute()
+
+            TestDB.database.findOutboxMessage(terminal).shouldBeNull()
+            TestDB.database.findOutboxMessage(ready)?.status shouldBe OutboxStatus.READY
         }
     })
