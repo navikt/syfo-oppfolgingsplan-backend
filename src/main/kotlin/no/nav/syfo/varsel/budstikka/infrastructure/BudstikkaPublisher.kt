@@ -1,6 +1,5 @@
 package no.nav.syfo.varsel.budstikka.infrastructure
 
-import java.time.LocalDate
 import java.util.UUID
 
 interface BudstikkaPublisher {
@@ -10,13 +9,11 @@ interface BudstikkaPublisher {
         eventId: UUID,
     )
 
-    suspend fun publishEvalueringPaaminnelseDineSykmeldte(
+    suspend fun publishDineSykmeldteEvalueringspaaminnelse(
         oppfolgingsplanUuid: UUID,
         sykmeldtFnr: String,
         organisasjonsnummer: String,
-        organisasjonsnavn: String?,
-        sykmeldtFullName: String,
-        evalueringsdato: LocalDate,
+        narmesteLederId: String,
         eventId: UUID,
     )
 }

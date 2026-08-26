@@ -16,12 +16,12 @@ import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
+import no.nav.syfo.varsel.budstikka.infrastructure.DINE_SYKMELDTE_PAAMINNELSE_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
 import org.apache.kafka.common.TopicPartition
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
@@ -107,39 +107,32 @@ class BudstikkaProducerTest :
             }
         }
 
-        describe("publishEvalueringPaaminnelseDineSykmeldte") {
+        describe("publishDineSykmeldteEvalueringspaaminnelse") {
             it("publishes the agreed activity through the Dine Sykmeldte facade") {
                 val future = mockk<Future<RecordMetadata>>()
                 val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
                 val oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
                 val sykmeldtFnr = "00000000000"
                 val organisasjonsnummer = "999999999"
-                val expectedText = """
-                    ARNESEN, HOLM OG BAKKEN
-                    Oppfølging av Kari Normann
-                    Oppdater oppfølgingsplan
-                    mai 2026
-                """.trimIndent()
+                val narmesteLederId = "narmeste-leder-id"
                 val expectedDispatch = Budstikka.dineSykmeldteVarselCreate(
                     eventId = EventId(eventId),
                     reference = oppfolgingsplanUuid.toString(),
                     sykmeldt = PersonIdentifier(sykmeldtFnr),
                     orgnummer = Orgnummer(organisasjonsnummer),
                     oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
-                    text = expectedText,
-                    link = dineSykmeldteOversiktUrl,
+                    text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
+                    link = "$dineSykmeldteOversiktUrl/$narmesteLederId",
                     sendingWindow = SendingWindow.ONGOING,
                 )
                 every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
 
-                producer.publishEvalueringPaaminnelseDineSykmeldte(
+                producer.publishDineSykmeldteEvalueringspaaminnelse(
                     oppfolgingsplanUuid = oppfolgingsplanUuid,
                     sykmeldtFnr = sykmeldtFnr,
                     organisasjonsnummer = organisasjonsnummer,
-                    organisasjonsnavn = "ARNESEN, HOLM OG BAKKEN",
-                    sykmeldtFullName = "Kari Normann",
-                    evalueringsdato = LocalDate.of(2026, 5, 20),
+                    narmesteLederId = narmesteLederId,
                     eventId = eventId,
                 )
 

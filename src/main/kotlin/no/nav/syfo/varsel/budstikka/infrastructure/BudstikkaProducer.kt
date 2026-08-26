@@ -14,9 +14,6 @@ import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.util.logger
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
-import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
@@ -26,7 +23,7 @@ private const val BRUKERVARSEL_CREATE = "BrukervarselCreate"
 private const val LEDERVARSEL_CREATE = "LedervarselCreate"
 private const val BUDSTIKKA_SEND_TIMEOUT_MILLIS = 250L
 const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Din arbeidsgiver har laget en oppfølgingsplan for deg"
-private val NORWEGIAN_MONTH_AND_YEAR = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.forLanguageTag("nb-NO"))
+const val DINE_SYKMELDTE_PAAMINNELSE_TEXT = "Oppdater oppfølgingsplan"
 
 class BudstikkaProducer(
     private val producer: KafkaProducer<String, String>,
@@ -52,13 +49,11 @@ class BudstikkaProducer(
         publish(dispatch, BRUKERVARSEL_CREATE, eventId)
     }
 
-    override suspend fun publishEvalueringPaaminnelseDineSykmeldte(
+    override suspend fun publishDineSykmeldteEvalueringspaaminnelse(
         oppfolgingsplanUuid: UUID,
         sykmeldtFnr: String,
         organisasjonsnummer: String,
-        organisasjonsnavn: String?,
-        sykmeldtFullName: String,
-        evalueringsdato: LocalDate,
+        narmesteLederId: String,
         eventId: UUID,
     ): Unit = withContext(Dispatchers.IO) {
         val dispatch = Budstikka.dineSykmeldteVarselCreate(
@@ -67,13 +62,8 @@ class BudstikkaProducer(
             sykmeldt = PersonIdentifier(sykmeldtFnr),
             orgnummer = Orgnummer(organisasjonsnummer),
             oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
-            text = evalueringPaaminnelseText(
-                organisasjonsnavn = organisasjonsnavn,
-                organisasjonsnummer = organisasjonsnummer,
-                sykmeldtFullName = sykmeldtFullName,
-                evalueringsdato = evalueringsdato,
-            ),
-            link = dineSykmeldteOversiktUrl,
+            text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
+            link = "$dineSykmeldteOversiktUrl/$narmesteLederId",
             sendingWindow = SendingWindow.ONGOING,
         )
         publish(dispatch, LEDERVARSEL_CREATE, eventId)
@@ -123,18 +113,6 @@ class BudstikkaProducer(
             throw e
         }
     }
-
-    private fun evalueringPaaminnelseText(
-        organisasjonsnavn: String?,
-        organisasjonsnummer: String,
-        sykmeldtFullName: String,
-        evalueringsdato: LocalDate,
-    ): String = listOf(
-        organisasjonsnavn?.takeIf { it.isNotBlank() } ?: organisasjonsnummer,
-        "Oppfølging av $sykmeldtFullName",
-        "Oppdater oppfølgingsplan",
-        evalueringsdato.format(NORWEGIAN_MONTH_AND_YEAR),
-    ).joinToString("\n")
 
     private fun EncodedDispatch.toProducerRecord() = ProducerRecord(topic, key, value).apply {
         headerBytes().forEach { (name, value) ->

@@ -40,9 +40,10 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
+import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseSourceRepository
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
+import no.nav.syfo.oppfolgingsplan.outbox.DineSykmeldteEvalueringspaaminnelseHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
-import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
@@ -234,6 +235,7 @@ private fun servicesModule() = module {
     single { AaregService(get()) }
     single { UnntaksvurderingService(database = get(), pdlService = get()) }
     single { OppfolgingsplanFinalizationRepository(database = get()) }
+    single { EvalueringspaaminnelseSourceRepository(database = get()) }
     single {
         OppfolgingsplanService(
             database = get(),
@@ -250,7 +252,7 @@ private fun servicesModule() = module {
     single { CleanupUtkastTask(get(), get()) }
     single { OppfolgingsplanCreatedOutboxHandler(database = get(), publisher = get()) }
     single {
-        OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxHandler(
+        DineSykmeldteEvalueringspaaminnelseHandler(
             repository = get(),
             publisher = get(),
         )
@@ -260,7 +262,7 @@ private fun servicesModule() = module {
             database = get(),
             handlers = listOf(
                 get<OppfolgingsplanCreatedOutboxHandler>(),
-                get<OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxHandler>(),
+                get<DineSykmeldteEvalueringspaaminnelseHandler>(),
             ),
             observedMessageTypes = OppfolgingsplanOutboxMessageType.entries,
         )

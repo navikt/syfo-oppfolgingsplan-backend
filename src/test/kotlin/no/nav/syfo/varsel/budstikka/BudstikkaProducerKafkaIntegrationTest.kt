@@ -12,6 +12,7 @@ import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
+import no.nav.syfo.varsel.budstikka.infrastructure.DINE_SYKMELDTE_PAAMINNELSE_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -22,7 +23,6 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.kafka.common.serialization.StringSerializer
 import org.testcontainers.kafka.KafkaContainer
 import java.time.Duration
-import java.time.LocalDate
 import java.util.Properties
 import java.util.UUID
 
@@ -85,20 +85,15 @@ class BudstikkaProducerKafkaIntegrationTest :
 
         test("BudstikkaProducer delivers the Dine Sykmeldte evaluation reminder to Kafka") {
             val organisasjonsnummer = "999999999"
-            val expectedText = """
-                ARNESEN, HOLM OG BAKKEN
-                Oppfølging av Kari Normann
-                Oppdater oppfølgingsplan
-                mai 2026
-            """.trimIndent()
+            val narmesteLederId = "narmeste-leder-id"
             val expectedDispatch = Budstikka.dineSykmeldteVarselCreate(
                 eventId = EventId(eventId),
                 reference = oppfolgingsplanUuid.toString(),
                 sykmeldt = PersonIdentifier(sykmeldtFnr),
                 orgnummer = Orgnummer(organisasjonsnummer),
                 oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
-                text = expectedText,
-                link = dineSykmeldteOversiktUrl,
+                text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
+                link = "$dineSykmeldteOversiktUrl/$narmesteLederId",
                 sendingWindow = SendingWindow.ONGOING,
             )
 
@@ -111,13 +106,11 @@ class BudstikkaProducerKafkaIntegrationTest :
                             kafkaProducer,
                             oppfolgingsplanUrl,
                             dineSykmeldteOversiktUrl,
-                        ).publishEvalueringPaaminnelseDineSykmeldte(
+                        ).publishDineSykmeldteEvalueringspaaminnelse(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
                             organisasjonsnummer = organisasjonsnummer,
-                            organisasjonsnavn = "ARNESEN, HOLM OG BAKKEN",
-                            sykmeldtFullName = "Kari Normann",
-                            evalueringsdato = LocalDate.of(2026, 5, 20),
+                            narmesteLederId = narmesteLederId,
                             eventId = eventId,
                         )
                     }

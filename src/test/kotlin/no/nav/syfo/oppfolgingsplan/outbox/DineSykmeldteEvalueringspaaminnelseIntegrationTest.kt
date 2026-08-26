@@ -17,7 +17,9 @@ import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
+import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseSourceRepository
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationCommand
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
@@ -30,7 +32,7 @@ import java.time.ZoneOffset
 import java.util.UUID
 import java.util.concurrent.TimeoutException
 
-class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
+class DineSykmeldteEvalueringspaaminnelseIntegrationTest :
     DescribeSpec({
         val sendInstant = Instant.parse("2026-05-17T07:00:00Z")
         val evalueringsdato = LocalDate.of(2026, 5, 20)
@@ -40,7 +42,7 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
             orgnummer = "999999999",
             sykmeldinger = listOf(DineSykmeldteSykmelding("ARNESEN, HOLM OG BAKKEN")),
         )
-        val repository = OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database)
+        val repository = EvalueringspaaminnelseSourceRepository(TestDB.database)
         val sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(TestDB.database)
 
         beforeTest {
@@ -48,26 +50,26 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
         }
 
         it("publishes an eligible reminder once and marks the Dine Sykmeldte row sent") {
-            val planUuid = repository.persistReminder(sykmeldt, evalueringsdato)
+            val planUuid = TestDB.database.persistReminder(sykmeldt, evalueringsdato)
             sykmeldingsperiodeRepository.storeActivePeriod(sykmeldt)
             val message = TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
                 planUuid.toString(),
             ).shouldNotBeNull()
             val publisher = mockk<BudstikkaPublisher>()
-            coEvery { publisher.publishEvalueringPaaminnelseDineSykmeldte(any(), any(), any(), any(), any(), any(), any()) } returns Unit
+            coEvery {
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any(), any())
+            } returns Unit
             val worker = dineSykmeldteWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
 
             worker.runOnce().sent shouldBe 1
 
             coVerify(exactly = 1) {
-                publisher.publishEvalueringPaaminnelseDineSykmeldte(
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(
                     oppfolgingsplanUuid = planUuid,
                     sykmeldtFnr = sykmeldt.fnr,
                     organisasjonsnummer = sykmeldt.orgnummer,
-                    organisasjonsnavn = "ARNESEN, HOLM OG BAKKEN",
-                    sykmeldtFullName = sykmeldt.navn,
-                    evalueringsdato = evalueringsdato,
+                    narmesteLederId = sykmeldt.narmestelederId,
                     eventId = message.uuid,
                 )
             }
@@ -81,14 +83,14 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
         }
 
         it("cancels the reminder when the source has no active sykmeldingsperiode") {
-            val planUuid = repository.persistReminder(sykmeldt, evalueringsdato)
+            val planUuid = TestDB.database.persistReminder(sykmeldt, evalueringsdato)
             val publisher = mockk<BudstikkaPublisher>(relaxed = true)
             val worker = dineSykmeldteWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
 
             worker.runOnce().cancelled shouldBe 1
 
             coVerify(exactly = 0) {
-                publisher.publishEvalueringPaaminnelseDineSykmeldte(any(), any(), any(), any(), any(), any(), any())
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any(), any())
             }
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
@@ -101,7 +103,7 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
         }
 
         it("cancels the reminder terminally when the source plan is missing") {
-            val planUuid = repository.persistReminder(sykmeldt, evalueringsdato)
+            val planUuid = TestDB.database.persistReminder(sykmeldt, evalueringsdato)
             TestDB.database.deletePlan(planUuid)
             val publisher = mockk<BudstikkaPublisher>(relaxed = true)
             val worker = dineSykmeldteWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
@@ -109,7 +111,7 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
             worker.runOnce().cancelled shouldBe 1
 
             coVerify(exactly = 0) {
-                publisher.publishEvalueringPaaminnelseDineSykmeldte(any(), any(), any(), any(), any(), any(), any())
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any(), any())
             }
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
@@ -122,7 +124,7 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
         }
 
         it("retries a failed Budstikka publish with the same outbox EventId before marking it sent") {
-            val planUuid = repository.persistReminder(sykmeldt, evalueringsdato)
+            val planUuid = TestDB.database.persistReminder(sykmeldt, evalueringsdato)
             sykmeldingsperiodeRepository.storeActivePeriod(sykmeldt)
             val message = TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
@@ -132,9 +134,7 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
             var publishAttempt = 0
             val publisher = mockk<BudstikkaPublisher>()
             coEvery {
-                publisher.publishEvalueringPaaminnelseDineSykmeldte(
-                    any(),
-                    any(),
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(
                     any(),
                     any(),
                     any(),
@@ -169,10 +169,10 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
         }
 
         it("schedules retry when the source database lookup fails") {
-            val planUuid = repository.persistReminder(sykmeldt, evalueringsdato)
-            val failingRepository = mockk<OppfolgingsplanEvalueringPaaminnelseRepository>()
+            val planUuid = TestDB.database.persistReminder(sykmeldt, evalueringsdato)
+            val failingRepository = mockk<EvalueringspaaminnelseSourceRepository>()
             coEvery {
-                failingRepository.findOppfolgingsplanEvalueringPaaminnelseSource(planUuid, any())
+                failingRepository.findSource(planUuid, any())
             } throws SQLException("Forced database failure")
             val publisher = mockk<BudstikkaPublisher>(relaxed = true)
             val worker = dineSykmeldteWorker(
@@ -184,7 +184,7 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
             worker.runOnce().retryScheduled shouldBe 1
 
             coVerify(exactly = 0) {
-                publisher.publishEvalueringPaaminnelseDineSykmeldte(any(), any(), any(), any(), any(), any(), any())
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any(), any())
             }
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
@@ -198,19 +198,25 @@ class OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxIntegrationTest :
         }
     })
 
-private suspend fun OppfolgingsplanEvalueringPaaminnelseRepository.persistReminder(
+private suspend fun DatabaseInterface.persistReminder(
     sykmeldt: Sykmeldt,
     evalueringsdato: LocalDate,
-): UUID = persistOppfolgingsplanAndDeleteUtkast(
-    narmesteLederFnr = "11111111111",
-    sykmeldt = sykmeldt,
-    createOppfolgingsplanRequest = defaultOppfolgingsplan().copy(
-        evalueringPaaminnelse = true,
-        evalueringsdato = evalueringsdato,
+): UUID = OppfolgingsplanFinalizationRepository(this).finalize(
+    OppfolgingsplanFinalizationCommand(
+        narmesteLederFnr = "11111111111",
+        sykmeldt = sykmeldt,
+        createOppfolgingsplanRequest = defaultOppfolgingsplan().copy(
+            evalueringPaaminnelse = true,
+            evalueringsdato = evalueringsdato,
+        ),
+        stillingstittel = "Systemutvikler",
+        stillingsprosent = null,
+        reminderDefinitions = EvalueringPaaminnelseFactory.create(
+            enabled = true,
+            evalueringsdato = evalueringsdato,
+        ),
     ),
-    stillingstittel = "Systemutvikler",
-    stillingsprosent = null,
-)
+).oppfolgingsplanUuid
 
 private fun SykmeldingsperiodeRepository.storeActivePeriod(sykmeldt: Sykmeldt) {
     storeSykmeldingsperioder(
@@ -227,13 +233,13 @@ private fun SykmeldingsperiodeRepository.storeActivePeriod(sykmeldt: Sykmeldt) {
 }
 
 private fun dineSykmeldteWorker(
-    repository: OppfolgingsplanEvalueringPaaminnelseRepository,
+    repository: EvalueringspaaminnelseSourceRepository,
     publisher: BudstikkaPublisher,
     clock: Clock,
 ) = OutboxWorker(
     database = TestDB.database,
     handlers = listOf(
-        OppfolgingsplanEvalueringPaaminnelseDineSykmeldteOutboxHandler(repository, publisher),
+        DineSykmeldteEvalueringspaaminnelseHandler(repository, publisher),
     ),
     clock = clock,
 )
