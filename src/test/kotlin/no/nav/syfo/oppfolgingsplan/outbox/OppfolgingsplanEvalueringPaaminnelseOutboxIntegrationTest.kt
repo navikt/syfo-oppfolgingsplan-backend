@@ -124,7 +124,7 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
                 }
             }
 
-            it("clamps past schedules to the persisted plan creation timestamp") {
+            it("keeps past nominal schedules unchanged and immediately claimable") {
                 val evalueringsdato = LocalDate.of(2020, 1, 10)
                 val planUuid = TestDB.database.createOppfolgingsplan(
                     evalueringPaaminnelse = true,
@@ -135,8 +135,22 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
                     OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
                     planUuid,
                 )
+                val expectedAvailableAt = Instant.parse("2020-01-07T08:00:00Z")
 
-                message.availableAt shouldBe plan.createdAt
+                message.status shouldBe OutboxStatus.READY
+                message.availableAt shouldBe expectedAvailableAt
+                message.availableAt.isBefore(plan.createdAt) shouldBe true
+
+                val claimedMessage = TestDB.database.exposedTransaction {
+                    claimOutboxMessages(
+                        messageType = message.messageType,
+                        now = plan.createdAt,
+                        limit = 1,
+                        leaseDuration = 5.minutes,
+                    ).single()
+                }
+                claimedMessage.uuid shouldBe message.uuid
+                claimedMessage.status shouldBe OutboxStatus.CLAIMED
             }
 
             it("deduplicates retries for the same plan and channel") {

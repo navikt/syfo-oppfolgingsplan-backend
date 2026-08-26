@@ -101,7 +101,7 @@ class OppfolgingsplanFinalizationRepository(
                         dedupKey = oppfolgingsplanUuid.toString(),
                         externalRef = oppfolgingsplanUuid.toString(),
                         payload = "{}",
-                        availableAt = maxOf(definition.availableAt, createdAt),
+                        availableAt = definition.availableAt,
                     ),
                 ),
             ) {
