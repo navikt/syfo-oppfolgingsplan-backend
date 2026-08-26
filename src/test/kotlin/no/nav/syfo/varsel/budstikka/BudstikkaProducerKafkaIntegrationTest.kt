@@ -159,7 +159,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                             kafkaProducer,
                             oppfolgingsplanUrl,
                             dineSykmeldteOversiktUrl,
-                        ).publishArbeidsgiverPaaminnelse(
+                        ).publishMinSideArbeidsgiverEvalueringspaaminnelse(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
                             organisasjonsnummer = organisasjonsnummer,

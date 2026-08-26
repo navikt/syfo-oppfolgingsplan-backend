@@ -159,7 +159,7 @@ class BudstikkaProducerTest :
             }
         }
 
-        describe("publishArbeidsgiverPaaminnelse") {
+        describe("publishMinSideArbeidsgiverEvalueringspaaminnelse") {
             it("publishes one employer notification with external email and no URL in the email") {
                 val future = mockk<Future<RecordMetadata>>()
                 val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
@@ -186,7 +186,7 @@ class BudstikkaProducerTest :
                 every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
 
-                producer.publishArbeidsgiverPaaminnelse(
+                producer.publishMinSideArbeidsgiverEvalueringspaaminnelse(
                     oppfolgingsplanUuid = oppfolgingsplanUuid,
                     sykmeldtFnr = sykmeldtFnr,
                     organisasjonsnummer = organisasjonsnummer,

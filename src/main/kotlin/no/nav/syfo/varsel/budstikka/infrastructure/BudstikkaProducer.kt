@@ -80,7 +80,7 @@ class BudstikkaProducer(
         publish(dispatch, LEDERVARSEL_CREATE, eventId)
     }
 
-    override suspend fun publishArbeidsgiverPaaminnelse(
+    override suspend fun publishMinSideArbeidsgiverEvalueringspaaminnelse(
         oppfolgingsplanUuid: UUID,
         sykmeldtFnr: String,
         organisasjonsnummer: String,

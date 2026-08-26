@@ -30,7 +30,7 @@ import java.time.ZoneOffset
 import java.util.UUID
 import java.util.concurrent.TimeoutException
 
-class ArbeidsgiverPaaminnelseIntegrationTest :
+class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
     DescribeSpec({
         val sendInstant = Instant.parse("2026-05-17T07:00:00Z")
         val evalueringsdato = LocalDate.of(2026, 5, 20)
@@ -55,13 +55,15 @@ class ArbeidsgiverPaaminnelseIntegrationTest :
                 planUuid.toString(),
             ).shouldNotBeNull()
             val publisher = mockk<BudstikkaPublisher>()
-            coEvery { publisher.publishArbeidsgiverPaaminnelse(any(), any(), any(), any()) } returns Unit
+            coEvery {
+                publisher.publishMinSideArbeidsgiverEvalueringspaaminnelse(any(), any(), any(), any())
+            } returns Unit
             val worker = arbeidsgiverWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
 
             worker.runOnce().sent shouldBe 1
 
             coVerify(exactly = 1) {
-                publisher.publishArbeidsgiverPaaminnelse(
+                publisher.publishMinSideArbeidsgiverEvalueringspaaminnelse(
                     oppfolgingsplanUuid = planUuid,
                     sykmeldtFnr = sykmeldt.fnr,
                     organisasjonsnummer = sykmeldt.orgnummer,
@@ -89,7 +91,7 @@ class ArbeidsgiverPaaminnelseIntegrationTest :
             worker.runOnce().cancelled shouldBe 1
 
             coVerify(exactly = 0) {
-                publisher.publishArbeidsgiverPaaminnelse(any(), any(), any(), any())
+                publisher.publishMinSideArbeidsgiverEvalueringspaaminnelse(any(), any(), any(), any())
             }
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
@@ -110,7 +112,7 @@ class ArbeidsgiverPaaminnelseIntegrationTest :
             worker.runOnce().cancelled shouldBe 1
 
             coVerify(exactly = 0) {
-                publisher.publishArbeidsgiverPaaminnelse(any(), any(), any(), any())
+                publisher.publishMinSideArbeidsgiverEvalueringspaaminnelse(any(), any(), any(), any())
             }
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
@@ -133,7 +135,7 @@ class ArbeidsgiverPaaminnelseIntegrationTest :
             var publishAttempt = 0
             val publisher = mockk<BudstikkaPublisher>()
             coEvery {
-                publisher.publishArbeidsgiverPaaminnelse(
+                publisher.publishMinSideArbeidsgiverEvalueringspaaminnelse(
                     any(),
                     any(),
                     any(),
@@ -182,7 +184,7 @@ class ArbeidsgiverPaaminnelseIntegrationTest :
             worker.runOnce().retryScheduled shouldBe 1
 
             coVerify(exactly = 0) {
-                publisher.publishArbeidsgiverPaaminnelse(any(), any(), any(), any())
+                publisher.publishMinSideArbeidsgiverEvalueringspaaminnelse(any(), any(), any(), any())
             }
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
@@ -231,7 +233,7 @@ private fun arbeidsgiverWorker(
 ) = OutboxWorker(
     database = TestDB.database,
     handlers = listOf(
-        ArbeidsgiverPaaminnelseHandler(repository, publisher),
+        MinSideArbeidsgiverEvalueringspaaminnelseHandler(repository, publisher),
     ),
     clock = clock,
 )

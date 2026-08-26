@@ -14,7 +14,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
 
-class ArbeidsgiverPaaminnelseHandler(
+class MinSideArbeidsgiverEvalueringspaaminnelseHandler(
     private val repository: EvalueringspaaminnelseRepository,
     private val publisher: BudstikkaPublisher,
 ) : OutboxMessageHandler {
@@ -35,7 +35,7 @@ class ArbeidsgiverPaaminnelseHandler(
         ) {
             is EvalueringspaaminnelseSource.Eligible -> {
                 val data = source.data
-                publisher.publishArbeidsgiverPaaminnelse(
+                publisher.publishMinSideArbeidsgiverEvalueringspaaminnelse(
                     oppfolgingsplanUuid = oppfolgingsplanUuid,
                     sykmeldtFnr = data.sykmeldtFnr,
                     organisasjonsnummer = data.organisasjonsnummer,
