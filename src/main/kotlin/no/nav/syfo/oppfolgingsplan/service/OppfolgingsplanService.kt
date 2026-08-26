@@ -25,7 +25,7 @@ import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
-import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
+import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplanerWithResult
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
@@ -279,10 +279,14 @@ class OppfolgingsplanService(
         )
     }
 
-    suspend fun softDeleteExpiredOppfolgingsplaner(): Int = withContext(Dispatchers.IO) {
-        runSoftDeleteBatchLoop {
-            database.softDeleteExpiredOppfolgingsplaner()
+    suspend fun softDeleteExpiredOppfolgingsplaner(): Int = runSoftDeleteBatchLoop {
+        val result = withContext(Dispatchers.IO) {
+            database.softDeleteExpiredOppfolgingsplanerWithResult()
         }
+        OppfolgingsplanEvalueringPaaminnelseOutboxMetrics.incrementSourceNoLongerEligible(
+            result.cancelledReminderCountByChannel,
+        )
+        result.hiddenCount
     }
 
     suspend fun getAndSetNarmestelederFullname(

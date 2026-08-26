@@ -10,6 +10,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.database.exposedTransaction
+import no.nav.syfo.application.metric.METRICS_REGISTRY
 import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
 import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.domain.NewOutboxMessage
@@ -21,6 +22,7 @@ import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
+import no.nav.syfo.oppfolgingsplan.outbox.OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_OUTBOX
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.persistOppfolgingsplan
@@ -89,6 +91,8 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             it("atomically cancels READY evaluation reminders when a plan is soft-deleted") {
                 val plan = defaultPersistedOppfolgingsplan()
                 val planUuid = testDb.persistOppfolgingsplan(plan)
+                val metricCountsBefore = OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes
+                    .associateWith(::sourceNoLongerEligibleMetricCount)
                 OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { messageType ->
                     testDb.exposedTransaction {
                         enqueueOutboxMessage(
@@ -114,7 +118,7 @@ class SoftDeleteOppfolgingsplanerTaskTest :
                     ),
                 )
 
-                testDb.softDeleteExpiredOppfolgingsplaner() shouldBe 1
+                service().softDeleteExpiredOppfolgingsplaner() shouldBe 1
 
                 OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { messageType ->
                     testDb.findOutboxMessage(messageType, planUuid.toString()).shouldNotBeNull().apply {
@@ -122,6 +126,8 @@ class SoftDeleteOppfolgingsplanerTaskTest :
                         cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
                         completedAt.shouldNotBeNull()
                     }
+                    sourceNoLongerEligibleMetricCount(messageType) -
+                        metricCountsBefore.getValue(messageType) shouldBe 1.0
                 }
             }
 
@@ -428,3 +434,13 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             }
         }
     })
+
+private fun sourceNoLongerEligibleMetricCount(
+    messageType: OppfolgingsplanOutboxMessageType,
+): Double = METRICS_REGISTRY.counter(
+    OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_OUTBOX,
+    "channel",
+    requireNotNull(messageType.channelMetricLabel),
+    "outcome",
+    "source_no_longer_eligible",
+).count()

@@ -64,9 +64,9 @@ fun Connection.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = prepar
 }
 
 /**
- * Exposed adapter for [Connection.enqueueOutboxMessage]. Concurrent duplicate inserts can raise
- * PostgreSQL 40001 under REPEATABLE READ, so the surrounding pure database transaction must opt
- * into replay with `exposedTransaction(maxAttempts > 1)`.
+ * Exposed adapter for [Connection.enqueueOutboxMessage]. Under REPEATABLE READ, callers that can
+ * encounter concurrent duplicate inserts may opt into replay when replaying the full transaction
+ * is safe.
  */
 fun JdbcTransaction.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = (connection.connection as Connection)
     .enqueueOutboxMessage(message)

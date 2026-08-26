@@ -14,6 +14,7 @@ import no.nav.syfo.oppfolgingsplan.outbox.EvalueringPaaminnelseDefinition
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.statements.StatementType
+import org.jetbrains.exposed.v1.javatime.CurrentTimestampWithTimeZone
 import org.jetbrains.exposed.v1.jdbc.JdbcTransaction
 import org.jetbrains.exposed.v1.jdbc.deleteReturning
 import org.jetbrains.exposed.v1.jdbc.insertReturning
@@ -27,9 +28,10 @@ class OppfolgingsplanFinalizationRepository(
     private val database: DatabaseInterface,
 ) {
     suspend fun finalize(command: OppfolgingsplanFinalizationCommand): OppfolgingsplanFinalizationResult = database.exposedTransaction(
-        maxAttempts = 3,
         transactionIsolation = Connection.TRANSACTION_READ_COMMITTED,
     ) {
+        // READ_COMMITTED takes a fresh snapshot after waiting for this lock, so cancellation sees
+        // any plan committed by the previous lock holder.
         acquireFinalizationLock(command.sykmeldt.fnr, command.sykmeldt.orgnummer)
 
         val utkastCreatedAt = OppfolgingsplanUtkastTable
@@ -63,7 +65,7 @@ class OppfolgingsplanFinalizationRepository(
             it[OppfolgingsplanTable.skalDelesMedLege] = false
             it[OppfolgingsplanTable.skalDelesMedVeileder] = false
             it[OppfolgingsplanTable.utkastCreatedAt] = utkastCreatedAt
-            it[OppfolgingsplanTable.createdAt] = org.jetbrains.exposed.v1.javatime.CurrentTimestampWithTimeZone
+            it[OppfolgingsplanTable.createdAt] = CurrentTimestampWithTimeZone
             it[OppfolgingsplanTable.eventId] = eventId
         }.single()
 
@@ -107,7 +109,7 @@ class OppfolgingsplanFinalizationRepository(
             ) {
                 "A new oppfolgingsplan with evalueringPaaminnelse must create one outbox command per channel"
             }
-            createdReminderCountByChannel[definition.messageType] = 1
+            createdReminderCountByChannel.merge(definition.messageType, 1, Int::plus)
         }
 
         OppfolgingsplanFinalizationResult(

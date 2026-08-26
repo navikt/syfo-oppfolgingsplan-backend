@@ -320,7 +320,16 @@ fun DatabaseInterface.setSendtTilDokumentportenTidspunkt(
 
 fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
     batchSize: Int = 1000,
-): Int {
+): Int = softDeleteExpiredOppfolgingsplanerWithResult(batchSize).hiddenCount
+
+data class SoftDeleteExpiredOppfolgingsplanerResult(
+    val hiddenCount: Int,
+    val cancelledReminderCountByChannel: Map<OppfolgingsplanOutboxMessageType, Int>,
+)
+
+fun DatabaseInterface.softDeleteExpiredOppfolgingsplanerWithResult(
+    batchSize: Int = 1000,
+): SoftDeleteExpiredOppfolgingsplanerResult {
     val statement = """
         WITH candidates AS (
             SELECT op.uuid
@@ -352,9 +361,13 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
             WHERE outbox.external_ref = hidden.uuid::text
               AND outbox.message_type IN (?, ?)
               AND outbox.status = 'READY'
+            RETURNING outbox.message_type
         )
-        SELECT COUNT(*) AS hidden_count
-        FROM hidden
+        SELECT
+            (SELECT COUNT(*) FROM hidden) AS hidden_count,
+            COUNT(*) FILTER (WHERE message_type = ?) AS min_side_arbeidsgiver_cancelled_count,
+            COUNT(*) FILTER (WHERE message_type = ?) AS dine_sykmeldte_cancelled_count
+        FROM cancelled
     """.trimIndent()
 
     return connection.use { connection ->
@@ -370,9 +383,25 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
                 5,
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE.value,
             )
+            it.setString(
+                6,
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER.value,
+            )
+            it.setString(
+                7,
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE.value,
+            )
             it.executeQuery().use { resultSet ->
                 resultSet.next()
-                resultSet.getInt("hidden_count")
+                SoftDeleteExpiredOppfolgingsplanerResult(
+                    hiddenCount = resultSet.getInt("hidden_count"),
+                    cancelledReminderCountByChannel = mapOf(
+                        OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER to
+                            resultSet.getInt("min_side_arbeidsgiver_cancelled_count"),
+                        OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE to
+                            resultSet.getInt("dine_sykmeldte_cancelled_count"),
+                    ),
+                )
             }
         }.also { connection.commit() }
     }

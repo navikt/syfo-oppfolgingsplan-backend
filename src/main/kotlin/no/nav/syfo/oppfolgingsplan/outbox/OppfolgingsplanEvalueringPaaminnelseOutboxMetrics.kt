@@ -10,6 +10,7 @@ private const val METRIC_TAG_CHANNEL = "channel"
 private const val METRIC_TAG_OUTCOME = "outcome"
 private const val METRIC_OUTCOME_CREATED = "created"
 private const val METRIC_OUTCOME_SUPERSEDED = "superseded"
+private const val METRIC_OUTCOME_SOURCE_NO_LONGER_ELIGIBLE = "source_no_longer_eligible"
 
 object OppfolgingsplanEvalueringPaaminnelseOutboxMetrics {
     fun incrementCreated(
@@ -25,6 +26,14 @@ object OppfolgingsplanEvalueringPaaminnelseOutboxMetrics {
     ) {
         supersededCountByChannel.forEach { (messageType, count) ->
             increment(messageType, count, METRIC_OUTCOME_SUPERSEDED)
+        }
+    }
+
+    fun incrementSourceNoLongerEligible(
+        cancelledCountByChannel: Map<OppfolgingsplanOutboxMessageType, Int>,
+    ) {
+        cancelledCountByChannel.forEach { (messageType, count) ->
+            increment(messageType, count, METRIC_OUTCOME_SOURCE_NO_LONGER_ELIGIBLE)
         }
     }
 

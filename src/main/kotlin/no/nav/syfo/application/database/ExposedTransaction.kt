@@ -9,9 +9,9 @@ import java.sql.Connection
 /**
  * Preserves the legacy JDBC transaction semantics during the incremental Exposed migration:
  * REPEATABLE_READ isolation by default and no automatic replay. An explicit isolation override is
- * available for transactions whose locking protocol requires statement-level snapshots. Set
+ * available when a transaction's locking protocol requires different snapshot visibility. Set
  * [maxAttempts] above one only for pure database blocks where replaying the entire domain
- * transaction is safe.
+ * transaction is safe; document the concrete locking and isolation rationale at the call site.
  */
 internal suspend fun <T> DatabaseInterface.exposedTransaction(
     readOnly: Boolean = false,
