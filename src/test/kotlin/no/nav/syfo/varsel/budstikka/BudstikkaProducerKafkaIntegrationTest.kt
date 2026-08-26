@@ -38,7 +38,6 @@ class BudstikkaProducerKafkaIntegrationTest :
         val sykmeldtFnr = "12345678901"
         val oppfolgingsplanUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
         val dineSykmeldteOversiktUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplaner"
-        val narmesteLederOppfolgingsplanUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver"
 
         beforeSpec {
             kafka.start()
@@ -67,7 +66,6 @@ class BudstikkaProducerKafkaIntegrationTest :
                             kafkaProducer,
                             oppfolgingsplanUrl,
                             dineSykmeldteOversiktUrl,
-                            narmesteLederOppfolgingsplanUrl,
                         ).publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
@@ -110,7 +108,6 @@ class BudstikkaProducerKafkaIntegrationTest :
                             kafkaProducer,
                             oppfolgingsplanUrl,
                             dineSykmeldteOversiktUrl,
-                            narmesteLederOppfolgingsplanUrl,
                         ).publishDineSykmeldteEvalueringspaaminnelse(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
@@ -163,7 +160,6 @@ class BudstikkaProducerKafkaIntegrationTest :
                             kafkaProducer,
                             oppfolgingsplanUrl,
                             dineSykmeldteOversiktUrl,
-                            narmesteLederOppfolgingsplanUrl,
                         ).publishMinSideArbeidsgiverEvalueringspaaminnelse(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,

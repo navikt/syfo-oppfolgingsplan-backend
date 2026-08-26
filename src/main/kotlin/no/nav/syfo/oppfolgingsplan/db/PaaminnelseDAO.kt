@@ -13,7 +13,6 @@ import java.util.UUID
 
 data class PaaminnelseOutboxPayload(
     val sykmeldingsperiodeId: UUID,
-    val narmestelederId: String,
 )
 
 fun DatabaseInterface.upsertPaaminnelse(
@@ -28,24 +27,25 @@ fun DatabaseInterface.upsertPaaminnelse(
 fun DatabaseInterface.upsertPaaminnelseAndEnqueue(
     sykmeldt: Sykmeldt,
     sykmeldingsperiodeId: UUID,
-    narmestelederId: String,
     availableAt: Instant,
-): PersistedPaaminnelse = connection.use { connection ->
-    val paaminnelse = upsertPaaminnelse(
+): Unit = connection.use { connection ->
+    val paaminnelse = activatePaaminnelse(
         connection = connection,
         sykmeldt = sykmeldt,
-        bestilt = true,
         sykmeldingsperiodeId = sykmeldingsperiodeId,
     )
+    if (paaminnelse == null) {
+        connection.commit()
+        return
+    }
     connection.enqueueOutboxMessage(
         NewOutboxMessage(
-            messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE,
-            dedupKey = "${paaminnelse.uuid}:$sykmeldingsperiodeId",
+            messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_ARBEIDSGIVER,
+            dedupKey = "${paaminnelse.uuid}:$sykmeldingsperiodeId:${UUID.randomUUID()}",
             externalRef = paaminnelse.uuid.toString(),
             payload = configuredJacksonMapper.writeValueAsString(
                 PaaminnelseOutboxPayload(
                     sykmeldingsperiodeId = sykmeldingsperiodeId,
-                    narmestelederId = narmestelederId,
                 ),
             ),
             availableAt = availableAt,
@@ -54,19 +54,51 @@ fun DatabaseInterface.upsertPaaminnelseAndEnqueue(
     connection.enqueueOutboxMessage(
         NewOutboxMessage(
             messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_DINE_SYKMELDTE,
-            dedupKey = "${paaminnelse.uuid}:$sykmeldingsperiodeId",
+            dedupKey = "${paaminnelse.uuid}:$sykmeldingsperiodeId:${UUID.randomUUID()}",
             externalRef = paaminnelse.uuid.toString(),
             payload = configuredJacksonMapper.writeValueAsString(
                 PaaminnelseOutboxPayload(
                     sykmeldingsperiodeId = sykmeldingsperiodeId,
-                    narmestelederId = narmestelederId,
                 ),
             ),
             availableAt = availableAt,
         ),
     )
     connection.commit()
-    paaminnelse
+}
+
+private fun activatePaaminnelse(
+    connection: java.sql.Connection,
+    sykmeldt: Sykmeldt,
+    sykmeldingsperiodeId: UUID,
+): PersistedPaaminnelse? {
+    val statement =
+        """
+        INSERT INTO paaminnelse (
+            organisasjonsnummer,
+            sykmeldt_fnr,
+            bestilt,
+            created_at,
+            updated_at,
+            sykmeldingsperiode_id
+        ) VALUES (?, ?, TRUE, NOW(), NOW(), ?)
+        ON CONFLICT (sykmeldt_fnr, organisasjonsnummer) DO UPDATE SET
+            bestilt = TRUE,
+            sykmeldingsperiode_id = EXCLUDED.sykmeldingsperiode_id,
+            updated_at = NOW()
+        WHERE NOT paaminnelse.bestilt
+           OR paaminnelse.sykmeldingsperiode_id <> EXCLUDED.sykmeldingsperiode_id
+        RETURNING *
+        """.trimIndent()
+
+    connection.prepareStatement(statement).use { preparedStatement ->
+        preparedStatement.setString(1, sykmeldt.orgnummer)
+        preparedStatement.setString(2, sykmeldt.fnr)
+        preparedStatement.setObject(3, sykmeldingsperiodeId)
+
+        val resultSet = preparedStatement.executeQuery()
+        return if (resultSet.next()) resultSet.toPersistedPaaminnelse() else null
+    }
 }
 
 private fun upsertPaaminnelse(

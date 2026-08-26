@@ -49,8 +49,8 @@ import no.nav.syfo.oppfolgingsplan.outbox.DineSykmeldteEvalueringspaaminnelseHan
 import no.nav.syfo.oppfolgingsplan.outbox.MinSideArbeidsgiverEvalueringspaaminnelseHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
+import no.nav.syfo.oppfolgingsplan.outbox.PaaminnelseArbeidsgiverOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.PaaminnelseDineSykmeldteOutboxHandler
-import no.nav.syfo.oppfolgingsplan.outbox.PaaminnelseOutboxHandler
 import no.nav.syfo.oppfolgingsplan.service.EvalueringspaaminnelseEligibilityService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
@@ -239,7 +239,6 @@ private fun kafkeProducerModule() = module {
             ),
             env().minSideSykmeldtOppfolgingsplanUrl,
             env().dineSykmeldteOversiktUrl,
-            env().minSideNarmesteLederOppfolgingsplanUrl,
         )
     }
 }
@@ -284,7 +283,7 @@ private fun servicesModule() = module {
             publisher = get(),
         )
     }
-    single { PaaminnelseOutboxHandler(database = get(), paaminnelseService = get(), publisher = get()) }
+    single { PaaminnelseArbeidsgiverOutboxHandler(database = get(), paaminnelseService = get(), publisher = get()) }
     single { PaaminnelseDineSykmeldteOutboxHandler(database = get(), paaminnelseService = get(), publisher = get()) }
     single {
         OutboxWorker(
@@ -292,7 +291,7 @@ private fun servicesModule() = module {
             handlers = listOf(
                 get<OppfolgingsplanCreatedOutboxHandler>(),
                 get<MinSideArbeidsgiverEvalueringspaaminnelseHandler>(),
-                get<PaaminnelseOutboxHandler>(),
+                get<PaaminnelseArbeidsgiverOutboxHandler>(),
                 get<PaaminnelseDineSykmeldteOutboxHandler>(),
                 get<DineSykmeldteEvalueringspaaminnelseHandler>(),
             ),
@@ -310,7 +309,7 @@ private fun servicesModule() = module {
                     retention = Duration.ofDays(90),
                 ),
                 OutboxRetentionPolicy(
-                    messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE,
+                    messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_ARBEIDSGIVER,
                     retention = Duration.ofDays(90),
                 ),
                 OutboxRetentionPolicy(

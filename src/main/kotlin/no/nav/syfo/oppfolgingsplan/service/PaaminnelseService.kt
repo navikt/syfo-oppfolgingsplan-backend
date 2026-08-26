@@ -67,16 +67,27 @@ class PaaminnelseService(
             return PaaminnelseStatusInternal.Utilgjengelig(OutboxCancellationReason.NO_LONGER_REQUESTED)
         }
 
-        if (paaminnelse.sykmeldingsperiodeId != payload.sykmeldingsperiodeId) {
-            return PaaminnelseStatusInternal.Utilgjengelig(OutboxCancellationReason.SUPERSEDED)
-        }
-
-        return resolvePaaminnelseStatusForDelivery(
+        val currentPaaminnelseStatus = resolvePaaminnelseStatusForDelivery(
             sykmeldtFnr = paaminnelse.sykmeldtFnr,
             organisasjonsnummer = paaminnelse.organisasjonsnummer,
             today = today,
         )
+
+        if (
+            currentPaaminnelseStatus is PaaminnelseStatusInternal.Tilgjengelig &&
+            !allValuesEqual(
+                paaminnelse.sykmeldingsperiodeId,
+                payload.sykmeldingsperiodeId,
+                currentPaaminnelseStatus.sykmeldingsperiodeId,
+            )
+        ) {
+            return PaaminnelseStatusInternal.Utilgjengelig(OutboxCancellationReason.SUPERSEDED)
+        }
+
+        return currentPaaminnelseStatus
     }
+
+    private fun <T> allValuesEqual(vararg values: T): Boolean = values.all { value -> value == values[0] }
 
     private fun resolvePaaminnelseStatus(
         sykmeldtFnr: String,
@@ -137,7 +148,6 @@ class PaaminnelseService(
             database.upsertPaaminnelseAndEnqueue(
                 sykmeldt = sykmeldt,
                 sykmeldingsperiodeId = paaminnelse.sykmeldingsperiodeId,
-                narmestelederId = sykmeldt.narmestelederId,
                 availableAt = paaminnelse.sykmeldingsperiodeFom
                     .plusDays(PAAMINNELSE_ETTER_DAGER)
                     .atStartOfDay(clock.zone)

@@ -11,9 +11,10 @@ import io.mockk.mockk
 import io.mockk.verify
 import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
+import no.nav.budstikka.contract.EncodedDispatch
 import no.nav.budstikka.contract.EventId
-import no.nav.budstikka.contract.Orgnummer
 import no.nav.budstikka.contract.Oppgavetype
+import no.nav.budstikka.contract.Orgnummer
 import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
@@ -39,12 +40,10 @@ class BudstikkaProducerTest :
         val kafkaProducerMock = mockk<KafkaProducer<String, String>>()
         val budstikkaOppfolgingsplanSykmeldtUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
         val dineSykmeldteOversiktUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplaner"
-        val narmesteLederOppfolgingsplanUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver"
         val producer = BudstikkaProducer(
             kafkaProducerMock,
             budstikkaOppfolgingsplanSykmeldtUrl,
             dineSykmeldteOversiktUrl,
-            narmesteLederOppfolgingsplanUrl,
         )
 
         beforeTest {
@@ -52,7 +51,7 @@ class BudstikkaProducerTest :
         }
 
         suspend fun assertDispatchIsSent(
-            expectedDispatch: no.nav.budstikka.contract.EncodedDispatch,
+            expectedDispatch: EncodedDispatch,
             publish: suspend () -> Unit,
         ) {
             val future = mockk<Future<RecordMetadata>>()
@@ -243,15 +242,21 @@ class BudstikkaProducerTest :
             val sykmeldtFnr = "12345678901"
             val orgnummer = "123456789"
             val narmestelederId = "narmeste-leder-id"
-            val link = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/arbeidsgiver"
+            val link = "$dineSykmeldteOversiktUrl/$narmestelederId"
 
             it("sends an employer notification to the narmeste leder") {
                 val expectedDispatch = Budstikka.arbeidsgivervarselCreate(
                     eventId = EventId(eventId),
                     reference = paaminnelseUuid.toString(),
                     orgnummer = Orgnummer(orgnummer),
-                    recipient = Arbeidsgivervarsel.NarmesteLeder(PersonIdentifier(sykmeldtFnr)),
-                    tag = "OPPFOELGING",
+                    recipient = Arbeidsgivervarsel.NarmesteLeder(
+                        sykmeldt = PersonIdentifier(sykmeldtFnr),
+                        externalNotification = Arbeidsgivervarsel.NarmesteLederExternalNotification(
+                            emailTitle = "Title",
+                            emailText = "<body></body>",
+                        ),
+                    ),
+                    tag = "Oppfølging",
                     text = PAAMINNELSE_BUDSTIKKA_TEXT,
                     link = link,
                     messageType = Arbeidsgivervarsel.MessageType.BESKJED,

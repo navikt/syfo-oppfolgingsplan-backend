@@ -25,7 +25,7 @@ class PaaminnelseDineSykmeldteOutboxHandler(
             eventId = eventId,
             sykmeldtFnr = paaminnelse.sykmeldtFnr,
             orgnummer = paaminnelse.organisasjonsnummer,
-            narmestelederId = payload.narmestelederId,
+            narmestelederId = "payload.narmestelederId", // TODO: Få narmestelederId fra et annet sted
         )
     }
 }

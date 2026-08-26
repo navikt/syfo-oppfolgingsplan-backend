@@ -25,8 +25,7 @@ private const val BRUKERVARSEL_CREATE = "BrukervarselCreate"
 private const val LEDERVARSEL_CREATE = "LedervarselCreate"
 private const val ARBEIDSGIVERVARSEL_CREATE = "ArbeidsgivervarselCreate"
 private const val BUDSTIKKA_SEND_TIMEOUT_MILLIS = 250L
-private const val EVALUERINGS_PAAMINNELSE_ARBEIDSGIVER_TAG = "Oppfølging"
-private const val PAAMINNELSE_ARBEIDSGIVER_TAG = "OPPFOELGING"
+private const val OPPFOLGING_TAG = "Oppfølging"
 const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Din arbeidsgiver har laget en oppfølgingsplan for deg"
 const val EVALUERINGS_PAAMINNELSE_TEXT = "Oppdater oppfølgingsplan"
 const val EVALUERINGS_PAAMINNELSE_EMAIL_TITLE = "Oppdater oppfølgingsplanen"
@@ -59,7 +58,6 @@ class BudstikkaProducer(
     private val producer: KafkaProducer<String, String>,
     private val budstikkaOppfolgingsplanSykmeldtUrl: String,
     private val dineSykmeldteOversiktUrl: String,
-    private val budstikkaOppfolgingsplanNarmesteLederUrl: String,
 ) : BudstikkaPublisher {
     private val log = logger()
 
@@ -115,7 +113,7 @@ class BudstikkaProducer(
                 emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
                 emailHtmlBody = EVALUERINGS_PAAMINNELSE_EMAIL_HTML,
             ),
-            tag = EVALUERINGS_PAAMINNELSE_ARBEIDSGIVER_TAG,
+            tag = OPPFOLGING_TAG,
             text = EVALUERINGS_PAAMINNELSE_TEXT,
             link = dineSykmeldteOversiktUrl,
             messageType = Arbeidsgivervarsel.MessageType.BESKJED,
@@ -135,10 +133,16 @@ class BudstikkaProducer(
             eventId = EventId(eventId),
             reference = paaminnelseUuid.toString(),
             orgnummer = Orgnummer(orgnummer),
-            recipient = Arbeidsgivervarsel.NarmesteLeder(PersonIdentifier(sykmeldtFnr)),
-            tag = PAAMINNELSE_ARBEIDSGIVER_TAG,
+            recipient = Arbeidsgivervarsel.NarmesteLeder(
+                sykmeldt = PersonIdentifier(sykmeldtFnr),
+                externalNotification = Arbeidsgivervarsel.NarmesteLederExternalNotification(
+                    emailTitle = "Title",
+                    emailText = "<body></body>",
+                ),
+            ),
+            tag = OPPFOLGING_TAG,
             text = PAAMINNELSE_BUDSTIKKA_TEXT,
-            link = budstikkaOppfolgingsplanNarmesteLederUrl,
+            link = "$dineSykmeldteOversiktUrl/$narmestelederId",
             messageType = Arbeidsgivervarsel.MessageType.BESKJED,
             sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
         )
@@ -160,7 +164,7 @@ class BudstikkaProducer(
             orgnummer = Orgnummer(orgnummer),
             oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
             text = PAAMINNELSE_BUDSTIKKA_TEXT,
-            link = budstikkaOppfolgingsplanNarmesteLederUrl,
+            link = "$dineSykmeldteOversiktUrl/$narmestelederId",
             sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
         )
 

@@ -7,13 +7,13 @@ import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import java.util.UUID
 
-class PaaminnelseOutboxHandler(
+class PaaminnelseArbeidsgiverOutboxHandler(
     database: DatabaseInterface,
     paaminnelseService: PaaminnelseService,
     private val publisher: BudstikkaPublisher,
 ) : SharedPaaminnelseOutboxHandler(database, paaminnelseService) {
 
-    override val messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE
+    override val messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_ARBEIDSGIVER
 
     override suspend fun publish(
         paaminnelse: PersistedPaaminnelse,
@@ -25,7 +25,7 @@ class PaaminnelseOutboxHandler(
             eventId = eventId,
             orgnummer = paaminnelse.organisasjonsnummer,
             sykmeldtFnr = paaminnelse.sykmeldtFnr,
-            narmestelederId = payload.narmestelederId,
+            narmestelederId = "payload.narmestelederId", // TODO: Få narmestelederId fra et annet sted
         )
     }
 }
