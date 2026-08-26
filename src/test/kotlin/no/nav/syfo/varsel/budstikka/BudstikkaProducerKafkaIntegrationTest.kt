@@ -143,7 +143,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                         emailText = EVALUERINGS_PAAMINNELSE_EMAIL_TEXT,
                     ),
                 ),
-                tag = "OPPFOELGING",
+                tag = "Oppfølging",
                 text = EVALUERINGS_PAAMINNELSE_TEXT,
                 link = dineSykmeldteOversiktUrl,
                 messageType = Arbeidsgivervarsel.MessageType.BESKJED,

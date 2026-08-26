@@ -5,8 +5,8 @@ import no.nav.syfo.application.outbox.OutboxMessageHandler
 import no.nav.syfo.application.outbox.OutboxResult
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxMessage
-import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseRepository
 import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseSource
+import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseSourceRepository
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import java.time.Clock
@@ -15,7 +15,7 @@ import java.time.ZoneOffset
 import java.util.UUID
 
 class MinSideArbeidsgiverEvalueringspaaminnelseHandler(
-    private val repository: EvalueringspaaminnelseRepository,
+    private val repository: EvalueringspaaminnelseSourceRepository,
     private val publisher: BudstikkaPublisher,
 ) : OutboxMessageHandler {
     private val log = logger()

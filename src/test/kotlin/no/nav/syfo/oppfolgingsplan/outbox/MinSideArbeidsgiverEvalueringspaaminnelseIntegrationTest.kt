@@ -17,7 +17,9 @@ import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseRepository
+import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseSourceRepository
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationCommand
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
@@ -40,7 +42,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
             orgnummer = "999999999",
             sykmeldinger = listOf(DineSykmeldteSykmelding("ARNESEN, HOLM OG BAKKEN")),
         )
-        val repository = EvalueringspaaminnelseRepository(TestDB.database)
+        val repository = EvalueringspaaminnelseSourceRepository(TestDB.database)
         val sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(TestDB.database)
 
         beforeTest {
@@ -48,7 +50,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
         }
 
         it("publishes an eligible reminder once and marks only the employer row sent") {
-            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            val planUuid = TestDB.database.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
             sykmeldingsperiodeRepository.storeActiveArbeidsgiverPeriod(sykmeldt)
             val message = TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
@@ -84,7 +86,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
         }
 
         it("cancels the reminder when the source has no active sykmeldingsperiode") {
-            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            val planUuid = TestDB.database.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
             val publisher = mockk<BudstikkaPublisher>(relaxed = true)
             val worker = arbeidsgiverWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
 
@@ -104,7 +106,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
         }
 
         it("cancels the reminder terminally when the source plan is missing") {
-            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            val planUuid = TestDB.database.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
             TestDB.database.deleteArbeidsgiverPlan(planUuid)
             val publisher = mockk<BudstikkaPublisher>(relaxed = true)
             val worker = arbeidsgiverWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
@@ -125,7 +127,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
         }
 
         it("retries a failed Budstikka publish with the same outbox EventId before marking it sent") {
-            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            val planUuid = TestDB.database.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
             sykmeldingsperiodeRepository.storeActiveArbeidsgiverPeriod(sykmeldt)
             val message = TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
@@ -169,8 +171,8 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
         }
 
         it("schedules retry when the source database lookup fails") {
-            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
-            val failingRepository = mockk<EvalueringspaaminnelseRepository>()
+            val planUuid = TestDB.database.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            val failingRepository = mockk<EvalueringspaaminnelseSourceRepository>()
             coEvery {
                 failingRepository.findSource(planUuid, any())
             } throws SQLException("Forced database failure")
@@ -198,19 +200,25 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
         }
     })
 
-private suspend fun EvalueringspaaminnelseRepository.persistArbeidsgiverReminder(
+private suspend fun DatabaseInterface.persistArbeidsgiverReminder(
     sykmeldt: Sykmeldt,
     evalueringsdato: LocalDate,
-): UUID = persistOppfolgingsplanAndDeleteUtkast(
-    narmesteLederFnr = "11111111111",
-    sykmeldt = sykmeldt,
-    createOppfolgingsplanRequest = defaultOppfolgingsplan().copy(
-        evalueringPaaminnelse = true,
-        evalueringsdato = evalueringsdato,
+): UUID = OppfolgingsplanFinalizationRepository(this).finalize(
+    OppfolgingsplanFinalizationCommand(
+        narmesteLederFnr = "11111111111",
+        sykmeldt = sykmeldt,
+        createOppfolgingsplanRequest = defaultOppfolgingsplan().copy(
+            evalueringPaaminnelse = true,
+            evalueringsdato = evalueringsdato,
+        ),
+        stillingstittel = "Systemutvikler",
+        stillingsprosent = null,
+        reminderDefinitions = EvalueringPaaminnelseFactory.create(
+            enabled = true,
+            evalueringsdato = evalueringsdato,
+        ),
     ),
-    stillingstittel = "Systemutvikler",
-    stillingsprosent = null,
-)
+).oppfolgingsplanUuid
 
 private fun SykmeldingsperiodeRepository.storeActiveArbeidsgiverPeriod(sykmeldt: Sykmeldt) {
     storeSykmeldingsperioder(
@@ -227,7 +235,7 @@ private fun SykmeldingsperiodeRepository.storeActiveArbeidsgiverPeriod(sykmeldt:
 }
 
 private fun arbeidsgiverWorker(
-    repository: EvalueringspaaminnelseRepository,
+    repository: EvalueringspaaminnelseSourceRepository,
     publisher: BudstikkaPublisher,
     clock: Clock,
 ) = OutboxWorker(
