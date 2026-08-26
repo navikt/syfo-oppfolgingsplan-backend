@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.runBlocking
+import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
 import no.nav.budstikka.contract.Oppgavetype
@@ -12,7 +13,9 @@ import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
-import no.nav.syfo.varsel.budstikka.infrastructure.DINE_SYKMELDTE_PAAMINNELSE_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TITLE
+import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -33,6 +36,7 @@ class BudstikkaProducerKafkaIntegrationTest :
         val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
         val sykmeldtFnr = "12345678901"
         val oppfolgingsplanUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
+        val dineSykmeldteOversiktUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplaner"
 
         beforeSpec {
             kafka.start()
@@ -60,6 +64,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                         BudstikkaProducer(
                             kafkaProducer,
                             oppfolgingsplanUrl,
+                            dineSykmeldteOversiktUrl,
                         ).publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
@@ -89,7 +94,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                 sykmeldt = PersonIdentifier(sykmeldtFnr),
                 orgnummer = Orgnummer(organisasjonsnummer),
                 oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
-                text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
+                text = EVALUERINGS_PAAMINNELSE_TEXT,
                 sendingWindow = SendingWindow.ONGOING,
             )
 
@@ -101,6 +106,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                         BudstikkaProducer(
                             kafkaProducer,
                             oppfolgingsplanUrl,
+                            dineSykmeldteOversiktUrl,
                         ).publishDineSykmeldteEvalueringspaaminnelse(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
@@ -120,6 +126,54 @@ class BudstikkaProducerKafkaIntegrationTest :
                     } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) ->
                         value.toList()
                     }
+                }
+            }
+        }
+
+        test("BudstikkaProducer delivers the employer evaluation reminder with external email to Kafka") {
+            val organisasjonsnummer = "999999999"
+            val expectedDispatch = Budstikka.arbeidsgivervarselCreate(
+                eventId = EventId(eventId),
+                reference = oppfolgingsplanUuid.toString(),
+                orgnummer = Orgnummer(organisasjonsnummer),
+                recipient = Arbeidsgivervarsel.NarmesteLeder(
+                    sykmeldt = PersonIdentifier(sykmeldtFnr),
+                    externalNotification = Arbeidsgivervarsel.NarmesteLederExternalNotification(
+                        emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
+                        emailText = EVALUERINGS_PAAMINNELSE_EMAIL_TEXT,
+                    ),
+                ),
+                tag = "OPPFOELGING",
+                text = EVALUERINGS_PAAMINNELSE_TEXT,
+                link = dineSykmeldteOversiktUrl,
+                messageType = Arbeidsgivervarsel.MessageType.BESKJED,
+                sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+            )
+
+            KafkaConsumer<String, String>(consumerProperties(kafka.bootstrapServers)).use { consumer ->
+                KafkaProducer<String, String>(producerProperties(kafka.bootstrapServers)).use { kafkaProducer ->
+                    consumer.subscribeFromEnd(Budstikka.TOPIC)
+
+                    runBlocking {
+                        BudstikkaProducer(
+                            kafkaProducer,
+                            oppfolgingsplanUrl,
+                            dineSykmeldteOversiktUrl,
+                        ).publishArbeidsgiverPaaminnelse(
+                            oppfolgingsplanUuid = oppfolgingsplanUuid,
+                            sykmeldtFnr = sykmeldtFnr,
+                            organisasjonsnummer = organisasjonsnummer,
+                            eventId = eventId,
+                        )
+                    }
+
+                    val record = consumer.pollSingleRecord()
+                    record.topic() shouldBe expectedDispatch.topic
+                    record.key() shouldBe expectedDispatch.key
+                    record.value() shouldBe expectedDispatch.value
+                    record.headers().associate { header ->
+                        header.key() to header.value().toList()
+                    } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) -> value.toList() }
                 }
             }
         }

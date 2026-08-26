@@ -4,10 +4,12 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
 import no.nav.budstikka.contract.Oppgavetype
@@ -16,7 +18,9 @@ import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
-import no.nav.syfo.varsel.budstikka.infrastructure.DINE_SYKMELDTE_PAAMINNELSE_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TITLE
+import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
@@ -33,9 +37,11 @@ class BudstikkaProducerTest :
     DescribeSpec({
         val kafkaProducerMock = mockk<KafkaProducer<String, String>>()
         val budstikkaOppfolgingsplanSykmeldtUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
+        val dineSykmeldteOversiktUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplaner"
         val producer = BudstikkaProducer(
             kafkaProducerMock,
             budstikkaOppfolgingsplanSykmeldtUrl,
+            dineSykmeldteOversiktUrl,
         )
 
         beforeTest {
@@ -118,7 +124,7 @@ class BudstikkaProducerTest :
                     sykmeldt = PersonIdentifier(sykmeldtFnr),
                     orgnummer = Orgnummer(organisasjonsnummer),
                     oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
-                    text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
+                    text = EVALUERINGS_PAAMINNELSE_TEXT,
                     sendingWindow = SendingWindow.ONGOING,
                 )
                 every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
@@ -146,6 +152,57 @@ class BudstikkaProducerTest :
                             it.value() shouldContain "\"sendingWindow\":\"ONGOING\""
                             it.value() shouldContain "\"link\":null"
                             actualHeaders shouldBe expectedHeaders
+                        },
+                    )
+                }
+                verify(exactly = 1) { future.get(250, TimeUnit.MILLISECONDS) }
+            }
+        }
+
+        describe("publishArbeidsgiverPaaminnelse") {
+            it("publishes one employer notification with external email and no URL in the email") {
+                val future = mockk<Future<RecordMetadata>>()
+                val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
+                val oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
+                val sykmeldtFnr = "00000000000"
+                val organisasjonsnummer = "999999999"
+                val expectedDispatch = Budstikka.arbeidsgivervarselCreate(
+                    eventId = EventId(eventId),
+                    reference = oppfolgingsplanUuid.toString(),
+                    orgnummer = Orgnummer(organisasjonsnummer),
+                    recipient = Arbeidsgivervarsel.NarmesteLeder(
+                        sykmeldt = PersonIdentifier(sykmeldtFnr),
+                        externalNotification = Arbeidsgivervarsel.NarmesteLederExternalNotification(
+                            emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
+                            emailText = EVALUERINGS_PAAMINNELSE_EMAIL_TEXT,
+                        ),
+                    ),
+                    tag = "OPPFOELGING",
+                    text = EVALUERINGS_PAAMINNELSE_TEXT,
+                    link = dineSykmeldteOversiktUrl,
+                    messageType = Arbeidsgivervarsel.MessageType.BESKJED,
+                    sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+                )
+                every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
+                every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
+
+                producer.publishArbeidsgiverPaaminnelse(
+                    oppfolgingsplanUuid = oppfolgingsplanUuid,
+                    sykmeldtFnr = sykmeldtFnr,
+                    organisasjonsnummer = organisasjonsnummer,
+                    eventId = eventId,
+                )
+
+                EVALUERINGS_PAAMINNELSE_EMAIL_TEXT shouldNotContain "https://"
+                EVALUERINGS_PAAMINNELSE_EMAIL_TEXT shouldNotContain "http://"
+                verify(exactly = 1) {
+                    kafkaProducerMock.send(
+                        withArg {
+                            it.topic() shouldBe expectedDispatch.topic
+                            it.key() shouldBe expectedDispatch.key
+                            it.value() shouldBe expectedDispatch.value
+                            it.headers().associate { header -> header.key() to header.value().toList() } shouldBe
+                                expectedDispatch.headerBytes().mapValues { (_, value) -> value.toList() }
                         },
                     )
                 }

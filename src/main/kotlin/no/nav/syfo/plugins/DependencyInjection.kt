@@ -42,6 +42,7 @@ import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseSourceRepository
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
+import no.nav.syfo.oppfolgingsplan.outbox.ArbeidsgiverPaaminnelseHandler
 import no.nav.syfo.oppfolgingsplan.outbox.DineSykmeldteEvalueringspaaminnelseHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
@@ -253,6 +254,12 @@ private fun servicesModule() = module {
     single { CleanupUtkastTask(get(), get()) }
     single { OppfolgingsplanCreatedOutboxHandler(database = get(), publisher = get()) }
     single {
+        ArbeidsgiverPaaminnelseHandler(
+            repository = get(),
+            publisher = get(),
+        )
+    }
+    single {
         DineSykmeldteEvalueringspaaminnelseHandler(
             eligibilityService = get(),
             publisher = get(),
@@ -263,6 +270,7 @@ private fun servicesModule() = module {
             database = get(),
             handlers = listOf(
                 get<OppfolgingsplanCreatedOutboxHandler>(),
+                get<ArbeidsgiverPaaminnelseHandler>(),
                 get<DineSykmeldteEvalueringspaaminnelseHandler>(),
             ),
             observedMessageTypes = OppfolgingsplanOutboxMessageType.entries,

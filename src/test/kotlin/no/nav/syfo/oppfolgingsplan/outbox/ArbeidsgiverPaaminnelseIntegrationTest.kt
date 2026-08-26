@@ -1,0 +1,245 @@
+package no.nav.syfo.oppfolgingsplan.outbox
+
+import io.kotest.core.spec.style.DescribeSpec
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import no.nav.syfo.TestDB
+import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.outbox.MutableClock
+import no.nav.syfo.application.outbox.OutboxWorker
+import no.nav.syfo.application.outbox.db.findOutboxMessage
+import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
+import no.nav.syfo.application.outbox.domain.OutboxStatus
+import no.nav.syfo.defaultOppfolgingsplan
+import no.nav.syfo.defaultSykmeldt
+import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
+import no.nav.syfo.dinesykmeldte.client.Sykmeldt
+import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseRepository
+import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
+import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
+import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
+import java.sql.SQLException
+import java.time.Clock
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.util.UUID
+import java.util.concurrent.TimeoutException
+
+class ArbeidsgiverPaaminnelseIntegrationTest :
+    DescribeSpec({
+        val sendInstant = Instant.parse("2026-05-17T07:00:00Z")
+        val evalueringsdato = LocalDate.of(2026, 5, 20)
+        val sykmeldt = defaultSykmeldt().copy(
+            fnr = "00000000000",
+            navn = "Kari Normann",
+            orgnummer = "999999999",
+            sykmeldinger = listOf(DineSykmeldteSykmelding("ARNESEN, HOLM OG BAKKEN")),
+        )
+        val repository = EvalueringspaaminnelseRepository(TestDB.database)
+        val sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(TestDB.database)
+
+        beforeTest {
+            TestDB.clearAllData()
+        }
+
+        it("publishes an eligible reminder once and marks only the employer row sent") {
+            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            sykmeldingsperiodeRepository.storeActiveArbeidsgiverPeriod(sykmeldt)
+            val message = TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                planUuid.toString(),
+            ).shouldNotBeNull()
+            val publisher = mockk<BudstikkaPublisher>()
+            coEvery { publisher.publishArbeidsgiverPaaminnelse(any(), any(), any(), any()) } returns Unit
+            val worker = arbeidsgiverWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
+
+            worker.runOnce().sent shouldBe 1
+
+            coVerify(exactly = 1) {
+                publisher.publishArbeidsgiverPaaminnelse(
+                    oppfolgingsplanUuid = planUuid,
+                    sykmeldtFnr = sykmeldt.fnr,
+                    organisasjonsnummer = sykmeldt.orgnummer,
+                    eventId = message.uuid,
+                )
+            }
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                planUuid.toString(),
+            ).shouldNotBeNull().apply {
+                status shouldBe OutboxStatus.SENT
+                completedAt.shouldNotBeNull()
+            }
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
+                planUuid.toString(),
+            ).shouldNotBeNull().status shouldBe OutboxStatus.READY
+        }
+
+        it("cancels the reminder when the source has no active sykmeldingsperiode") {
+            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+            val worker = arbeidsgiverWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
+
+            worker.runOnce().cancelled shouldBe 1
+
+            coVerify(exactly = 0) {
+                publisher.publishArbeidsgiverPaaminnelse(any(), any(), any(), any())
+            }
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                planUuid.toString(),
+            ).shouldNotBeNull().apply {
+                status shouldBe OutboxStatus.CANCELLED
+                cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
+                completedAt.shouldNotBeNull()
+            }
+        }
+
+        it("cancels the reminder terminally when the source plan is missing") {
+            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            TestDB.database.deleteArbeidsgiverPlan(planUuid)
+            val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+            val worker = arbeidsgiverWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
+
+            worker.runOnce().cancelled shouldBe 1
+
+            coVerify(exactly = 0) {
+                publisher.publishArbeidsgiverPaaminnelse(any(), any(), any(), any())
+            }
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                planUuid.toString(),
+            ).shouldNotBeNull().apply {
+                status shouldBe OutboxStatus.CANCELLED
+                cancellationReason shouldBe OutboxCancellationReason.SOURCE_NOT_FOUND
+                completedAt.shouldNotBeNull()
+            }
+        }
+
+        it("retries a failed Budstikka publish with the same outbox EventId before marking it sent") {
+            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            sykmeldingsperiodeRepository.storeActiveArbeidsgiverPeriod(sykmeldt)
+            val message = TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                planUuid.toString(),
+            ).shouldNotBeNull()
+            val observedEventIds = mutableListOf<UUID>()
+            var publishAttempt = 0
+            val publisher = mockk<BudstikkaPublisher>()
+            coEvery {
+                publisher.publishArbeidsgiverPaaminnelse(
+                    any(),
+                    any(),
+                    any(),
+                    capture(observedEventIds),
+                )
+            } coAnswers {
+                publishAttempt++
+                if (publishAttempt == 1) throw TimeoutException("Forced Budstikka timeout")
+            }
+            val clock = MutableClock(sendInstant)
+            val worker = arbeidsgiverWorker(repository, publisher, clock)
+
+            worker.runOnce().retryScheduled shouldBe 1
+            val retrying = TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                planUuid.toString(),
+            ).shouldNotBeNull()
+            retrying.status shouldBe OutboxStatus.READY
+            retrying.failureCount shouldBe 1
+            retrying.lastFailureAt.shouldNotBeNull()
+            retrying.completedAt shouldBe null
+
+            clock.advance(Duration.between(clock.instant(), retrying.availableAt).plusMillis(1))
+            worker.runOnce().sent shouldBe 1
+
+            observedEventIds shouldBe listOf(message.uuid, message.uuid)
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                planUuid.toString(),
+            ).shouldNotBeNull().status shouldBe OutboxStatus.SENT
+        }
+
+        it("schedules retry when the source database lookup fails") {
+            val planUuid = repository.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
+            val failingRepository = mockk<EvalueringspaaminnelseRepository>()
+            coEvery {
+                failingRepository.findSource(planUuid, any())
+            } throws SQLException("Forced database failure")
+            val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+            val worker = arbeidsgiverWorker(
+                failingRepository,
+                publisher,
+                Clock.fixed(sendInstant, ZoneOffset.UTC),
+            )
+
+            worker.runOnce().retryScheduled shouldBe 1
+
+            coVerify(exactly = 0) {
+                publisher.publishArbeidsgiverPaaminnelse(any(), any(), any(), any())
+            }
+            TestDB.database.findOutboxMessage(
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                planUuid.toString(),
+            ).shouldNotBeNull().apply {
+                status shouldBe OutboxStatus.READY
+                failureCount shouldBe 1
+                lastFailureAt.shouldNotBeNull()
+                completedAt shouldBe null
+            }
+        }
+    })
+
+private suspend fun EvalueringspaaminnelseRepository.persistArbeidsgiverReminder(
+    sykmeldt: Sykmeldt,
+    evalueringsdato: LocalDate,
+): UUID = persistOppfolgingsplanAndDeleteUtkast(
+    narmesteLederFnr = "11111111111",
+    sykmeldt = sykmeldt,
+    createOppfolgingsplanRequest = defaultOppfolgingsplan().copy(
+        evalueringPaaminnelse = true,
+        evalueringsdato = evalueringsdato,
+    ),
+    stillingstittel = "Systemutvikler",
+    stillingsprosent = null,
+)
+
+private fun SykmeldingsperiodeRepository.storeActiveArbeidsgiverPeriod(sykmeldt: Sykmeldt) {
+    storeSykmeldingsperioder(
+        listOf(
+            SykmeldingsperiodeToStore(
+                sykmeldtFnr = sykmeldt.fnr,
+                organisasjonsnummer = sykmeldt.orgnummer,
+                sykmeldingId = "active-sykmelding",
+                fom = LocalDate.of(2026, 5, 1),
+                tom = LocalDate.of(2026, 5, 31),
+            ),
+        ),
+    )
+}
+
+private fun arbeidsgiverWorker(
+    repository: EvalueringspaaminnelseRepository,
+    publisher: BudstikkaPublisher,
+    clock: Clock,
+) = OutboxWorker(
+    database = TestDB.database,
+    handlers = listOf(
+        ArbeidsgiverPaaminnelseHandler(repository, publisher),
+    ),
+    clock = clock,
+)
+
+private fun DatabaseInterface.deleteArbeidsgiverPlan(planUuid: UUID) = connection.use { connection ->
+    connection.prepareStatement("DELETE FROM oppfolgingsplan WHERE uuid = ?").use {
+        it.setObject(1, planUuid)
+        it.executeUpdate()
+    }
+    connection.commit()
+}
