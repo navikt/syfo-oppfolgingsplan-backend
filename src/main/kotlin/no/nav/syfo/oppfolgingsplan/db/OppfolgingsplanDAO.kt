@@ -8,7 +8,6 @@ import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
-import java.math.BigDecimal
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.time.Instant

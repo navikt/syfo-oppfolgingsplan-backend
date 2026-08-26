@@ -30,8 +30,8 @@ import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
-import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.pdl.PdlService
+import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import org.slf4j.LoggerFactory
