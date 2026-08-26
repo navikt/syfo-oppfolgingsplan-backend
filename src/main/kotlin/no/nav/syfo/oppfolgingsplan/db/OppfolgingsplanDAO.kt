@@ -1,120 +1,20 @@
 package no.nav.syfo.oppfolgingsplan.db
 
 import no.nav.syfo.application.database.DatabaseInterface
-import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
-import no.nav.syfo.application.outbox.domain.NewOutboxMessage
-import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.dinesykmeldte.client.getOrganizationName
+import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.dto.CreateOppfolgingsplanRequest
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.FormSnapshot
 import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.jsonToFormSnapshot
-import no.nav.syfo.oppfolgingsplan.dto.formsnapshot.toJsonString
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import org.slf4j.LoggerFactory
 import java.lang.invoke.MethodHandles
-import java.math.BigDecimal
-import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Timestamp
-import java.sql.Types
 import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
 private fun logger() = LoggerFactory.getLogger(MethodHandles.lookup().lookupClass())
-
-fun DatabaseInterface.persistOppfolgingsplanAndDeleteUtkast(
-    narmesteLederFnr: String,
-    sykmeldt: Sykmeldt,
-    createOppfolgingsplanRequest: CreateOppfolgingsplanRequest,
-    stillingstittel: String?,
-    stillingsprosent: BigDecimal?,
-): UUID {
-    val insertStatement = """
-        INSERT INTO oppfolgingsplan (
-            sykmeldt_fnr,
-            sykmeldt_full_name,
-            narmeste_leder_id,
-            narmeste_leder_fnr,
-            organisasjonsnummer,
-            organisasjonsnavn,
-            stillingstittel,
-            stillingsprosent,
-            content,
-            evalueringsdato,
-            evaluering_paaminnelse,
-            evaluering_paaminnelse_outbox_at,
-            skal_deles_med_lege,
-            skal_deles_med_veileder,
-            utkast_created_at,
-            created_at,
-            event_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), gen_random_uuid())
-        RETURNING uuid, event_id, created_at
-    """.trimIndent()
-
-    val deleteStatement = """
-        DELETE FROM oppfolgingsplan_utkast
-        WHERE narmeste_leder_id = ?
-        RETURNING created_at
-    """.trimIndent()
-
-    connection.use { connection ->
-        val utkastCreatedAt = connection.prepareStatement(deleteStatement).use {
-            it.setString(1, sykmeldt.narmestelederId)
-            val resultSet = it.executeQuery()
-            if (resultSet.next()) {
-                resultSet.getTimestamp("created_at").toInstant()
-            } else {
-                null
-            }
-        }
-
-        val (uuid, eventId, createdAt) = connection.prepareStatement(insertStatement).use {
-            it.setString(1, sykmeldt.fnr)
-            it.setString(2, sykmeldt.navn)
-            it.setString(3, sykmeldt.narmestelederId)
-            it.setString(4, narmesteLederFnr)
-            it.setString(5, sykmeldt.orgnummer)
-            it.setString(6, sykmeldt.getOrganizationName())
-            it.setString(7, stillingstittel)
-            it.setBigDecimal(8, stillingsprosent)
-            it.setObject(9, createOppfolgingsplanRequest.content.toJsonString(), Types.OTHER)
-            it.setDate(10, Date.valueOf(createOppfolgingsplanRequest.evalueringsdato.toString()))
-            it.setBoolean(11, createOppfolgingsplanRequest.evalueringPaaminnelse)
-            it.setNull(12, Types.TIMESTAMP_WITH_TIMEZONE)
-            it.setBoolean(13, false)
-            it.setBoolean(14, false)
-            if (utkastCreatedAt != null) {
-                it.setTimestamp(15, Timestamp.from(utkastCreatedAt))
-            } else {
-                it.setNull(15, Types.TIMESTAMP)
-            }
-            val resultSet = it.executeQuery()
-            resultSet.next()
-            Triple(
-                resultSet.getObject("uuid", UUID::class.java),
-                resultSet.getObject("event_id", UUID::class.java),
-                resultSet.getTimestamp("created_at").toInstant(),
-            )
-        }
-        check(
-            connection.enqueueOutboxMessage(
-                NewOutboxMessage(
-                    uuid = eventId,
-                    messageType = OppfolgingsplanOutboxMessageType.CREATED,
-                    dedupKey = uuid.toString(),
-                    externalRef = uuid.toString(),
-                    payload = "{}",
-                    availableAt = createdAt,
-                ),
-            ),
-        ) { "A new oppfolgingsplan must create a new outbox command" }
-        connection.commit()
-        return uuid
-    }
-}
 
 fun DatabaseInterface.findAllOppfolgingsplanerBy(
     sykmeldtFnr: String,
@@ -420,7 +320,16 @@ fun DatabaseInterface.setSendtTilDokumentportenTidspunkt(
 
 fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
     batchSize: Int = 1000,
-): Int {
+): Int = softDeleteExpiredOppfolgingsplanerWithResult(batchSize).hiddenCount
+
+data class SoftDeleteExpiredOppfolgingsplanerResult(
+    val hiddenCount: Int,
+    val cancelledReminderCountByChannel: Map<OppfolgingsplanOutboxMessageType, Int>,
+)
+
+fun DatabaseInterface.softDeleteExpiredOppfolgingsplanerWithResult(
+    batchSize: Int = 1000,
+): SoftDeleteExpiredOppfolgingsplanerResult {
     val statement = """
         WITH candidates AS (
             SELECT op.uuid
@@ -437,17 +346,63 @@ fun DatabaseInterface.softDeleteExpiredOppfolgingsplaner(
             ORDER BY op.uuid
             LIMIT ?
         )
-        UPDATE oppfolgingsplan op
-        SET skjult_fra = NOW()
-        FROM candidates
-        WHERE op.uuid = candidates.uuid
+        , hidden AS (
+            UPDATE oppfolgingsplan op
+            SET skjult_fra = NOW()
+            FROM candidates
+            WHERE op.uuid = candidates.uuid
+            RETURNING op.uuid
+        ), cancelled AS (
+            UPDATE outbox
+            SET status = 'CANCELLED',
+                cancellation_reason = ?,
+                completed_at = NOW()
+            FROM hidden
+            WHERE outbox.external_ref = hidden.uuid::text
+              AND outbox.message_type IN (?, ?)
+              AND outbox.status = 'READY'
+            RETURNING outbox.message_type
+        )
+        SELECT
+            (SELECT COUNT(*) FROM hidden) AS hidden_count,
+            COUNT(*) FILTER (WHERE message_type = ?) AS min_side_arbeidsgiver_cancelled_count,
+            COUNT(*) FILTER (WHERE message_type = ?) AS dine_sykmeldte_cancelled_count
+        FROM cancelled
     """.trimIndent()
 
     return connection.use { connection ->
         connection.prepareStatement(statement).use {
             it.setString(1, SOFT_DELETE_RETENTION_INTERVAL)
             it.setInt(2, batchSize)
-            it.executeUpdate()
+            it.setString(3, OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE.value)
+            it.setString(
+                4,
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER.value,
+            )
+            it.setString(
+                5,
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE.value,
+            )
+            it.setString(
+                6,
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER.value,
+            )
+            it.setString(
+                7,
+                OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE.value,
+            )
+            it.executeQuery().use { resultSet ->
+                resultSet.next()
+                SoftDeleteExpiredOppfolgingsplanerResult(
+                    hiddenCount = resultSet.getInt("hidden_count"),
+                    cancelledReminderCountByChannel = mapOf(
+                        OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER to
+                            resultSet.getInt("min_side_arbeidsgiver_cancelled_count"),
+                        OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE to
+                            resultSet.getInt("dine_sykmeldte_cancelled_count"),
+                    ),
+                )
+            }
         }.also { connection.commit() }
     }
 }

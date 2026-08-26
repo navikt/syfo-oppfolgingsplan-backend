@@ -42,6 +42,8 @@ class Database(
     }
 
     private fun runFlywayMigrations() = Flyway.configure().run {
+        // V29 uses CREATE INDEX CONCURRENTLY; Flyway keeps migration coordination with a session lock.
+        configuration(mapOf("flyway.postgresql.transactional.lock" to "false"))
         dataSource(
             config.jdbcUrl,
             config.username,

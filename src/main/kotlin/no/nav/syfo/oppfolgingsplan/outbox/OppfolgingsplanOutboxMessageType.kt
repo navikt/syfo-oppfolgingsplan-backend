@@ -6,4 +6,25 @@ enum class OppfolgingsplanOutboxMessageType(
     override val value: String,
 ) : OutboxMessageType {
     CREATED("OPPFOLGINGSPLAN_CREATED"),
+    EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER(
+        "OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER",
+    ),
+    EVALUERING_PAAMINNELSE_DINE_SYKMELDTE(
+        "OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_DINE_SYKMELDTE",
+    ),
+    ;
+
+    val channelMetricLabel: String?
+        get() = when (this) {
+            CREATED -> null
+            EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER -> "min_side_arbeidsgiver"
+            EVALUERING_PAAMINNELSE_DINE_SYKMELDTE -> "dine_sykmeldte"
+        }
+
+    companion object {
+        val evalueringPaaminnelseTypes = listOf(
+            EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+            EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
+        )
+    }
 }

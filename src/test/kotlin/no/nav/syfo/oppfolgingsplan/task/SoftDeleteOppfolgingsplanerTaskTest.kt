@@ -9,11 +9,21 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.syfo.TestDB
+import no.nav.syfo.application.database.exposedTransaction
+import no.nav.syfo.application.metric.METRICS_REGISTRY
+import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
+import no.nav.syfo.application.outbox.db.findOutboxMessage
+import no.nav.syfo.application.outbox.domain.NewOutboxMessage
+import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
+import no.nav.syfo.application.outbox.domain.OutboxStatus
 import no.nav.syfo.defaultPersistedOppfolgingsplan
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
 import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
+import no.nav.syfo.oppfolgingsplan.outbox.OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_OUTBOX
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
@@ -33,6 +43,7 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             pdlService = mockk(relaxed = true),
             aaregService = mockk(relaxed = true),
             unntaksvurderingService = mockk(relaxed = true),
+            oppfolgingsplanFinalizationRepository = OppfolgingsplanFinalizationRepository(testDb),
         )
 
         fun softDeleteAll(batchSize: Int): Pair<Int, Int> {
@@ -75,6 +86,49 @@ class SoftDeleteOppfolgingsplanerTaskTest :
                 service().softDeleteExpiredOppfolgingsplaner() shouldBe 1
 
                 testDb.findOppfolgingsplanBy(planUuid, inkluderSkjulte = true)?.skjultFra.shouldNotBeNull()
+            }
+
+            it("atomically cancels READY evaluation reminders when a plan is soft-deleted") {
+                val plan = defaultPersistedOppfolgingsplan()
+                val planUuid = testDb.persistOppfolgingsplan(plan)
+                val metricCountsBefore = OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes
+                    .associateWith(::sourceNoLongerEligibleMetricCount)
+                OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { messageType ->
+                    testDb.exposedTransaction {
+                        enqueueOutboxMessage(
+                            NewOutboxMessage(
+                                messageType = messageType,
+                                dedupKey = planUuid.toString(),
+                                externalRef = planUuid.toString(),
+                                payload = "{}",
+                                availableAt = Instant.EPOCH,
+                            ),
+                        )
+                    }
+                }
+                sykmeldingsperiodeRepository.storeSykmeldingsperioder(
+                    listOf(
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = plan.sykmeldtFnr,
+                            organisasjonsnummer = plan.organisasjonsnummer,
+                            sykmeldingId = "sykmelding-with-reminders",
+                            fom = LocalDate.now().minusMonths(8),
+                            tom = LocalDate.now().minusMonths(7),
+                        ),
+                    ),
+                )
+
+                service().softDeleteExpiredOppfolgingsplaner() shouldBe 1
+
+                OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.forEach { messageType ->
+                    testDb.findOutboxMessage(messageType, planUuid.toString()).shouldNotBeNull().apply {
+                        status shouldBe OutboxStatus.CANCELLED
+                        cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
+                        completedAt.shouldNotBeNull()
+                    }
+                    sourceNoLongerEligibleMetricCount(messageType) -
+                        metricCountsBefore.getValue(messageType) shouldBe 1.0
+                }
             }
 
             it("does not soft-delete plan with last tom 5 months ago") {
@@ -380,3 +434,13 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             }
         }
     })
+
+private fun sourceNoLongerEligibleMetricCount(
+    messageType: OppfolgingsplanOutboxMessageType,
+): Double = METRICS_REGISTRY.counter(
+    OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_OUTBOX,
+    "channel",
+    requireNotNull(messageType.channelMetricLabel),
+    "outcome",
+    "source_no_longer_eligible",
+).count()

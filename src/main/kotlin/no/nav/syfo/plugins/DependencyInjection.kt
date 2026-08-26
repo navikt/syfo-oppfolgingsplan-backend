@@ -40,6 +40,7 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
@@ -230,6 +231,7 @@ private fun servicesModule() = module {
     single { PdlService(get()) }
     single { AaregService(get()) }
     single { UnntaksvurderingService(database = get(), pdlService = get()) }
+    single { OppfolgingsplanFinalizationRepository(database = get()) }
     single {
         OppfolgingsplanService(
             database = get(),
@@ -237,6 +239,7 @@ private fun servicesModule() = module {
             pdlService = get(),
             aaregService = get(),
             unntaksvurderingService = get(),
+            oppfolgingsplanFinalizationRepository = get(),
         )
     }
     single { PaaminnelseService(database = get(), sykmeldingsperiodeRepository = get()) }
@@ -248,6 +251,7 @@ private fun servicesModule() = module {
         OutboxWorker(
             database = get(),
             handlers = listOf(get<OppfolgingsplanCreatedOutboxHandler>()),
+            observedMessageTypes = OppfolgingsplanOutboxMessageType.entries,
         )
     }
     single { OutboxTask(worker = get()) }
@@ -258,6 +262,14 @@ private fun servicesModule() = module {
             policies = listOf(
                 OutboxRetentionPolicy(
                     messageType = OppfolgingsplanOutboxMessageType.CREATED,
+                    retention = Duration.ofDays(90),
+                ),
+                OutboxRetentionPolicy(
+                    messageType = OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER,
+                    retention = Duration.ofDays(90),
+                ),
+                OutboxRetentionPolicy(
+                    messageType = OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
                     retention = Duration.ofDays(90),
                 ),
             ),

@@ -72,9 +72,11 @@ class OutboxWorker(
     handlers: List<OutboxMessageHandler>,
     private val clock: Clock = Clock.systemUTC(),
     private val config: OutboxWorkerConfig = OutboxWorkerConfig(),
+    observedMessageTypes: List<OutboxMessageType> = handlers.map { it.messageType },
 ) {
     private val log = logger()
     private val handlersByTypeValue = handlers.associateBy { it.messageType.value }
+    private val observedMessageTypesByValue = observedMessageTypes.associateBy { it.value }
 
     init {
         require(handlers.isNotEmpty()) { "At least one outbox handler must be registered" }
@@ -82,17 +84,27 @@ class OutboxWorker(
         require(handlers.size == handlersByTypeValue.size) {
             "Only one outbox handler can be registered per stable message type value"
         }
+        require(observedMessageTypes.isNotEmpty()) { "At least one outbox message type must be observed" }
+        require(observedMessageTypes.all { it.value.isNotBlank() }) { "Observed message type values must not be blank" }
+        require(observedMessageTypes.size == observedMessageTypesByValue.size) {
+            "Only one observed outbox message type can be configured per stable value"
+        }
+        require(handlersByTypeValue.keys.all(observedMessageTypesByValue::containsKey)) {
+            "Every handled outbox message type must also be observed"
+        }
     }
 
     suspend fun runOnce(): OutboxBatchResult {
         var total = OutboxBatchResult()
         for (handler in handlersByTypeValue.values) {
             total += processClaimedBatch(handler)
+        }
+        for (messageType in observedMessageTypesByValue.values) {
             val observedAt = clock.instant()
             val snapshot = database.exposedTransaction(readOnly = true) {
-                readOutboxQueueSnapshot(handler.messageType, observedAt)
+                readOutboxQueueSnapshot(messageType, observedAt)
             }
-            OutboxQueueMetrics.observe(handler.messageType, snapshot, observedAt)
+            OutboxQueueMetrics.observe(messageType, snapshot, observedAt)
         }
         return total
     }

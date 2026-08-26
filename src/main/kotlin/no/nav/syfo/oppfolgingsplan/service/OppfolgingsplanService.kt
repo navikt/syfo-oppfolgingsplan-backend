@@ -10,6 +10,8 @@ import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationCommand
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
@@ -19,12 +21,11 @@ import no.nav.syfo.oppfolgingsplan.db.domain.toUtkastMetadata
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanUtkastBy
-import no.nav.syfo.oppfolgingsplan.db.persistOppfolgingsplanAndDeleteUtkast
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedLegeTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setDeltMedVeilederTidspunkt
 import no.nav.syfo.oppfolgingsplan.db.setJournalpostId
 import no.nav.syfo.oppfolgingsplan.db.setNarmesteLederFullName
-import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplaner
+import no.nav.syfo.oppfolgingsplan.db.softDeleteExpiredOppfolgingsplanerWithResult
 import no.nav.syfo.oppfolgingsplan.db.updateDelingAvPlanMedVeileder
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedLege
 import no.nav.syfo.oppfolgingsplan.db.updateSkalDelesMedVeileder
@@ -37,6 +38,8 @@ import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
 import no.nav.syfo.oppfolgingsplan.dto.utledGjeldendeStatus
+import no.nav.syfo.oppfolgingsplan.outbox.EvalueringPaaminnelseFactory
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanEvalueringPaaminnelseOutboxMetrics
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -51,8 +54,8 @@ const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
 /**
  * Service for managing oppfølgingsplaner.
  *
- * All database operations are wrapped in withContext(Dispatchers.IO) to avoid blocking
- * Ktor's request handling threads. This is important to maintain good throughput and low latency under load.
+ * Blocking database work is dispatched either by DAO transaction helpers (for example exposedTransaction)
+ * or by explicit withContext(Dispatchers.IO) in this service.
  */
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
@@ -60,6 +63,7 @@ class OppfolgingsplanService(
     private val pdlService: PdlService,
     private val aaregService: AaregService,
     private val unntaksvurderingService: UnntaksvurderingService,
+    private val oppfolgingsplanFinalizationRepository: OppfolgingsplanFinalizationRepository,
 ) {
     private val logger = logger()
 
@@ -83,15 +87,26 @@ class OppfolgingsplanService(
             null
         }
 
-        return withContext(Dispatchers.IO) {
-            database.persistOppfolgingsplanAndDeleteUtkast(
+        val finalizationResult = oppfolgingsplanFinalizationRepository.finalize(
+            OppfolgingsplanFinalizationCommand(
                 narmesteLederFnr = narmesteLederFnr,
                 sykmeldt = sykmeldt,
                 createOppfolgingsplanRequest = createOppfolgingsplanRequest,
                 stillingstittel = stillingsinformasjon?.stillingstittel,
                 stillingsprosent = stillingsinformasjon?.stillingsprosent,
-            )
-        }
+                reminderDefinitions = EvalueringPaaminnelseFactory.create(
+                    enabled = createOppfolgingsplanRequest.evalueringPaaminnelse,
+                    evalueringsdato = createOppfolgingsplanRequest.evalueringsdato,
+                ),
+            ),
+        )
+        OppfolgingsplanEvalueringPaaminnelseOutboxMetrics.incrementCreated(
+            finalizationResult.createdReminderCountByChannel,
+        )
+        OppfolgingsplanEvalueringPaaminnelseOutboxMetrics.incrementSuperseded(
+            finalizationResult.supersededReminderCountByChannel,
+        )
+        return finalizationResult.oppfolgingsplanUuid
     }
 
     suspend fun persistOppfolgingsplanUtkast(
@@ -264,10 +279,14 @@ class OppfolgingsplanService(
         )
     }
 
-    suspend fun softDeleteExpiredOppfolgingsplaner(): Int = withContext(Dispatchers.IO) {
-        runSoftDeleteBatchLoop {
-            database.softDeleteExpiredOppfolgingsplaner()
+    suspend fun softDeleteExpiredOppfolgingsplaner(): Int = runSoftDeleteBatchLoop {
+        val result = withContext(Dispatchers.IO) {
+            database.softDeleteExpiredOppfolgingsplanerWithResult()
         }
+        OppfolgingsplanEvalueringPaaminnelseOutboxMetrics.incrementSourceNoLongerEligible(
+            result.cancelledReminderCountByChannel,
+        )
+        result.hiddenCount
     }
 
     suspend fun getAndSetNarmestelederFullname(

@@ -12,6 +12,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import no.nav.syfo.TestDB
+import no.nav.syfo.application.metric.METRICS_NS
+import no.nav.syfo.application.metric.METRICS_REGISTRY
 import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
@@ -30,6 +32,27 @@ class OutboxWorkerTest :
         beforeTest { TestDB.clearAllData() }
 
         describe("domain outcomes") {
+            it("observes a staged message type without claiming it") {
+                val staged = TestDB.database.enqueueTestOutboxMessage(
+                    messageType = TEST_STAGED_MESSAGE,
+                    availableAt = now.minusSeconds(1),
+                )
+
+                OutboxWorker(
+                    database = TestDB.database,
+                    handlers = listOf(TestOutboxHandler()),
+                    clock = fixedClock,
+                    observedMessageTypes = listOf(TEST_IMMEDIATE_MESSAGE, TEST_STAGED_MESSAGE),
+                ).runOnce() shouldBe OutboxBatchResult()
+
+                TestDB.database.findOutboxMessage(staged)?.status shouldBe OutboxStatus.READY
+                METRICS_REGISTRY.find("${METRICS_NS}_outbox_due_ready")
+                    .tag("message_type", TEST_STAGED_MESSAGE.value)
+                    .gauge()
+                    .shouldNotBeNull()
+                    .value() shouldBe 1.0
+            }
+
             it("marks an acknowledged message sent") {
                 val message = TestDB.database.enqueueTestOutboxMessage()
                 val handler = TestOutboxHandler()

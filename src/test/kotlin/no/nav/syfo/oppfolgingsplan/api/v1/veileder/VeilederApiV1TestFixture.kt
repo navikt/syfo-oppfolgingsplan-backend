@@ -25,6 +25,7 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.IIsTilgangskontrollClient
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdfgen.PdfGenService
@@ -83,6 +84,8 @@ class VeilederApiV1TestFixture {
                             pdlService = mockk(relaxed = true),
                             aaregService = mockk<AaregService>(relaxed = true),
                             unntaksvurderingService = mockk(relaxed = true),
+                            oppfolgingsplanFinalizationRepository =
+                            OppfolgingsplanFinalizationRepository(testDb),
                         ),
                         unntaksvurderingService = UnntaksvurderingService(testDb, mockk(relaxed = true)),
                         pdfGenService = pdfGenService,
