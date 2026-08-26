@@ -25,7 +25,6 @@ data class PersistedOppfolgingsplan(
     val content: FormSnapshot,
     val evalueringsdato: LocalDate,
     val evalueringPaaminnelse: Boolean = false,
-    val evalueringPaaminnelseOutboxAt: Instant? = null,
     val skalDelesMedLege: Boolean,
     val skalDelesMedVeileder: Boolean,
     val deltMedLegeTidspunkt: Instant? = null,

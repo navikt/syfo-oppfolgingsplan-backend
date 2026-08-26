@@ -61,7 +61,6 @@ class OppfolgingsplanFinalizationRepository(
                 command.createOppfolgingsplanRequest.evalueringsdato
             it[OppfolgingsplanTable.evalueringPaaminnelse] =
                 command.createOppfolgingsplanRequest.evalueringPaaminnelse
-            it[OppfolgingsplanTable.evalueringPaaminnelseOutboxAt] = null
             it[OppfolgingsplanTable.skalDelesMedLege] = false
             it[OppfolgingsplanTable.skalDelesMedVeileder] = false
             it[OppfolgingsplanTable.utkastCreatedAt] = utkastCreatedAt
