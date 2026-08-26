@@ -34,8 +34,8 @@ import java.util.concurrent.TimeoutException
 
 class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
     DescribeSpec({
-        val sendInstant = Instant.parse("2026-05-17T07:00:00Z")
-        val evalueringsdato = LocalDate.of(2026, 5, 20)
+        val sendInstant = Instant.parse("2030-05-17T07:00:00Z")
+        val evalueringsdato = LocalDate.of(2030, 5, 20)
         val sykmeldt = defaultSykmeldt().copy(
             fnr = "00000000000",
             navn = "Kari Normann",
@@ -227,8 +227,8 @@ private fun SykmeldingsperiodeRepository.storeActiveArbeidsgiverPeriod(sykmeldt:
                 sykmeldtFnr = sykmeldt.fnr,
                 organisasjonsnummer = sykmeldt.orgnummer,
                 sykmeldingId = "active-sykmelding",
-                fom = LocalDate.of(2026, 5, 1),
-                tom = LocalDate.of(2026, 5, 31),
+                fom = LocalDate.of(2030, 5, 1),
+                tom = LocalDate.of(2030, 5, 31),
             ),
         ),
     )
