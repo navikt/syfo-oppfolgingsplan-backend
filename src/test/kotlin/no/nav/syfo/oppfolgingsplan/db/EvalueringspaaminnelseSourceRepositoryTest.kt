@@ -116,6 +116,42 @@ class EvalueringspaaminnelseSourceRepositoryTest :
                     EvalueringspaaminnelseSource.NotFound
             }
 
+            it("returns no longer eligible when the source oppfolgingsplan is hidden") {
+                val planUuid = TestDB.database.persistPlanForSourceLookup(
+                    sykmeldtFnr = sykmeldtFnr,
+                    organisasjonsnummer = organisasjonsnummer,
+                    skjultFra = Instant.parse("2026-05-19T10:00:00Z"),
+                )
+                sykmeldingsperiodeRepository.storePeriod(
+                    sykmeldtFnr = sykmeldtFnr,
+                    organisasjonsnummer = organisasjonsnummer,
+                    sykmeldingId = "active-hidden-plan",
+                    fom = today.minusDays(2),
+                    tom = today.plusDays(2),
+                )
+
+                repository.findSource(planUuid, clock = todayClock) shouldBe
+                    EvalueringspaaminnelseSource.NoLongerEligible
+            }
+
+            it("returns no longer eligible when the source oppfolgingsplan is registered as incorrect") {
+                val planUuid = TestDB.database.persistPlanForSourceLookup(
+                    sykmeldtFnr = sykmeldtFnr,
+                    organisasjonsnummer = organisasjonsnummer,
+                    feilregistrert = Instant.parse("2026-05-19T10:00:00Z"),
+                )
+                sykmeldingsperiodeRepository.storePeriod(
+                    sykmeldtFnr = sykmeldtFnr,
+                    organisasjonsnummer = organisasjonsnummer,
+                    sykmeldingId = "active-incorrect-plan",
+                    fom = today.minusDays(2),
+                    tom = today.plusDays(2),
+                )
+
+                repository.findSource(planUuid, clock = todayClock) shouldBe
+                    EvalueringspaaminnelseSource.NoLongerEligible
+            }
+
             it("uses Europe/Oslo date when UTC and Oslo are on different calendar dates") {
                 val boundaryInstant = Instant.parse("2026-05-20T22:30:00Z")
                 val boundaryClock = Clock.fixed(boundaryInstant, ZoneOffset.UTC)
@@ -147,12 +183,16 @@ class EvalueringspaaminnelseSourceRepositoryTest :
 private fun DatabaseInterface.persistPlanForSourceLookup(
     sykmeldtFnr: String,
     organisasjonsnummer: String,
+    skjultFra: Instant? = null,
+    feilregistrert: Instant? = null,
 ): UUID = persistOppfolgingsplan(
     defaultPersistedOppfolgingsplan().copy(
         sykmeldtFnr = sykmeldtFnr,
         narmesteLederId = NARMESTE_LEDER_ID,
         organisasjonsnummer = organisasjonsnummer,
         createdAt = Instant.parse("2026-01-01T00:00:00Z"),
+        skjultFra = skjultFra,
+        feilregistrert = feilregistrert,
     ),
 )
 

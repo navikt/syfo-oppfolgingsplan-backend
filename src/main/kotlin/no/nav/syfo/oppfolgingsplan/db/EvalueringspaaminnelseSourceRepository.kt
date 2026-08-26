@@ -27,19 +27,24 @@ class EvalueringspaaminnelseSourceRepository(
         clock: Clock = Clock.systemUTC(),
     ): EvalueringspaaminnelseSource = database.exposedTransaction(readOnly = true) {
         val today = LocalDate.now(clock.withZone(ZONE_OSLO))
-        val sourceRow = EvalueringspaaminnelseSourceOppfolgingsplanTable
+        val sourceRow = OppfolgingsplanTable
             .select(
-                EvalueringspaaminnelseSourceOppfolgingsplanTable.sykmeldtFnr,
-                EvalueringspaaminnelseSourceOppfolgingsplanTable.narmesteLederId,
-                EvalueringspaaminnelseSourceOppfolgingsplanTable.organisasjonsnummer,
+                OppfolgingsplanTable.sykmeldtFnr,
+                OppfolgingsplanTable.narmesteLederId,
+                OppfolgingsplanTable.organisasjonsnummer,
+                OppfolgingsplanTable.skjultFra,
+                OppfolgingsplanTable.feilregistrert,
             ).where {
-                EvalueringspaaminnelseSourceOppfolgingsplanTable.uuid eq oppfolgingsplanUuid
+                OppfolgingsplanTable.uuid eq oppfolgingsplanUuid
             }.singleOrNull()
             ?: return@exposedTransaction EvalueringspaaminnelseSource.NotFound
 
-        val sykmeldtFnr = sourceRow[EvalueringspaaminnelseSourceOppfolgingsplanTable.sykmeldtFnr]
-        val organisasjonsnummer =
-            sourceRow[EvalueringspaaminnelseSourceOppfolgingsplanTable.organisasjonsnummer]
+        if (sourceRow[OppfolgingsplanTable.skjultFra] != null || sourceRow[OppfolgingsplanTable.feilregistrert] != null) {
+            return@exposedTransaction EvalueringspaaminnelseSource.NoLongerEligible
+        }
+
+        val sykmeldtFnr = sourceRow[OppfolgingsplanTable.sykmeldtFnr]
+        val organisasjonsnummer = sourceRow[OppfolgingsplanTable.organisasjonsnummer]
         val hasActiveSykmeldingsperiode = EvalueringspaaminnelseSourceSykmeldingsperiodeTable
             .select(EvalueringspaaminnelseSourceSykmeldingsperiodeTable.id)
             .where {
@@ -61,9 +66,7 @@ class EvalueringspaaminnelseSourceRepository(
         EvalueringspaaminnelseSource.Eligible(
             EvalueringspaaminnelseSourceData(
                 sykmeldtFnr = sykmeldtFnr,
-                narmesteLederId = sourceRow[
-                    EvalueringspaaminnelseSourceOppfolgingsplanTable.narmesteLederId,
-                ],
+                narmesteLederId = sourceRow[OppfolgingsplanTable.narmesteLederId],
                 organisasjonsnummer = organisasjonsnummer,
             ),
         )
@@ -86,15 +89,6 @@ data class EvalueringspaaminnelseSourceData(
     val organisasjonsnummer: String,
 ) {
     override fun toString(): String = "EvalueringspaaminnelseSourceData()"
-}
-
-private object EvalueringspaaminnelseSourceOppfolgingsplanTable : Table("oppfolgingsplan") {
-    val uuid = javaUUID("uuid").databaseGenerated()
-    val sykmeldtFnr = text("sykmeldt_fnr")
-    val narmesteLederId = text("narmeste_leder_id")
-    val organisasjonsnummer = text("organisasjonsnummer")
-
-    override val primaryKey = PrimaryKey(uuid)
 }
 
 private object EvalueringspaaminnelseSourceSykmeldingsperiodeTable : Table("sykmeldingsperiode") {
