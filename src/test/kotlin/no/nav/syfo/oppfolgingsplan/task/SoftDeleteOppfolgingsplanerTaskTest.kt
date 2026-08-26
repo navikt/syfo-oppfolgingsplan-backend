@@ -10,7 +10,7 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
-import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanerForDokumentportenPublisering
@@ -34,7 +34,7 @@ class SoftDeleteOppfolgingsplanerTaskTest :
             pdlService = mockk(relaxed = true),
             aaregService = mockk(relaxed = true),
             unntaksvurderingService = mockk(relaxed = true),
-            oppfolgingsplanEvalueringPaaminnelseRepository = OppfolgingsplanEvalueringPaaminnelseRepository(testDb),
+            oppfolgingsplanFinalizationRepository = OppfolgingsplanFinalizationRepository(testDb),
         )
 
         fun softDeleteAll(batchSize: Int): Pair<Int, Int> {

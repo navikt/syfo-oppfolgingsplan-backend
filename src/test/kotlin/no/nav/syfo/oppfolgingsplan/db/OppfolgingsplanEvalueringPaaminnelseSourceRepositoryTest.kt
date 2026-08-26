@@ -15,10 +15,10 @@ import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.UUID
 
-class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
+class OppfolgingsplanEvalueringPaaminnelseSourceRepositoryTest :
     DescribeSpec({
         val sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(TestDB.database)
-        val oppfolgingsplanEvalueringPaaminnelseRepository = OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database)
+        val sourceRepository = OppfolgingsplanEvalueringPaaminnelseSourceRepository(TestDB.database)
         val oslo = ZoneId.of("Europe/Oslo")
         val today = LocalDate.of(2026, 5, 20)
         val todayClock = Clock.fixed(today.atTime(12, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
@@ -31,7 +31,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
             TestDB.clearAllData()
         }
 
-        describe("findOppfolgingsplanEvalueringPaaminnelseSource") {
+        describe("find") {
             it("returns eligible source data when a matching active sykmeldingsperiode exists") {
                 val planUuid = TestDB.database.persistPlanForSourceLookup(
                     sykmeldtFnr = sykmeldtFnr,
@@ -52,7 +52,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     ),
                 )
 
-                val source = oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
+                val source = sourceRepository.find(
                     planUuid,
                     clock = todayClock,
                 )
@@ -91,7 +91,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     ),
                 )
 
-                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
+                sourceRepository.find(
                     planUuid,
                     clock = todayClock,
                 ) shouldBe
@@ -118,7 +118,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     ),
                 )
 
-                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
+                sourceRepository.find(
                     planUuid,
                     clock = todayClock,
                 ) shouldBe
@@ -146,7 +146,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                 )
                 sykmeldingsperiodeRepository.invalidateSykmelding("invalidated-sykmelding")
 
-                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
+                sourceRepository.find(
                     planUuid,
                     clock = todayClock,
                 ) shouldBe
@@ -154,7 +154,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
             }
 
             it("returns not found when the source oppfolgingsplan does not exist") {
-                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
+                sourceRepository.find(
                     UUID.randomUUID(),
                     clock = todayClock,
                 ) shouldBe
@@ -184,7 +184,7 @@ class OppfolgingsplanEvalueringPaaminnelseSourceDAOTest :
                     ),
                 )
 
-                oppfolgingsplanEvalueringPaaminnelseRepository.findOppfolgingsplanEvalueringPaaminnelseSource(
+                sourceRepository.find(
                     planUuid,
                     clock = boundaryClock,
                 ) shouldBe OppfolgingsplanEvalueringPaaminnelseSource.Eligible(

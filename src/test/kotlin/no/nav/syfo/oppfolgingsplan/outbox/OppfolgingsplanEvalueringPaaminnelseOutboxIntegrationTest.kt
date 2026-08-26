@@ -6,12 +6,14 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withTimeout
 import no.nav.syfo.TestDB
+import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.metric.METRICS_REGISTRY
@@ -28,10 +30,14 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteSykmelding
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
-import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
 import no.nav.syfo.oppfolgingsplan.db.findOppfolgingsplanBy
+import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
+import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplanUtkast
+import no.nav.syfo.varsel.EsyfovarselProducer
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -534,17 +540,21 @@ private suspend fun DatabaseInterface.createOppfolgingsplan(
     sykmeldt: Sykmeldt = defaultSykmeldt(),
     evalueringPaaminnelse: Boolean,
     evalueringsdato: LocalDate,
-): UUID = OppfolgingsplanEvalueringPaaminnelseRepository(this)
-    .persistOppfolgingsplanAndDeleteUtkast(
-        narmesteLederFnr = "10987654321",
-        sykmeldt = sykmeldt,
-        createOppfolgingsplanRequest = defaultOppfolgingsplan().copy(
-            evalueringPaaminnelse = evalueringPaaminnelse,
-            evalueringsdato = evalueringsdato,
-        ),
-        stillingstittel = "Systemutvikler",
-        stillingsprosent = null,
-    )
+): UUID = OppfolgingsplanService(
+    database = this,
+    esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
+    pdlService = mockk<PdlService>(relaxed = true),
+    aaregService = mockk<AaregService>(relaxed = true),
+    unntaksvurderingService = mockk<UnntaksvurderingService>(relaxed = true),
+    oppfolgingsplanFinalizationRepository = OppfolgingsplanFinalizationRepository(this),
+).createOppfolgingsplan(
+    narmesteLederFnr = "10987654321",
+    sykmeldt = sykmeldt,
+    createOppfolgingsplanRequest = defaultOppfolgingsplan().copy(
+        evalueringPaaminnelse = evalueringPaaminnelse,
+        evalueringsdato = evalueringsdato,
+    ),
+)
 
 private suspend fun DatabaseInterface.findEvalueringMessage(
     messageType: OppfolgingsplanOutboxMessageType,

@@ -20,7 +20,7 @@ import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.findEventId
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
-import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.pdl.PdlService
@@ -93,8 +93,8 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
                         aaregService = mockk(relaxed = true),
                         unntaksvurderingService = mockk(relaxed = true),
-                        oppfolgingsplanEvalueringPaaminnelseRepository =
-                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        oppfolgingsplanFinalizationRepository =
+                        OppfolgingsplanFinalizationRepository(TestDB.database),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
                     val plan = defaultPersistedOppfolgingsplan().copy(
@@ -124,8 +124,8 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
                         aaregService = mockk(relaxed = true),
                         unntaksvurderingService = mockk(relaxed = true),
-                        oppfolgingsplanEvalueringPaaminnelseRepository =
-                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        oppfolgingsplanFinalizationRepository =
+                        OppfolgingsplanFinalizationRepository(TestDB.database),
                     )
                     coEvery { pdlServive.getNameFor(any()) } returns expectedFullname
                     val plan = defaultPersistedOppfolgingsplan()
@@ -155,8 +155,8 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         aaregService = aaregService,
                         unntaksvurderingService = mockk(relaxed = true),
-                        oppfolgingsplanEvalueringPaaminnelseRepository =
-                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        oppfolgingsplanFinalizationRepository =
+                        OppfolgingsplanFinalizationRepository(TestDB.database),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -191,8 +191,8 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         aaregService = aaregService,
                         unntaksvurderingService = mockk(relaxed = true),
-                        oppfolgingsplanEvalueringPaaminnelseRepository =
-                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        oppfolgingsplanFinalizationRepository =
+                        OppfolgingsplanFinalizationRepository(TestDB.database),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -216,8 +216,8 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         aaregService = aaregService,
                         unntaksvurderingService = mockk(relaxed = true),
-                        oppfolgingsplanEvalueringPaaminnelseRepository =
-                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        oppfolgingsplanFinalizationRepository =
+                        OppfolgingsplanFinalizationRepository(TestDB.database),
                     )
                     coEvery {
                         aaregService.getStillingsinformasjon("12345678901", "orgnummer")
@@ -287,8 +287,8 @@ class OppfolgingsplanServiceTest :
                         esyfovarselProducer = mockk(relaxed = true),
                         aaregService = mockk(relaxed = true),
                         unntaksvurderingService = mockk(relaxed = true),
-                        oppfolgingsplanEvalueringPaaminnelseRepository =
-                        OppfolgingsplanEvalueringPaaminnelseRepository(TestDB.database),
+                        oppfolgingsplanFinalizationRepository =
+                        OppfolgingsplanFinalizationRepository(TestDB.database),
                     )
                     val expiredDraft = defaultPersistedOppfolgingsplanUtkast().copy(
                         narmesteLederId = "leder-expired-default-path",

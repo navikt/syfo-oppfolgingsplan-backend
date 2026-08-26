@@ -10,7 +10,8 @@ import no.nav.syfo.application.exception.PlanNotFoundException
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
-import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanEvalueringPaaminnelseRepository
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationCommand
+import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.deleteOppfolgingsplanUtkast
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOppfolgingsplan
@@ -37,6 +38,8 @@ import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastRequest
 import no.nav.syfo.oppfolgingsplan.dto.LagreUtkastResponse
 import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
 import no.nav.syfo.oppfolgingsplan.dto.utledGjeldendeStatus
+import no.nav.syfo.oppfolgingsplan.outbox.EvalueringPaaminnelseFactory
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanEvalueringPaaminnelseOutboxMetrics
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -60,7 +63,7 @@ class OppfolgingsplanService(
     private val pdlService: PdlService,
     private val aaregService: AaregService,
     private val unntaksvurderingService: UnntaksvurderingService,
-    private val oppfolgingsplanEvalueringPaaminnelseRepository: OppfolgingsplanEvalueringPaaminnelseRepository,
+    private val oppfolgingsplanFinalizationRepository: OppfolgingsplanFinalizationRepository,
 ) {
     private val logger = logger()
 
@@ -84,13 +87,26 @@ class OppfolgingsplanService(
             null
         }
 
-        return oppfolgingsplanEvalueringPaaminnelseRepository.persistOppfolgingsplanAndDeleteUtkast(
-            narmesteLederFnr = narmesteLederFnr,
-            sykmeldt = sykmeldt,
-            createOppfolgingsplanRequest = createOppfolgingsplanRequest,
-            stillingstittel = stillingsinformasjon?.stillingstittel,
-            stillingsprosent = stillingsinformasjon?.stillingsprosent,
+        val finalizationResult = oppfolgingsplanFinalizationRepository.finalize(
+            OppfolgingsplanFinalizationCommand(
+                narmesteLederFnr = narmesteLederFnr,
+                sykmeldt = sykmeldt,
+                createOppfolgingsplanRequest = createOppfolgingsplanRequest,
+                stillingstittel = stillingsinformasjon?.stillingstittel,
+                stillingsprosent = stillingsinformasjon?.stillingsprosent,
+                reminderDefinitions = EvalueringPaaminnelseFactory.create(
+                    enabled = createOppfolgingsplanRequest.evalueringPaaminnelse,
+                    evalueringsdato = createOppfolgingsplanRequest.evalueringsdato,
+                ),
+            ),
         )
+        OppfolgingsplanEvalueringPaaminnelseOutboxMetrics.incrementCreated(
+            finalizationResult.createdReminderCountByChannel,
+        )
+        OppfolgingsplanEvalueringPaaminnelseOutboxMetrics.incrementSuperseded(
+            finalizationResult.supersededReminderCountByChannel,
+        )
+        return finalizationResult.oppfolgingsplanUuid
     }
 
     suspend fun persistOppfolgingsplanUtkast(
