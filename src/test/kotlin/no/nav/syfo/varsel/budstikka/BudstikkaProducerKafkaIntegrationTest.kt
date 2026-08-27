@@ -33,7 +33,6 @@ class BudstikkaProducerKafkaIntegrationTest :
         val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
         val sykmeldtFnr = "12345678901"
         val oppfolgingsplanUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
-        val dineSykmeldteOversiktUrl = "https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte"
 
         beforeSpec {
             kafka.start()
@@ -61,7 +60,6 @@ class BudstikkaProducerKafkaIntegrationTest :
                         BudstikkaProducer(
                             kafkaProducer,
                             oppfolgingsplanUrl,
-                            dineSykmeldteOversiktUrl,
                         ).publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
@@ -85,7 +83,6 @@ class BudstikkaProducerKafkaIntegrationTest :
 
         test("BudstikkaProducer delivers the Dine Sykmeldte evaluation reminder to Kafka") {
             val organisasjonsnummer = "999999999"
-            val narmesteLederId = "narmeste-leder-id"
             val expectedDispatch = Budstikka.dineSykmeldteVarselCreate(
                 eventId = EventId(eventId),
                 reference = oppfolgingsplanUuid.toString(),
@@ -93,7 +90,6 @@ class BudstikkaProducerKafkaIntegrationTest :
                 orgnummer = Orgnummer(organisasjonsnummer),
                 oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
                 text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
-                link = "$dineSykmeldteOversiktUrl/$narmesteLederId",
                 sendingWindow = SendingWindow.ONGOING,
             )
 
@@ -105,12 +101,10 @@ class BudstikkaProducerKafkaIntegrationTest :
                         BudstikkaProducer(
                             kafkaProducer,
                             oppfolgingsplanUrl,
-                            dineSykmeldteOversiktUrl,
                         ).publishDineSykmeldteEvalueringspaaminnelse(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
                             organisasjonsnummer = organisasjonsnummer,
-                            narmesteLederId = narmesteLederId,
                             eventId = eventId,
                         )
                     }
@@ -120,6 +114,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                     record.key() shouldBe expectedDispatch.key
                     record.value() shouldBe expectedDispatch.value
                     record.value() shouldContain "\"oppgavetype\":\"OPPFOLGINGSPLAN_PAAMINNELSE\""
+                    record.value() shouldContain "\"link\":null"
                     record.headers().associate { header ->
                         header.key() to header.value().toList()
                     } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) ->

@@ -28,7 +28,6 @@ const val DINE_SYKMELDTE_PAAMINNELSE_TEXT = "Oppdater oppfølgingsplan"
 class BudstikkaProducer(
     private val producer: KafkaProducer<String, String>,
     private val budstikkaOppfolgingsplanSykmeldtUrl: String,
-    private val dineSykmeldteOversiktUrl: String,
 ) : BudstikkaPublisher {
     private val log = logger()
 
@@ -53,7 +52,6 @@ class BudstikkaProducer(
         oppfolgingsplanUuid: UUID,
         sykmeldtFnr: String,
         organisasjonsnummer: String,
-        narmesteLederId: String,
         eventId: UUID,
     ): Unit = withContext(Dispatchers.IO) {
         val dispatch = Budstikka.dineSykmeldteVarselCreate(
@@ -63,7 +61,6 @@ class BudstikkaProducer(
             orgnummer = Orgnummer(organisasjonsnummer),
             oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
             text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
-            link = "$dineSykmeldteOversiktUrl/$narmesteLederId",
             sendingWindow = SendingWindow.ONGOING,
         )
         publish(dispatch, LEDERVARSEL_CREATE, eventId)

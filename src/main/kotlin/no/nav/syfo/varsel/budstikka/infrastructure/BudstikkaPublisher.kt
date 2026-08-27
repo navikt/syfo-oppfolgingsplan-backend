@@ -13,7 +13,6 @@ interface BudstikkaPublisher {
         oppfolgingsplanUuid: UUID,
         sykmeldtFnr: String,
         organisasjonsnummer: String,
-        narmesteLederId: String,
         eventId: UUID,
     )
 }

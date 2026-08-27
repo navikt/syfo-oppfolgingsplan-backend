@@ -50,7 +50,6 @@ class EvalueringspaaminnelseSourceRepositoryTest :
                 source shouldBe EvalueringspaaminnelseSource.Eligible(
                     EvalueringspaaminnelseSourceData(
                         sykmeldtFnr = sykmeldtFnr,
-                        narmesteLederId = NARMESTE_LEDER_ID,
                         organisasjonsnummer = organisasjonsnummer,
                     ),
                 )
@@ -172,7 +171,6 @@ class EvalueringspaaminnelseSourceRepositoryTest :
                     EvalueringspaaminnelseSource.Eligible(
                         EvalueringspaaminnelseSourceData(
                             sykmeldtFnr = sykmeldtFnr,
-                            narmesteLederId = NARMESTE_LEDER_ID,
                             organisasjonsnummer = organisasjonsnummer,
                         ),
                     )

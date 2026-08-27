@@ -219,7 +219,6 @@ private fun kafkeProducerModule() = module {
                     },
             ),
             env().minSideSykmeldtOppfolgingsplanUrl,
-            env().dineSykmeldteOversiktUrl,
         )
     }
 }

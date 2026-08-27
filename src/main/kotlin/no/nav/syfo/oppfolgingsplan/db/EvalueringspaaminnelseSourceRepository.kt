@@ -30,7 +30,6 @@ class EvalueringspaaminnelseSourceRepository(
         val sourceRow = OppfolgingsplanTable
             .select(
                 OppfolgingsplanTable.sykmeldtFnr,
-                OppfolgingsplanTable.narmesteLederId,
                 OppfolgingsplanTable.organisasjonsnummer,
                 OppfolgingsplanTable.skjultFra,
                 OppfolgingsplanTable.feilregistrert,
@@ -66,7 +65,6 @@ class EvalueringspaaminnelseSourceRepository(
         EvalueringspaaminnelseSource.Eligible(
             EvalueringspaaminnelseSourceData(
                 sykmeldtFnr = sykmeldtFnr,
-                narmesteLederId = sourceRow[OppfolgingsplanTable.narmesteLederId],
                 organisasjonsnummer = organisasjonsnummer,
             ),
         )
@@ -85,7 +83,6 @@ sealed interface EvalueringspaaminnelseSource {
 
 data class EvalueringspaaminnelseSourceData(
     val sykmeldtFnr: String,
-    val narmesteLederId: String,
     val organisasjonsnummer: String,
 ) {
     override fun toString(): String = "EvalueringspaaminnelseSourceData()"

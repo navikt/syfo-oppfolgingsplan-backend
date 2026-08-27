@@ -39,7 +39,6 @@ class DineSykmeldteEvalueringspaaminnelseHandler(
                     oppfolgingsplanUuid = oppfolgingsplanUuid,
                     sykmeldtFnr = data.sykmeldtFnr,
                     organisasjonsnummer = data.organisasjonsnummer,
-                    narmesteLederId = data.narmesteLederId,
                     eventId = message.uuid,
                 )
                 OutboxResult.Sent

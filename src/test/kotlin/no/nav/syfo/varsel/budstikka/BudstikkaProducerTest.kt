@@ -33,11 +33,9 @@ class BudstikkaProducerTest :
     DescribeSpec({
         val kafkaProducerMock = mockk<KafkaProducer<String, String>>()
         val budstikkaOppfolgingsplanSykmeldtUrl = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
-        val dineSykmeldteOversiktUrl = "https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte"
         val producer = BudstikkaProducer(
             kafkaProducerMock,
             budstikkaOppfolgingsplanSykmeldtUrl,
-            dineSykmeldteOversiktUrl,
         )
 
         beforeTest {
@@ -114,7 +112,6 @@ class BudstikkaProducerTest :
                 val oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
                 val sykmeldtFnr = "00000000000"
                 val organisasjonsnummer = "999999999"
-                val narmesteLederId = "narmeste-leder-id"
                 val expectedDispatch = Budstikka.dineSykmeldteVarselCreate(
                     eventId = EventId(eventId),
                     reference = oppfolgingsplanUuid.toString(),
@@ -122,7 +119,6 @@ class BudstikkaProducerTest :
                     orgnummer = Orgnummer(organisasjonsnummer),
                     oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
                     text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
-                    link = "$dineSykmeldteOversiktUrl/$narmesteLederId",
                     sendingWindow = SendingWindow.ONGOING,
                 )
                 every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
@@ -132,7 +128,6 @@ class BudstikkaProducerTest :
                     oppfolgingsplanUuid = oppfolgingsplanUuid,
                     sykmeldtFnr = sykmeldtFnr,
                     organisasjonsnummer = organisasjonsnummer,
-                    narmesteLederId = narmesteLederId,
                     eventId = eventId,
                 )
 
@@ -149,6 +144,7 @@ class BudstikkaProducerTest :
                             it.key() shouldBe expectedDispatch.key
                             it.value() shouldBe expectedDispatch.value
                             it.value() shouldContain "\"sendingWindow\":\"ONGOING\""
+                            it.value() shouldContain "\"link\":null"
                             actualHeaders shouldBe expectedHeaders
                         },
                     )

@@ -58,7 +58,7 @@ class DineSykmeldteEvalueringspaaminnelseIntegrationTest :
             ).shouldNotBeNull()
             val publisher = mockk<BudstikkaPublisher>()
             coEvery {
-                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any(), any())
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any())
             } returns Unit
             val worker = dineSykmeldteWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
 
@@ -69,7 +69,6 @@ class DineSykmeldteEvalueringspaaminnelseIntegrationTest :
                     oppfolgingsplanUuid = planUuid,
                     sykmeldtFnr = sykmeldt.fnr,
                     organisasjonsnummer = sykmeldt.orgnummer,
-                    narmesteLederId = sykmeldt.narmestelederId,
                     eventId = message.uuid,
                 )
             }
@@ -90,7 +89,7 @@ class DineSykmeldteEvalueringspaaminnelseIntegrationTest :
             worker.runOnce().cancelled shouldBe 1
 
             coVerify(exactly = 0) {
-                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any(), any())
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any())
             }
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
@@ -111,7 +110,7 @@ class DineSykmeldteEvalueringspaaminnelseIntegrationTest :
             worker.runOnce().cancelled shouldBe 1
 
             coVerify(exactly = 0) {
-                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any(), any())
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any())
             }
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
@@ -135,7 +134,6 @@ class DineSykmeldteEvalueringspaaminnelseIntegrationTest :
             val publisher = mockk<BudstikkaPublisher>()
             coEvery {
                 publisher.publishDineSykmeldteEvalueringspaaminnelse(
-                    any(),
                     any(),
                     any(),
                     any(),
@@ -184,7 +182,7 @@ class DineSykmeldteEvalueringspaaminnelseIntegrationTest :
             worker.runOnce().retryScheduled shouldBe 1
 
             coVerify(exactly = 0) {
-                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any(), any())
+                publisher.publishDineSykmeldteEvalueringspaaminnelse(any(), any(), any(), any())
             }
             TestDB.database.findOutboxMessage(
                 OppfolgingsplanOutboxMessageType.EVALUERING_PAAMINNELSE_DINE_SYKMELDTE,
