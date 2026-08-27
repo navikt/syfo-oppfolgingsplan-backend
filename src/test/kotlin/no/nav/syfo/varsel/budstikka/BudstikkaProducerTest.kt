@@ -18,7 +18,7 @@ import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
-import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_HTML
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TITLE
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
@@ -172,10 +172,10 @@ class BudstikkaProducerTest :
                     orgnummer = Orgnummer(organisasjonsnummer),
                     recipient = Arbeidsgivervarsel.NarmesteLeder(
                         sykmeldt = PersonIdentifier(sykmeldtFnr),
-                        externalNotification = Arbeidsgivervarsel.NarmesteLederExternalNotification(
-                            emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
-                            emailText = EVALUERINGS_PAAMINNELSE_EMAIL_TEXT,
-                        ),
+                    ),
+                    htmlEmail = Arbeidsgivervarsel.HtmlEmailNotification(
+                        emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
+                        emailHtmlBody = EVALUERINGS_PAAMINNELSE_EMAIL_HTML,
                     ),
                     tag = "Oppfølging",
                     text = EVALUERINGS_PAAMINNELSE_TEXT,
@@ -193,14 +193,15 @@ class BudstikkaProducerTest :
                     eventId = eventId,
                 )
 
-                EVALUERINGS_PAAMINNELSE_EMAIL_TEXT shouldNotContain "https://"
-                EVALUERINGS_PAAMINNELSE_EMAIL_TEXT shouldNotContain "http://"
+                EVALUERINGS_PAAMINNELSE_EMAIL_HTML shouldNotContain "https://"
+                EVALUERINGS_PAAMINNELSE_EMAIL_HTML shouldNotContain "http://"
                 verify(exactly = 1) {
                     kafkaProducerMock.send(
                         withArg {
                             it.topic() shouldBe expectedDispatch.topic
                             it.key() shouldBe expectedDispatch.key
                             it.value() shouldBe expectedDispatch.value
+                            it.value() shouldContain "\"emailBodyFormat\":\"HTML\""
                             it.headers().associate { header -> header.key() to header.value().toList() } shouldBe
                                 expectedDispatch.headerBytes().mapValues { (_, value) -> value.toList() }
                         },

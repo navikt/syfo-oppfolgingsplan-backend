@@ -13,7 +13,7 @@ import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
-import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_HTML
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TITLE
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
@@ -138,10 +138,10 @@ class BudstikkaProducerKafkaIntegrationTest :
                 orgnummer = Orgnummer(organisasjonsnummer),
                 recipient = Arbeidsgivervarsel.NarmesteLeder(
                     sykmeldt = PersonIdentifier(sykmeldtFnr),
-                    externalNotification = Arbeidsgivervarsel.NarmesteLederExternalNotification(
-                        emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
-                        emailText = EVALUERINGS_PAAMINNELSE_EMAIL_TEXT,
-                    ),
+                ),
+                htmlEmail = Arbeidsgivervarsel.HtmlEmailNotification(
+                    emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
+                    emailHtmlBody = EVALUERINGS_PAAMINNELSE_EMAIL_HTML,
                 ),
                 tag = "Oppfølging",
                 text = EVALUERINGS_PAAMINNELSE_TEXT,
@@ -171,6 +171,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                     record.topic() shouldBe expectedDispatch.topic
                     record.key() shouldBe expectedDispatch.key
                     record.value() shouldBe expectedDispatch.value
+                    record.value() shouldContain "\"emailBodyFormat\":\"HTML\""
                     record.headers().associate { header ->
                         header.key() to header.value().toList()
                     } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) -> value.toList() }
