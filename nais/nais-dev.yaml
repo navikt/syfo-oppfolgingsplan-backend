@@ -127,3 +127,5 @@ spec:
       value: dev-gcp:team-esyfo:syfo-oppfolgingsplan-frontend
     - name: MIN_SIDE_SYKMELDT_OPPFOLGINGSPLAN_URL
       value: https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt
+    - name: DINE_SYKMELDTE_OVERSIKT_URL
+      value: https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte
