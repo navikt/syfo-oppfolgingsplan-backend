@@ -1,8 +1,10 @@
 package no.nav.syfo.oppfolgingsplan.db
 
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.outbox.db.cancelReadyOutboxMessages
 import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
 import no.nav.syfo.application.outbox.domain.NewOutboxMessage
+import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedPaaminnelse
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
@@ -63,6 +65,32 @@ fun DatabaseInterface.upsertPaaminnelseAndEnqueue(
             ),
             availableAt = availableAt,
         ),
+    )
+    connection.commit()
+}
+
+fun DatabaseInterface.deactivatePaaminnelseAndCancelOutbox(
+    sykmeldt: Sykmeldt,
+    sykmeldingsperiodeId: UUID,
+    completedAt: Instant,
+): Unit = connection.use { connection ->
+    val paaminnelse = upsertPaaminnelse(
+        connection = connection,
+        sykmeldt = sykmeldt,
+        bestilt = false,
+        sykmeldingsperiodeId = sykmeldingsperiodeId,
+    )
+    connection.cancelReadyOutboxMessages(
+        messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_ARBEIDSGIVER,
+        externalRef = paaminnelse.uuid.toString(),
+        reason = OutboxCancellationReason.NO_LONGER_REQUESTED,
+        completedAt = completedAt,
+    )
+    connection.cancelReadyOutboxMessages(
+        messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_DINE_SYKMELDTE,
+        externalRef = paaminnelse.uuid.toString(),
+        reason = OutboxCancellationReason.NO_LONGER_REQUESTED,
+        completedAt = completedAt,
     )
     connection.commit()
 }

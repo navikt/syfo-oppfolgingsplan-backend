@@ -7,16 +7,17 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.PaaminnelseOutboxPayload
+import no.nav.syfo.oppfolgingsplan.db.deactivatePaaminnelseAndCancelOutbox
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedPaaminnelse
 import no.nav.syfo.oppfolgingsplan.db.domain.isPaaminnelseBestiltInCurrentSykemeldingsperiode
 import no.nav.syfo.oppfolgingsplan.db.existsOppfolgingsplanCreatedAfter
 import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
-import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelse
 import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelseAndEnqueue
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
 import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatusDto
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
@@ -154,10 +155,10 @@ class PaaminnelseService(
                     .toInstant(),
             )
         } else {
-            database.upsertPaaminnelse(
+            database.deactivatePaaminnelseAndCancelOutbox(
                 sykmeldt = sykmeldt,
-                bestilt = false,
                 sykmeldingsperiodeId = paaminnelse.sykmeldingsperiodeId,
+                completedAt = Instant.now(clock),
             )
         }
 

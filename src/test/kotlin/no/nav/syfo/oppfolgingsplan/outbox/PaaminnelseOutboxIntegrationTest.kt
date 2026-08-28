@@ -116,18 +116,19 @@ class PaaminnelseOutboxIntegrationTest :
                 defaultSykmeldt().fnr,
                 defaultSykmeldt().orgnummer,
             ).shouldNotBeNull()
+            val publisher = mockk<BudstikkaPublisher>(relaxed = true)
             val worker = OutboxWorker(
                 database = TestDB.database,
-                handlers = listOf(PaaminnelseArbeidsgiverOutboxHandler(TestDB.database, service, mockk(relaxed = true))),
+                handlers = listOf(PaaminnelseArbeidsgiverOutboxHandler(TestDB.database, service, publisher)),
                 clock = Clock.fixed(availableAt, zone),
             )
-
-            worker.runOnce().cancelled shouldBe 1
 
             TestDB.database.findPaaminnelseOutboxMessage(
                 OppfolgingsplanOutboxMessageType.PAAMINNELSE_ARBEIDSGIVER,
                 paaminnelse.uuid,
             ).shouldNotBeNull().cancellationReason shouldBe OutboxCancellationReason.NO_LONGER_REQUESTED
+            worker.runOnce().sent shouldBe 0
+            coVerify(exactly = 0) { publisher.publishPaaminnelse(any(), any(), any(), any(), any()) }
         }
 
         it("sends a new reminder when it is activated after a cancelled reminder") {
@@ -143,11 +144,49 @@ class PaaminnelseOutboxIntegrationTest :
                 clock = Clock.fixed(availableAt, zone),
             )
 
-            worker.runOnce().cancelled shouldBe 2
+            val cancelledStates = TestDB.database.findPaaminnelseOutboxStates(
+                TestDB.database.findPaaminnelseBy(
+                    defaultSykmeldt().fnr,
+                    defaultSykmeldt().orgnummer,
+                ).shouldNotBeNull().uuid,
+            )
+            cancelledStates.count { it.first == OutboxStatus.CANCELLED } shouldBe 2
 
             service.activatePaaminnelse(defaultSykmeldt())
 
             worker.runOnce().sent shouldBe 2
+            coVerify(exactly = 1) { publisher.publishPaaminnelse(any(), any(), any(), any(), any()) }
+            coVerify(exactly = 1) { publisher.publishPaaminnelseToDineSykmeldte(any(), any(), any(), any(), any()) }
+        }
+
+        it("cancels queued reminders before rapid reactivation sends one new reminder per channel") {
+            service.activatePaaminnelse(defaultSykmeldt())
+            val paaminnelse = TestDB.database.findPaaminnelseBy(
+                defaultSykmeldt().fnr,
+                defaultSykmeldt().orgnummer,
+            ).shouldNotBeNull()
+            service.deactivatePaaminnelse(defaultSykmeldt())
+            service.activatePaaminnelse(defaultSykmeldt())
+            val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+            val worker = OutboxWorker(
+                database = TestDB.database,
+                handlers = listOf(
+                    PaaminnelseArbeidsgiverOutboxHandler(TestDB.database, service, publisher),
+                    PaaminnelseDineSykmeldteOutboxHandler(TestDB.database, service, publisher),
+                ),
+                clock = Clock.fixed(availableAt, zone),
+            )
+
+            worker.runOnce().sent shouldBe 2
+
+            val states = TestDB.database.findPaaminnelseOutboxStates(paaminnelse.uuid)
+            states.count { it.first == OutboxStatus.CANCELLED } shouldBe 2
+            states
+                .filter { it.first == OutboxStatus.CANCELLED }
+                .all { it.second == OutboxCancellationReason.NO_LONGER_REQUESTED } shouldBe true
+            states.count { it.first == OutboxStatus.SENT } shouldBe 2
+            coVerify(exactly = 1) { publisher.publishPaaminnelse(any(), any(), any(), any(), any()) }
+            coVerify(exactly = 1) { publisher.publishPaaminnelseToDineSykmeldte(any(), any(), any(), any(), any()) }
         }
 
         it("cancels a reminder when its source has been deleted before delivery") {
@@ -344,4 +383,26 @@ private suspend fun DatabaseInterface.findPaaminnelseOutboxMessage(
     } ?: return null
 
     return findOutboxMessage(messageType, dedupKey)
+}
+
+private fun DatabaseInterface.findPaaminnelseOutboxStates(
+    paaminnelseUuid: UUID,
+): List<Pair<OutboxStatus, OutboxCancellationReason?>> = connection.use { connection ->
+    connection.prepareStatement(
+        "SELECT status, cancellation_reason FROM outbox WHERE external_ref = ?",
+    ).use { statement ->
+        statement.setString(1, paaminnelseUuid.toString())
+        statement.executeQuery().use { resultSet ->
+            buildList {
+                while (resultSet.next()) {
+                    add(
+                        OutboxStatus.valueOf(resultSet.getString("status")) to
+                            resultSet
+                                .getString("cancellation_reason")
+                                ?.let(OutboxCancellationReason::fromDatabaseValue),
+                    )
+                }
+            }
+        }
+    }
 }

@@ -64,6 +64,35 @@ fun Connection.enqueueOutboxMessage(message: NewOutboxMessage): Boolean = prepar
 }
 
 /**
+ * Cancels READY commands through the caller's existing JDBC transaction.
+ *
+ * The function never commits or opens a separate transaction, allowing a domain deactivation and
+ * cancellation of its queued commands to become visible atomically.
+ */
+fun Connection.cancelReadyOutboxMessages(
+    messageType: OutboxMessageType,
+    externalRef: String,
+    reason: OutboxCancellationReason,
+    completedAt: Instant,
+): Int = prepareStatement(
+    """
+        UPDATE outbox
+        SET status = 'CANCELLED',
+            cancellation_reason = ?,
+            completed_at = ?
+        WHERE message_type = ?
+          AND external_ref = ?
+          AND status = 'READY'
+    """.trimIndent(),
+).use { statement ->
+    statement.setString(1, reason.value)
+    statement.setObject(2, completedAt.atUtcOffset())
+    statement.setString(3, messageType.value)
+    statement.setString(4, externalRef)
+    statement.executeUpdate()
+}
+
+/**
  * Exposed adapter for [Connection.enqueueOutboxMessage]. Under REPEATABLE READ, callers that can
  * encounter concurrent duplicate inserts may opt into replay when replaying the full transaction
  * is safe.
