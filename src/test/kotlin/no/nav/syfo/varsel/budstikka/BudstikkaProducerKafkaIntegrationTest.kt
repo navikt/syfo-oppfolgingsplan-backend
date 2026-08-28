@@ -6,10 +6,13 @@ import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.runBlocking
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
+import no.nav.budstikka.contract.Oppgavetype
+import no.nav.budstikka.contract.Orgnummer
 import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
+import no.nav.syfo.varsel.budstikka.infrastructure.DINE_SYKMELDTE_PAAMINNELSE_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.consumer.ConsumerRecord
@@ -51,11 +54,13 @@ class BudstikkaProducerKafkaIntegrationTest :
 
             KafkaConsumer<String, String>(consumerProperties(kafka.bootstrapServers)).use { consumer ->
                 KafkaProducer<String, String>(producerProperties(kafka.bootstrapServers)).use { kafkaProducer ->
-                    consumer.subscribe(listOf(Budstikka.TOPIC))
-                    consumer.poll(Duration.ofMillis(100))
+                    consumer.subscribeFromEnd(Budstikka.TOPIC)
 
                     runBlocking {
-                        BudstikkaProducer(kafkaProducer, oppfolgingsplanUrl).publishOppfolgingsplanCreated(
+                        BudstikkaProducer(
+                            kafkaProducer,
+                            oppfolgingsplanUrl,
+                        ).publishOppfolgingsplanCreated(
                             oppfolgingsplanUuid = oppfolgingsplanUuid,
                             sykmeldtFnr = sykmeldtFnr,
                             eventId = eventId,
@@ -67,6 +72,49 @@ class BudstikkaProducerKafkaIntegrationTest :
                     record.key() shouldBe expectedDispatch.key
                     record.value() shouldBe expectedDispatch.value
                     record.value() shouldContain "\"sendingWindow\":\"BUDSTIKKA_OPENING_HOURS\""
+                    record.headers().associate { header ->
+                        header.key() to header.value().toList()
+                    } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) ->
+                        value.toList()
+                    }
+                }
+            }
+        }
+
+        test("BudstikkaProducer delivers the Dine Sykmeldte evaluation reminder to Kafka") {
+            val organisasjonsnummer = "999999999"
+            val expectedDispatch = Budstikka.dineSykmeldteVarselCreate(
+                eventId = EventId(eventId),
+                reference = oppfolgingsplanUuid.toString(),
+                sykmeldt = PersonIdentifier(sykmeldtFnr),
+                orgnummer = Orgnummer(organisasjonsnummer),
+                oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
+                text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
+                sendingWindow = SendingWindow.ONGOING,
+            )
+
+            KafkaConsumer<String, String>(consumerProperties(kafka.bootstrapServers)).use { consumer ->
+                KafkaProducer<String, String>(producerProperties(kafka.bootstrapServers)).use { kafkaProducer ->
+                    consumer.subscribeFromEnd(Budstikka.TOPIC)
+
+                    runBlocking {
+                        BudstikkaProducer(
+                            kafkaProducer,
+                            oppfolgingsplanUrl,
+                        ).publishDineSykmeldteEvalueringspaaminnelse(
+                            oppfolgingsplanUuid = oppfolgingsplanUuid,
+                            sykmeldtFnr = sykmeldtFnr,
+                            organisasjonsnummer = organisasjonsnummer,
+                            eventId = eventId,
+                        )
+                    }
+
+                    val record = consumer.pollSingleRecord()
+                    record.topic() shouldBe expectedDispatch.topic
+                    record.key() shouldBe expectedDispatch.key
+                    record.value() shouldBe expectedDispatch.value
+                    record.value() shouldContain "\"oppgavetype\":\"OPPFOLGINGSPLAN_PAAMINNELSE\""
+                    record.value() shouldContain "\"link\":null"
                     record.headers().associate { header ->
                         header.key() to header.value().toList()
                     } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) ->
@@ -90,6 +138,18 @@ private fun producerProperties(bootstrapServers: String): Properties = Propertie
     put(ProducerConfig.ACKS_CONFIG, "all")
     put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
     put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
+}
+
+private fun KafkaConsumer<String, String>.subscribeFromEnd(topic: String) {
+    subscribe(listOf(topic))
+    val deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos()
+    while (assignment().isEmpty() && System.nanoTime() < deadline) {
+        poll(Duration.ofMillis(100))
+    }
+    check(assignment().isNotEmpty()) { "Timed out waiting for Kafka partition assignment" }
+    val assignedPartitions = assignment()
+    seekToEnd(assignedPartitions)
+    assignedPartitions.forEach(::position)
 }
 
 private fun KafkaConsumer<String, String>.pollSingleRecord(): ConsumerRecord<String, String> {

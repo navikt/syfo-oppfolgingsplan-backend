@@ -40,9 +40,12 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
+import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseSourceRepository
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
+import no.nav.syfo.oppfolgingsplan.outbox.DineSykmeldteEvalueringspaaminnelseHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
+import no.nav.syfo.oppfolgingsplan.service.EvalueringspaaminnelseEligibilityService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
@@ -232,6 +235,8 @@ private fun servicesModule() = module {
     single { AaregService(get()) }
     single { UnntaksvurderingService(database = get(), pdlService = get()) }
     single { OppfolgingsplanFinalizationRepository(database = get()) }
+    single { EvalueringspaaminnelseSourceRepository(database = get()) }
+    single { EvalueringspaaminnelseEligibilityService(repository = get()) }
     single {
         OppfolgingsplanService(
             database = get(),
@@ -248,9 +253,18 @@ private fun servicesModule() = module {
     single { CleanupUtkastTask(get(), get()) }
     single { OppfolgingsplanCreatedOutboxHandler(database = get(), publisher = get()) }
     single {
+        DineSykmeldteEvalueringspaaminnelseHandler(
+            eligibilityService = get(),
+            publisher = get(),
+        )
+    }
+    single {
         OutboxWorker(
             database = get(),
-            handlers = listOf(get<OppfolgingsplanCreatedOutboxHandler>()),
+            handlers = listOf(
+                get<OppfolgingsplanCreatedOutboxHandler>(),
+                get<DineSykmeldteEvalueringspaaminnelseHandler>(),
+            ),
             observedMessageTypes = OppfolgingsplanOutboxMessageType.entries,
         )
     }

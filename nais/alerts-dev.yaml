@@ -30,17 +30,17 @@ spec:
             namespace: team-esyfo
             severity: warning
         - alert: OppfolgingsplanOutboxOldestDueTooOld
-          expr: syfo_oppfolgingsplan_backend_outbox_oldest_due_age_seconds{namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_CREATED"} > 900
+          expr: syfo_oppfolgingsplan_backend_outbox_oldest_due_age_seconds{namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} > 900
           for: 10m
           annotations:
-            consequence: Opprettelsesvarsler til Budstikka har vært klare for levering i mer enn 15 minutter.
+            consequence: Oppfølgingsplanvarsler til Budstikka har vært klare for levering i mer enn 15 minutter.
             action: "Sjekk outbox-loggene, Kafka/Budstikka-tilgjengelighet og failure_count på READY-rader."
             summary: Oppfølgingsplan-outboxen leverer ikke varsler raskt nok.
           labels:
             namespace: team-esyfo
             severity: warning
         - alert: OppfolgingsplanOutboxExpiredClaims
-          expr: syfo_oppfolgingsplan_backend_outbox_expired_claims{namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_CREATED"} > 0
+          expr: syfo_oppfolgingsplan_backend_outbox_expired_claims{namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} > 0
           for: 10m
           annotations:
             consequence: Outbox-claims har forblitt utløpt og kan gi forsinkelse eller duplikate leveringsforsøk.
@@ -50,10 +50,10 @@ spec:
             namespace: team-esyfo
             severity: warning
         - alert: OppfolgingsplanOutboxPersistentFailures
-          expr: syfo_oppfolgingsplan_backend_outbox_retrying{namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_CREATED"} > 0
+          expr: syfo_oppfolgingsplan_backend_outbox_retrying{namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} > 0
           for: 15m
           annotations:
-            consequence: Minst ett opprettelsesvarsel har hatt en uløst teknisk feil i minst 15 minutter, også om meldingen for øyeblikket venter i backoff.
+            consequence: Minst ett oppfølgingsplanvarsel har hatt en uløst teknisk feil i minst 15 minutter, også om meldingen for øyeblikket venter i backoff.
             action: "Sjekk outbox-loggene, Budstikka/Kafka-tilgjengelighet og failure_count på ikke-terminale rader."
             summary: Oppfølgingsplan-outboxen har et varsel med vedvarende tekniske feil.
           labels:
