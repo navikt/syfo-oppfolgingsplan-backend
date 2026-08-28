@@ -15,4 +15,11 @@ interface BudstikkaPublisher {
         organisasjonsnummer: String,
         eventId: UUID,
     )
+
+    suspend fun publishMinSideArbeidsgiverEvalueringspaaminnelse(
+        oppfolgingsplanUuid: UUID,
+        sykmeldtFnr: String,
+        organisasjonsnummer: String,
+        eventId: UUID,
+    )
 }

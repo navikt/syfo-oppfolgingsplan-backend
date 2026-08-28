@@ -3,6 +3,7 @@ package no.nav.syfo.varsel.budstikka.infrastructure
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.logstash.logback.argument.StructuredArguments.kv
+import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EncodedDispatch
 import no.nav.budstikka.contract.EventId
@@ -21,13 +22,40 @@ import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 
 private const val BRUKERVARSEL_CREATE = "BrukervarselCreate"
 private const val LEDERVARSEL_CREATE = "LedervarselCreate"
+private const val ARBEIDSGIVERVARSEL_CREATE = "ArbeidsgivervarselCreate"
 private const val BUDSTIKKA_SEND_TIMEOUT_MILLIS = 250L
+private const val OPPFOELGING_TAG = "Oppfølging"
 const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Din arbeidsgiver har laget en oppfølgingsplan for deg"
-const val DINE_SYKMELDTE_PAAMINNELSE_TEXT = "Oppdater oppfølgingsplan"
+const val EVALUERINGS_PAAMINNELSE_TEXT = "Oppdater oppfølgingsplan"
+const val EVALUERINGS_PAAMINNELSE_EMAIL_TITLE = "Oppdater oppfølgingsplanen"
+val EVALUERINGS_PAAMINNELSE_EMAIL_HTML = """
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width: 100%; max-width: 640px; margin: 0 auto; border: 1px solid #d8d8d8; border-radius: 8px; background-color: #ffffff; color: #262626; font-family: Arial, sans-serif;">
+      <tbody>
+        <tr>
+          <td style="padding: 28px 32px; background-color: #004367; color: #ffffff;">
+            <span aria-hidden="true" style="margin-right: 12px; font-size: 24px;">&#9993;&#65039;</span>
+            <span style="font-size: 24px; font-weight: 700; line-height: 1.3;">Oppdater oppfølgingsplanen</span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px; font-size: 18px; line-height: 1.5;">
+            <p style="margin: 0 0 24px;">Hei,</p>
+            <p style="margin: 0 0 32px;">Det er tid for å vurdere om situasjonen til den som er sykmeldt er annerledes enn tidligere og at det derfor er riktig å gjøre endringer i oppfølgingsplanen. Ta en prat for å finne ut om det er aktuelt nå eller at dere lager en ny avtale litt frem i tid.</p>
+            <p style="margin: 0 0 24px; font-weight: 700;">Gå til Min side – arbeidsgiver på nav.no for å oppdatere oppfølgingsplanen.</p>
+            <hr style="margin: 0 0 24px; border: 0; border-top: 1px solid #d8d8d8;">
+            <p style="margin: 0 0 20px;">Har du spørsmål? Ring oss på 55 55 33 36.</p>
+            <p style="margin: 0 0 20px;">Du kan ikke svare på denne meldingen.</p>
+            <p style="margin: 0;">Vennlig hilsen Nav</p>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+""".trimIndent()
 
 class BudstikkaProducer(
     private val producer: KafkaProducer<String, String>,
     private val budstikkaOppfolgingsplanSykmeldtUrl: String,
+    private val dineSykmeldteOversiktUrl: String,
 ) : BudstikkaPublisher {
     private val log = logger()
 
@@ -60,10 +88,36 @@ class BudstikkaProducer(
             sykmeldt = PersonIdentifier(sykmeldtFnr),
             orgnummer = Orgnummer(organisasjonsnummer),
             oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
-            text = DINE_SYKMELDTE_PAAMINNELSE_TEXT,
+            text = EVALUERINGS_PAAMINNELSE_TEXT,
             sendingWindow = SendingWindow.ONGOING,
         )
         publish(dispatch, LEDERVARSEL_CREATE, eventId)
+    }
+
+    override suspend fun publishMinSideArbeidsgiverEvalueringspaaminnelse(
+        oppfolgingsplanUuid: UUID,
+        sykmeldtFnr: String,
+        organisasjonsnummer: String,
+        eventId: UUID,
+    ): Unit = withContext(Dispatchers.IO) {
+        val dispatch = Budstikka.arbeidsgivervarselCreate(
+            eventId = EventId(eventId),
+            reference = oppfolgingsplanUuid.toString(),
+            orgnummer = Orgnummer(organisasjonsnummer),
+            recipient = Arbeidsgivervarsel.NarmesteLeder(
+                sykmeldt = PersonIdentifier(sykmeldtFnr),
+            ),
+            htmlEmail = Arbeidsgivervarsel.HtmlEmailNotification(
+                emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
+                emailHtmlBody = EVALUERINGS_PAAMINNELSE_EMAIL_HTML,
+            ),
+            tag = OPPFOELGING_TAG,
+            text = EVALUERINGS_PAAMINNELSE_TEXT,
+            link = dineSykmeldteOversiktUrl,
+            messageType = Arbeidsgivervarsel.MessageType.BESKJED,
+            sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+        )
+        publish(dispatch, ARBEIDSGIVERVARSEL_CREATE, eventId)
     }
 
     private fun publish(

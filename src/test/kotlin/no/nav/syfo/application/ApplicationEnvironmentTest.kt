@@ -9,6 +9,8 @@ class ApplicationEnvironmentTest :
             it("uses dev URL for Budstikka oppfolgingsplan link") {
                 LocalEnvironment().minSideSykmeldtOppfolgingsplanUrl shouldBe
                     "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt"
+                LocalEnvironment().dineSykmeldteOversiktUrl shouldBe
+                    "https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte"
             }
         }
     })

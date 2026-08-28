@@ -12,6 +12,7 @@ interface Environment {
     val texas: TexasEnvironment
     val valkeyEnvironment: ValkeyEnvironment
     val minSideSykmeldtOppfolgingsplanUrl: String
+    val dineSykmeldteOversiktUrl: String
     val dineSykmeldteBaseUrl: String
     val dokarkivBaseUrl: String
     val dokarkivScope: String
@@ -58,6 +59,7 @@ data class NaisEnvironment(
         password = getEnvVar("VALKEY_PASSWORD_SYFO_OPPFOLGINGSPLAN_BACKEND"),
     ),
     override val minSideSykmeldtOppfolgingsplanUrl: String = getEnvVar("MIN_SIDE_SYKMELDT_OPPFOLGINGSPLAN_URL"),
+    override val dineSykmeldteOversiktUrl: String = getEnvVar("DINE_SYKMELDTE_OVERSIKT_URL"),
     override val pdfGenUrl: String = getEnvVar("PDFGEN_BASE_URL"),
     override val dineSykmeldteBaseUrl: String = getEnvVar("DINE_SYKMELDTE_BASE_URL"),
     override val dokarkivBaseUrl: String = getEnvVar("DOKARKIV_URL"),
@@ -111,6 +113,7 @@ data class LocalEnvironment(
         ssl = false,
     ),
     override val minSideSykmeldtOppfolgingsplanUrl: String = "https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt",
+    override val dineSykmeldteOversiktUrl: String = "https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte",
     override val dineSykmeldteBaseUrl: String = "https://dinesykmeldte-backend.dev.intern.nav.no",
     override val dokarkivScope: String = "dokarkiv",
     override val dokarkivBaseUrl: String = "https://isdialogmelding.intern.dev.nav.no",
