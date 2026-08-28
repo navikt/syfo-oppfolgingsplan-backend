@@ -3,6 +3,7 @@ package no.nav.syfo.varsel.budstikka
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import kotlinx.coroutines.runBlocking
 import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
@@ -120,7 +121,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                     record.key() shouldBe expectedDispatch.key
                     record.value() shouldBe expectedDispatch.value
                     record.value() shouldContain "\"oppgavetype\":\"OPPFOLGINGSPLAN_PAAMINNELSE\""
-                    record.value() shouldContain "\"link\":null"
+                    record.value() shouldNotContain "\"link\""
                     record.headers().associate { header ->
                         header.key() to header.value().toList()
                     } shouldBe expectedDispatch.headerBytes().mapValues { (_, value) ->

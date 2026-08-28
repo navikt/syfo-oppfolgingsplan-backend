@@ -150,7 +150,7 @@ class BudstikkaProducerTest :
                             it.key() shouldBe expectedDispatch.key
                             it.value() shouldBe expectedDispatch.value
                             it.value() shouldContain "\"sendingWindow\":\"ONGOING\""
-                            it.value() shouldContain "\"link\":null"
+                            it.value() shouldNotContain "\"link\""
                             actualHeaders shouldBe expectedHeaders
                         },
                     )
