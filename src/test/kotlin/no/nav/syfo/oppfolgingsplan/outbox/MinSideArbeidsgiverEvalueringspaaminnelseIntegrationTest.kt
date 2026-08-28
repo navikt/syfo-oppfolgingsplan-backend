@@ -20,6 +20,7 @@ import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseSourceRepository
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationCommand
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
+import no.nav.syfo.oppfolgingsplan.service.EvalueringspaaminnelseEligibilityService
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
@@ -43,6 +44,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
             sykmeldinger = listOf(DineSykmeldteSykmelding("ARNESEN, HOLM OG BAKKEN")),
         )
         val repository = EvalueringspaaminnelseSourceRepository(TestDB.database)
+        val eligibilityService = EvalueringspaaminnelseEligibilityService(repository)
         val sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(TestDB.database)
 
         beforeTest {
@@ -60,7 +62,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
             coEvery {
                 publisher.publishMinSideArbeidsgiverEvalueringspaaminnelse(any(), any(), any(), any())
             } returns Unit
-            val worker = arbeidsgiverWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
+            val worker = arbeidsgiverWorker(eligibilityService, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
 
             worker.runOnce().sent shouldBe 1
 
@@ -88,7 +90,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
         it("cancels the reminder when the source has no active sykmeldingsperiode") {
             val planUuid = TestDB.database.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
             val publisher = mockk<BudstikkaPublisher>(relaxed = true)
-            val worker = arbeidsgiverWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
+            val worker = arbeidsgiverWorker(eligibilityService, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
 
             worker.runOnce().cancelled shouldBe 1
 
@@ -109,7 +111,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
             val planUuid = TestDB.database.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
             TestDB.database.deleteArbeidsgiverPlan(planUuid)
             val publisher = mockk<BudstikkaPublisher>(relaxed = true)
-            val worker = arbeidsgiverWorker(repository, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
+            val worker = arbeidsgiverWorker(eligibilityService, publisher, Clock.fixed(sendInstant, ZoneOffset.UTC))
 
             worker.runOnce().cancelled shouldBe 1
 
@@ -148,7 +150,7 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
                 if (publishAttempt == 1) throw TimeoutException("Forced Budstikka timeout")
             }
             val clock = MutableClock(sendInstant)
-            val worker = arbeidsgiverWorker(repository, publisher, clock)
+            val worker = arbeidsgiverWorker(eligibilityService, publisher, clock)
 
             worker.runOnce().retryScheduled shouldBe 1
             val retrying = TestDB.database.findOutboxMessage(
@@ -174,11 +176,11 @@ class MinSideArbeidsgiverEvalueringspaaminnelseIntegrationTest :
             val planUuid = TestDB.database.persistArbeidsgiverReminder(sykmeldt, evalueringsdato)
             val failingRepository = mockk<EvalueringspaaminnelseSourceRepository>()
             coEvery {
-                failingRepository.findSource(planUuid, any())
+                failingRepository.findSourceFacts(planUuid, any())
             } throws SQLException("Forced database failure")
             val publisher = mockk<BudstikkaPublisher>(relaxed = true)
             val worker = arbeidsgiverWorker(
-                failingRepository,
+                EvalueringspaaminnelseEligibilityService(failingRepository),
                 publisher,
                 Clock.fixed(sendInstant, ZoneOffset.UTC),
             )
@@ -235,13 +237,13 @@ private fun SykmeldingsperiodeRepository.storeActiveArbeidsgiverPeriod(sykmeldt:
 }
 
 private fun arbeidsgiverWorker(
-    repository: EvalueringspaaminnelseSourceRepository,
+    eligibilityService: EvalueringspaaminnelseEligibilityService,
     publisher: BudstikkaPublisher,
     clock: Clock,
 ) = OutboxWorker(
     database = TestDB.database,
     handlers = listOf(
-        MinSideArbeidsgiverEvalueringspaaminnelseHandler(repository, publisher),
+        MinSideArbeidsgiverEvalueringspaaminnelseHandler(eligibilityService, publisher),
     ),
     clock = clock,
 )

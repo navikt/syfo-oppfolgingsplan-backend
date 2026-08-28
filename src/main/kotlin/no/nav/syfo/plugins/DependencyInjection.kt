@@ -256,7 +256,7 @@ private fun servicesModule() = module {
     single { OppfolgingsplanCreatedOutboxHandler(database = get(), publisher = get()) }
     single {
         MinSideArbeidsgiverEvalueringspaaminnelseHandler(
-            repository = get(),
+            eligibilityService = get(),
             publisher = get(),
         )
     }
