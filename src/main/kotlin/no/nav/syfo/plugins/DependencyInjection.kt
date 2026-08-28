@@ -45,6 +45,7 @@ import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.outbox.DineSykmeldteEvalueringspaaminnelseHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
+import no.nav.syfo.oppfolgingsplan.service.EvalueringspaaminnelseEligibilityService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
@@ -235,6 +236,7 @@ private fun servicesModule() = module {
     single { UnntaksvurderingService(database = get(), pdlService = get()) }
     single { OppfolgingsplanFinalizationRepository(database = get()) }
     single { EvalueringspaaminnelseSourceRepository(database = get()) }
+    single { EvalueringspaaminnelseEligibilityService(repository = get()) }
     single {
         OppfolgingsplanService(
             database = get(),
@@ -252,7 +254,7 @@ private fun servicesModule() = module {
     single { OppfolgingsplanCreatedOutboxHandler(database = get(), publisher = get()) }
     single {
         DineSykmeldteEvalueringspaaminnelseHandler(
-            repository = get(),
+            eligibilityService = get(),
             publisher = get(),
         )
     }
