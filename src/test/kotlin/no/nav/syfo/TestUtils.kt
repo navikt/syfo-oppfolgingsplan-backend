@@ -66,7 +66,6 @@ fun defaultPersistedOppfolgingsplan() = PersistedOppfolgingsplan(
     stillingsprosent = BigDecimal("100.00"),
     content = defaultFormSnapshot(),
     evalueringPaaminnelse = false,
-    evalueringPaaminnelseOutboxAt = null,
     skalDelesMedLege = false,
     skalDelesMedVeileder = false,
     uuid = UUID.randomUUID(),

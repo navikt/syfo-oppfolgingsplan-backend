@@ -3,7 +3,6 @@ package no.nav.syfo.oppfolgingsplan.db
 import io.kotest.assertions.withClue
 import io.kotest.core.annotation.Isolate
 import io.kotest.core.spec.style.DescribeSpec
-import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -16,7 +15,7 @@ import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 class OppfolgingsplanSchemaTest :
     DescribeSpec({
         describe("oppfolgingsplan schema") {
-            it("keeps the Exposed mappings aligned with the Flyway schema") {
+            it("keeps only the deployment 1 legacy column outside the Exposed mappings") {
                 val drift = transaction(TestDB.database.exposedDatabase) {
                     MigrationUtils.statementsRequiredForDatabaseMigration(
                         OppfolgingsplanTable,
@@ -26,7 +25,9 @@ class OppfolgingsplanSchemaTest :
                 }
 
                 withClue("Oppfolgingsplan schema drift:\n${drift.joinToString("\n")}") {
-                    drift.shouldBeEmpty()
+                    drift shouldBe listOf(
+                        "ALTER TABLE oppfolgingsplan DROP COLUMN evaluering_paaminnelse_outbox_at",
+                    )
                 }
             }
 
@@ -47,7 +48,7 @@ class OppfolgingsplanSchemaTest :
                     "(sykmeldt_fnr, organisasjonsnummer, created_at DESC) WHERE (skjult_fra IS NULL)"
             }
 
-            it("should add evaluering paaminnelse columns only on oppfolgingsplan") {
+            it("keeps the nullable legacy outbox column during deployment 1") {
                 val oppfolgingsplanColumns = TestDB.database.connection.use { connection ->
                     connection.metaData.getColumns(null, null, "oppfolgingsplan", null).use { resultSet ->
                         buildList {

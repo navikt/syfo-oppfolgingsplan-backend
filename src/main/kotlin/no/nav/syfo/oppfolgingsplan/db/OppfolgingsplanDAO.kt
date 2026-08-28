@@ -421,7 +421,6 @@ fun ResultSet.mapToOppfolgingsplan(): PersistedOppfolgingsplan = PersistedOppfol
     content = FormSnapshot.jsonToFormSnapshot(getString("content")),
     evalueringsdato = LocalDate.parse(this.getString("evalueringsdato")),
     evalueringPaaminnelse = this.getBoolean("evaluering_paaminnelse"),
-    evalueringPaaminnelseOutboxAt = this.getTimestamp("evaluering_paaminnelse_outbox_at")?.toInstant(),
     skalDelesMedLege = this.getBoolean("skal_deles_med_lege"),
     skalDelesMedVeileder = this.getBoolean("skal_deles_med_veileder"),
     deltMedLegeTidspunkt = this.getTimestamp("delt_med_lege_tidspunkt")?.toInstant(),

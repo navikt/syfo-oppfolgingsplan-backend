@@ -32,7 +32,6 @@ internal object OppfolgingsplanTable : Table("oppfolgingsplan") {
     val feilregistrert = timestampWithTimeZone("feilregistrert").nullable()
     val feilregistrertAarsak = text("feilregistrert_aarsak").nullable()
     val evalueringPaaminnelse = bool("evaluering_paaminnelse").default(false)
-    val evalueringPaaminnelseOutboxAt = timestampWithTimeZone("evaluering_paaminnelse_outbox_at").nullable()
     val eventId = javaUUID("event_id").nullable()
     val varselPublishedAt = timestampWithTimeZone("varsel_published_at").nullable()
 
