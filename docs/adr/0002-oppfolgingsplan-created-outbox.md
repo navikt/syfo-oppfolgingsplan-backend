@@ -52,3 +52,19 @@ delivery-tabeller.
 Worker eksponerer lavkardinale målinger for antall leveringsklare rader, alder på eldste rad,
 utløpte claims og uløste tekniske feil. Dev og prod varsler på vedvarende køalder, utløpte leases og
 gjentatte feil. Payload, fødselsnummer og varseltekst logges eller tagges ikke.
+
+`OPPFOLGINGSPLAN_CREATED` er den avgrensede identiteten for produsentbenet. For denne typen betyr
+`outbox_enqueued_total` eligible. `outbox_terminal_total` skiller Kafka-acknowledged handlerutfall
+fra lukkede avvisningsårsaker, og `outbox_created_to_terminal_latency_seconds` måler hele tiden fra
+den atomiske plan-/outbox-opprettelsen til terminalutfallet er lagret, inkludert retry og backoff.
+Målingene er bevisst avgrenset til denne umiddelbare meldingstypen; planlagte påminnelser har en
+annen tidssemantikk og inngår ikke. `handler_acknowledged` beviser ikke behandling i Budstikka
+eller levering til sluttbrukeren. Retryforsøk og terminalutfall holdes adskilt; eksisterende
+`outbox_messages_total` beskriver forsøk som `retry_scheduled`, `processing_failed` og `claim_lost`.
+Latenstimeren eksponerer foreløpig count, sum og max. Histogram-buckets og p95 kommer først når
+behandlingsfristen er eksplisitt godkjent; Micrometers korte standardhistogram brukes ikke som en
+skjult terskel.
+
+Tellerne er operative signaler, ikke et regnskap: et prosesskrasj etter database-commit og før
+metrikkinkrement kan gi undertelling. Avstemming av manglende eller dupliserte hendelser bruker
+derfor outbox-/inbox-tilstand og stabil `event_id`, ikke likhet mellom Prometheus-tellere.

@@ -73,6 +73,7 @@ class OutboxWorker(
     private val clock: Clock = Clock.systemUTC(),
     private val config: OutboxWorkerConfig = OutboxWorkerConfig(),
     observedMessageTypes: List<OutboxMessageType> = handlers.map { it.messageType },
+    private val lifecycleMetrics: OutboxLifecycleMetrics = NoOutboxLifecycleMetrics,
 ) {
     private val log = logger()
     private val handlersByTypeValue = handlers.associateBy { it.messageType.value }
@@ -214,13 +215,17 @@ class OutboxWorker(
             return if (recorded) ProcessAttempt.RetryScheduled(e) else ProcessAttempt.ClaimLost
         }
 
+        val completedAt = clock.instant()
         val transitioned = database.exposedTransaction {
             when (outcome) {
-                OutboxResult.Sent -> markOutboxMessageSent(message.uuid, claimToken, clock.instant())
+                OutboxResult.Sent -> markOutboxMessageSent(message.uuid, claimToken, completedAt)
                 is OutboxResult.Cancelled ->
-                    markOutboxMessageCancelled(message.uuid, claimToken, outcome.reason, clock.instant())
+                    markOutboxMessageCancelled(message.uuid, claimToken, outcome.reason, completedAt)
                 is OutboxResult.Deferred -> deferOutboxMessage(message.uuid, claimToken, outcome.until)
             }
+        }
+        if (transitioned && outcome !is OutboxResult.Deferred) {
+            lifecycleMetrics.recordTerminal(message, outcome, completedAt)
         }
         return if (transitioned) ProcessAttempt.Processed(outcome) else ProcessAttempt.ClaimLost
     }

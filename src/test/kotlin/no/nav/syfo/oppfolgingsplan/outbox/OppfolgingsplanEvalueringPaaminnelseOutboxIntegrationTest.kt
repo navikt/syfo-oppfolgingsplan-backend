@@ -17,6 +17,8 @@ import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.application.metric.METRICS_REGISTRY
+import no.nav.syfo.application.outbox.MicrometerOutboxLifecycleMetrics
+import no.nav.syfo.application.outbox.OUTBOX_ENQUEUED
 import no.nav.syfo.application.outbox.db.claimOutboxMessages
 import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
 import no.nav.syfo.application.outbox.db.findOutboxMessage
@@ -467,6 +469,7 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
         describe("business metrics") {
             it("updates created and superseded counters by channel after successful commit") {
                 val sykmeldt = defaultSykmeldt().copy(narmestelederId = "leader-metrics")
+                val enqueuedBefore = outboxEnqueuedCount(OppfolgingsplanOutboxMessageType.CREATED)
                 val createdBefore = OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.associateWith {
                     outboxMetricCount(it, outcome = "created")
                 }
@@ -489,10 +492,12 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
                     outboxMetricCount(messageType, outcome = "created") - createdBefore.getValue(messageType) shouldBe 1.0
                     outboxMetricCount(messageType, outcome = "superseded") - supersededBefore.getValue(messageType) shouldBe 1.0
                 }
+                outboxEnqueuedCount(OppfolgingsplanOutboxMessageType.CREATED) - enqueuedBefore shouldBe 2.0
             }
 
             it("does not update counters when transaction rolls back") {
                 val sykmeldt = defaultSykmeldt().copy(narmestelederId = "leader-metrics-rollback")
+                val enqueuedBefore = outboxEnqueuedCount(OppfolgingsplanOutboxMessageType.CREATED)
                 val createdBefore = OppfolgingsplanOutboxMessageType.evalueringPaaminnelseTypes.associateWith {
                     outboxMetricCount(it, outcome = "created")
                 }
@@ -517,6 +522,7 @@ class OppfolgingsplanEvalueringPaaminnelseOutboxIntegrationTest :
                     outboxMetricCount(messageType, outcome = "created") shouldBe createdBefore.getValue(messageType)
                     outboxMetricCount(messageType, outcome = "superseded") shouldBe supersededBefore.getValue(messageType)
                 }
+                outboxEnqueuedCount(OppfolgingsplanOutboxMessageType.CREATED) shouldBe enqueuedBefore
             }
         }
     })
@@ -544,6 +550,10 @@ private suspend fun DatabaseInterface.createOppfolgingsplan(
     aaregService = mockk<AaregService>(relaxed = true),
     unntaksvurderingService = mockk<UnntaksvurderingService>(relaxed = true),
     oppfolgingsplanFinalizationRepository = OppfolgingsplanFinalizationRepository(this),
+    outboxLifecycleMetrics = MicrometerOutboxLifecycleMetrics(
+        registry = METRICS_REGISTRY,
+        observedMessageTypes = setOf(OppfolgingsplanOutboxMessageType.CREATED.value),
+    ),
 ).createOppfolgingsplan(
     narmesteLederFnr = "10987654321",
     sykmeldt = sykmeldt,
@@ -567,6 +577,12 @@ private fun outboxMetricCount(
     requireNotNull(messageType.channelMetricLabel),
     "outcome",
     outcome,
+).count()
+
+private fun outboxEnqueuedCount(messageType: OppfolgingsplanOutboxMessageType): Double = METRICS_REGISTRY.counter(
+    OUTBOX_ENQUEUED,
+    "message_type",
+    messageType.value,
 ).count()
 
 private fun DatabaseInterface.rejectCreatedOutboxInserts() = connection.use { connection ->

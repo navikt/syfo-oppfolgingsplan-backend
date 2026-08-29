@@ -7,6 +7,8 @@ import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.exception.ApiErrorException
 import no.nav.syfo.application.exception.PlanNotFoundException
+import no.nav.syfo.application.outbox.NoOutboxLifecycleMetrics
+import no.nav.syfo.application.outbox.OutboxLifecycleMetrics
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.dinesykmeldte.client.getOrganizationName
 import no.nav.syfo.oppfolgingsplan.api.v1.veileder.OppfolgingsplanVeileder
@@ -40,6 +42,7 @@ import no.nav.syfo.oppfolgingsplan.dto.OversiktResponseData
 import no.nav.syfo.oppfolgingsplan.dto.utledGjeldendeStatus
 import no.nav.syfo.oppfolgingsplan.outbox.EvalueringPaaminnelseFactory
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanEvalueringPaaminnelseOutboxMetrics
+import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
 import no.nav.syfo.varsel.EsyfovarselProducer
@@ -64,6 +67,7 @@ class OppfolgingsplanService(
     private val aaregService: AaregService,
     private val unntaksvurderingService: UnntaksvurderingService,
     private val oppfolgingsplanFinalizationRepository: OppfolgingsplanFinalizationRepository,
+    private val outboxLifecycleMetrics: OutboxLifecycleMetrics = NoOutboxLifecycleMetrics,
 ) {
     private val logger = logger()
 
@@ -100,6 +104,7 @@ class OppfolgingsplanService(
                 ),
             ),
         )
+        outboxLifecycleMetrics.recordEnqueued(OppfolgingsplanOutboxMessageType.CREATED)
         OppfolgingsplanEvalueringPaaminnelseOutboxMetrics.incrementCreated(
             finalizationResult.createdReminderCountByChannel,
         )
