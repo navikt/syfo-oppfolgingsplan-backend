@@ -10,22 +10,22 @@ spec:
     - name: syfo-oppfolgingsplan-backend
       rules:
         - alert: SykmeldingConsumerDeserializationErrors
-          expr: rate(syfo_oppfolgingsplan_backend_sykmelding_deserialization_error_total{namespace="team-esyfo"}[5m]) > 0.1
-          for: 5m
+          expr: sum by (app) (increase(syfo_oppfolgingsplan_backend_sykmelding_deserialization_error_total{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo"}[15m])) > 0
+          for: 1m
           annotations:
-            consequence: Kafka consumer for sykmeldingsperioder forkaster meldinger permanent. Mulig schema-endring fra teamsykmelding.
-            action: "Sjekk logger for deserialization errors. Verifiser at SendtSykmeldingKafkaMessage-modellen matcher topic-kontrakten."
-            summary: Sykmelding Kafka consumer forkaster meldinger (poison pills).
+            consequence: Kafka-consumeren har sett minst én malformed eller kontraktugyldig record. I en blandet poll kan recorden være permanent forkastet; en hel poison-batch blir lest på nytt.
+            action: "Sjekk logger for deserialization errors. Verifiser topic-kontrakten, SendtSykmeldingKafkaMessage-modellen og eventuelle tombstones uten key."
+            summary: Sykmelding Kafka-consumeren har en malformed eller kontraktugyldig record.
           labels:
             namespace: team-esyfo
-            severity: critical
+            severity: warning
         - alert: SykmeldingConsumerRuntimeErrors
-          expr: rate(syfo_oppfolgingsplan_backend_sykmelding_runtime_error_total{namespace="team-esyfo"}[5m]) > 0.05
-          for: 10m
+          expr: sum by (app) (increase(syfo_oppfolgingsplan_backend_sykmelding_runtime_error_total{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo"}[7m])) > 0
+          for: 15m
           annotations:
-            consequence: Kafka consumer opplever gjentatte transiente feil (connection, commit, etc). Consumer kjører med backoff.
-            action: "Sjekk logger for exceptions. Verifiser Kafka-tilkobling, database-tilgang og nettverkspolicyer."
-            summary: Sykmelding Kafka consumer har transiente runtime-feil.
+            consequence: Consumerarbeidet har samlet ikke hatt en 7-minutters periode uten registrerte runtime-feil gjennom 15 minutter. Feilene kan komme fra én eller flere replikaer; dette beviser ikke at hele consumergruppen er nede nå.
+            action: "Sjekk først deserialization-alarmen og -telleren for en mulig poison-batch. Sjekk deretter exceptions, Kafka-tilkobling, database-tilgang og nettverkspolicyer."
+            summary: Sykmelding Kafka-consumeren har vedvarende runtime-feil.
           labels:
             namespace: team-esyfo
             severity: warning
