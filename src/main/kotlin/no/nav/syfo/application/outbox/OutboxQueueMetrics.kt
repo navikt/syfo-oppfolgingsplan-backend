@@ -28,6 +28,9 @@ internal object OutboxQueueMetrics {
                     ?.let { Duration.between(it, now).seconds.coerceAtLeast(0) }
                     ?: 0,
             )
+            // Publish freshness last, so a current timestamp never accompanies values from before
+            // this successful database observation.
+            lastSuccessTimestampSeconds.set(now.epochSecond)
         }
     }
 
@@ -57,6 +60,12 @@ internal object OutboxQueueMetrics {
             messageType,
             observation.maxFailureCount,
         )
+        registerGauge(
+            "outbox_queue_snapshot_last_success_timestamp_seconds",
+            "Unix timestamp of the last successful outbox queue snapshot",
+            messageType,
+            observation.lastSuccessTimestampSeconds,
+        )
     }
 
     private fun registerGauge(
@@ -77,5 +86,6 @@ internal object OutboxQueueMetrics {
         val expiredClaimCount: AtomicLong = AtomicLong(),
         val retryingCount: AtomicLong = AtomicLong(),
         val maxFailureCount: AtomicLong = AtomicLong(),
+        val lastSuccessTimestampSeconds: AtomicLong = AtomicLong(),
     )
 }

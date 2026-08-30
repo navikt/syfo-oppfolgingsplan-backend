@@ -18,9 +18,6 @@ import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.kafka.stringProducerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
-import no.nav.syfo.application.metric.METRICS_REGISTRY
-import no.nav.syfo.application.outbox.MicrometerOutboxLifecycleMetrics
-import no.nav.syfo.application.outbox.OutboxLifecycleMetrics
 import no.nav.syfo.application.outbox.OutboxRetentionPolicy
 import no.nav.syfo.application.outbox.OutboxRetentionTask
 import no.nav.syfo.application.outbox.OutboxTask
@@ -240,12 +237,6 @@ private fun servicesModule() = module {
     single { AaregService(get()) }
     single { UnntaksvurderingService(database = get(), pdlService = get()) }
     single { OppfolgingsplanFinalizationRepository(database = get()) }
-    single<OutboxLifecycleMetrics> {
-        MicrometerOutboxLifecycleMetrics(
-            registry = METRICS_REGISTRY,
-            observedMessageTypes = setOf(OppfolgingsplanOutboxMessageType.CREATED.value),
-        )
-    }
     single { EvalueringspaaminnelseSourceRepository(database = get()) }
     single { EvalueringspaaminnelseEligibilityService(repository = get()) }
     single {
@@ -256,7 +247,6 @@ private fun servicesModule() = module {
             aaregService = get(),
             unntaksvurderingService = get(),
             oppfolgingsplanFinalizationRepository = get(),
-            outboxLifecycleMetrics = get(),
         )
     }
     single { PaaminnelseService(database = get(), sykmeldingsperiodeRepository = get()) }
@@ -285,7 +275,6 @@ private fun servicesModule() = module {
                 get<DineSykmeldteEvalueringspaaminnelseHandler>(),
             ),
             observedMessageTypes = OppfolgingsplanOutboxMessageType.entries,
-            lifecycleMetrics = get(),
         )
     }
     single { OutboxTask(worker = get()) }

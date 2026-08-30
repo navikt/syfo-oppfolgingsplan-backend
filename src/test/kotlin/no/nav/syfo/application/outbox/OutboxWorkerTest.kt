@@ -16,14 +16,12 @@ import no.nav.syfo.application.metric.METRICS_NS
 import no.nav.syfo.application.metric.METRICS_REGISTRY
 import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
-import no.nav.syfo.application.outbox.domain.OutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import no.nav.syfo.application.outbox.domain.OutboxStatus
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
-import java.util.UUID
 import kotlin.time.Duration.Companion.INFINITE
 
 class OutboxWorkerTest :
@@ -53,23 +51,21 @@ class OutboxWorkerTest :
                     .gauge()
                     .shouldNotBeNull()
                     .value() shouldBe 1.0
+                METRICS_REGISTRY.find("${METRICS_NS}_outbox_queue_snapshot_last_success_timestamp_seconds")
+                    .tag("message_type", TEST_STAGED_MESSAGE.value)
+                    .gauge()
+                    .shouldNotBeNull()
+                    .value() shouldBe now.epochSecond.toDouble()
             }
 
             it("marks an acknowledged message sent") {
                 val message = TestDB.database.enqueueTestOutboxMessage()
                 val handler = TestOutboxHandler()
-                val lifecycleMetrics = RecordingOutboxLifecycleMetrics()
 
-                val result = OutboxWorker(
-                    database = TestDB.database,
-                    handlers = listOf(handler),
-                    clock = fixedClock,
-                    lifecycleMetrics = lifecycleMetrics,
-                ).runOnce()
+                val result = OutboxWorker(TestDB.database, listOf(handler), fixedClock).runOnce()
 
                 result shouldBe OutboxBatchResult(sent = 1)
                 handler.handledMessages shouldBe listOf(message.uuid)
-                lifecycleMetrics.terminalOutcomes shouldBe listOf(message.uuid to OutboxResult.Sent)
                 val persisted = TestDB.database.findOutboxMessage(message).shouldNotBeNull()
                 persisted.status shouldBe OutboxStatus.SENT
                 persisted.completedAt.shouldNotBeNull()
@@ -79,21 +75,13 @@ class OutboxWorkerTest :
 
             it("cancels a message with a general domain reason") {
                 val message = TestDB.database.enqueueTestOutboxMessage()
-                val outcome = OutboxResult.Cancelled(OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE)
                 val handler = TestOutboxHandler(
-                    outcome = { _, _ -> outcome },
+                    outcome = { _, _ -> OutboxResult.Cancelled(OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE) },
                 )
-                val lifecycleMetrics = RecordingOutboxLifecycleMetrics()
 
-                val result = OutboxWorker(
-                    database = TestDB.database,
-                    handlers = listOf(handler),
-                    clock = fixedClock,
-                    lifecycleMetrics = lifecycleMetrics,
-                ).runOnce()
+                val result = OutboxWorker(TestDB.database, listOf(handler), fixedClock).runOnce()
 
                 result shouldBe OutboxBatchResult(cancelled = 1)
-                lifecycleMetrics.terminalOutcomes shouldBe listOf(message.uuid to outcome)
                 val persisted = TestDB.database.findOutboxMessage(message).shouldNotBeNull()
                 persisted.status shouldBe OutboxStatus.CANCELLED
                 persisted.cancellationReason shouldBe OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
@@ -109,17 +97,10 @@ class OutboxWorkerTest :
                         if (message.uuid == deferred.uuid) OutboxResult.Deferred(retryEvaluationAt) else OutboxResult.Sent
                     },
                 )
-                val lifecycleMetrics = RecordingOutboxLifecycleMetrics()
 
-                val result = OutboxWorker(
-                    database = TestDB.database,
-                    handlers = listOf(handler),
-                    clock = fixedClock,
-                    lifecycleMetrics = lifecycleMetrics,
-                ).runOnce()
+                val result = OutboxWorker(TestDB.database, listOf(handler), fixedClock).runOnce()
 
                 result shouldBe OutboxBatchResult(sent = 1, deferred = 1)
-                lifecycleMetrics.terminalOutcomes shouldBe listOf(next.uuid to OutboxResult.Sent)
                 val persistedDeferred = TestDB.database.findOutboxMessage(deferred).shouldNotBeNull()
                 persistedDeferred.status shouldBe OutboxStatus.READY
                 persistedDeferred.availableAt shouldBe retryEvaluationAt
@@ -236,17 +217,10 @@ class OutboxWorkerTest :
                         OutboxResult.Sent
                     },
                 )
-                val lifecycleMetrics = RecordingOutboxLifecycleMetrics()
 
-                val result = OutboxWorker(
-                    database = TestDB.database,
-                    handlers = listOf(handler),
-                    clock = clock,
-                    lifecycleMetrics = lifecycleMetrics,
-                ).runOnce()
+                val result = OutboxWorker(TestDB.database, listOf(handler), clock).runOnce()
 
                 result shouldBe OutboxBatchResult(claimLost = 1)
-                lifecycleMetrics.terminalOutcomes shouldBe emptyList()
                 val persisted = TestDB.database.findOutboxMessage(message).shouldNotBeNull()
                 persisted.status shouldBe OutboxStatus.CLAIMED
                 persisted.claimToken.shouldNotBeNull()
@@ -335,20 +309,3 @@ class OutboxWorkerTest :
             }
         }
     })
-
-private class RecordingOutboxLifecycleMetrics : OutboxLifecycleMetrics {
-    val terminalOutcomes = mutableListOf<Pair<UUID, OutboxResult>>()
-
-    override fun recordEnqueued(
-        messageType: OutboxMessageType,
-        count: Int,
-    ) = Unit
-
-    override fun recordTerminal(
-        message: OutboxMessage,
-        outcome: OutboxResult,
-        completedAt: Instant,
-    ) {
-        terminalOutcomes += message.uuid to outcome
-    }
-}
