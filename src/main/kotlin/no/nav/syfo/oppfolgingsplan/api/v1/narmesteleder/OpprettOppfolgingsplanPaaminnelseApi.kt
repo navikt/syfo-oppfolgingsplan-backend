@@ -10,18 +10,18 @@ import io.ktor.server.routing.route
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.auth.ClientAuthorizationPlugin
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
-import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_PAAMINNELSE_AVBESTILT
-import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_PAAMINNELSE_BESTILT
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_AVBESTILT
+import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_BESTILT
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.AuthorizeLeaderAccessToSykmeldtPlugin
 import no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver.CALL_ATTRIBUTE_SYKMELDT
-import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
+import no.nav.syfo.oppfolgingsplan.service.OpprettOppfolgingsplanPaaminnelseService
 import no.nav.syfo.texas.TexasTokenXAuthPlugin
 import no.nav.syfo.texas.client.TexasHttpClient
 
-fun Route.registerPaaminnelseApi(
+fun Route.registerOpprettOppfolgingsplanPaaminnelseApi(
     dineSykmeldteService: DineSykmeldteService,
     texasHttpClient: TexasHttpClient,
-    paaminnelseService: PaaminnelseService,
+    opprettOppfolgingsplanPaaminnelseService: OpprettOppfolgingsplanPaaminnelseService,
     environment: Environment,
 ) {
     route("/api/v1/narmesteleder/{narmesteLederId}/oppfolgingsplaner/paaminnelse") {
@@ -40,28 +40,28 @@ fun Route.registerPaaminnelseApi(
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
             call.respond(
                 HttpStatusCode.OK,
-                paaminnelseService.getPaaminnelseStatus(sykmeldt),
+                opprettOppfolgingsplanPaaminnelseService.getOpprettOppfolgingsplanPaaminnelseStatus(sykmeldt),
             )
         }
 
         post {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
-            val response = paaminnelseService.activatePaaminnelse(
+            val response = opprettOppfolgingsplanPaaminnelseService.activateOpprettOppfolgingsplanPaaminnelse(
                 sykmeldt = sykmeldt,
             )
 
-            COUNT_PAAMINNELSE_BESTILT.increment()
+            COUNT_OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_BESTILT.increment()
             call.respond(HttpStatusCode.OK, response)
         }
 
         delete {
             val sykmeldt = call.attributes[CALL_ATTRIBUTE_SYKMELDT]
 
-            val response = paaminnelseService.deactivatePaaminnelse(
+            val response = opprettOppfolgingsplanPaaminnelseService.deactivateOpprettOppfolgingsplanPaaminnelse(
                 sykmeldt = sykmeldt,
             )
 
-            COUNT_PAAMINNELSE_AVBESTILT.increment()
+            COUNT_OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_AVBESTILT.increment()
             call.respond(HttpStatusCode.OK, response)
         }
     }

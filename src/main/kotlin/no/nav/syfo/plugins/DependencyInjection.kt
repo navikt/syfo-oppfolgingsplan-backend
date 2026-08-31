@@ -49,11 +49,11 @@ import no.nav.syfo.oppfolgingsplan.outbox.DineSykmeldteEvalueringspaaminnelseHan
 import no.nav.syfo.oppfolgingsplan.outbox.MinSideArbeidsgiverEvalueringspaaminnelseHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanCreatedOutboxHandler
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
-import no.nav.syfo.oppfolgingsplan.outbox.PaaminnelseArbeidsgiverOutboxHandler
-import no.nav.syfo.oppfolgingsplan.outbox.PaaminnelseDineSykmeldteOutboxHandler
+import no.nav.syfo.oppfolgingsplan.outbox.OpprettOppfolgingsplanPaaminnelseArbeidsgiverOutboxHandler
+import no.nav.syfo.oppfolgingsplan.outbox.OpprettOppfolgingsplanPaaminnelseDineSykmeldteOutboxHandler
 import no.nav.syfo.oppfolgingsplan.service.EvalueringspaaminnelseEligibilityService
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
+import no.nav.syfo.oppfolgingsplan.service.OpprettOppfolgingsplanPaaminnelseService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.oppfolgingsplan.task.CleanupUtkastTask
 import no.nav.syfo.oppfolgingsplan.task.SoftDeleteOppfolgingsplanerTask
@@ -266,7 +266,7 @@ private fun servicesModule() = module {
             oppfolgingsplanFinalizationRepository = get(),
         )
     }
-    single { PaaminnelseService(database = get(), sykmeldingsperiodeRepository = get()) }
+    single { OpprettOppfolgingsplanPaaminnelseService(database = get(), sykmeldingsperiodeRepository = get()) }
     single { PdfGenService(get(), get()) }
     single { SendOppfolgingsplanTask(get(), get()) }
     single { CleanupUtkastTask(get(), get()) }
@@ -283,16 +283,29 @@ private fun servicesModule() = module {
             publisher = get(),
         )
     }
-    single { PaaminnelseArbeidsgiverOutboxHandler(database = get(), paaminnelseService = get(), publisher = get()) }
-    single { PaaminnelseDineSykmeldteOutboxHandler(database = get(), paaminnelseService = get(), publisher = get()) }
+    single {
+        OpprettOppfolgingsplanPaaminnelseArbeidsgiverOutboxHandler(
+            database = get(),
+            opprettOppfolgingsplanPaaminnelseService = get(),
+            publisher = get(),
+            narmestelederClient = get(),
+        )
+    }
+    single {
+        OpprettOppfolgingsplanPaaminnelseDineSykmeldteOutboxHandler(
+            database = get(),
+            opprettOppfolgingsplanPaaminnelseService = get(),
+            publisher = get(),
+        )
+    }
     single {
         OutboxWorker(
             database = get(),
             handlers = listOf(
                 get<OppfolgingsplanCreatedOutboxHandler>(),
                 get<MinSideArbeidsgiverEvalueringspaaminnelseHandler>(),
-                get<PaaminnelseArbeidsgiverOutboxHandler>(),
-                get<PaaminnelseDineSykmeldteOutboxHandler>(),
+                get<OpprettOppfolgingsplanPaaminnelseArbeidsgiverOutboxHandler>(),
+                get<OpprettOppfolgingsplanPaaminnelseDineSykmeldteOutboxHandler>(),
                 get<DineSykmeldteEvalueringspaaminnelseHandler>(),
             ),
             observedMessageTypes = OppfolgingsplanOutboxMessageType.entries,

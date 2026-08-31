@@ -23,7 +23,9 @@ import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TITLE
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_TEXT
 import no.nav.syfo.varsel.budstikka.infrastructure.OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT
-import no.nav.syfo.varsel.budstikka.infrastructure.PAAMINNELSE_BUDSTIKKA_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_BUDSTIKKA_TEXT
+import no.nav.syfo.varsel.budstikka.infrastructure.OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML
+import no.nav.syfo.varsel.budstikka.infrastructure.OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_TITLE
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.clients.producer.RecordMetadata
@@ -236,63 +238,101 @@ class BudstikkaProducerTest :
             }
         }
 
-        describe("publishPaaminnelse") {
+        describe("publishOpprettOppfolgingsplanPaaminnelse") {
             val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
-            val paaminnelseUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
+            val bestillingId =
+                UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4")
+            val narmestelederId = UUID.fromString("9e629cad-a60c-464c-98ef-f30dd33f2da6")
             val sykmeldtFnr = "12345678901"
             val orgnummer = "123456789"
-            val narmestelederId = "narmeste-leder-id"
-            val link = "$dineSykmeldteOversiktUrl/$narmestelederId"
 
             it("sends an employer notification to the narmeste leder") {
                 val expectedDispatch = Budstikka.arbeidsgivervarselCreate(
                     eventId = EventId(eventId),
-                    reference = paaminnelseUuid.toString(),
+                    reference = bestillingId.toString(),
                     orgnummer = Orgnummer(orgnummer),
                     recipient = Arbeidsgivervarsel.NarmesteLeder(
                         sykmeldt = PersonIdentifier(sykmeldtFnr),
-                        externalNotification = Arbeidsgivervarsel.NarmesteLederExternalNotification(
-                            emailTitle = "Title",
-                            emailText = "<body></body>",
-                        ),
+                    ),
+                    htmlEmail = Arbeidsgivervarsel.HtmlEmailNotification(
+                        emailTitle = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_TITLE,
+                        emailHtmlBody = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML,
                     ),
                     tag = "Oppfølging",
-                    text = PAAMINNELSE_BUDSTIKKA_TEXT,
-                    link = link,
+                    text = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_BUDSTIKKA_TEXT,
+                    link = "$dineSykmeldteOversiktUrl/$narmestelederId",
                     messageType = Arbeidsgivervarsel.MessageType.BESKJED,
                     sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
                 )
 
                 assertDispatchIsSent(expectedDispatch) {
-                    producer.publishPaaminnelse(
-                        paaminnelseUuid = paaminnelseUuid,
+                    producer.publishOpprettOppfolgingsplanPaaminnelse(
+                        bestillingId = bestillingId,
                         sykmeldtFnr = sykmeldtFnr,
                         orgnummer = orgnummer,
                         eventId = eventId,
                         narmestelederId = narmestelederId,
                     )
                 }
+
+                OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML shouldContain
+                    "Du har en ansatt som er sykmeldt hvor fristen for å lage en oppfølgingsplan nærmer seg."
+                expectedDispatch.value shouldContain "\"emailBodyFormat\":\"HTML\""
+                expectedDispatch.value shouldContain "Har du spørsmål? Ring oss på 55 55 33 36."
+            }
+
+            it("uses the approved email content and evaluation email presentation") {
+                val approvedContent = listOf(
+                    "Hei,",
+                    "Du har en ansatt som er sykmeldt hvor fristen for å lage en oppfølgingsplan nærmer seg.",
+                    "Du trenger ikke ha alle svarene klare. Avtal en prat hvor dere sammen finner ut om noen arbeidsoppgaver er mulig å gjøre i sykmeldingsperioden.",
+                    "Jo tidligere dere gjør dette desto lettere er det for mange å komme tilbake i jobb og at langvarig fravær forebygges.",
+                    "Slik gjør du det:",
+                    "Logg inn på Min side – arbeidsgiver.",
+                    "🔔 Klikk på bjella. Der finner du meldingen om å lage oppfølgingsplan (evt. meld fra at det ikke er behov nå).",
+                    "Har du spørsmål? Ring oss på 55 55 33 36.",
+                    "Du kan ikke svare på denne meldingen.",
+                    "Vennlig hilsen Nav",
+                )
+                val sharedVisualMarkers = listOf(
+                    """<table role="presentation" width="100%"""",
+                    "max-width: 640px",
+                    "border-radius: 8px",
+                    "font-family: Arial, sans-serif",
+                    "background-color: #004367",
+                    "&#9993;&#65039;",
+                    "padding: 32px; font-size: 18px; line-height: 1.5",
+                    "border-top: 1px solid #d8d8d8",
+                )
+
+                approvedContent.forEach {
+                    OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML shouldContain it
+                }
+                sharedVisualMarkers.forEach {
+                    EVALUERINGS_PAAMINNELSE_EMAIL_HTML shouldContain it
+                    OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML shouldContain it
+                }
+                OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML shouldContain "<ol "
+                OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML shouldContain "<li "
             }
 
             it("sends a Dine Sykmeldte notification") {
                 val expectedDispatch = Budstikka.dineSykmeldteVarselCreate(
                     eventId = EventId(eventId),
-                    reference = paaminnelseUuid.toString(),
+                    reference = bestillingId.toString(),
                     sykmeldt = PersonIdentifier(sykmeldtFnr),
                     orgnummer = Orgnummer(orgnummer),
                     oppgavetype = Oppgavetype.OPPFOLGINGSPLAN_PAAMINNELSE,
-                    text = PAAMINNELSE_BUDSTIKKA_TEXT,
-                    link = link,
-                    sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
+                    text = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_BUDSTIKKA_TEXT,
+                    sendingWindow = SendingWindow.ONGOING,
                 )
 
                 assertDispatchIsSent(expectedDispatch) {
-                    producer.publishPaaminnelseToDineSykmeldte(
-                        paaminnelseUuid = paaminnelseUuid,
+                    producer.publishOpprettOppfolgingsplanPaaminnelseToDineSykmeldte(
+                        bestillingId = bestillingId,
                         sykmeldtFnr = sykmeldtFnr,
                         orgnummer = orgnummer,
                         eventId = eventId,
-                        narmestelederId = narmestelederId,
                     )
                 }
             }

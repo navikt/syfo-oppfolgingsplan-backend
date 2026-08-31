@@ -6,48 +6,50 @@ import no.nav.syfo.application.outbox.db.enqueueOutboxMessage
 import no.nav.syfo.application.outbox.domain.NewOutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.dinesykmeldte.client.Sykmeldt
-import no.nav.syfo.oppfolgingsplan.db.domain.PersistedPaaminnelse
+import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOpprettOppfolgingsplanPaaminnelse
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanOutboxMessageType
 import no.nav.syfo.util.configuredJacksonMapper
 import java.sql.ResultSet
 import java.time.Instant
 import java.util.UUID
 
-data class PaaminnelseOutboxPayload(
+data class OpprettOppfolgingsplanPaaminnelseOutboxPayload(
     val sykmeldingsperiodeId: UUID,
+    val bestillingId: UUID? = null,
 )
 
-fun DatabaseInterface.upsertPaaminnelse(
+fun DatabaseInterface.upsertOpprettOppfolgingsplanPaaminnelse(
     sykmeldt: Sykmeldt,
     bestilt: Boolean,
     sykmeldingsperiodeId: UUID,
-): PersistedPaaminnelse = connection.use { connection ->
-    upsertPaaminnelse(connection, sykmeldt, bestilt, sykmeldingsperiodeId)
+): PersistedOpprettOppfolgingsplanPaaminnelse = connection.use { connection ->
+    upsertOpprettOppfolgingsplanPaaminnelse(connection, sykmeldt, bestilt, sykmeldingsperiodeId)
         .also { connection.commit() }
 }
 
-fun DatabaseInterface.upsertPaaminnelseAndEnqueue(
+fun DatabaseInterface.upsertOpprettOppfolgingsplanPaaminnelseAndEnqueue(
     sykmeldt: Sykmeldt,
     sykmeldingsperiodeId: UUID,
     availableAt: Instant,
 ): Unit = connection.use { connection ->
-    val paaminnelse = activatePaaminnelse(
+    val opprettOppfolgingsplanPaaminnelse = activateOpprettOppfolgingsplanPaaminnelse(
         connection = connection,
         sykmeldt = sykmeldt,
         sykmeldingsperiodeId = sykmeldingsperiodeId,
     )
-    if (paaminnelse == null) {
+    if (opprettOppfolgingsplanPaaminnelse == null) {
         connection.commit()
         return
     }
     connection.enqueueOutboxMessage(
         NewOutboxMessage(
             messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_ARBEIDSGIVER,
-            dedupKey = "${paaminnelse.uuid}:$sykmeldingsperiodeId:${UUID.randomUUID()}",
-            externalRef = paaminnelse.uuid.toString(),
+            dedupKey = "${opprettOppfolgingsplanPaaminnelse.uuid}:$sykmeldingsperiodeId:${UUID.randomUUID()}",
+            externalRef = opprettOppfolgingsplanPaaminnelse.uuid.toString(),
             payload = configuredJacksonMapper.writeValueAsString(
-                PaaminnelseOutboxPayload(
+                OpprettOppfolgingsplanPaaminnelseOutboxPayload(
                     sykmeldingsperiodeId = sykmeldingsperiodeId,
+                    bestillingId = opprettOppfolgingsplanPaaminnelse.bestillingId,
                 ),
             ),
             availableAt = availableAt,
@@ -56,11 +58,12 @@ fun DatabaseInterface.upsertPaaminnelseAndEnqueue(
     connection.enqueueOutboxMessage(
         NewOutboxMessage(
             messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_DINE_SYKMELDTE,
-            dedupKey = "${paaminnelse.uuid}:$sykmeldingsperiodeId:${UUID.randomUUID()}",
-            externalRef = paaminnelse.uuid.toString(),
+            dedupKey = "${opprettOppfolgingsplanPaaminnelse.uuid}:$sykmeldingsperiodeId:${UUID.randomUUID()}",
+            externalRef = opprettOppfolgingsplanPaaminnelse.uuid.toString(),
             payload = configuredJacksonMapper.writeValueAsString(
-                PaaminnelseOutboxPayload(
+                OpprettOppfolgingsplanPaaminnelseOutboxPayload(
                     sykmeldingsperiodeId = sykmeldingsperiodeId,
+                    bestillingId = opprettOppfolgingsplanPaaminnelse.bestillingId,
                 ),
             ),
             availableAt = availableAt,
@@ -69,12 +72,12 @@ fun DatabaseInterface.upsertPaaminnelseAndEnqueue(
     connection.commit()
 }
 
-fun DatabaseInterface.deactivatePaaminnelseAndCancelOutbox(
+fun DatabaseInterface.deactivateOpprettOppfolgingsplanPaaminnelseAndCancelOutbox(
     sykmeldt: Sykmeldt,
     sykmeldingsperiodeId: UUID,
     completedAt: Instant,
 ): Unit = connection.use { connection ->
-    val paaminnelse = upsertPaaminnelse(
+    val opprettOppfolgingsplanPaaminnelse = upsertOpprettOppfolgingsplanPaaminnelse(
         connection = connection,
         sykmeldt = sykmeldt,
         bestilt = false,
@@ -82,24 +85,24 @@ fun DatabaseInterface.deactivatePaaminnelseAndCancelOutbox(
     )
     connection.cancelReadyOutboxMessages(
         messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_ARBEIDSGIVER,
-        externalRef = paaminnelse.uuid.toString(),
+        externalRef = opprettOppfolgingsplanPaaminnelse.uuid.toString(),
         reason = OutboxCancellationReason.NO_LONGER_REQUESTED,
         completedAt = completedAt,
     )
     connection.cancelReadyOutboxMessages(
         messageType = OppfolgingsplanOutboxMessageType.PAAMINNELSE_DINE_SYKMELDTE,
-        externalRef = paaminnelse.uuid.toString(),
+        externalRef = opprettOppfolgingsplanPaaminnelse.uuid.toString(),
         reason = OutboxCancellationReason.NO_LONGER_REQUESTED,
         completedAt = completedAt,
     )
     connection.commit()
 }
 
-private fun activatePaaminnelse(
+private fun activateOpprettOppfolgingsplanPaaminnelse(
     connection: java.sql.Connection,
     sykmeldt: Sykmeldt,
     sykmeldingsperiodeId: UUID,
-): PersistedPaaminnelse? {
+): PersistedOpprettOppfolgingsplanPaaminnelse? {
     val statement =
         """
         INSERT INTO paaminnelse (
@@ -113,6 +116,7 @@ private fun activatePaaminnelse(
         ON CONFLICT (sykmeldt_fnr, organisasjonsnummer) DO UPDATE SET
             bestilt = TRUE,
             sykmeldingsperiode_id = EXCLUDED.sykmeldingsperiode_id,
+            bestilling_id = gen_random_uuid(),
             updated_at = NOW()
         WHERE NOT paaminnelse.bestilt
            OR paaminnelse.sykmeldingsperiode_id <> EXCLUDED.sykmeldingsperiode_id
@@ -125,16 +129,16 @@ private fun activatePaaminnelse(
         preparedStatement.setObject(3, sykmeldingsperiodeId)
 
         val resultSet = preparedStatement.executeQuery()
-        return if (resultSet.next()) resultSet.toPersistedPaaminnelse() else null
+        return if (resultSet.next()) resultSet.toPersistedOpprettOppfolgingsplanPaaminnelse() else null
     }
 }
 
-private fun upsertPaaminnelse(
+private fun upsertOpprettOppfolgingsplanPaaminnelse(
     connection: java.sql.Connection,
     sykmeldt: Sykmeldt,
     bestilt: Boolean,
     sykmeldingsperiodeId: UUID,
-): PersistedPaaminnelse {
+): PersistedOpprettOppfolgingsplanPaaminnelse {
     val statement =
         """
         INSERT INTO paaminnelse (
@@ -160,15 +164,15 @@ private fun upsertPaaminnelse(
         preparedStatement.setObject(++idx, sykmeldingsperiodeId)
 
         val resultSet = preparedStatement.executeQuery()
-        check(resultSet.next()) { "upsertPaaminnelse returned no row" }
-        return resultSet.toPersistedPaaminnelse()
+        check(resultSet.next()) { "upsertOpprettOppfolgingsplanPaaminnelse returned no row" }
+        return resultSet.toPersistedOpprettOppfolgingsplanPaaminnelse()
     }
 }
 
-fun DatabaseInterface.findPaaminnelseBy(
+fun DatabaseInterface.findOpprettOppfolgingsplanPaaminnelseBy(
     sykmeldtFnr: String,
     organisasjonsnummer: String,
-): PersistedPaaminnelse? {
+): PersistedOpprettOppfolgingsplanPaaminnelse? {
     val statement =
         """
         SELECT *
@@ -185,7 +189,7 @@ fun DatabaseInterface.findPaaminnelseBy(
             val resultSet = preparedStatement.executeQuery()
 
             return if (resultSet.next()) {
-                resultSet.toPersistedPaaminnelse()
+                resultSet.toPersistedOpprettOppfolgingsplanPaaminnelse()
             } else {
                 null
             }
@@ -193,7 +197,9 @@ fun DatabaseInterface.findPaaminnelseBy(
     }
 }
 
-fun DatabaseInterface.findPaaminnelseBy(uuid: UUID): PersistedPaaminnelse? {
+fun DatabaseInterface.findOpprettOppfolgingsplanPaaminnelseBy(
+    uuid: UUID,
+): PersistedOpprettOppfolgingsplanPaaminnelse? {
     val statement = "SELECT * FROM paaminnelse WHERE uuid = ?"
 
     connection.use { connection ->
@@ -202,7 +208,7 @@ fun DatabaseInterface.findPaaminnelseBy(uuid: UUID): PersistedPaaminnelse? {
             val resultSet = preparedStatement.executeQuery()
 
             return if (resultSet.next()) {
-                resultSet.toPersistedPaaminnelse()
+                resultSet.toPersistedOpprettOppfolgingsplanPaaminnelse()
             } else {
                 null
             }
@@ -210,11 +216,12 @@ fun DatabaseInterface.findPaaminnelseBy(uuid: UUID): PersistedPaaminnelse? {
     }
 }
 
-private fun ResultSet.toPersistedPaaminnelse(): PersistedPaaminnelse = PersistedPaaminnelse(
+private fun ResultSet.toPersistedOpprettOppfolgingsplanPaaminnelse(): PersistedOpprettOppfolgingsplanPaaminnelse = PersistedOpprettOppfolgingsplanPaaminnelse(
     uuid = getObject("uuid", UUID::class.java),
     organisasjonsnummer = getString("organisasjonsnummer"),
     sykmeldtFnr = getString("sykmeldt_fnr"),
     bestilt = getBoolean("bestilt"),
+    bestillingId = getObject("bestilling_id", UUID::class.java),
     sykmeldingsperiodeId = getObject("sykmeldingsperiode_id", UUID::class.java),
     createdAt = getTimestamp("created_at").toInstant(),
     updatedAt = getTimestamp("updated_at").toInstant(),

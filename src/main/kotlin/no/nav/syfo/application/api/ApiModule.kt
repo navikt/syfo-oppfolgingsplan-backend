@@ -12,10 +12,10 @@ import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dokarkiv.DokarkivService
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
-import no.nav.syfo.oppfolgingsplan.api.v1.narmesteleder.registerPaaminnelseApi
+import no.nav.syfo.oppfolgingsplan.api.v1.narmesteleder.registerOpprettOppfolgingsplanPaaminnelseApi
 import no.nav.syfo.oppfolgingsplan.api.v1.registerApiV1
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
-import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
+import no.nav.syfo.oppfolgingsplan.service.OpprettOppfolgingsplanPaaminnelseService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.plugins.installCallId
@@ -31,7 +31,7 @@ fun Application.configureRouting() {
     val dineSykmeldteService by inject<DineSykmeldteService>()
     val oppfolgingsplanService by inject<OppfolgingsplanService>()
     val unntaksvurderingService by inject<UnntaksvurderingService>()
-    val paaminnelseService by inject<PaaminnelseService>()
+    val opprettOppfolgingsplanPaaminnelseService by inject<OpprettOppfolgingsplanPaaminnelseService>()
     val pdfGenService by inject<PdfGenService>()
     val isDialogmeldingService by inject<IsDialogmeldingService>()
     val isTilgangskontrollService by inject<IsTilgangskontrollService>()
@@ -62,10 +62,10 @@ fun Application.configureRouting() {
             dokarkivService = dokarkivService,
             environment = environment,
         )
-        registerPaaminnelseApi(
+        registerOpprettOppfolgingsplanPaaminnelseApi(
             dineSykmeldteService = dineSykmeldteService,
             texasHttpClient = texasHttpClient,
-            paaminnelseService = paaminnelseService,
+            opprettOppfolgingsplanPaaminnelseService = opprettOppfolgingsplanPaaminnelseService,
             environment = environment,
         )
     }
