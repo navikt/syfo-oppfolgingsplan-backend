@@ -30,7 +30,7 @@ spec:
             namespace: team-esyfo
             severity: warning
         - alert: OppfolgingsplanOutboxOldestDueTooOld
-          expr: syfo_oppfolgingsplan_backend_outbox_oldest_due_age_seconds{namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} > 900
+          expr: max by (app, message_type) (syfo_oppfolgingsplan_backend_outbox_oldest_due_age_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} and on (pod, message_type) (time() - syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} < 180)) > 900
           for: 10m
           annotations:
             consequence: Oppfølgingsplanvarsler til Budstikka har vært klare for levering i mer enn 15 minutter.
@@ -40,7 +40,7 @@ spec:
             namespace: team-esyfo
             severity: warning
         - alert: OppfolgingsplanOutboxExpiredClaims
-          expr: syfo_oppfolgingsplan_backend_outbox_expired_claims{namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} > 0
+          expr: max by (app, message_type) (syfo_oppfolgingsplan_backend_outbox_expired_claims{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} and on (pod, message_type) (time() - syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} < 180)) > 0
           for: 10m
           annotations:
             consequence: Outbox-claims har forblitt utløpt og kan gi forsinkelse eller duplikate leveringsforsøk.
@@ -50,7 +50,7 @@ spec:
             namespace: team-esyfo
             severity: warning
         - alert: OppfolgingsplanOutboxPersistentFailures
-          expr: syfo_oppfolgingsplan_backend_outbox_retrying{namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} > 0
+          expr: max by (app, message_type) (syfo_oppfolgingsplan_backend_outbox_retrying{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} and on (pod, message_type) (time() - syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} < 180)) > 0
           for: 15m
           annotations:
             consequence: Minst ett oppfølgingsplanvarsel har hatt en uløst teknisk feil i minst 15 minutter, også om meldingen for øyeblikket venter i backoff.
