@@ -29,7 +29,7 @@ spec:
           labels:
             namespace: team-esyfo
             severity: warning
-        - alert: OutboxQueueSnapshotStale
+        - alert: OppfolgingsplanOutboxQueueSnapshotStale
           expr: >-
             (time() - max by (app, message_type) (syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"}) > 300)
             or absent(syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_CREATED"})

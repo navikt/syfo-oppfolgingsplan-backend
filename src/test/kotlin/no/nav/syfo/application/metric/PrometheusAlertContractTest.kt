@@ -110,7 +110,7 @@ private fun field(
 
 private const val DESERIALIZATION_ALERT = "SykmeldingConsumerDeserializationErrors"
 private const val RUNTIME_ALERT = "SykmeldingConsumerRuntimeErrors"
-private const val OUTBOX_SNAPSHOT_STALE_ALERT = "OutboxQueueSnapshotStale"
+private const val OUTBOX_SNAPSHOT_STALE_ALERT = "OppfolgingsplanOutboxQueueSnapshotStale"
 private const val OUTBOX_OLDEST_DUE_ALERT = "OppfolgingsplanOutboxOldestDueTooOld"
 private const val OUTBOX_EXPIRED_CLAIMS_ALERT = "OppfolgingsplanOutboxExpiredClaims"
 private const val OUTBOX_PERSISTENT_FAILURES_ALERT = "OppfolgingsplanOutboxPersistentFailures"
