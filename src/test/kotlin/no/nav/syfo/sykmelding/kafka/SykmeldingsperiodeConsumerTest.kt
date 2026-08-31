@@ -5,6 +5,10 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.string.shouldContain
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
@@ -29,14 +33,192 @@ class SykmeldingsperiodeConsumerTest :
     DescribeSpec({
         val repository = mockk<SykmeldingsperiodeRepository>()
         val fixedClock = Clock.fixed(Instant.parse("2025-06-01T00:00:00Z"), ZoneId.of("Europe/Oslo"))
-        val consumer = SykmeldingsperiodeConsumer(
-            sykmeldingsperiodeRepository = repository,
-            kafkaEnv = KafkaEnv.createForLocal(),
-            clock = fixedClock,
-        )
+        lateinit var metricsRegistry: SimpleMeterRegistry
+        lateinit var consumer: SykmeldingsperiodeConsumer
 
         beforeTest {
             clearAllMocks(currentThreadOnly = true)
+            metricsRegistry = SimpleMeterRegistry()
+            consumer = SykmeldingsperiodeConsumer(
+                sykmeldingsperiodeRepository = repository,
+                kafkaEnv = KafkaEnv.createForLocal(),
+                clock = fixedClock,
+                recordMetrics = SykmeldingsperiodeRecordMetrics(metricsRegistry),
+            )
+        }
+
+        fun terminallyRejectedCount(reason: String): Double = metricsRegistry
+            .get(SYKMELDING_TERMINALLY_REJECTED_RECORDS_METRIC)
+            .tag("reason", reason)
+            .counter()
+            .count()
+
+        fun retryBatchAttemptCount(): Double = metricsRegistry
+            .get(SYKMELDING_DESERIALIZATION_RETRY_BATCH_ATTEMPTS_METRIC)
+            .counter()
+            .count()
+
+        describe("processBatch") {
+            it("records deserialization rejection only after a mixed batch is committed") {
+                every { repository.storeSykmeldingsperioder(any()) } returns 1
+                var commits = 0
+
+                consumer.processBatch(
+                    records = listOf(
+                        ConsumerRecord(
+                            SYKMELDINGSPERIODE_TOPIC,
+                            0,
+                            10L,
+                            "invalid",
+                            "{invalid-json}",
+                        ),
+                        ConsumerRecord(
+                            SYKMELDINGSPERIODE_TOPIC,
+                            0,
+                            11L,
+                            "valid",
+                            kafkaMessage(
+                                perioder = listOf(
+                                    SykmeldingsperiodeAGDTO(
+                                        fom = LocalDate.of(2025, 1, 1),
+                                        tom = LocalDate.of(2025, 1, 31),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    ),
+                    commitOffsets = { commits++ },
+                )
+
+                commits shouldBe 1
+                terminallyRejectedCount("deserialization") shouldBe 1.0
+                terminallyRejectedCount("invalid_tombstone") shouldBe 0.0
+                retryBatchAttemptCount() shouldBe 0.0
+            }
+
+            it("records a retry attempt and does not commit when every record fails deserialization") {
+                var commits = 0
+
+                shouldThrow<IllegalStateException> {
+                    consumer.processBatch(
+                        records = listOf(
+                            ConsumerRecord(
+                                SYKMELDINGSPERIODE_TOPIC,
+                                0,
+                                20L,
+                                "invalid-1",
+                                "{invalid-json}",
+                            ),
+                            ConsumerRecord(
+                                SYKMELDINGSPERIODE_TOPIC,
+                                0,
+                                21L,
+                                "invalid-2",
+                                "{also-invalid-json}",
+                            ),
+                        ),
+                        commitOffsets = { commits++ },
+                    )
+                }
+
+                commits shouldBe 0
+                terminallyRejectedCount("deserialization") shouldBe 0.0
+                retryBatchAttemptCount() shouldBe 1.0
+            }
+
+            it("does not record a terminal rejection when offset commit fails") {
+                every { repository.storeSykmeldingsperioder(any()) } returns 1
+
+                shouldThrow<IllegalStateException> {
+                    consumer.processBatch(
+                        records = listOf(
+                            ConsumerRecord(
+                                SYKMELDINGSPERIODE_TOPIC,
+                                0,
+                                30L,
+                                "invalid",
+                                "{invalid-json}",
+                            ),
+                            ConsumerRecord(
+                                SYKMELDINGSPERIODE_TOPIC,
+                                0,
+                                31L,
+                                "valid",
+                                kafkaMessage(
+                                    perioder = listOf(
+                                        SykmeldingsperiodeAGDTO(
+                                            fom = LocalDate.of(2025, 2, 1),
+                                            tom = LocalDate.of(2025, 2, 28),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ),
+                        commitOffsets = { error("commit failed") },
+                    )
+                }
+
+                terminallyRejectedCount("deserialization") shouldBe 0.0
+                retryBatchAttemptCount() shouldBe 0.0
+            }
+
+            it("records an invalid tombstone only after its offset is committed") {
+                var commits = 0
+
+                consumer.processBatch(
+                    records = listOf(
+                        ConsumerRecord(
+                            SYKMELDINGSPERIODE_TOPIC,
+                            0,
+                            40L,
+                            null,
+                            null,
+                        ),
+                    ),
+                    commitOffsets = { commits++ },
+                )
+
+                commits shouldBe 1
+                terminallyRejectedCount("deserialization") shouldBe 0.0
+                terminallyRejectedCount("invalid_tombstone") shouldBe 1.0
+            }
+
+            it("exposes only bounded rejection reasons and no record-derived labels") {
+                metricsRegistry.find(SYKMELDING_TERMINALLY_REJECTED_RECORDS_METRIC)
+                    .counters()
+                    .map { counter -> counter.id.tags.associate { it.key to it.value } }
+                    .toSet() shouldBe setOf(
+                    mapOf("reason" to "deserialization"),
+                    mapOf("reason" to "invalid_tombstone"),
+                )
+                metricsRegistry.get(SYKMELDING_DESERIALIZATION_RETRY_BATCH_ATTEMPTS_METRIC)
+                    .counter()
+                    .id
+                    .tags
+                    .isEmpty() shouldBe true
+            }
+
+            it("exports stable Prometheus counter names and reason labels") {
+                val prometheusRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+                val recordMetrics = SykmeldingsperiodeRecordMetrics(prometheusRegistry)
+                recordMetrics.recordTerminallyRejected(
+                    SykmeldingsperiodeRejectionReason.DESERIALIZATION,
+                    1,
+                )
+                recordMetrics.recordTerminallyRejected(
+                    SykmeldingsperiodeRejectionReason.INVALID_TOMBSTONE,
+                    1,
+                )
+                recordMetrics.recordDeserializationRetryBatchAttempt()
+
+                val scrape = prometheusRegistry.scrape()
+                scrape shouldContain
+                    """syfo_oppfolgingsplan_backend_sykmelding_terminally_rejected_records_total{reason="deserialization"} 1.0"""
+                scrape shouldContain
+                    """syfo_oppfolgingsplan_backend_sykmelding_terminally_rejected_records_total{reason="invalid_tombstone"} 1.0"""
+                scrape shouldContain
+                    "syfo_oppfolgingsplan_backend_sykmelding_deserialization_retry_batch_attempts_total 1.0"
+            }
         }
 
         describe("processRecord") {

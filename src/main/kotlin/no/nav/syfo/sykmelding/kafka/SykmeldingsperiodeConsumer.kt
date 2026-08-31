@@ -30,6 +30,7 @@ class SykmeldingsperiodeConsumer(
     private val sykmeldingsperiodeRepository: SykmeldingsperiodeRepository,
     private val kafkaEnv: KafkaEnv,
     private val clock: Clock = Clock.system(ZONE_OSLO),
+    private val recordMetrics: SykmeldingsperiodeRecordMetrics = SykmeldingsperiodeRecordMetrics(),
 ) {
     private val log = logger()
 
@@ -58,28 +59,7 @@ class SykmeldingsperiodeConsumer(
 
                 while (currentCoroutineContext().isActive && running) {
                     val records = kafkaConsumer.poll(POLL_DURATION)
-                    var deserializationErrors = 0
-
-                    records.forEach { record ->
-                        try {
-                            processRecord(record)
-                        } catch (ex: JsonProcessingException) {
-                            deserializationErrors++
-                            COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
-                            log.warn(
-                                "Failed to deserialize sykmelding at partition=${record.partition()}, offset=${record.offset()}",
-                                ex,
-                            )
-                        }
-                    }
-
-                    if (deserializationErrors > 0 && deserializationErrors >= records.count()) {
-                        error("All ${records.count()} records failed deserialization — likely a systematic DTO mismatch")
-                    }
-
-                    if (!records.isEmpty) {
-                        kafkaConsumer.commitSync()
-                    }
+                    processBatch(records) { kafkaConsumer.commitSync() }
                 }
             } catch (ex: CancellationException) {
                 throw ex
@@ -105,13 +85,54 @@ class SykmeldingsperiodeConsumer(
         consumer?.wakeup()
     }
 
+    internal fun processBatch(
+        records: Iterable<ConsumerRecord<String, String>>,
+        commitOffsets: () -> Unit,
+    ) {
+        var recordCount = 0
+        var deserializationErrors = 0
+        var invalidTombstones = 0
+
+        records.forEach { record ->
+            recordCount++
+            try {
+                if (processRecord(record) == SykmeldingsperiodeRecordOutcome.INVALID_TOMBSTONE) {
+                    invalidTombstones++
+                }
+            } catch (ex: JsonProcessingException) {
+                deserializationErrors++
+                COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
+                log.warn(
+                    "Failed to deserialize sykmelding at partition=${record.partition()}, offset=${record.offset()}",
+                    ex,
+                )
+            }
+        }
+
+        if (deserializationErrors > 0 && deserializationErrors >= recordCount) {
+            recordMetrics.recordDeserializationRetryBatchAttempt()
+            error("All $recordCount records failed deserialization — likely a systematic DTO mismatch")
+        }
+
+        if (recordCount > 0) {
+            commitOffsets()
+            recordMetrics.recordTerminallyRejected(
+                reason = SykmeldingsperiodeRejectionReason.DESERIALIZATION,
+                count = deserializationErrors,
+            )
+            recordMetrics.recordTerminallyRejected(
+                reason = SykmeldingsperiodeRejectionReason.INVALID_TOMBSTONE,
+                count = invalidTombstones,
+            )
+        }
+    }
+
     internal fun processRecord(
         record: ConsumerRecord<String, String>,
-    ) {
+    ): SykmeldingsperiodeRecordOutcome {
         val recordValue = record.value()
         if (recordValue == null) {
-            processTombstone(record)
-            return
+            return processTombstone(record)
         }
 
         val kafkaMessage = configuredJacksonMapper.readValue<SendtSykmeldingKafkaMessage>(recordValue)
@@ -122,7 +143,7 @@ class SykmeldingsperiodeConsumer(
             log.warn(
                 "Skipping sykmelding Kafka message without arbeidsgiver for sykmeldingId=$sykmeldingId",
             )
-            return
+            return SykmeldingsperiodeRecordOutcome.PROCESSED
         }
 
         val cutoffDate = LocalDate.now(clock).minusYears(2)
@@ -140,29 +161,31 @@ class SykmeldingsperiodeConsumer(
 
         if (sykmeldingsperioderToStore.isEmpty()) {
             log.debug("Skipping historical sykmeldingId=$sykmeldingId because all periods are older than retention")
-            return
+            return SykmeldingsperiodeRecordOutcome.PROCESSED
         }
 
         val insertedRows = sykmeldingsperiodeRepository.storeSykmeldingsperioder(sykmeldingsperioderToStore)
         if (insertedRows > 0) {
             COUNT_SYKMELDING_CONSUMED.increment(insertedRows.toDouble())
         }
+        return SykmeldingsperiodeRecordOutcome.PROCESSED
     }
 
     internal fun processTombstone(
         record: ConsumerRecord<String, String>,
-    ) {
+    ): SykmeldingsperiodeRecordOutcome {
         val sykmeldingId = record.key()
         if (sykmeldingId.isNullOrBlank()) {
             COUNT_SYKMELDING_DESERIALIZATION_ERROR.increment()
             log.warn(
                 "Skipping sykmelding tombstone without key at topic=${record.topic()}, partition=${record.partition()}, offset=${record.offset()}",
             )
-            return
+            return SykmeldingsperiodeRecordOutcome.INVALID_TOMBSTONE
         }
 
         sykmeldingsperiodeRepository.invalidateSykmelding(sykmeldingId)
         COUNT_SYKMELDING_TOMBSTONE.increment()
+        return SykmeldingsperiodeRecordOutcome.PROCESSED
     }
 
     private companion object {
@@ -176,4 +199,9 @@ class SykmeldingsperiodeConsumer(
             return delaySeconds.seconds.coerceAtMost(MAX_RETRY_DELAY)
         }
     }
+}
+
+internal enum class SykmeldingsperiodeRecordOutcome {
+    PROCESSED,
+    INVALID_TOMBSTONE,
 }
