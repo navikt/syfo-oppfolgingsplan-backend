@@ -29,6 +29,20 @@ spec:
           labels:
             namespace: team-esyfo
             severity: warning
+        - alert: OutboxQueueSnapshotStale
+          expr: >-
+            (time() - max by (app, message_type) (syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"}) > 300)
+            or absent(syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_CREATED"})
+            or absent(syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER"})
+            or absent(syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type="OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_DINE_SYKMELDTE"})
+          for: 10m
+          annotations:
+            consequence: Køtilstanden for minst én outbox-meldingstype er UKJENT fordi ingen pod har publisert et vellykket snapshot de siste fem minuttene, eller serien mangler.
+            action: "Sjekk outbox-task, databaseforbindelse, podlogger og metrics-target. Ikke tolk fravær av de andre outbox-alertene som frisk kø før snapshotet er tilbake."
+            summary: Oppfølgingsplan-outboxens køsnapshot er utdatert eller mangler.
+          labels:
+            namespace: team-esyfo
+            severity: warning
         - alert: OppfolgingsplanOutboxOldestDueTooOld
           expr: max by (app, message_type) (syfo_oppfolgingsplan_backend_outbox_oldest_due_age_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} and on (pod, message_type) (time() - syfo_oppfolgingsplan_backend_outbox_queue_snapshot_last_success_timestamp_seconds{app="syfo-oppfolgingsplan-backend",namespace="team-esyfo",message_type=~"OPPFOLGINGSPLAN_.*"} < 180)) > 900
           for: 10m
