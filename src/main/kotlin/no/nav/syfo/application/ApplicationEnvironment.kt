@@ -25,6 +25,8 @@ interface Environment {
     val aaregScope: String
     val pdlBaseUrl: String
     val pdlScope: String
+    val narmestelederBaseUrl: String
+    val narmestelederScope: String
     val kafka: KafkaEnv
     val electorPath: String
     val syfomodiapersonClientId: String
@@ -72,6 +74,8 @@ data class NaisEnvironment(
     override val aaregScope: String = getEnvVar("AAREG_SCOPE"),
     override val pdlBaseUrl: String = getEnvVar("PDL_BASE_URL"),
     override val pdlScope: String = getEnvVar("PDL_SCOPE"),
+    override val narmestelederBaseUrl: String = getEnvVar("NARMESTELEDER_URL"),
+    override val narmestelederScope: String = getEnvVar("NARMESTELEDER_SCOPE"),
     override val kafka: KafkaEnv = KafkaEnv.createFromEnvVars(),
     override val electorPath: String = getEnvVar("ELECTOR_PATH"),
     override val syfomodiapersonClientId: String = getEnvVar("SYFOMODIAPERSON_CLIENT_ID"),
@@ -126,6 +130,8 @@ data class LocalEnvironment(
     override val pdfGenUrl: String = "http://localhost:9091",
     override val pdlBaseUrl: String = "https://pdl-api.dev.intern.nav.no",
     override val pdlScope: String = "pdl",
+    override val narmestelederBaseUrl: String = "http://localhost:8081",
+    override val narmestelederScope: String = "api://dev-gcp.team-esyfo.esyfo-narmesteleder/.default",
     override val kafka: KafkaEnv = KafkaEnv.createForLocal(),
     override val electorPath: String = "/elector",
     override val syfomodiapersonClientId: String = "dev-gcp:teamsykefravr:syfomodiaperson",

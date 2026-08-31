@@ -79,6 +79,7 @@ spec:
         - application: syfo-dokumentporten
         - application: syfooppdfgen
         - application: dinesykmeldte-backend
+        - application: esyfo-narmesteleder
         - application: isdialogmelding
           namespace: teamsykefravr
         - application: istilgangskontroll
@@ -127,5 +128,9 @@ spec:
       value: dev-gcp:team-esyfo:syfo-oppfolgingsplan-frontend
     - name: MIN_SIDE_SYKMELDT_OPPFOLGINGSPLAN_URL
       value: https://www.ekstern.dev.nav.no/syk/oppfolgingsplan/sykmeldt
+    - name: NARMESTELEDER_URL
+      value: http://esyfo-narmesteleder.team-esyfo
+    - name: NARMESTELEDER_SCOPE
+      value: api://dev-gcp.team-esyfo.esyfo-narmesteleder/.default
     - name: DINE_SYKMELDTE_OVERSIKT_URL
       value: https://www.ekstern.dev.nav.no/arbeidsgiver/sykmeldte

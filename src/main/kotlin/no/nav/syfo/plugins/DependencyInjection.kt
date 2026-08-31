@@ -40,6 +40,9 @@ import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
 import no.nav.syfo.istilgangskontroll.IsTilgangskontrollService
 import no.nav.syfo.istilgangskontroll.client.FakeIsTilgangskontrollClient
 import no.nav.syfo.istilgangskontroll.client.IsTilgangskontrollClient
+import no.nav.syfo.narmesteleder.client.FakeNarmestelederClient
+import no.nav.syfo.narmesteleder.client.INarmestelederClient
+import no.nav.syfo.narmesteleder.client.NarmestelederClient
 import no.nav.syfo.oppfolgingsplan.db.EvalueringspaaminnelseSourceRepository
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.outbox.DineSykmeldteEvalueringspaaminnelseHandler
@@ -181,6 +184,18 @@ private fun clientsModule() = module {
             IsTilgangskontrollClient(
                 get(),
                 env().isTilgangskontrollBaseUrl,
+            )
+        }
+    }
+    single<INarmestelederClient> {
+        if (isLocalEnv()) {
+            FakeNarmestelederClient()
+        } else {
+            NarmestelederClient(
+                httpClient = get(),
+                narmestelederBaseUrl = env().narmestelederBaseUrl,
+                texasHttpClient = get(),
+                scope = env().narmestelederScope,
             )
         }
     }
