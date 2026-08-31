@@ -52,3 +52,9 @@ delivery-tabeller.
 Worker eksponerer lavkardinale målinger for antall leveringsklare rader, alder på eldste rad,
 utløpte claims og uløste tekniske feil. Dev og prod varsler på vedvarende køalder, utløpte leases og
 gjentatte feil. Payload, fødselsnummer og varseltekst logges eller tagges ikke.
+
+`outbox_queue_snapshot_last_success_timestamp_seconds` oppdateres sist i hver vellykkede
+DB-observasjon, per avgrenset meldingstype. Poddene observerer den samme globale databasekøen på
+ulike tidspunkter. Dashboard skal derfor bruke samme `message_type` i begge selectors, filtrere hver
+køserie med `and on(pod, message_type) (time() - freshness < terskel)` og først deretter ta `max`;
+verdiene skal aldri summeres. Manglende ferske snapshots betyr ukjent køtilstand, ikke en tom kø.

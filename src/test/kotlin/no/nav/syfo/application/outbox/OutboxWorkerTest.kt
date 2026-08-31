@@ -51,6 +51,11 @@ class OutboxWorkerTest :
                     .gauge()
                     .shouldNotBeNull()
                     .value() shouldBe 1.0
+                METRICS_REGISTRY.find("${METRICS_NS}_outbox_queue_snapshot_last_success_timestamp_seconds")
+                    .tag("message_type", TEST_STAGED_MESSAGE.value)
+                    .gauge()
+                    .shouldNotBeNull()
+                    .value() shouldBe now.epochSecond.toDouble()
             }
 
             it("marks an acknowledged message sent") {
