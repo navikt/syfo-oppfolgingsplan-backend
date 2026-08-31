@@ -15,7 +15,7 @@ import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 class OppfolgingsplanSchemaTest :
     DescribeSpec({
         describe("oppfolgingsplan schema") {
-            it("keeps only the deployment 1 legacy column outside the Exposed mappings") {
+            it("keeps the Exposed mappings aligned after removing the legacy outbox column") {
                 val drift = transaction(TestDB.database.exposedDatabase) {
                     MigrationUtils.statementsRequiredForDatabaseMigration(
                         OppfolgingsplanTable,
@@ -25,9 +25,7 @@ class OppfolgingsplanSchemaTest :
                 }
 
                 withClue("Oppfolgingsplan schema drift:\n${drift.joinToString("\n")}") {
-                    drift shouldBe listOf(
-                        "ALTER TABLE oppfolgingsplan DROP COLUMN evaluering_paaminnelse_outbox_at",
-                    )
+                    drift shouldBe emptyList()
                 }
             }
 
@@ -48,7 +46,7 @@ class OppfolgingsplanSchemaTest :
                     "(sykmeldt_fnr, organisasjonsnummer, created_at DESC) WHERE (skjult_fra IS NULL)"
             }
 
-            it("keeps the nullable legacy outbox column during deployment 1") {
+            it("keeps the business field without the legacy outbox column") {
                 val oppfolgingsplanColumns = TestDB.database.connection.use { connection ->
                     connection.metaData.getColumns(null, null, "oppfolgingsplan", null).use { resultSet ->
                         buildList {
@@ -77,7 +75,6 @@ class OppfolgingsplanSchemaTest :
                 oppfolgingsplanColumns.map { it.name }.filter { it.startsWith("evaluering_paaminnelse") }
                     .shouldContainExactlyInAnyOrder(
                         "evaluering_paaminnelse",
-                        "evaluering_paaminnelse_outbox_at",
                     )
                 utkastColumns shouldNotContain "evaluering_paaminnelse"
                 utkastColumns shouldNotContain "evaluering_paaminnelse_outbox_at"
@@ -85,10 +82,6 @@ class OppfolgingsplanSchemaTest :
                 oppfolgingsplanColumns.find { it.name == "evaluering_paaminnelse" }.shouldNotBeNull().apply {
                     isNullable shouldBe false
                     defaultValue shouldBe "false"
-                }
-
-                oppfolgingsplanColumns.find { it.name == "evaluering_paaminnelse_outbox_at" }.shouldNotBeNull().apply {
-                    isNullable shouldBe true
                 }
             }
         }
