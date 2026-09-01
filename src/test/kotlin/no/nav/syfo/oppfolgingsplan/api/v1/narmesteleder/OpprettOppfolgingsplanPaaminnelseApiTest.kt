@@ -33,11 +33,11 @@ import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
-import no.nav.syfo.oppfolgingsplan.db.findPaaminnelseBy
-import no.nav.syfo.oppfolgingsplan.db.upsertPaaminnelse
-import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatus
-import no.nav.syfo.oppfolgingsplan.dto.PaaminnelseStatusDto
-import no.nav.syfo.oppfolgingsplan.service.PaaminnelseService
+import no.nav.syfo.oppfolgingsplan.db.findOpprettOppfolgingsplanPaaminnelseBy
+import no.nav.syfo.oppfolgingsplan.db.upsertOpprettOppfolgingsplanPaaminnelse
+import no.nav.syfo.oppfolgingsplan.dto.OpprettOppfolgingsplanPaaminnelseStatus
+import no.nav.syfo.oppfolgingsplan.dto.OpprettOppfolgingsplanPaaminnelseStatusDto
+import no.nav.syfo.oppfolgingsplan.service.OpprettOppfolgingsplanPaaminnelseService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
@@ -48,7 +48,7 @@ import no.nav.syfo.texas.client.TexasHttpClient
 import java.time.LocalDate
 import java.time.ZoneId
 
-class PaaminnelseApiTest :
+class OpprettOppfolgingsplanPaaminnelseApiTest :
     DescribeSpec({
         val texasClientMock = mockk<TexasHttpClient>()
         val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
@@ -56,7 +56,7 @@ class PaaminnelseApiTest :
         val testDb = TestDB.database
         val repository = SykmeldingsperiodeRepository(testDb)
         val environment: Environment = LocalEnvironment()
-        val paaminnelseService = PaaminnelseService(
+        val opprettOppfolgingsplanPaaminnelseService = OpprettOppfolgingsplanPaaminnelseService(
             database = testDb,
             sykmeldingsperiodeRepository = repository,
         )
@@ -102,10 +102,10 @@ class PaaminnelseApiTest :
                     installContentNegotiation()
                     installStatusPages()
                     routing {
-                        registerPaaminnelseApi(
+                        registerOpprettOppfolgingsplanPaaminnelseApi(
                             dineSykmeldteService = DineSykmeldteService(dineSykmeldteHttpClientMock, valkeyCacheMock),
                             texasHttpClient = texasClientMock,
-                            paaminnelseService = paaminnelseService,
+                            opprettOppfolgingsplanPaaminnelseService = opprettOppfolgingsplanPaaminnelseService,
                             environment = environment,
                         )
                     }
@@ -123,7 +123,16 @@ class PaaminnelseApiTest :
             }
         }
 
-        describe("Paaminnelse API") {
+        fun countOutboxRows(): Int = testDb.connection.use { connection ->
+            connection.prepareStatement("SELECT COUNT(*) AS count FROM outbox").use { preparedStatement ->
+                preparedStatement.executeQuery().use { resultSet ->
+                    resultSet.next()
+                    resultSet.getInt("count")
+                }
+            }
+        }
+
+        describe("OpprettOppfolgingsplanPaaminnelse API") {
             it("GET should respond with Unauthorized when no authentication is provided") {
                 withTestApplication {
                     val response = client.get("/api/v1/narmesteleder/$narmestelederId/oppfolgingsplaner/paaminnelse")
@@ -166,9 +175,10 @@ class PaaminnelseApiTest :
                     }
 
                     response.status shouldBe HttpStatusCode.OK
-                    response.body<PaaminnelseStatusDto>() shouldBe PaaminnelseStatusDto(
-                        status = PaaminnelseStatus.TILGJENGELIG,
-                    )
+                    response.body<OpprettOppfolgingsplanPaaminnelseStatusDto>() shouldBe
+                        OpprettOppfolgingsplanPaaminnelseStatusDto(
+                            status = OpprettOppfolgingsplanPaaminnelseStatus.TILGJENGELIG,
+                        )
                 }
             }
 
@@ -193,9 +203,10 @@ class PaaminnelseApiTest :
                     }
 
                     response.status shouldBe HttpStatusCode.OK
-                    response.body<PaaminnelseStatusDto>() shouldBe PaaminnelseStatusDto(
-                        status = PaaminnelseStatus.SKJULT,
-                    )
+                    response.body<OpprettOppfolgingsplanPaaminnelseStatusDto>() shouldBe
+                        OpprettOppfolgingsplanPaaminnelseStatusDto(
+                            status = OpprettOppfolgingsplanPaaminnelseStatus.SKJULT,
+                        )
                 }
             }
 
@@ -214,9 +225,11 @@ class PaaminnelseApiTest :
                     }
 
                     response.status shouldBe HttpStatusCode.OK
-                    response.body<PaaminnelseStatusDto>().status shouldBe PaaminnelseStatus.BESTILT
+                    response.body<OpprettOppfolgingsplanPaaminnelseStatusDto>().status shouldBe
+                        OpprettOppfolgingsplanPaaminnelseStatus.BESTILT
 
-                    val persisted = testDb.findPaaminnelseBy("12345678901", "orgnummer")
+                    val persisted =
+                        testDb.findOpprettOppfolgingsplanPaaminnelseBy("12345678901", "orgnummer")
                     persisted?.bestilt shouldBe true
                     persisted?.sykmeldtFnr shouldBe "12345678901"
                     persisted?.organisasjonsnummer shouldBe "orgnummer"
@@ -226,6 +239,7 @@ class PaaminnelseApiTest :
 
             it("POST should respond with BadRequest when sykmeldt has no active sykmelding") {
                 withTestApplication {
+                    seedAktivtSyketilfelle()
                     texasClientMock.defaultMocks(
                         pid = pidInnloggetBruker,
                         clientId = environment.dinesykmeldteClientId,
@@ -248,6 +262,35 @@ class PaaminnelseApiTest :
                     response.status shouldBe HttpStatusCode.BadRequest
                     response.body<ApiError>().type shouldBe ErrorType.BAD_REQUEST
                     countPaaminnelseRows() shouldBe 0
+                    countOutboxRows() shouldBe 0
+                }
+            }
+
+            it("GET should return SKJULT when sykmeldt has no active sykmelding despite an active local period") {
+                withTestApplication {
+                    seedAktivtSyketilfelle()
+                    texasClientMock.defaultMocks(
+                        pid = pidInnloggetBruker,
+                        clientId = environment.dinesykmeldteClientId,
+                    )
+                    coEvery {
+                        dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(
+                            narmestelederId,
+                            "token",
+                        )
+                    } returns defaultSykmeldt().copy(
+                        narmestelederId = narmestelederId,
+                        aktivSykmelding = false,
+                    )
+
+                    val response = client.get {
+                        url("/api/v1/narmesteleder/$narmestelederId/oppfolgingsplaner/paaminnelse")
+                        bearerAuth("test-token")
+                    }
+
+                    response.status shouldBe HttpStatusCode.OK
+                    response.body<OpprettOppfolgingsplanPaaminnelseStatusDto>().status shouldBe
+                        OpprettOppfolgingsplanPaaminnelseStatus.SKJULT
                 }
             }
 
@@ -319,15 +362,16 @@ class PaaminnelseApiTest :
                     }
 
                     response.status shouldBe HttpStatusCode.OK
-                    response.body<PaaminnelseStatusDto>().status shouldBe PaaminnelseStatus.TILGJENGELIG
-                    testDb.findPaaminnelseBy("12345678901", "orgnummer")?.bestilt shouldBe false
+                    response.body<OpprettOppfolgingsplanPaaminnelseStatusDto>().status shouldBe
+                        OpprettOppfolgingsplanPaaminnelseStatus.TILGJENGELIG
+                    testDb.findOpprettOppfolgingsplanPaaminnelseBy("12345678901", "orgnummer")?.bestilt shouldBe false
                 }
             }
 
             it("DELETE should respond with BadRequest when status is SKJULT because the ordering window has passed") {
                 withTestApplication {
                     seedAktivtSyketilfelle(startDato = LocalDate.now().minusDays(30))
-                    testDb.upsertPaaminnelse(
+                    testDb.upsertOpprettOppfolgingsplanPaaminnelse(
                         sykmeldt = defaultSykmeldt(),
                         bestilt = true,
                         sykmeldingsperiodeId = repository.findBySykmeldingId("sykmelding-1").single().id,
@@ -345,7 +389,7 @@ class PaaminnelseApiTest :
 
                     response.status shouldBe HttpStatusCode.BadRequest
                     response.body<ApiError>().type shouldBe ErrorType.BAD_REQUEST
-                    testDb.findPaaminnelseBy("12345678901", "orgnummer")?.bestilt shouldBe true
+                    testDb.findOpprettOppfolgingsplanPaaminnelseBy("12345678901", "orgnummer")?.bestilt shouldBe true
                 }
             }
         }

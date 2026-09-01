@@ -41,8 +41,10 @@ class OppfolgingsplanCreatedOutboxHandler(
                 )
                 OutboxResult.Sent
             }
+
             OppfolgingsplanVarselSource.NoLongerEligible ->
                 OutboxResult.Cancelled(OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE)
+
             OppfolgingsplanVarselSource.NotFound -> {
                 log.error(
                     "Cancelling outbox message because its source oppfolgingsplan was not found {} {} {}",

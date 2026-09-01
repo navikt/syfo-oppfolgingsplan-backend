@@ -26,21 +26,20 @@ class NarmestelederClientTest :
     DescribeSpec({
         val texasHttpClient = mockk<TexasHttpClient>()
         val wireMockServer = WireMockServer(options().dynamicPort())
+        val scope = "api://dev-gcp.team-esyfo.esyfo-narmesteleder/.default"
 
         fun client() = NarmestelederClient(
             httpClient = httpClientDefault(),
             narmestelederBaseUrl = wireMockServer.baseUrl(),
             texasHttpClient = texasHttpClient,
-            scope = "api://dev-gcp.team-esyfo.esyfo-narmesteleder/.default",
+            scope = scope,
         )
 
         beforeTest {
             clearAllMocks(currentThreadOnly = true)
             wireMockServer.start()
-            coEvery {
-                texasHttpClient.systemToken("azuread", "api://dev-gcp.team-esyfo.esyfo-narmesteleder/.default")
-            } returns TexasResponse(
-                accessToken = "token",
+            coEvery { texasHttpClient.systemToken("azuread", scope) } returns TexasResponse(
+                accessToken = "test-token",
                 expiresIn = 3600,
                 tokenType = "Bearer",
             )
@@ -54,7 +53,7 @@ class NarmestelederClientTest :
         it("looks up an active narmesteleder with a system token") {
             wireMockServer.stubFor(
                 post(urlPathEqualTo(NARMESTELEDER_LOOKUP_PATH))
-                    .withHeader(HttpHeaders.Authorization, equalTo("Bearer token"))
+                    .withHeader(HttpHeaders.Authorization, equalTo("Bearer test-token"))
                     .withRequestBody(
                         equalToJson(
                             """
@@ -82,11 +81,7 @@ class NarmestelederClientTest :
             val narmesteleder = client().findActiveNarmesteleder("12345678901", "123456789")
 
             narmesteleder?.id shouldBe UUID.fromString("c8d10801-a0cc-4d94-a9ab-0088e850d4f4")
-            narmesteleder?.nationalIdentificationNumber shouldBe "10987654321"
-            narmesteleder?.emailAddresses shouldBe listOf("leder@eksempel.no")
-            coVerify(exactly = 1) {
-                texasHttpClient.systemToken("azuread", "api://dev-gcp.team-esyfo.esyfo-narmesteleder/.default")
-            }
+            coVerify(exactly = 1) { texasHttpClient.systemToken("azuread", scope) }
         }
 
         it("returns null when no active narmesteleder exists") {

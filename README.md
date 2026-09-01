@@ -119,7 +119,7 @@ Veiledertilgang sjekkes mot `istilgangskontroll`.
 Tjenesten bruker Kafka i begge retninger:
 
 - **konsumerer** `teamsykmelding.syfo-sendt-sykmelding` med consumer group `syfo-oppfolgingsplan-backend-sykmeldingsperiode-v2`
-- **produserer** varsler til `team-esyfo.budstikka.v1` når en oppfølgingsplan opprettes
+- **produserer** varsler til `team-esyfo.budstikka.v1` når en oppfølgingsplan opprettes og når en påminnelse sendes til arbeidsgiver og Dine sykmeldte
 - bygger varselet med `budstikka-kontrakt`
   
 ## Database og cache

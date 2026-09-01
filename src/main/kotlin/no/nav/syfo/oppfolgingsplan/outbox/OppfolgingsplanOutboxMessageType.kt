@@ -12,11 +12,15 @@ enum class OppfolgingsplanOutboxMessageType(
     EVALUERING_PAAMINNELSE_DINE_SYKMELDTE(
         "OPPFOLGINGSPLAN_EVALUERING_PAAMINNELSE_DINE_SYKMELDTE",
     ),
+    PAAMINNELSE_ARBEIDSGIVER("PAAMINNELSE_OPPFOLGINGSPLAN_ARBEIDSGIVER"),
+    PAAMINNELSE_DINE_SYKMELDTE("PAAMINNELSE_OPPFOLGINGSPLAN_DINE_SYKMELDTE"),
     ;
 
     val channelMetricLabel: String?
         get() = when (this) {
             CREATED -> null
+            PAAMINNELSE_ARBEIDSGIVER -> null
+            PAAMINNELSE_DINE_SYKMELDTE -> null
             EVALUERING_PAAMINNELSE_MIN_SIDE_ARBEIDSGIVER -> "min_side_arbeidsgiver"
             EVALUERING_PAAMINNELSE_DINE_SYKMELDTE -> "dine_sykmeldte"
         }

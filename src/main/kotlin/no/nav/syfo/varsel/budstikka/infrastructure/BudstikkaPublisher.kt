@@ -22,4 +22,19 @@ interface BudstikkaPublisher {
         organisasjonsnummer: String,
         eventId: UUID,
     )
+
+    suspend fun publishOpprettOppfolgingsplanPaaminnelse(
+        bestillingId: UUID,
+        sykmeldtFnr: String,
+        orgnummer: String,
+        eventId: UUID,
+        narmestelederId: UUID,
+    )
+
+    suspend fun publishOpprettOppfolgingsplanPaaminnelseToDineSykmeldte(
+        bestillingId: UUID,
+        sykmeldtFnr: String,
+        orgnummer: String,
+        eventId: UUID,
+    )
 }
