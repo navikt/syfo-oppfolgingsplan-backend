@@ -11,6 +11,7 @@ import no.nav.syfo.oppfolgingsplan.db.deactivateOpprettOppfolgingsplanPaaminnels
 import no.nav.syfo.oppfolgingsplan.db.domain.PersistedOpprettOppfolgingsplanPaaminnelse
 import no.nav.syfo.oppfolgingsplan.db.domain.isOpprettOppfolgingsplanPaaminnelseBestiltInCurrentSykemeldingsperiode
 import no.nav.syfo.oppfolgingsplan.db.existsOppfolgingsplanCreatedAfter
+import no.nav.syfo.oppfolgingsplan.db.existsUnntaksvurderingCreatedAfter
 import no.nav.syfo.oppfolgingsplan.db.findOpprettOppfolgingsplanPaaminnelseBy
 import no.nav.syfo.oppfolgingsplan.db.upsertOpprettOppfolgingsplanPaaminnelseAndEnqueue
 import no.nav.syfo.oppfolgingsplan.dto.OpprettOppfolgingsplanPaaminnelseStatus
@@ -128,6 +129,17 @@ class OpprettOppfolgingsplanPaaminnelseService(
             createdAfter = sykmeldingsperiodeFom.atStartOfDay(clock.zone).toInstant(),
         )
         if (harAktivOppfolgingsplan) return OpprettOppfolgingsplanPaaminnelseStatusInternal.Utilgjengelig(OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE)
+
+        val harRelevantUnntaksvurdering = database.existsUnntaksvurderingCreatedAfter(
+            sykmeldtFnr = sykmeldtFnr,
+            organisasjonsnummer = organisasjonsnummer,
+            createdAfter = sykmeldingsperiodeFom.atStartOfDay(clock.zone).toInstant(),
+        )
+        if (harRelevantUnntaksvurdering) {
+            return OpprettOppfolgingsplanPaaminnelseStatusInternal.Utilgjengelig(
+                OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE,
+            )
+        }
 
         return OpprettOppfolgingsplanPaaminnelseStatusInternal.Tilgjengelig(
             sykmeldingsperiodeId = earliestSykmeldingsperiode.id,

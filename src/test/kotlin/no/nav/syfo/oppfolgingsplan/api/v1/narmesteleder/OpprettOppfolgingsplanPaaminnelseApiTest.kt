@@ -34,6 +34,7 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.oppfolgingsplan.db.findOpprettOppfolgingsplanPaaminnelseBy
+import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.upsertOpprettOppfolgingsplanPaaminnelse
 import no.nav.syfo.oppfolgingsplan.dto.OpprettOppfolgingsplanPaaminnelseStatus
 import no.nav.syfo.oppfolgingsplan.dto.OpprettOppfolgingsplanPaaminnelseStatusDto
@@ -182,6 +183,31 @@ class OpprettOppfolgingsplanPaaminnelseApiTest :
                 }
             }
 
+            it("GET should return SKJULT when an unntaksvurdering exists in the current syketilfelle") {
+                withTestApplication {
+                    seedAktivtSyketilfelle()
+                    testDb.persistUnntaksvurdering(
+                        narmesteLederFnr = pidInnloggetBruker,
+                        sykmeldt = defaultSykmeldt(),
+                        narmesteLederFullName = "Maren Hegna",
+                    )
+                    texasClientMock.defaultMocks(
+                        pid = pidInnloggetBruker,
+                        clientId = environment.dinesykmeldteClientId,
+                    )
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val response = client.get {
+                        url("/api/v1/narmesteleder/$narmestelederId/oppfolgingsplaner/paaminnelse")
+                        bearerAuth("******")
+                    }
+
+                    response.status shouldBe HttpStatusCode.OK
+                    response.body<OpprettOppfolgingsplanPaaminnelseStatusDto>().status shouldBe
+                        OpprettOppfolgingsplanPaaminnelseStatus.SKJULT
+                }
+            }
+
             it("GET should return SKJULT when an oppfolgingsplan already exists in the current syketilfelle") {
                 withTestApplication {
                     val startDato = LocalDate.now().minusDays(7)
@@ -234,6 +260,32 @@ class OpprettOppfolgingsplanPaaminnelseApiTest :
                     persisted?.sykmeldtFnr shouldBe "12345678901"
                     persisted?.organisasjonsnummer shouldBe "orgnummer"
                     persisted?.sykmeldingsperiodeId shouldBe repository.findBySykmeldingId("sykmelding-1").single().id
+                }
+            }
+
+            it("POST should respond with BadRequest when an unntaksvurdering exists in the current syketilfelle") {
+                withTestApplication {
+                    seedAktivtSyketilfelle()
+                    testDb.persistUnntaksvurdering(
+                        narmesteLederFnr = pidInnloggetBruker,
+                        sykmeldt = defaultSykmeldt(),
+                        narmesteLederFullName = "Maren Hegna",
+                    )
+                    texasClientMock.defaultMocks(
+                        pid = pidInnloggetBruker,
+                        clientId = environment.dinesykmeldteClientId,
+                    )
+                    dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
+
+                    val response = client.post {
+                        url("/api/v1/narmesteleder/$narmestelederId/oppfolgingsplaner/paaminnelse")
+                        bearerAuth("******")
+                    }
+
+                    response.status shouldBe HttpStatusCode.BadRequest
+                    response.body<ApiError>().type shouldBe ErrorType.BAD_REQUEST
+                    countPaaminnelseRows() shouldBe 0
+                    countOutboxRows() shouldBe 0
                 }
             }
 

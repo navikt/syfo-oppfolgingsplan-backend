@@ -18,6 +18,7 @@ import no.nav.syfo.defaultSykmeldt
 import no.nav.syfo.narmesteleder.client.INarmestelederClient
 import no.nav.syfo.narmesteleder.client.Narmesteleder
 import no.nav.syfo.oppfolgingsplan.db.findOpprettOppfolgingsplanPaaminnelseBy
+import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.service.OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_ETTER_DAGER
 import no.nav.syfo.oppfolgingsplan.service.OpprettOppfolgingsplanPaaminnelseService
 import no.nav.syfo.persistOppfolgingsplan
@@ -480,6 +481,54 @@ class OpprettOppfolgingsplanPaaminnelseOutboxIntegrationTest :
             }
         }
 
+        it("cancels both reminders when an unntaksvurdering is created before delivery") {
+            service.activateOpprettOppfolgingsplanPaaminnelse(defaultSykmeldt())
+            val opprettOppfolgingsplanPaaminnelse =
+                TestDB.database.findOpprettOppfolgingsplanPaaminnelseBy(
+                    defaultSykmeldt().fnr,
+                    defaultSykmeldt().orgnummer,
+                ).shouldNotBeNull()
+            val unntaksvurderingUuid = TestDB.database.persistUnntaksvurdering(
+                narmesteLederFnr = "10987654321",
+                sykmeldt = defaultSykmeldt(),
+                narmesteLederFullName = "Maren Hegna",
+            )
+            TestDB.database.setUnntaksvurderingCreatedAt(
+                uuid = unntaksvurderingUuid,
+                createdAt = availableAt.minusSeconds(1),
+            )
+            val publisher = mockk<BudstikkaPublisher>(relaxed = true)
+            val worker = OutboxWorker(
+                database = TestDB.database,
+                handlers = listOf(
+                    arbeidsgiverHandler(publisher),
+                    OpprettOppfolgingsplanPaaminnelseDineSykmeldteOutboxHandler(
+                        TestDB.database,
+                        service,
+                        publisher,
+                    ),
+                ),
+                clock = Clock.fixed(availableAt, zone),
+            )
+
+            val result = worker.runOnce()
+
+            result.cancelled shouldBe 2
+            result.sent shouldBe 0
+            TestDB.database.findOpprettOppfolgingsplanPaaminnelseOutboxStates(
+                opprettOppfolgingsplanPaaminnelse.uuid,
+            ).count {
+                it.first == OutboxStatus.CANCELLED &&
+                    it.second == OutboxCancellationReason.SOURCE_NO_LONGER_ELIGIBLE
+            } shouldBe 2
+            coVerify(exactly = 0) {
+                publisher.publishOpprettOppfolgingsplanPaaminnelse(any(), any(), any(), any(), any())
+            }
+            coVerify(exactly = 0) {
+                publisher.publishOpprettOppfolgingsplanPaaminnelseToDineSykmeldte(any(), any(), any(), any())
+            }
+        }
+
         it("cancels a reminder when its sykmeldingsperiode is no longer active") {
             service.activateOpprettOppfolgingsplanPaaminnelse(defaultSykmeldt())
             val opprettOppfolgingsplanPaaminnelse =
@@ -591,6 +640,20 @@ private fun DatabaseInterface.deleteOpprettOppfolgingsplanPaaminnelse(
         statement.setObject(1, opprettOppfolgingsplanPaaminnelseUuid)
         statement.executeUpdate()
     }.also {
+        connection.commit()
+    }
+}
+
+private fun DatabaseInterface.setUnntaksvurderingCreatedAt(
+    uuid: UUID,
+    createdAt: Instant,
+) {
+    connection.use { connection ->
+        connection.prepareStatement("UPDATE unntaksvurdering SET created_at = ? WHERE uuid = ?").use { statement ->
+            statement.setTimestamp(1, Timestamp.from(createdAt))
+            statement.setObject(2, uuid)
+            statement.executeUpdate()
+        }
         connection.commit()
     }
 }

@@ -7,12 +7,15 @@ import io.ktor.server.plugins.BadRequestException
 import no.nav.syfo.TestDB
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultSykmeldt
+import no.nav.syfo.dinesykmeldte.client.Sykmeldt
 import no.nav.syfo.oppfolgingsplan.db.findOpprettOppfolgingsplanPaaminnelseBy
+import no.nav.syfo.oppfolgingsplan.db.persistUnntaksvurdering
 import no.nav.syfo.oppfolgingsplan.db.upsertOpprettOppfolgingsplanPaaminnelse
 import no.nav.syfo.oppfolgingsplan.dto.OpprettOppfolgingsplanPaaminnelseStatus
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
+import java.sql.Timestamp
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -47,6 +50,27 @@ class OpprettOppfolgingsplanPaaminnelseServiceTest :
                     ),
                 ),
             )
+        }
+
+        suspend fun persistUnntaksvurdering(
+            createdAt: Instant,
+            sykmeldt: Sykmeldt = defaultSykmeldt(),
+        ) {
+            val uuid = TestDB.database.persistUnntaksvurdering(
+                narmesteLederFnr = "10987654321",
+                sykmeldt = sykmeldt,
+                narmesteLederFullName = "Maren Hegna",
+            )
+            TestDB.database.connection.use { connection ->
+                connection.prepareStatement(
+                    "UPDATE unntaksvurdering SET created_at = ? WHERE uuid = ?",
+                ).use { statement ->
+                    statement.setTimestamp(1, Timestamp.from(createdAt))
+                    statement.setObject(2, uuid)
+                    statement.executeUpdate()
+                }
+                connection.commit()
+            }
         }
 
         describe("getOpprettOppfolgingsplanPaaminnelseStatus") {
@@ -84,6 +108,55 @@ class OpprettOppfolgingsplanPaaminnelseServiceTest :
                 seedSyketilfelle(
                     startDato = LocalDate.of(2025, 6, 1),
                     tom = LocalDate.of(2025, 6, 30),
+                )
+
+                val status = service.getOpprettOppfolgingsplanPaaminnelseStatus(defaultSykmeldt())
+
+                status.status shouldBe OpprettOppfolgingsplanPaaminnelseStatus.TILGJENGELIG
+            }
+
+            it("returns SKJULT when an unntaksvurdering exists in the current syketilfelle") {
+                val syketilfelleStart = LocalDate.of(2025, 6, 1)
+                seedSyketilfelle(
+                    startDato = syketilfelleStart,
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+                persistUnntaksvurdering(
+                    createdAt = syketilfelleStart.atStartOfDay(fixedClock.zone).toInstant(),
+                )
+
+                val status = service.getOpprettOppfolgingsplanPaaminnelseStatus(defaultSykmeldt())
+
+                status.status shouldBe OpprettOppfolgingsplanPaaminnelseStatus.SKJULT
+            }
+
+            it("ignores an unntaksvurdering from a previous syketilfelle") {
+                val syketilfelleStart = LocalDate.of(2025, 6, 1)
+                seedSyketilfelle(
+                    startDato = syketilfelleStart,
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+                persistUnntaksvurdering(
+                    createdAt = syketilfelleStart
+                        .atStartOfDay(fixedClock.zone)
+                        .toInstant()
+                        .minusSeconds(1),
+                )
+
+                val status = service.getOpprettOppfolgingsplanPaaminnelseStatus(defaultSykmeldt())
+
+                status.status shouldBe OpprettOppfolgingsplanPaaminnelseStatus.TILGJENGELIG
+            }
+
+            it("ignores an unntaksvurdering for a different underenhet") {
+                val syketilfelleStart = LocalDate.of(2025, 6, 1)
+                seedSyketilfelle(
+                    startDato = syketilfelleStart,
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+                persistUnntaksvurdering(
+                    createdAt = syketilfelleStart.atStartOfDay(fixedClock.zone).toInstant(),
+                    sykmeldt = defaultSykmeldt().copy(orgnummer = "annen-underenhet"),
                 )
 
                 val status = service.getOpprettOppfolgingsplanPaaminnelseStatus(defaultSykmeldt())
@@ -258,6 +331,23 @@ class OpprettOppfolgingsplanPaaminnelseServiceTest :
                     defaultPersistedOppfolgingsplan().copy(
                         createdAt = synligFra.atStartOfDay(fixedClock.zone).toInstant(),
                     ),
+                )
+
+                shouldThrow<BadRequestException> {
+                    service.activateOpprettOppfolgingsplanPaaminnelse(defaultSykmeldt())
+                }
+
+                TestDB.database.findOpprettOppfolgingsplanPaaminnelseBy("12345678901", "orgnummer") shouldBe null
+            }
+
+            it("rejects activation when an unntaksvurdering exists in the current syketilfelle") {
+                val syketilfelleStart = LocalDate.of(2025, 6, 1)
+                seedSyketilfelle(
+                    startDato = syketilfelleStart,
+                    tom = LocalDate.of(2025, 6, 30),
+                )
+                persistUnntaksvurdering(
+                    createdAt = syketilfelleStart.atStartOfDay(fixedClock.zone).toInstant(),
                 )
 
                 shouldThrow<BadRequestException> {
