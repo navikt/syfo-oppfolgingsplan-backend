@@ -62,8 +62,10 @@ import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
@@ -85,6 +87,10 @@ class OppfolgingsplanApiV1Test :
         val unntaksvurderingService = UnntaksvurderingService(testDb, pdlServiceMock)
         val environment: Environment = LocalEnvironment()
         val aaregServiceMock = mockk<AaregService>(relaxed = true)
+        val overviewClock = Clock.fixed(
+            Instant.parse("2025-06-20T12:00:00Z"),
+            ZoneId.of("Europe/Oslo"),
+        )
 
         beforeTest {
             clearAllMocks(currentThreadOnly = true)
@@ -128,6 +134,8 @@ class OppfolgingsplanApiV1Test :
                             dokarkivService = dokarkivServiceMock,
                             isTilgangskontrollService = isTilgangskontrollServiceMock,
                             environment = environment,
+                            sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(testDb),
+                            sykmeldtOverviewClock = overviewClock,
                         )
                     }
                 }
@@ -398,6 +406,37 @@ class OppfolgingsplanApiV1Test :
                         response.status shouldBe HttpStatusCode.OK
                         val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
                         overview.virksomheter shouldBe emptyList()
+                    }
+                }
+                it("GET /oppfolgingsplaner/oversikt should return active organizations when virksomheter is empty") {
+                    val sykmeldtFnr = "12345678901"
+                    val activeOrganization = "987654321"
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = sykmeldtFnr,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+                        SykmeldingsperiodeRepository(testDb).storeSykmeldingsperioder(
+                            listOf(
+                                SykmeldingsperiodeToStore(
+                                    sykmeldtFnr = sykmeldtFnr,
+                                    organisasjonsnummer = activeOrganization,
+                                    sykmeldingId = "active-sykmelding",
+                                    fom = LocalDate.now(overviewClock).minusDays(1),
+                                    tom = LocalDate.now(overviewClock).plusDays(1),
+                                ),
+                            ),
+                        )
+
+                        val response = client.get {
+                            url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                            bearerAuth("******")
+                        }
+
+                        response.status shouldBe HttpStatusCode.OK
+                        val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
+                        overview.virksomheter shouldBe emptyList()
+                        overview.virksomhetsnumreMedAktivSykmelding shouldBe listOf(activeOrganization)
                     }
                 }
             }

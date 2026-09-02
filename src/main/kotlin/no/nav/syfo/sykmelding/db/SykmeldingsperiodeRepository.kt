@@ -1,8 +1,16 @@
 package no.nav.syfo.sykmelding.db
 
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.database.exposedTransaction
 import no.nav.syfo.sykmelding.db.domain.PersistedSykmeldingsperiode
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
+import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.greaterEq
+import org.jetbrains.exposed.v1.core.isNull
+import org.jetbrains.exposed.v1.core.lessEq
+import org.jetbrains.exposed.v1.jdbc.select
 import java.sql.Date
 import java.sql.ResultSet
 import java.sql.Statement
@@ -68,6 +76,22 @@ class SykmeldingsperiodeRepository(
             connection.commit()
             updatedRows
         }
+    }
+
+    suspend fun findOrganisasjonsnumreMedAktivSykmelding(
+        sykmeldtFnr: String,
+        today: LocalDate,
+    ): List<String> = database.exposedTransaction(readOnly = true) {
+        SykmeldingsperiodeTable
+            .select(SykmeldingsperiodeTable.organisasjonsnummer)
+            .where {
+                (SykmeldingsperiodeTable.sykmeldtFnr eq sykmeldtFnr) and
+                    SykmeldingsperiodeTable.invalidatedAt.isNull() and
+                    (SykmeldingsperiodeTable.fom lessEq today) and
+                    (SykmeldingsperiodeTable.tom greaterEq today)
+            }.orderBy(SykmeldingsperiodeTable.organisasjonsnummer to SortOrder.ASC)
+            .withDistinct()
+            .map { it[SykmeldingsperiodeTable.organisasjonsnummer] }
     }
 
     fun findBySykmeldingId(

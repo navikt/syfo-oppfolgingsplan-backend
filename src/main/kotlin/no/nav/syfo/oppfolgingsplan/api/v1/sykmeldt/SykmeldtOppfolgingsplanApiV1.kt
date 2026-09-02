@@ -15,8 +15,12 @@ import no.nav.syfo.oppfolgingsplan.domain.Fodselsnummer
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdfgen.PdfGenService
+import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
+import java.time.Clock
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 fun Route.registerSykmeldtOppfolgingsplanApiV1(
@@ -24,6 +28,8 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
     oppfolgingsplanService: OppfolgingsplanService,
     unntaksvurderingService: UnntaksvurderingService,
     pdfGenService: PdfGenService,
+    sykmeldingsperiodeRepository: SykmeldingsperiodeRepository,
+    clock: Clock = Clock.system(ZoneId.of("Europe/Oslo")),
 ) {
     val logger = logger()
 
@@ -54,8 +60,19 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
             val brukerFnr = call.attributes[CALL_ATTRIBUTE_SYKMELDT_BRUKER_FODSELSNUMMER]
             val oppfolgingsplaner = oppfolgingsplanService.getPersistedOppfolgingsplanListBy(brukerFnr.value)
             val unntaksvurderinger = unntaksvurderingService.getUnntaksvurderingerForSykmeldt(brukerFnr.value)
+            val virksomhetsnumreMedAktivSykmelding =
+                sykmeldingsperiodeRepository.findOrganisasjonsnumreMedAktivSykmelding(
+                    sykmeldtFnr = brukerFnr.value,
+                    today = LocalDate.now(clock),
+                )
 
-            call.respond(HttpStatusCode.OK, oppfolgingsplaner.toSykmeldtOppfolgingsplanOverviewResponse(unntaksvurderinger))
+            call.respond(
+                HttpStatusCode.OK,
+                oppfolgingsplaner.toSykmeldtOppfolgingsplanOverviewResponse(
+                    unntaksvurderinger = unntaksvurderinger,
+                    virksomhetsnumreMedAktivSykmelding = virksomhetsnumreMedAktivSykmelding,
+                ),
+            )
         }
 
         /**

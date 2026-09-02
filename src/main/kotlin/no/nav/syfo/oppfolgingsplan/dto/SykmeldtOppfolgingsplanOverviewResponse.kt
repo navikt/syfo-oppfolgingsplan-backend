@@ -10,6 +10,7 @@ import java.util.UUID
 
 data class SykmeldtOppfolgingsplanOverviewResponse(
     val virksomheter: List<SykmeldtVirksomhetsoversikt>,
+    val virksomhetsnumreMedAktivSykmelding: List<String>,
 )
 
 data class SykmeldtVirksomhetsoversikt(

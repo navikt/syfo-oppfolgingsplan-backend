@@ -111,6 +111,76 @@ class SykmeldingsperiodeRepositoryTest :
             }
         }
 
+        describe("findOrganisasjonsnumreMedAktivSykmelding") {
+            it("includes both date boundaries, sorts ascending, and deduplicates organizations") {
+                repository.storeSykmeldingsperioder(
+                    listOf(
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = sykmeldtFnr,
+                            organisasjonsnummer = "222222222",
+                            sykmeldingId = "starts-today",
+                            fom = today,
+                            tom = today.plusDays(10),
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = sykmeldtFnr,
+                            organisasjonsnummer = "222222222",
+                            sykmeldingId = "duplicate-organization",
+                            fom = today.minusDays(10),
+                            tom = today.plusDays(10),
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = sykmeldtFnr,
+                            organisasjonsnummer = "111111111",
+                            sykmeldingId = "ends-today",
+                            fom = today.minusDays(10),
+                            tom = today,
+                        ),
+                        SykmeldingsperiodeToStore(
+                            sykmeldtFnr = "10987654321",
+                            organisasjonsnummer = "000000000",
+                            sykmeldingId = "other-user",
+                            fom = today.minusDays(1),
+                            tom = today.plusDays(1),
+                        ),
+                    ),
+                )
+
+                repository.findOrganisasjonsnumreMedAktivSykmelding(
+                    sykmeldtFnr = sykmeldtFnr,
+                    today = today,
+                ) shouldBe listOf("111111111", "222222222")
+            }
+
+            it("excludes future, ended, and invalidated periods") {
+                repository.storeSykmeldingsperioder(
+                    listOf(
+                        sykmeldingsperiodeToStore(
+                            sykmeldingId = "future",
+                            fom = today.plusDays(1),
+                            tom = today.plusDays(10),
+                        ),
+                        sykmeldingsperiodeToStore(
+                            sykmeldingId = "ended",
+                            fom = today.minusDays(10),
+                            tom = today.minusDays(1),
+                        ),
+                        sykmeldingsperiodeToStore(
+                            sykmeldingId = "invalidated",
+                            fom = today.minusDays(1),
+                            tom = today.plusDays(1),
+                        ),
+                    ),
+                )
+                repository.invalidateSykmelding("invalidated")
+
+                repository.findOrganisasjonsnumreMedAktivSykmelding(
+                    sykmeldtFnr = sykmeldtFnr,
+                    today = today,
+                ) shouldBe emptyList()
+            }
+        }
+
         describe("findEarliestSykmeldingsperiode") {
             it("returns earliest fom in a continuous chain ending in an active period today") {
                 repository.storeSykmeldingsperioder(
