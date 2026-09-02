@@ -62,12 +62,13 @@ import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
-import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+
+private val ZONE_OSLO: ZoneId = ZoneId.of("Europe/Oslo")
 
 class OppfolgingsplanApiV1Test :
     DescribeSpec({
@@ -87,10 +88,6 @@ class OppfolgingsplanApiV1Test :
         val unntaksvurderingService = UnntaksvurderingService(testDb, pdlServiceMock)
         val environment: Environment = LocalEnvironment()
         val aaregServiceMock = mockk<AaregService>(relaxed = true)
-        val overviewClock = Clock.fixed(
-            Instant.parse("2025-06-20T12:00:00Z"),
-            ZoneId.of("Europe/Oslo"),
-        )
 
         beforeTest {
             clearAllMocks(currentThreadOnly = true)
@@ -135,7 +132,6 @@ class OppfolgingsplanApiV1Test :
                             isTilgangskontrollService = isTilgangskontrollServiceMock,
                             environment = environment,
                             sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(testDb),
-                            sykmeldtOverviewClock = overviewClock,
                         )
                     }
                 }
@@ -416,14 +412,15 @@ class OppfolgingsplanApiV1Test :
                             pid = sykmeldtFnr,
                             clientId = environment.syfoOppfolgingsplanFrontendClientId,
                         )
+                        val today = LocalDate.now(ZONE_OSLO)
                         SykmeldingsperiodeRepository(testDb).storeSykmeldingsperioder(
                             listOf(
                                 SykmeldingsperiodeToStore(
                                     sykmeldtFnr = sykmeldtFnr,
                                     organisasjonsnummer = activeOrganization,
                                     sykmeldingId = "active-sykmelding",
-                                    fom = LocalDate.now(overviewClock).minusDays(1),
-                                    tom = LocalDate.now(overviewClock).plusDays(1),
+                                    fom = today.minusDays(7),
+                                    tom = today.plusDays(7),
                                 ),
                             ),
                         )

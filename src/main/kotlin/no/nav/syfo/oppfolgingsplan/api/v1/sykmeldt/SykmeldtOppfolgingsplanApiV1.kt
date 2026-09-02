@@ -18,10 +18,11 @@ import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.logger
-import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.UUID
+
+private val ZONE_OSLO: ZoneId = ZoneId.of("Europe/Oslo")
 
 fun Route.registerSykmeldtOppfolgingsplanApiV1(
     texasHttpClient: TexasHttpClient,
@@ -29,7 +30,6 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
     unntaksvurderingService: UnntaksvurderingService,
     pdfGenService: PdfGenService,
     sykmeldingsperiodeRepository: SykmeldingsperiodeRepository,
-    clock: Clock = Clock.system(ZoneId.of("Europe/Oslo")),
 ) {
     val logger = logger()
 
@@ -63,7 +63,7 @@ fun Route.registerSykmeldtOppfolgingsplanApiV1(
             val virksomhetsnumreMedAktivSykmelding =
                 sykmeldingsperiodeRepository.findOrganisasjonsnumreMedAktivSykmelding(
                     sykmeldtFnr = brukerFnr.value,
-                    today = LocalDate.now(clock),
+                    today = LocalDate.now(ZONE_OSLO),
                 )
 
             call.respond(
