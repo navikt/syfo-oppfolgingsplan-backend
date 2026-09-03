@@ -15,6 +15,8 @@ import org.jetbrains.exposed.v1.jdbc.insertReturning
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import java.sql.Connection
+import java.sql.Timestamp
+import java.time.Instant
 import java.util.UUID
 
 suspend fun DatabaseInterface.persistUnntaksvurdering(
@@ -58,6 +60,35 @@ suspend fun DatabaseInterface.findAllUnntaksvurderingerBySykmeldtFnr(
             UnntaksvurderingTable.uuid to SortOrder.DESC,
         )
         .map { it.toPersistedUnntaksvurdering() }
+}
+
+fun DatabaseInterface.existsUnntaksvurderingCreatedAfter(
+    sykmeldtFnr: String,
+    organisasjonsnummer: String,
+    createdAfter: Instant,
+): Boolean {
+    val statement = """
+        SELECT EXISTS (
+            SELECT 1
+            FROM unntaksvurdering
+            WHERE sykmeldt_fnr = ?
+              AND organisasjonsnummer = ?
+              AND created_at >= ?
+              AND skjult_fra IS NULL
+        )
+    """.trimIndent()
+
+    return connection.use { connection ->
+        connection.prepareStatement(statement).use { preparedStatement ->
+            preparedStatement.setString(1, sykmeldtFnr)
+            preparedStatement.setString(2, organisasjonsnummer)
+            preparedStatement.setTimestamp(3, Timestamp.from(createdAfter))
+            preparedStatement.executeQuery().use { resultSet ->
+                resultSet.next()
+                resultSet.getBoolean(1)
+            }
+        }
+    }
 }
 
 suspend fun DatabaseInterface.softDeleteExpiredUnntaksvurderinger(
