@@ -64,8 +64,11 @@ import no.nav.syfo.texas.client.TexasIntrospectionResponse
 import no.nav.syfo.varsel.EsyfovarselProducer
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+
+private val ZONE_OSLO: ZoneId = ZoneId.of("Europe/Oslo")
 
 class OppfolgingsplanApiV1Test :
     DescribeSpec({
@@ -128,6 +131,7 @@ class OppfolgingsplanApiV1Test :
                             dokarkivService = dokarkivServiceMock,
                             isTilgangskontrollService = isTilgangskontrollServiceMock,
                             environment = environment,
+                            sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(testDb),
                         )
                     }
                 }
@@ -398,6 +402,38 @@ class OppfolgingsplanApiV1Test :
                         response.status shouldBe HttpStatusCode.OK
                         val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
                         overview.virksomheter shouldBe emptyList()
+                    }
+                }
+                it("GET /oppfolgingsplaner/oversikt should return active organizations when virksomheter is empty") {
+                    val sykmeldtFnr = "12345678901"
+                    val activeOrganization = "987654321"
+                    withTestApplication {
+                        texasClientMock.defaultMocks(
+                            pid = sykmeldtFnr,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+                        val today = LocalDate.now(ZONE_OSLO)
+                        SykmeldingsperiodeRepository(testDb).storeSykmeldingsperioder(
+                            listOf(
+                                SykmeldingsperiodeToStore(
+                                    sykmeldtFnr = sykmeldtFnr,
+                                    organisasjonsnummer = activeOrganization,
+                                    sykmeldingId = "active-sykmelding",
+                                    fom = today.minusDays(7),
+                                    tom = today.plusDays(7),
+                                ),
+                            ),
+                        )
+
+                        val response = client.get {
+                            url("/api/v1/sykmeldt/oppfolgingsplaner/oversikt")
+                            bearerAuth("******")
+                        }
+
+                        response.status shouldBe HttpStatusCode.OK
+                        val overview = response.body<SykmeldtOppfolgingsplanOverviewResponse>()
+                        overview.virksomheter shouldBe emptyList()
+                        overview.virksomhetsnumreMedAktivSykmelding shouldBe listOf(activeOrganization)
                     }
                 }
             }

@@ -11,6 +11,7 @@ import java.time.Instant
 
 fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(
     unntaksvurderinger: List<UnntaksvurderingMetadata>,
+    virksomhetsnumreMedAktivSykmelding: List<String>,
 ): SykmeldtOppfolgingsplanOverviewResponse {
     val planhendelser = map { it.toSykmeldtHendelse() }
     val unntakshendelser = unntaksvurderinger.map { it.toSykmeldtHendelse() }
@@ -22,7 +23,10 @@ fun List<PersistedOppfolgingsplan>.toSykmeldtOppfolgingsplanOverviewResponse(
         .sortedWith(virksomhetsoversiktComparator)
         .map { it.oversikt }
 
-    return SykmeldtOppfolgingsplanOverviewResponse(virksomheter)
+    return SykmeldtOppfolgingsplanOverviewResponse(
+        virksomheter = virksomheter,
+        virksomhetsnumreMedAktivSykmelding = virksomhetsnumreMedAktivSykmelding,
+    )
 }
 
 private fun PersistedOppfolgingsplan.toSykmeldtHendelse() = HendelseMedVirksomhet(

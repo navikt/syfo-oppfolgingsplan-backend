@@ -241,12 +241,19 @@ components:
       type: object
       required:
         - virksomheter
+        - virksomhetsnumreMedAktivSykmelding
       properties:
         virksomheter:
           type: array
           description: Virksomheter med minst én ferdigstilt plan eller synlig unntaksvurdering, sortert etter nyeste hendelse.
           items:
             $ref: '#/components/schemas/SykmeldtVirksomhetsoversikt'
+        virksomhetsnumreMedAktivSykmelding:
+          type: array
+          uniqueItems: true
+          description: Organisasjonsnumre med minst én ikke-invalidert sykmeldingsperiode som inkluderer dagens dato i Europe/Oslo, sortert stigende.
+          items:
+            type: string
 
     SykmeldtVirksomhetsoversikt:
       type: object

@@ -21,6 +21,7 @@ import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.plugins.installCallId
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
+import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.texas.client.TexasHttpClient
 import org.koin.ktor.ext.inject
 
@@ -37,6 +38,7 @@ fun Application.configureRouting() {
     val isTilgangskontrollService by inject<IsTilgangskontrollService>()
     val dokarkivService by inject<DokarkivService>()
     val environment by inject<Environment>()
+    val sykmeldingsperiodeRepository by inject<SykmeldingsperiodeRepository>()
 
     installCallId()
     installContentNegotiation()
@@ -61,6 +63,7 @@ fun Application.configureRouting() {
             isTilgangskontrollService = isTilgangskontrollService,
             dokarkivService = dokarkivService,
             environment = environment,
+            sykmeldingsperiodeRepository = sykmeldingsperiodeRepository,
         )
         registerOpprettOppfolgingsplanPaaminnelseApi(
             dineSykmeldteService = dineSykmeldteService,

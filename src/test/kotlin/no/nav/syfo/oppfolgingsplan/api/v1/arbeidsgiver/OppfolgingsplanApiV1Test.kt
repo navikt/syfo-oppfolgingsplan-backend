@@ -68,6 +68,7 @@ import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.plugins.installContentNegotiation
 import no.nav.syfo.plugins.installStatusPages
+import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.returnsNotFound
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
@@ -144,6 +145,7 @@ class OppfolgingsplanApiV1Test :
                             dokarkivService = dokarkivServiceMock,
                             isTilgangskontrollService = isTilgangskontrollServiceMock,
                             environment = environment,
+                            sykmeldingsperiodeRepository = SykmeldingsperiodeRepository(testDb),
                         )
                     }
                 }

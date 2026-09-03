@@ -326,9 +326,13 @@ class PersistedOppfolgingsplanTest :
         describe("toSykmeldtOppfolgingsplanOverviewResponse") {
             it("returnerer ingen virksomheter når det ikke finnes hendelser") {
                 val result = emptyList<PersistedOppfolgingsplan>()
-                    .toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
+                    .toSykmeldtOppfolgingsplanOverviewResponse(
+                        unntaksvurderinger = emptyList(),
+                        virksomhetsnumreMedAktivSykmelding = listOf("123456789"),
+                    )
 
                 result.virksomheter.shouldBeEmpty()
+                result.virksomhetsnumreMedAktivSykmelding shouldBe listOf("123456789")
             }
 
             it("grupperer planer per virksomhet og sorterer nyeste hendelse først") {
@@ -345,7 +349,10 @@ class PersistedOppfolgingsplanTest :
                     createdAt = Instant.parse("2024-06-01T10:00:00Z"),
                 )
 
-                val result = listOf(olderPlan, newerPlan).toSykmeldtOppfolgingsplanOverviewResponse(emptyList())
+                val result = listOf(olderPlan, newerPlan).toSykmeldtOppfolgingsplanOverviewResponse(
+                    unntaksvurderinger = emptyList(),
+                    virksomhetsnumreMedAktivSykmelding = emptyList(),
+                )
 
                 result.virksomheter shouldHaveSize 1
                 result.virksomheter.single().virksomhet shouldBe OrganizationDetails("org1", "Virksomhet 1")
@@ -372,7 +379,10 @@ class PersistedOppfolgingsplanTest :
                 )
 
                 val result = listOf(plan)
-                    .toSykmeldtOppfolgingsplanOverviewResponse(listOf(olderUnntak, newerUnntak))
+                    .toSykmeldtOppfolgingsplanOverviewResponse(
+                        unntaksvurderinger = listOf(olderUnntak, newerUnntak),
+                        virksomhetsnumreMedAktivSykmelding = emptyList(),
+                    )
 
                 val hendelser = result.virksomheter.single().oppfolgingsplanhendelser
                 hendelser.map { it.id } shouldBe listOf(newerUnntak.id, plan.uuid, olderUnntak.id)
@@ -399,7 +409,8 @@ class PersistedOppfolgingsplanTest :
                 )
 
                 val result = listOf(olderPlan).toSykmeldtOppfolgingsplanOverviewResponse(
-                    listOf(middleUnntak, newestUnntak),
+                    unntaksvurderinger = listOf(middleUnntak, newestUnntak),
+                    virksomhetsnumreMedAktivSykmelding = emptyList(),
                 )
 
                 result.virksomheter.map { it.virksomhet.orgNumber } shouldBe listOf("org1", "org2")
