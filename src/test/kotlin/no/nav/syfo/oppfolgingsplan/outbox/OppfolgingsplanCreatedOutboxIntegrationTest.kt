@@ -7,8 +7,10 @@ import ch.qos.logback.core.read.ListAppender
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -16,6 +18,7 @@ import io.mockk.mockk
 import no.nav.syfo.TestDB
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.database.DatabaseInterface
+import no.nav.syfo.application.outbox.MutableClock
 import no.nav.syfo.application.outbox.OutboxWorker
 import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
@@ -23,7 +26,7 @@ import no.nav.syfo.application.outbox.domain.OutboxStatus
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
-import no.nav.syfo.findEventId
+import no.nav.syfo.findLegacyEventId
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
@@ -36,9 +39,11 @@ import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import org.slf4j.LoggerFactory
 import java.time.Clock
+import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.UUID
+import java.util.concurrent.TimeoutException
 
 class OppfolgingsplanCreatedOutboxIntegrationTest :
     DescribeSpec({
@@ -59,7 +64,8 @@ class OppfolgingsplanCreatedOutboxIntegrationTest :
                     OppfolgingsplanOutboxMessageType.CREATED,
                     planUuid.toString(),
                 ).shouldNotBeNull()
-                message.uuid shouldBe TestDB.database.findEventId(planUuid)
+                TestDB.database.findLegacyEventId(planUuid).shouldBeNull()
+                message.uuid shouldNotBe planUuid
                 message.externalRef shouldBe planUuid.toString()
                 message.availableAt shouldBe plan.createdAt
                 message.status shouldBe OutboxStatus.READY
@@ -114,22 +120,36 @@ class OppfolgingsplanCreatedOutboxIntegrationTest :
                 }
             }
 
-            it("retries a technical publish failure") {
+            it("keeps the outbox uuid as the Budstikka event ID across retries") {
                 val planUuid = TestDB.database.createOppfolgingsplan()
+                val originalMessage = TestDB.database.findCreatedMessage(planUuid)
+                val observedEventIds = mutableListOf<UUID>()
+                var publishAttempt = 0
                 val publisher = mockk<BudstikkaPublisher>()
-                coEvery { publisher.publishOppfolgingsplanCreated(any(), any(), any()) } throws RuntimeException("broker down")
+                coEvery {
+                    publisher.publishOppfolgingsplanCreated(any(), any(), capture(observedEventIds))
+                } coAnswers {
+                    publishAttempt++
+                    if (publishAttempt == 1) throw TimeoutException("Forced Budstikka timeout")
+                }
+                val retryClock = MutableClock(now)
                 val worker = OutboxWorker(
                     database = TestDB.database,
                     handlers = listOf(OppfolgingsplanCreatedOutboxHandler(TestDB.database, publisher)),
-                    clock = clock,
+                    clock = retryClock,
                 )
 
                 worker.runOnce().retryScheduled shouldBe 1
 
-                TestDB.database.findCreatedMessage(planUuid).let { message ->
-                    message.status shouldBe OutboxStatus.READY
-                    message.failureCount shouldBe 1
-                }
+                val retryingMessage = TestDB.database.findCreatedMessage(planUuid)
+                retryingMessage.uuid shouldBe originalMessage.uuid
+                retryingMessage.status shouldBe OutboxStatus.READY
+                retryingMessage.failureCount shouldBe 1
+
+                retryClock.advance(Duration.between(retryClock.instant(), retryingMessage.availableAt).plusMillis(1))
+                worker.runOnce().sent shouldBe 1
+
+                observedEventIds shouldBe listOf(originalMessage.uuid, originalMessage.uuid)
             }
 
             it("cancels a notification when the plan is no longer eligible") {

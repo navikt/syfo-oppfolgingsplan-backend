@@ -267,7 +267,7 @@ fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
     }
 }
 
-fun DatabaseInterface.findEventId(oppfolgingsplanId: UUID): UUID? = connection.use { connection ->
+fun DatabaseInterface.findLegacyEventId(oppfolgingsplanId: UUID): UUID? = connection.use { connection ->
     connection.prepareStatement(
         """
         SELECT event_id
