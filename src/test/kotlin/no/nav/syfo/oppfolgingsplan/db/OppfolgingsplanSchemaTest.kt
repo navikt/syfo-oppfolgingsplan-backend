@@ -76,6 +76,7 @@ class OppfolgingsplanSchemaTest :
                     .shouldContainExactlyInAnyOrder(
                         "evaluering_paaminnelse",
                     )
+                oppfolgingsplanColumns.map { it.name } shouldNotContain "event_id"
                 utkastColumns shouldNotContain "evaluering_paaminnelse"
                 utkastColumns shouldNotContain "evaluering_paaminnelse_outbox_at"
 

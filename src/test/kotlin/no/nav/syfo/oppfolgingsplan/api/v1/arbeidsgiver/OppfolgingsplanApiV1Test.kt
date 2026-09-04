@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.kotest.core.spec.style.DescribeSpec
-import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -47,7 +46,6 @@ import no.nav.syfo.defaultUtkastRequest
 import no.nav.syfo.dinesykmeldte.DineSykmeldteService
 import no.nav.syfo.dinesykmeldte.client.DineSykmeldteHttpClient
 import no.nav.syfo.dokarkiv.DokarkivService
-import no.nav.syfo.findLegacyEventId
 import no.nav.syfo.generatedPdfStandin
 import no.nav.syfo.isdialogmelding.IsDialogmeldingService
 import no.nav.syfo.isdialogmelding.client.IsDialogmeldingClient
@@ -505,7 +503,6 @@ class OppfolgingsplanApiV1Test :
                     persisted.first().organisasjonsnavn shouldBe "Test AS"
                     persisted.first().stillingstittel shouldBe "Systemutvikler"
                     persisted.first().stillingsprosent shouldBe BigDecimal("100.00")
-                    testDb.findLegacyEventId(persisted.first().uuid).shouldBeNull()
                     val outboxMessage = testDb.findOutboxMessage(
                         OppfolgingsplanOutboxMessageType.CREATED,
                         persisted.first().uuid.toString(),
@@ -553,7 +550,6 @@ class OppfolgingsplanApiV1Test :
 
                     val persistedUtkast = testDb.findOppfolgingsplanUtkastBy(sykmeldt.fnr, sykmeldt.orgnummer)
                     persistedUtkast shouldBe null
-                    testDb.findLegacyEventId(persistedOppfolgingsplaner.first().uuid).shouldBeNull()
                     testDb.findOutboxMessage(
                         OppfolgingsplanOutboxMessageType.CREATED,
                         persistedOppfolgingsplaner.first().uuid.toString(),

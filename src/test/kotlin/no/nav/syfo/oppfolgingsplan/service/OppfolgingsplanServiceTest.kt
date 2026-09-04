@@ -19,7 +19,6 @@ import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
-import no.nav.syfo.findLegacyEventId
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
@@ -174,7 +173,6 @@ class OppfolgingsplanServiceTest :
                     val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
                     persisted.stillingstittel shouldBe "Systemutvikler"
                     persisted.stillingsprosent shouldBe BigDecimal("80.50")
-                    TestDB.database.findLegacyEventId(uuid).shouldBeNull()
                     val outboxMessage = TestDB.database.findOutboxMessage(
                         OppfolgingsplanOutboxMessageType.CREATED,
                         uuid.toString(),
