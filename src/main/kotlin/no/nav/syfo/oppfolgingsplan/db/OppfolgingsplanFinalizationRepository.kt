@@ -39,7 +39,6 @@ class OppfolgingsplanFinalizationRepository(
                 OppfolgingsplanUtkastTable.narmesteLederId eq command.sykmeldt.narmestelederId
             }.singleOrNull()
             ?.get(OppfolgingsplanUtkastTable.createdAt)
-        val eventId = UUID.randomUUID()
 
         val insertedOppfolgingsplanRow = OppfolgingsplanTable.insertReturning(
             returning = listOf(
@@ -65,7 +64,6 @@ class OppfolgingsplanFinalizationRepository(
             it[OppfolgingsplanTable.skalDelesMedVeileder] = false
             it[OppfolgingsplanTable.utkastCreatedAt] = utkastCreatedAt
             it[OppfolgingsplanTable.createdAt] = CurrentTimestampWithTimeZone
-            it[OppfolgingsplanTable.eventId] = eventId
         }.single()
 
         val oppfolgingsplanUuid = insertedOppfolgingsplanRow[OppfolgingsplanTable.uuid]
@@ -81,7 +79,6 @@ class OppfolgingsplanFinalizationRepository(
         check(
             enqueueOutboxMessage(
                 NewOutboxMessage(
-                    uuid = eventId,
                     messageType = OppfolgingsplanOutboxMessageType.CREATED,
                     dedupKey = oppfolgingsplanUuid.toString(),
                     externalRef = oppfolgingsplanUuid.toString(),

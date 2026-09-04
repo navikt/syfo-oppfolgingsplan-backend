@@ -4,6 +4,7 @@ import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -18,7 +19,7 @@ import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
-import no.nav.syfo.findEventId
+import no.nav.syfo.findLegacyEventId
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.deleteExpiredOppfolgingsplanUtkast
@@ -173,13 +174,12 @@ class OppfolgingsplanServiceTest :
                     val persisted = service.getPersistedOppfolgingsplanByUuid(uuid)
                     persisted.stillingstittel shouldBe "Systemutvikler"
                     persisted.stillingsprosent shouldBe BigDecimal("80.50")
-                    val eventId = TestDB.database.findEventId(uuid)
-                    eventId.shouldNotBeNull()
+                    TestDB.database.findLegacyEventId(uuid).shouldBeNull()
                     val outboxMessage = TestDB.database.findOutboxMessage(
                         OppfolgingsplanOutboxMessageType.CREATED,
                         uuid.toString(),
                     ).shouldNotBeNull()
-                    outboxMessage.uuid shouldBe eventId
+                    outboxMessage.uuid shouldNotBe uuid
                     outboxMessage.status shouldBe OutboxStatus.READY
                 }
 
