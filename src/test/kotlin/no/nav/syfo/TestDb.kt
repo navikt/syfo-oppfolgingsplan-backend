@@ -266,17 +266,3 @@ fun DatabaseInterface.findOppfolgingsplanUtkastByNarmesteLederId(
         }
     }
 }
-
-fun DatabaseInterface.findLegacyEventId(oppfolgingsplanId: UUID): UUID? = connection.use { connection ->
-    connection.prepareStatement(
-        """
-        SELECT event_id
-        FROM oppfolgingsplan
-        WHERE uuid = ?
-        """.trimIndent(),
-    ).use {
-        it.setObject(1, oppfolgingsplanId)
-        val resultSet = it.executeQuery()
-        if (resultSet.next()) resultSet.getObject("event_id", UUID::class.java) else null
-    }
-}

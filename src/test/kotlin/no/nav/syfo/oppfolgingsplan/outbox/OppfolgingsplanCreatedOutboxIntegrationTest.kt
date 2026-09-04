@@ -7,7 +7,6 @@ import ch.qos.logback.core.read.ListAppender
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.collections.shouldBeEmpty
-import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -26,7 +25,6 @@ import no.nav.syfo.application.outbox.domain.OutboxStatus
 import no.nav.syfo.defaultOppfolgingsplan
 import no.nav.syfo.defaultPersistedOppfolgingsplanUtkast
 import no.nav.syfo.defaultSykmeldt
-import no.nav.syfo.findLegacyEventId
 import no.nav.syfo.findOppfolgingsplanUtkastByNarmesteLederId
 import no.nav.syfo.oppfolgingsplan.db.OppfolgingsplanFinalizationRepository
 import no.nav.syfo.oppfolgingsplan.db.findAllOppfolgingsplanerBy
@@ -64,7 +62,6 @@ class OppfolgingsplanCreatedOutboxIntegrationTest :
                     OppfolgingsplanOutboxMessageType.CREATED,
                     planUuid.toString(),
                 ).shouldNotBeNull()
-                TestDB.database.findLegacyEventId(planUuid).shouldBeNull()
                 message.uuid shouldNotBe planUuid
                 message.externalRef shouldBe planUuid.toString()
                 message.availableAt shouldBe plan.createdAt
