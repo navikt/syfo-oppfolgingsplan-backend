@@ -41,7 +41,7 @@ fun Application.installCallId() {
 
 private fun logException(call: ApplicationCall, cause: Throwable) {
     val logExceptionMessage = "Caught ${cause::class.simpleName} exception"
-    call.application.log.error(logExceptionMessage, cause)
+    call.application.log.error(logExceptionMessage)
 }
 
 private fun determineApiError(cause: Throwable, path: String): ApiError = when (cause) {
@@ -57,7 +57,7 @@ private fun determineApiError(cause: Throwable, path: String): ApiError = when (
     else -> ApiError(
         status = HttpStatusCode.InternalServerError,
         type = ErrorType.INTERNAL_SERVER_ERROR,
-        message = cause.message ?: "Internal server error",
+        message = "Internal server error",
         path = path,
     )
 }

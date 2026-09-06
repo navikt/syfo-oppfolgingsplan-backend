@@ -12,6 +12,10 @@ import io.mockk.mockk
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_UNNTAKSVURDERING_SOFT_DELETED
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
+import no.nav.syfo.oppfolgingsplan.service.SYNTHETIC_NARMESTE_LEDER_FNR
+import no.nav.syfo.oppfolgingsplan.service.SYNTHETIC_NARMESTE_LEDER_NAME
+import no.nav.syfo.oppfolgingsplan.service.SYNTHETIC_SYKMELDT_FNR
+import no.nav.syfo.oppfolgingsplan.service.shouldNotContainSensitiveUnntaksvurderingData
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
@@ -62,6 +66,39 @@ class SoftDeleteUnntaksvurderingerTaskTest :
                     appender.list.any {
                         it.level == Level.INFO &&
                             it.formattedMessage == "Found 0 expired unntaksvurderinger to soft-delete"
+                    } shouldBe true
+                } finally {
+                    logger.level = originalLevel
+                    logger.detachAppender(appender)
+                    appender.stop()
+                }
+            }
+
+            it("logs only static text and count when unntaksvurderinger are soft-deleted") {
+                val service = mockk<UnntaksvurderingService>()
+                val logger = LoggerFactory.getLogger(SoftDeleteUnntaksvurderingerTask::class.qualifiedName) as Logger
+                val appender = ListAppender<ILoggingEvent>().apply { start() }
+                val originalLevel = logger.level
+                coEvery { service.softDeleteExpiredUnntaksvurderinger() } returns 3
+                logger.level = Level.INFO
+                logger.addAppender(appender)
+
+                try {
+                    SoftDeleteUnntaksvurderingerTask(
+                        leaderElection = mockk<LeaderElection>(),
+                        unntaksvurderingService = service,
+                    ).execute()
+
+                    appender.list.shouldNotContainSensitiveUnntaksvurderingData(
+                        listOf(
+                            SYNTHETIC_SYKMELDT_FNR,
+                            SYNTHETIC_NARMESTE_LEDER_FNR,
+                            SYNTHETIC_NARMESTE_LEDER_NAME,
+                        ),
+                    )
+                    appender.list.any {
+                        it.level == Level.INFO &&
+                            it.formattedMessage == "Soft-deleted 3 expired unntaksvurderinger"
                     } shouldBe true
                 } finally {
                     logger.level = originalLevel
