@@ -1,5 +1,8 @@
 package no.nav.syfo.oppfolgingsplan.api.v1.arbeidsgiver
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
@@ -25,6 +28,7 @@ import no.nav.syfo.TestDB
 import no.nav.syfo.aareg.AaregService
 import no.nav.syfo.application.Environment
 import no.nav.syfo.application.LocalEnvironment
+import no.nav.syfo.application.exception.ApiError
 import no.nav.syfo.application.valkey.ValkeyCache
 import no.nav.syfo.defaultMocks
 import no.nav.syfo.defaultPersistedOppfolgingsplan
@@ -46,7 +50,11 @@ import no.nav.syfo.oppfolgingsplan.dto.ArbeidsgiverOppfolgingsplanOverviewRespon
 import no.nav.syfo.oppfolgingsplan.dto.GjeldendeStatus
 import no.nav.syfo.oppfolgingsplan.dto.MeldtAvRolle
 import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
+import no.nav.syfo.oppfolgingsplan.service.SYNTHETIC_NARMESTE_LEDER_FNR
+import no.nav.syfo.oppfolgingsplan.service.SYNTHETIC_NARMESTE_LEDER_NAME
+import no.nav.syfo.oppfolgingsplan.service.SYNTHETIC_SYKMELDT_FNR
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
+import no.nav.syfo.oppfolgingsplan.service.shouldNotContainSensitiveUnntaksvurderingData
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
@@ -55,6 +63,7 @@ import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.varsel.EsyfovarselProducer
+import org.slf4j.LoggerFactory
 import java.time.Instant
 import java.util.UUID
 
@@ -131,6 +140,12 @@ class UnntaksvurderingApiV1Test :
                 fn(this)
             }
         }
+
+        fun sensitiveUnntaksvurderingValues() = listOf(
+            SYNTHETIC_SYKMELDT_FNR,
+            SYNTHETIC_NARMESTE_LEDER_FNR,
+            SYNTHETIC_NARMESTE_LEDER_NAME,
+        )
 
         describe("GET /oppfolgingsplaner/oversikt") {
             it("returns empty unntaksvurderinger and status INGEN when nothing exists") {
@@ -425,6 +440,101 @@ class UnntaksvurderingApiV1Test :
 
                     response.status shouldBe HttpStatusCode.Conflict
                     testDb.findAllUnntaksvurderingerBy(sykmeldt.fnr, sykmeldt.orgnummer) shouldBe emptyList()
+                }
+            }
+
+            it("logs static conflict details without synthetic identifiers or names") {
+                val logger = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) as Logger
+                val appender = ListAppender<ILoggingEvent>().apply { start() }
+                logger.addAppender(appender)
+
+                try {
+                    withTestApplication {
+                        val syntheticSykmeldt = sykmeldt.copy(fnr = SYNTHETIC_SYKMELDT_FNR)
+                        texasClientMock.defaultMocks(
+                            SYNTHETIC_NARMESTE_LEDER_FNR,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+                        coEvery {
+                            dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+                        } returns syntheticSykmeldt
+
+                        testDb.upsertOppfolgingsplanUtkast(
+                            narmesteLederFnr = SYNTHETIC_NARMESTE_LEDER_FNR,
+                            sykmeldt = syntheticSykmeldt,
+                            lagreUtkastRequest = defaultUtkastRequest(),
+                        )
+
+                        val response = client.post {
+                            url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
+                            bearerAuth("******")
+                        }
+
+                        response.status shouldBe HttpStatusCode.Conflict
+                        response.body<ApiError>().message shouldBe
+                            "Cannot create unntaksvurdering when an oppfolgingsplan utkast exists"
+                        appender.list.shouldNotContainSensitiveUnntaksvurderingData(sensitiveUnntaksvurderingValues())
+                    }
+                } finally {
+                    logger.detachAppender(appender)
+                    appender.stop()
+                }
+            }
+
+            it("redacts database failure details while persisting an unntaksvurdering") {
+                val logger = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME) as Logger
+                val appender = ListAppender<ILoggingEvent>().apply { start() }
+                val constraintName = "unntaksvurdering_logging_test_reject"
+                var constraintAdded = false
+                logger.addAppender(appender)
+
+                try {
+                    testDb.connection.use { connection ->
+                        connection.createStatement().use { statement ->
+                            statement.execute(
+                                "ALTER TABLE unntaksvurdering ADD CONSTRAINT $constraintName CHECK (false) NOT VALID",
+                            )
+                        }
+                        connection.commit()
+                    }
+                    constraintAdded = true
+
+                    withTestApplication {
+                        val syntheticSykmeldt = sykmeldt.copy(fnr = SYNTHETIC_SYKMELDT_FNR)
+                        texasClientMock.defaultMocks(
+                            SYNTHETIC_NARMESTE_LEDER_FNR,
+                            clientId = environment.syfoOppfolgingsplanFrontendClientId,
+                        )
+                        coEvery {
+                            dineSykmeldteHttpClientMock.getSykmeldtForNarmesteLederId(narmestelederId, "token")
+                        } returns syntheticSykmeldt
+                        coEvery { pdlServiceMock.getNameFor(SYNTHETIC_NARMESTE_LEDER_FNR) } returns
+                            SYNTHETIC_NARMESTE_LEDER_NAME
+
+                        val response = client.post {
+                            url("/api/v1/arbeidsgiver/$narmestelederId/unntaksvurderinger")
+                            bearerAuth("******")
+                        }
+
+                        response.status shouldBe HttpStatusCode.InternalServerError
+                        response.body<ApiError>().message shouldBe "Internal server error"
+                        appender.list.shouldNotContainSensitiveUnntaksvurderingData(sensitiveUnntaksvurderingValues())
+                        val caughtExceptionEvent = appender.list.single {
+                            it.formattedMessage.startsWith("Caught ") && it.formattedMessage.endsWith(" exception")
+                        }
+                        caughtExceptionEvent.throwableProxy shouldBe null
+                    }
+                } finally {
+                    if (constraintAdded) {
+                        testDb.connection.use { connection ->
+                            connection.createStatement().use { statement ->
+                                statement.execute("ALTER TABLE unntaksvurdering DROP CONSTRAINT $constraintName")
+                            }
+                            connection.commit()
+                        }
+                    }
+                    logger.detachAppender(appender)
+                    appender.stop()
                 }
             }
 
