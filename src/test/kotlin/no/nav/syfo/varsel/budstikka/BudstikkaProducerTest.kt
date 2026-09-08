@@ -18,6 +18,7 @@ import no.nav.budstikka.contract.Orgnummer
 import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
+import no.nav.syfo.application.kafka.BUDSTIKKA_SEND_TIMEOUT_MILLIS
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_HTML
 import no.nav.syfo.varsel.budstikka.infrastructure.EVALUERINGS_PAAMINNELSE_EMAIL_TITLE
@@ -33,9 +34,11 @@ import org.apache.kafka.common.TopicPartition
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.UUID
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 
 class BudstikkaProducerTest :
     DescribeSpec({
@@ -57,7 +60,9 @@ class BudstikkaProducerTest :
             publish: suspend () -> Unit,
         ) {
             val future = mockk<Future<RecordMetadata>>()
-            every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
+            every {
+                future.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+            } returns createRecordMetadata()
             every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
 
             publish()
@@ -90,7 +95,9 @@ class BudstikkaProducerTest :
                     link = budstikkaOppfolgingsplanSykmeldtUrl,
                     sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
                 )
-                every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
+                every {
+                    future.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                } returns createRecordMetadata()
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
 
                 producer.publishOppfolgingsplanCreated(
@@ -116,13 +123,17 @@ class BudstikkaProducerTest :
                         },
                     )
                 }
-                verify(exactly = 1) { future.get(250, TimeUnit.MILLISECONDS) }
+                verify(exactly = 1) {
+                    future.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                }
             }
 
             it("rethrows exception when send confirmation times out") {
                 val failedFuture = mockk<Future<RecordMetadata>>()
                 val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
-                every { failedFuture.get(250, TimeUnit.MILLISECONDS) } throws TimeoutException("Forced")
+                every {
+                    failedFuture.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                } throws TimeoutException("Forced")
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns failedFuture
 
                 val error = shouldThrow<Exception> {
@@ -134,7 +145,47 @@ class BudstikkaProducerTest :
                 }
 
                 error.message shouldContain "Forced"
-                verify(exactly = 1) { failedFuture.get(250, TimeUnit.MILLISECONDS) }
+                verify(exactly = 1) {
+                    failedFuture.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                }
+            }
+
+            it("rethrows the Kafka cause when delivery times out asynchronously") {
+                val failedFuture = mockk<Future<RecordMetadata>>()
+                val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
+                val kafkaTimeout = KafkaTimeoutException("Delivery timed out")
+                every {
+                    failedFuture.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                } throws ExecutionException(kafkaTimeout)
+                every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns failedFuture
+
+                val error = shouldThrow<KafkaTimeoutException> {
+                    producer.publishOppfolgingsplanCreated(
+                        oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4"),
+                        sykmeldtFnr = "12345678901",
+                        eventId = eventId,
+                    )
+                }
+
+                error shouldBe kafkaTimeout
+            }
+
+            it("rethrows a synchronous Kafka timeout from send") {
+                val eventId = UUID.fromString("5fbc039e-b104-4554-809f-337d7ef804d0")
+                val kafkaTimeout = KafkaTimeoutException("Metadata unavailable")
+                every {
+                    kafkaProducerMock.send(any<ProducerRecord<String, String>>())
+                } throws kafkaTimeout
+
+                val error = shouldThrow<KafkaTimeoutException> {
+                    producer.publishOppfolgingsplanCreated(
+                        oppfolgingsplanUuid = UUID.fromString("0a5c80b8-2350-4f2a-b0e7-d1b796c6c8d4"),
+                        sykmeldtFnr = "12345678901",
+                        eventId = eventId,
+                    )
+                }
+
+                error shouldBe kafkaTimeout
             }
         }
 
@@ -154,7 +205,9 @@ class BudstikkaProducerTest :
                     text = EVALUERINGS_PAAMINNELSE_TEXT,
                     sendingWindow = SendingWindow.ONGOING,
                 )
-                every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
+                every {
+                    future.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                } returns createRecordMetadata()
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
 
                 producer.publishDineSykmeldteEvalueringspaaminnelse(
@@ -182,7 +235,9 @@ class BudstikkaProducerTest :
                         },
                     )
                 }
-                verify(exactly = 1) { future.get(250, TimeUnit.MILLISECONDS) }
+                verify(exactly = 1) {
+                    future.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                }
             }
         }
 
@@ -210,7 +265,9 @@ class BudstikkaProducerTest :
                     messageType = Arbeidsgivervarsel.MessageType.BESKJED,
                     sendingWindow = SendingWindow.BUDSTIKKA_OPENING_HOURS,
                 )
-                every { future.get(250, TimeUnit.MILLISECONDS) } returns createRecordMetadata()
+                every {
+                    future.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                } returns createRecordMetadata()
                 every { kafkaProducerMock.send(any<ProducerRecord<String, String>>()) } returns future
 
                 producer.publishMinSideArbeidsgiverEvalueringspaaminnelse(
@@ -234,7 +291,9 @@ class BudstikkaProducerTest :
                         },
                     )
                 }
-                verify(exactly = 1) { future.get(250, TimeUnit.MILLISECONDS) }
+                verify(exactly = 1) {
+                    future.get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                }
             }
         }
 

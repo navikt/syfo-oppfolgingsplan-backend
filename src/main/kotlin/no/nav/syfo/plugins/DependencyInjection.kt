@@ -15,8 +15,8 @@ import no.nav.syfo.application.database.DatabaseConfig
 import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.isProdEnv
+import no.nav.syfo.application.kafka.budstikkaProducerProperties
 import no.nav.syfo.application.kafka.producerProperties
-import no.nav.syfo.application.kafka.stringProducerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.outbox.OutboxRetentionPolicy
 import no.nav.syfo.application.outbox.OutboxRetentionTask
@@ -72,7 +72,6 @@ import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import no.nav.syfo.varsel.domain.EsyfovarselHendelse
 import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerConfig
 import org.koin.core.scope.Scope
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
@@ -232,10 +231,7 @@ private fun kafkeProducerModule() = module {
     single<BudstikkaPublisher> {
         BudstikkaProducer(
             KafkaProducer<String, String>(
-                stringProducerProperties(env().kafka)
-                    .apply {
-                        put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 5000)
-                    },
+                budstikkaProducerProperties(env().kafka),
             ),
             env().minSideSykmeldtOppfolgingsplanUrl,
             env().dineSykmeldteOversiktUrl,

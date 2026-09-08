@@ -12,6 +12,10 @@ import java.util.Properties
 const val JAVA_KEYSTORE = "JKS"
 const val PKCS12 = "PKCS12"
 const val SSL = "SSL"
+internal const val BUDSTIKKA_MAX_BLOCK_MILLIS = 5_000
+internal const val BUDSTIKKA_REQUEST_TIMEOUT_MILLIS = 10_000
+internal const val BUDSTIKKA_DELIVERY_TIMEOUT_MILLIS = 20_000
+internal const val BUDSTIKKA_SEND_TIMEOUT_MILLIS = 25_000L
 
 fun commonProperties(env: KafkaEnv): Properties {
     val sslConfig = env.sslConfig
@@ -53,6 +57,13 @@ fun stringProducerProperties(env: KafkaEnv): Properties {
         put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
         put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
     }
+}
+
+internal fun budstikkaProducerProperties(env: KafkaEnv): Properties = stringProducerProperties(env).apply {
+    put(ProducerConfig.MAX_BLOCK_MS_CONFIG, BUDSTIKKA_MAX_BLOCK_MILLIS)
+    put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, BUDSTIKKA_REQUEST_TIMEOUT_MILLIS)
+    put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, BUDSTIKKA_DELIVERY_TIMEOUT_MILLIS)
+    put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true)
 }
 
 fun consumerProperties(env: KafkaEnv, groupId: String): Properties {

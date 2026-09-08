@@ -13,18 +13,17 @@ import no.nav.budstikka.contract.Orgnummer
 import no.nav.budstikka.contract.PersonIdentifier
 import no.nav.budstikka.contract.SendingWindow
 import no.nav.budstikka.contract.Varseltype
+import no.nav.syfo.application.kafka.BUDSTIKKA_SEND_TIMEOUT_MILLIS
 import no.nav.syfo.util.logger
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import java.util.UUID
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
-import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 
 private const val BRUKERVARSEL_CREATE = "BrukervarselCreate"
 private const val LEDERVARSEL_CREATE = "LedervarselCreate"
 private const val ARBEIDSGIVERVARSEL_CREATE = "ArbeidsgivervarselCreate"
-private const val BUDSTIKKA_SEND_TIMEOUT_MILLIS = 250L
 private const val OPPFOLGING_TAG = "Oppfølging"
 const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Din arbeidsgiver har laget en oppfølgingsplan for deg"
 const val EVALUERINGS_PAAMINNELSE_TEXT = "Oppdater oppfølgingsplan"
@@ -169,33 +168,9 @@ class BudstikkaProducer(
         )
         try {
             producer.send(record).get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
-        } catch (e: TimeoutException) {
-            log.error(
-                "Publisert til akkumulator, timeout på get. Ukjent utfall {}, {}, {}",
-                kv("topic", dispatch.topic),
-                dispatchContext,
-                kv("event_id", eventId),
-                e,
-            )
-            throw e
-        } catch (e: KafkaTimeoutException) {
-            log.error(
-                "Publisering av Budstikka dispatch timet ut. Ikke levert {}, {}, {}",
-                kv("topic", dispatch.topic),
-                dispatchContext,
-                kv("event_id", eventId),
-                e,
-            )
-            throw e
-        } catch (e: Exception) {
-            log.error(
-                "Feilet ved publisering av Budstikka dispatch til {}, {}, {}",
-                kv("topic", dispatch.topic),
-                dispatchContext,
-                kv("event_id", eventId),
-                e,
-            )
-            throw e
+        } catch (e: ExecutionException) {
+            // Future.get wraps failures completed asynchronously by the Kafka producer.
+            throw (e.cause as? Exception ?: e)
         }
     }
 

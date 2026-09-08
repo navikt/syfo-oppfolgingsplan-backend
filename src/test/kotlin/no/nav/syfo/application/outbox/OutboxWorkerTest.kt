@@ -1,5 +1,10 @@
 package no.nav.syfo.application.outbox
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.date.shouldBeAfter
@@ -11,6 +16,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import net.logstash.logback.encoder.LogstashEncoder
 import no.nav.syfo.TestDB
 import no.nav.syfo.application.metric.METRICS_NS
 import no.nav.syfo.application.metric.METRICS_REGISTRY
@@ -18,9 +28,11 @@ import no.nav.syfo.application.outbox.db.findOutboxMessage
 import no.nav.syfo.application.outbox.domain.OutboxCancellationReason
 import no.nav.syfo.application.outbox.domain.OutboxMessageType
 import no.nav.syfo.application.outbox.domain.OutboxStatus
+import org.slf4j.LoggerFactory
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlin.time.Duration.Companion.INFINITE
 
@@ -133,6 +145,27 @@ class OutboxWorkerTest :
         }
 
         describe("technical failure and recovery") {
+            it("logs one canonical error when claimed message processing crashes") {
+                val message = TestDB.database.enqueueTestOutboxMessage()
+                val clock = FailOnceClock(now, failOnInvocation = 3)
+
+                val (result, logEvents) = captureOutboxWorkerLogs {
+                    OutboxWorker(TestDB.database, listOf(TestOutboxHandler()), clock).runOnce()
+                }
+
+                result shouldBe OutboxBatchResult()
+                TestDB.database.findOutboxMessage(message)?.status shouldBe OutboxStatus.CLAIMED
+
+                val errorLogs = logEvents.filter { it.level == Level.ERROR }.map { it.serializedJson() }
+                errorLogs.size shouldBe 1
+                errorLogs.single().value("event_type") shouldBe OUTBOX_MESSAGE_PROCESSING_FAILED_EVENT
+                errorLogs.single().value("operation") shouldBe PROCESS_OUTBOX_MESSAGE_OPERATION
+                errorLogs.single().value("message_type") shouldBe TEST_IMMEDIATE_MESSAGE.value
+                errorLogs.single().value("exception_type") shouldBe "IllegalStateException"
+                errorLogs.single().value("outbox_uuid") shouldBe message.uuid.toString()
+                errorLogs.single().toString().contains("synthetic clock failure") shouldBe false
+            }
+
             it("records a handler failure and applies the handler retry policy") {
                 val message = TestDB.database.enqueueTestOutboxMessage()
                 val retryAt = now.plusSeconds(15 * 60)
@@ -178,7 +211,9 @@ class OutboxWorkerTest :
                 val handler = TestOutboxHandler(outcome = { _, _ -> error("downstream unavailable") })
                 val config = OutboxWorkerConfig(maxConsecutiveFailures = 3)
 
-                val result = OutboxWorker(TestDB.database, listOf(handler), fixedClock, config).runOnce()
+                val (result, logEvents) = captureOutboxWorkerLogs {
+                    OutboxWorker(TestDB.database, listOf(handler), fixedClock, config).runOnce()
+                }
 
                 result shouldBe OutboxBatchResult(retryScheduled = 3)
                 messages.take(3).forEach { message ->
@@ -187,6 +222,24 @@ class OutboxWorkerTest :
                     persisted.failureCount shouldBeExactly 1
                 }
                 TestDB.database.findOutboxMessage(messages.last())?.status shouldBe OutboxStatus.CLAIMED
+
+                val retryLogs = logEvents.filter { it.level == Level.WARN }.map { it.serializedJson() }
+                retryLogs.size shouldBe 3
+                retryLogs.forEach { logEvent ->
+                    logEvent.value("event_type") shouldBe OUTBOX_MESSAGE_RETRY_SCHEDULED_EVENT
+                    logEvent.value("operation") shouldBe PROCESS_OUTBOX_MESSAGE_OPERATION
+                    logEvent.value("message_type") shouldBe TEST_IMMEDIATE_MESSAGE.value
+                    logEvent.value("exception_type") shouldBe "IllegalStateException"
+                    logEvent.toString().contains("downstream unavailable") shouldBe false
+                }
+
+                val errorLogs = logEvents.filter { it.level == Level.ERROR }.map { it.serializedJson() }
+                errorLogs.size shouldBe 1
+                errorLogs.single().value("event_type") shouldBe OUTBOX_BATCH_ABORTED_EVENT
+                errorLogs.single().value("error_code") shouldBe "CONSECUTIVE_FAILURE_LIMIT_REACHED"
+                errorLogs.single().value("operation") shouldBe PROCESS_OUTBOX_BATCH_OPERATION
+                errorLogs.single().value("message_type") shouldBe TEST_IMMEDIATE_MESSAGE.value
+                errorLogs.single().value("consecutive_failure_count") shouldBe "3"
             }
 
             it("leaves a cancelled worker claim for recovery after its lease expires") {
@@ -309,3 +362,48 @@ class OutboxWorkerTest :
             }
         }
     })
+
+private suspend fun <T> captureOutboxWorkerLogs(block: suspend () -> T): Pair<T, List<ILoggingEvent>> {
+    val logger = LoggerFactory.getLogger(OutboxWorker::class.java) as Logger
+    val appender = ListAppender<ILoggingEvent>().apply { start() }
+    logger.addAppender(appender)
+    return try {
+        block() to appender.list.toList()
+    } finally {
+        logger.detachAppender(appender)
+        appender.stop()
+    }
+}
+
+private fun ILoggingEvent.serializedJson(): JsonObject {
+    val encoder = LogstashEncoder().apply {
+        context = LoggerFactory.getILoggerFactory() as LoggerContext
+        start()
+    }
+    return try {
+        Json.parseToJsonElement(encoder.encode(this).decodeToString()).jsonObject
+    } finally {
+        encoder.stop()
+    }
+}
+
+private fun JsonObject.value(field: String): String = getValue(field).jsonPrimitive.content
+
+private class FailOnceClock(
+    private val currentInstant: Instant,
+    private val failOnInvocation: Int,
+) : Clock() {
+    private var invocation = 0
+
+    override fun getZone(): ZoneId = ZoneOffset.UTC
+
+    override fun withZone(zone: ZoneId): Clock = this
+
+    override fun instant(): Instant {
+        invocation++
+        if (invocation == failOnInvocation) {
+            error("synthetic clock failure")
+        }
+        return currentInstant
+    }
+}
