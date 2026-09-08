@@ -22,6 +22,14 @@ import java.time.Duration.between
 import java.time.Instant
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
+
+internal const val OUTBOX_MESSAGE_PROCESSING_FAILED_EVENT = "outbox_message_processing_failed"
+internal const val OUTBOX_MESSAGE_RETRY_SCHEDULED_EVENT = "outbox_message_retry_scheduled"
+internal const val OUTBOX_BATCH_ABORTED_EVENT = "outbox_batch_aborted"
+internal const val PROCESS_OUTBOX_MESSAGE_OPERATION = "process_outbox_message"
+internal const val PROCESS_OUTBOX_BATCH_OPERATION = "process_outbox_batch"
+private const val CONSECUTIVE_FAILURE_LIMIT_REACHED = "CONSECUTIVE_FAILURE_LIMIT_REACHED"
 
 data class OutboxBatchResult(
     val sent: Int = 0,
@@ -145,10 +153,12 @@ class OutboxWorker(
                 consecutiveFailures++
                 incrementMetric(handler.messageType, "processing_failed")
                 log.error(
-                    "Failed to process claimed outbox message {} {} {}",
+                    "Failed to process claimed outbox message {} {} {} {} {}",
+                    kv("event_type", OUTBOX_MESSAGE_PROCESSING_FAILED_EVENT),
+                    kv("operation", PROCESS_OUTBOX_MESSAGE_OPERATION),
                     kv("outbox_uuid", message.uuid),
                     kv("message_type", handler.messageType.value),
-                    kv("error_type", e.javaClass.name),
+                    kv("exception_type", e.safeExceptionType()),
                 )
                 if (consecutiveFailures >= config.maxConsecutiveFailures) {
                     logBatchAbort(handler.messageType, consecutiveFailures)
@@ -167,11 +177,13 @@ class OutboxWorker(
                     consecutiveFailures++
                     result = result.copy(retryScheduled = result.retryScheduled + 1)
                     incrementMetric(handler.messageType, "retry_scheduled")
-                    log.error(
-                        "Failed to handle outbox message; retry scheduled {} {} {}",
+                    log.warn(
+                        "Failed to handle outbox message; retry scheduled {} {} {} {} {}",
+                        kv("event_type", OUTBOX_MESSAGE_RETRY_SCHEDULED_EVENT),
+                        kv("operation", PROCESS_OUTBOX_MESSAGE_OPERATION),
                         kv("outbox_uuid", message.uuid),
                         kv("message_type", handler.messageType.value),
-                        kv("error_type", attempt.cause.javaClass.name),
+                        kv("exception_type", attempt.cause.safeExceptionType()),
                     )
                 }
                 ProcessAttempt.ClaimLost -> {
@@ -227,7 +239,10 @@ class OutboxWorker(
 
     private fun logBatchAbort(messageType: OutboxMessageType, consecutiveFailures: Int) {
         log.error(
-            "Aborting outbox batch after consecutive failures {} {}",
+            "Aborting outbox batch after consecutive failures {} {} {} {} {}",
+            kv("event_type", OUTBOX_BATCH_ABORTED_EVENT),
+            kv("error_code", CONSECUTIVE_FAILURE_LIMIT_REACHED),
+            kv("operation", PROCESS_OUTBOX_BATCH_OPERATION),
             kv("message_type", messageType.value),
             kv("consecutive_failure_count", consecutiveFailures),
         )
@@ -261,6 +276,14 @@ class OutboxWorker(
             is OutboxResult.Cancelled -> "cancelled"
             is OutboxResult.Deferred -> "deferred"
         }
+
+    private fun Throwable.safeExceptionType(): String = when (this) {
+        is java.util.concurrent.TimeoutException -> "FutureTimeoutException"
+        is KafkaTimeoutException -> "KafkaTimeoutException"
+        is IllegalArgumentException -> "IllegalArgumentException"
+        is IllegalStateException -> "IllegalStateException"
+        else -> "UnknownException"
+    }
 
     private sealed interface ProcessAttempt {
         data class Processed(val outcome: OutboxResult) : ProcessAttempt

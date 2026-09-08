@@ -20,8 +20,6 @@ import org.apache.kafka.clients.producer.ProducerRecord
 import java.util.UUID
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.TimeoutException
-import org.apache.kafka.common.errors.TimeoutException as KafkaTimeoutException
 
 private const val BRUKERVARSEL_CREATE = "BrukervarselCreate"
 private const val LEDERVARSEL_CREATE = "LedervarselCreate"
@@ -170,54 +168,9 @@ class BudstikkaProducer(
         )
         try {
             producer.send(record).get(BUDSTIKKA_SEND_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
-        } catch (e: TimeoutException) {
-            log.error(
-                "Publisert til akkumulator, timeout på get. Ukjent utfall {}, {}, {}",
-                kv("topic", dispatch.topic),
-                dispatchContext,
-                kv("event_id", eventId),
-                e,
-            )
-            throw e
-        } catch (e: KafkaTimeoutException) {
-            log.error(
-                "Publisering av Budstikka dispatch timet ut. Ikke levert {}, {}, {}",
-                kv("topic", dispatch.topic),
-                dispatchContext,
-                kv("event_id", eventId),
-                e,
-            )
-            throw e
         } catch (e: ExecutionException) {
             // Future.get wraps failures completed asynchronously by the Kafka producer.
-            val cause = e.cause as? Exception ?: e
-            if (cause is KafkaTimeoutException) {
-                log.error(
-                    "Publisering av Budstikka dispatch timet ut. Ikke levert {}, {}, {}",
-                    kv("topic", dispatch.topic),
-                    dispatchContext,
-                    kv("event_id", eventId),
-                    cause,
-                )
-            } else {
-                log.error(
-                    "Feilet ved publisering av Budstikka dispatch til {}, {}, {}",
-                    kv("topic", dispatch.topic),
-                    dispatchContext,
-                    kv("event_id", eventId),
-                    cause,
-                )
-            }
-            throw cause
-        } catch (e: Exception) {
-            log.error(
-                "Feilet ved publisering av Budstikka dispatch til {}, {}, {}",
-                kv("topic", dispatch.topic),
-                dispatchContext,
-                kv("event_id", eventId),
-                e,
-            )
-            throw e
+            throw (e.cause as? Exception ?: e)
         }
     }
 
