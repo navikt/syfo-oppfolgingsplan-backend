@@ -226,3 +226,20 @@ Swagger, HTTP request-filer og tokenhjelpere gjør det enklere å teste API-et m
 ## For Nav-ansatte
 
 Spørsmål om tjenesten kan tas i [#esyfo på Slack](https://nav-it.slack.com/archives/C012X796B4L).
+
+## Alerting i dev
+
+Alertregler deployeres automatisk bare til produksjon. Dev skal normalt være
+uten alertregler. `nais/alerts-dev.yaml` beholdes for avgrensede, manuelle tester.
+
+Start en test fra repository-roten:
+
+```bash
+kubectl --context dev-gcp --namespace team-esyfo apply -f nais/alerts-dev.yaml
+```
+
+Slett reglene når testen er ferdig, også dersom testen feiler:
+
+```bash
+kubectl --context dev-gcp --namespace team-esyfo delete prometheusrule syfo-oppfolgingsplan-backend-alerts --ignore-not-found
+```
