@@ -11,10 +11,10 @@ import io.mockk.coVerify
 import io.mockk.mockk
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.oppfolgingsplan.api.v1.COUNT_UNNTAKSVURDERING_SOFT_DELETED
-import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.oppfolgingsplan.service.SYNTHETIC_NARMESTE_LEDER_FNR
 import no.nav.syfo.oppfolgingsplan.service.SYNTHETIC_NARMESTE_LEDER_NAME
 import no.nav.syfo.oppfolgingsplan.service.SYNTHETIC_SYKMELDT_FNR
+import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.oppfolgingsplan.service.shouldNotContainSensitiveUnntaksvurderingData
 import org.slf4j.LoggerFactory
 import kotlin.time.Duration.Companion.days
