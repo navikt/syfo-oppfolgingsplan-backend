@@ -18,8 +18,8 @@ val postgresVersion = "42.7.13"
 val testcontainersVersion = "1.21.4"
 val valkeyVersion = "5.5.0"
 val coroutinesVersion = "1.11.0"
-val jacksonBomVersion = "2.22.3"
-val toolsJacksonBomVersion = "3.2.3"
+val jacksonBomVersion = "2.22.4"
+val toolsJacksonBomVersion = "3.2.4"
 
 plugins {
     kotlin("jvm") version "2.4.20"
