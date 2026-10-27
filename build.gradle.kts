@@ -18,6 +18,8 @@ val postgresVersion = "42.7.13"
 val testcontainersVersion = "1.21.4"
 val valkeyVersion = "5.5.0"
 val coroutinesVersion = "1.11.0"
+val jacksonBomVersion = "2.22.4"
+val toolsJacksonBomVersion = "3.2.4"
 
 plugins {
     kotlin("jvm") version "2.4.20"
@@ -39,6 +41,30 @@ repositories {
 dependencies {
     implementation(platform("io.netty:netty-bom:$nettyVersion"))
 
+    // Temporary security floors for transitive Jackson dependencies; remove when
+    // ktor and logstash-logback-encoder request patched versions.
+    implementation(platform("com.fasterxml.jackson:jackson-bom:$jacksonBomVersion"))
+    implementation(platform("tools.jackson:jackson-bom:$toolsJacksonBomVersion"))
+
+    constraints {
+        // The BOM platforms above already resolve patched versions, but GitHub's dependency graph
+        // reports the requested transitive versions and ignores platform() constraints, so the
+        // Dependabot alerts stay open without these explicit floors.
+        //
+        // tools.jackson.core 3.0.1 comes in via logstash-logback-encoder 9.0; no patched encoder
+        // release exists yet. Same approach as navikt/syfo-budstikka#345.
+        implementation("tools.jackson.core:jackson-databind:$toolsJacksonBomVersion") {
+            because("CVE-2026-91776 (GHSA-wv8q-qhhj-9h54)")
+        }
+        implementation("tools.jackson.core:jackson-core:$toolsJacksonBomVersion") {
+            because("CVE-2026-89407 (GHSA-2m67-wjpj-xhg9)")
+        }
+        // Same CVE on the Jackson 2 line pulled in by ktor-serialization-jackson.
+        implementation("com.fasterxml.jackson.core:jackson-databind:$jacksonBomVersion") {
+            because("CVE-2026-91776 (GHSA-wv8q-qhhj-9h54)")
+        }
+    }
+
     implementation("io.ktor:ktor-server-core")
     implementation("io.ktor:ktor-server-auth")
     implementation("io.ktor:ktor-server-auth-jwt")
@@ -56,7 +82,7 @@ dependencies {
     implementation("io.ktor:ktor-client-apache5-jvm")
     implementation("io.ktor:ktor-serialization-jackson")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
-    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.22.2")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonBomVersion")
     implementation("io.insert-koin:koin-ktor:$koinVersion")
     implementation("io.insert-koin:koin-logger-slf4j:$koinVersion")
     implementation("io.ktor:ktor-server-netty")
