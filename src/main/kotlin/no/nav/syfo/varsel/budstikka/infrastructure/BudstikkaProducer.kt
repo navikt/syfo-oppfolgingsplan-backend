@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import net.logstash.logback.argument.StructuredArgument
 import net.logstash.logback.argument.StructuredArguments.kv
+import no.nav.budstikka.contract.Arbeidsgiversak
 import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EncodedDispatch
@@ -24,7 +25,6 @@ import java.util.concurrent.TimeUnit
 private const val BRUKERVARSEL_CREATE = "BrukervarselCreate"
 private const val LEDERVARSEL_CREATE = "LedervarselCreate"
 private const val ARBEIDSGIVERVARSEL_CREATE = "ArbeidsgivervarselCreate"
-private const val OPPFOLGING_TAG = "Oppfølging"
 const val OPPFOLGINGSPLAN_CREATED_BUDSTIKKA_TEXT = "Din arbeidsgiver har laget en oppfølgingsplan for deg"
 const val EVALUERINGS_PAAMINNELSE_TEXT = "Oppdater oppfølgingsplan"
 const val OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_BUDSTIKKA_TEXT = "Start oppfølgingsplan"
@@ -88,7 +88,7 @@ class BudstikkaProducer(
                 emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
                 emailHtmlBody = EVALUERINGS_PAAMINNELSE_EMAIL_HTML,
             ),
-            tag = OPPFOLGING_TAG,
+            sakstype = Arbeidsgiversak.Type.OPPFOLGINGSPLAN,
             text = EVALUERINGS_PAAMINNELSE_TEXT,
             link = dineSykmeldteOversiktUrl,
             messageType = Arbeidsgivervarsel.MessageType.BESKJED,
@@ -113,7 +113,7 @@ class BudstikkaProducer(
                 emailTitle = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_TITLE,
                 emailHtmlBody = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML,
             ),
-            tag = OPPFOLGING_TAG,
+            sakstype = Arbeidsgiversak.Type.OPPFOLGINGSPLAN,
             text = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_BUDSTIKKA_TEXT,
             link = "$dineSykmeldteOversiktUrl/$narmestelederId",
             messageType = Arbeidsgivervarsel.MessageType.BESKJED,

@@ -5,6 +5,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import kotlinx.coroutines.runBlocking
+import no.nav.budstikka.contract.Arbeidsgiversak
 import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EventId
@@ -144,7 +145,7 @@ class BudstikkaProducerKafkaIntegrationTest :
                     emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
                     emailHtmlBody = EVALUERINGS_PAAMINNELSE_EMAIL_HTML,
                 ),
-                tag = "Oppfølging",
+                sakstype = Arbeidsgiversak.Type.OPPFOLGINGSPLAN,
                 text = EVALUERINGS_PAAMINNELSE_TEXT,
                 link = dineSykmeldteOversiktUrl,
                 messageType = Arbeidsgivervarsel.MessageType.BESKJED,
