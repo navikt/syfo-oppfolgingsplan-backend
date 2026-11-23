@@ -39,16 +39,6 @@ fun commonProperties(env: KafkaEnv): Properties {
     }.toProperties()
 }
 
-fun producerProperties(env: KafkaEnv): Properties {
-    val producerProperties = commonProperties(env)
-
-    return producerProperties.apply {
-        put(ProducerConfig.ACKS_CONFIG, "all")
-        put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
-        put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JacksonKafkaSerializer::class.java)
-    }
-}
-
 fun stringProducerProperties(env: KafkaEnv): Properties {
     val producerProperties = commonProperties(env)
 

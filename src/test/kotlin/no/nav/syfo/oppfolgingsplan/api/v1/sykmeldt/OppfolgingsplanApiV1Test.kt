@@ -61,7 +61,6 @@ import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
-import no.nav.syfo.varsel.EsyfovarselProducer
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -76,7 +75,6 @@ class OppfolgingsplanApiV1Test :
         val texasClientMock = mockk<TexasHttpClient>()
         val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
         val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
-        val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
         val testDb = TestDB.database
         val narmestelederId = UUID.randomUUID().toString()
         val pdfGenService = mockk<PdfGenService>()
@@ -118,7 +116,6 @@ class OppfolgingsplanApiV1Test :
                             texasClientMock,
                             oppfolgingsplanService = OppfolgingsplanService(
                                 database = testDb,
-                                esyfovarselProducer = esyfovarselProducerMock,
                                 pdlService = pdlServiceMock,
                                 aaregService = aaregServiceMock,
                                 unntaksvurderingService = unntaksvurderingService,

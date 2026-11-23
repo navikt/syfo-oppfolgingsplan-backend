@@ -56,7 +56,6 @@ import no.nav.syfo.plugins.installStatusPages
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.applyStandardConfiguration
-import no.nav.syfo.varsel.EsyfovarselProducer
 import java.util.UUID
 
 class OppfolgingsplanUtkastApiV1Test :
@@ -67,7 +66,6 @@ class OppfolgingsplanUtkastApiV1Test :
         val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
         val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
         val testDb = TestDB.database
-        val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
         val pdfGenClient = mockk<PdfGenClient>()
         val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
         val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
@@ -77,7 +75,6 @@ class OppfolgingsplanUtkastApiV1Test :
         val pdlService = PdlService(pdlClientMock)
         val oppfolgingsplanService = OppfolgingsplanService(
             database = testDb,
-            esyfovarselProducer = esyfovarselProducerMock,
             pdlService = pdlService,
             aaregService = mockk<AaregService>(relaxed = true),
             unntaksvurderingService = mockk(relaxed = true),

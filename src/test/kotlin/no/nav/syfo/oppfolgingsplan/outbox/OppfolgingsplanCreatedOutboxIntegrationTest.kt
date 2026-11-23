@@ -33,7 +33,6 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplanUtkast
-import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
 import org.slf4j.LoggerFactory
 import java.time.Clock
@@ -226,7 +225,6 @@ private suspend fun DatabaseInterface.createOppfolgingsplan(
     narmesteLederId: String = defaultSykmeldt().narmestelederId,
 ): UUID = OppfolgingsplanService(
     database = this,
-    esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
     pdlService = mockk<PdlService>(relaxed = true),
     aaregService = mockk<AaregService>(relaxed = true),
     unntaksvurderingService = mockk<UnntaksvurderingService>(relaxed = true),
