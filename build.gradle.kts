@@ -1,6 +1,6 @@
 
 val dataFakerVersion = "2.7.0"
-val budstikkaContractVersion = "0.4.0"
+val budstikkaContractVersion = "0.7.0"
 val exposedVersion = "1.5.0"
 val flywayVersion = "13.7.0"
 val hikariVersion = "7.1.0"
