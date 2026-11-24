@@ -71,7 +71,6 @@ import no.nav.syfo.returnsNotFound
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.texas.client.TexasIntrospectionResponse
-import no.nav.syfo.varsel.EsyfovarselProducer
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -82,7 +81,6 @@ class OppfolgingsplanApiV1Test :
         val texasClientMock = mockk<TexasHttpClient>()
         val dineSykmeldteHttpClientMock = mockk<DineSykmeldteHttpClient>()
         val valkeyCacheMock = mockk<ValkeyCache>(relaxUnitFun = true)
-        val esyfovarselProducerMock = mockk<EsyfovarselProducer>()
         val testDb = TestDB.database
         val isDialogmeldingClientMock = mockk<IsDialogmeldingClient>()
         val isTilgangskontrollClientMock = mockk<IIsTilgangskontrollClient>()
@@ -108,7 +106,6 @@ class OppfolgingsplanApiV1Test :
         }
         val oppfolgingsplanService = OppfolgingsplanService(
             database = testDb,
-            esyfovarselProducer = esyfovarselProducerMock,
             pdlService = pdlServiceMock,
             aaregService = aaregServiceMock,
             unntaksvurderingService = mockk(relaxed = true),
@@ -474,10 +471,6 @@ class OppfolgingsplanApiV1Test :
 
                     dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
 
-                    coEvery {
-                        esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
-                    } returns Unit
-
                     val oppfolgingsplan = defaultOppfolgingsplan()
 
                     // Act
@@ -517,10 +510,6 @@ class OppfolgingsplanApiV1Test :
                     texasClientMock.defaultMocks(pidInnlogetBruker, clientId = environment.syfoOppfolgingsplanFrontendClientId)
 
                     dineSykmeldteHttpClientMock.defaultMocks(narmestelederId = narmestelederId)
-
-                    coEvery {
-                        esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
-                    } returns Unit
 
                     testDb.upsertOppfolgingsplanUtkast(
                         narmesteLederFnr = pidInnlogetBruker,
@@ -567,9 +556,6 @@ class OppfolgingsplanApiV1Test :
                 coEvery {
                     aaregServiceMock.getStillingsinformasjon("12345678901", "orgnummer")
                 } throws RuntimeException("boom")
-                coEvery {
-                    esyfovarselProducerMock.sendVarselToEsyfovarsel(any())
-                } returns Unit
 
                 // Act
                 val response = client.post {

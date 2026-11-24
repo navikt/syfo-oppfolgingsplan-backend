@@ -16,7 +16,6 @@ import no.nav.syfo.application.database.DatabaseInterface
 import no.nav.syfo.application.isLocalEnv
 import no.nav.syfo.application.isProdEnv
 import no.nav.syfo.application.kafka.budstikkaProducerProperties
-import no.nav.syfo.application.kafka.producerProperties
 import no.nav.syfo.application.leaderelection.LeaderElection
 import no.nav.syfo.application.outbox.OutboxRetentionPolicy
 import no.nav.syfo.application.outbox.OutboxRetentionTask
@@ -67,10 +66,8 @@ import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.kafka.SykmeldingsperiodeConsumer
 import no.nav.syfo.texas.client.TexasHttpClient
 import no.nav.syfo.util.httpClientDefault
-import no.nav.syfo.varsel.EsyfovarselProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaProducer
 import no.nav.syfo.varsel.budstikka.infrastructure.BudstikkaPublisher
-import no.nav.syfo.varsel.domain.EsyfovarselHendelse
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.koin.core.scope.Scope
 import org.koin.dsl.module
@@ -221,13 +218,6 @@ private fun valkeyModule() = module {
 }
 
 private fun kafkeProducerModule() = module {
-    single {
-        EsyfovarselProducer(
-            KafkaProducer<String, EsyfovarselHendelse>(
-                producerProperties(env().kafka),
-            ),
-        )
-    }
     single<BudstikkaPublisher> {
         BudstikkaProducer(
             KafkaProducer<String, String>(
@@ -255,7 +245,6 @@ private fun servicesModule() = module {
     single {
         OppfolgingsplanService(
             database = get(),
-            esyfovarselProducer = get(),
             pdlService = get(),
             aaregService = get(),
             unntaksvurderingService = get(),

@@ -37,7 +37,6 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.oppfolgingsplan.service.UnntaksvurderingService
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplanUtkast
-import no.nav.syfo.varsel.EsyfovarselProducer
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -539,7 +538,6 @@ private suspend fun DatabaseInterface.createOppfolgingsplan(
     evalueringsdato: LocalDate,
 ): UUID = OppfolgingsplanService(
     database = this,
-    esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
     pdlService = mockk<PdlService>(relaxed = true),
     aaregService = mockk<AaregService>(relaxed = true),
     unntaksvurderingService = mockk<UnntaksvurderingService>(relaxed = true),

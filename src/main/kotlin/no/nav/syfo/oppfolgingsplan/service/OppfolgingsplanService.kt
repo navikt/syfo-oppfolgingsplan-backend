@@ -42,9 +42,6 @@ import no.nav.syfo.oppfolgingsplan.outbox.EvalueringPaaminnelseFactory
 import no.nav.syfo.oppfolgingsplan.outbox.OppfolgingsplanEvalueringPaaminnelseOutboxMetrics
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.util.logger
-import no.nav.syfo.varsel.EsyfovarselProducer
-import no.nav.syfo.varsel.domain.ArbeidstakerHendelse
-import no.nav.syfo.varsel.domain.HendelseType
 import java.time.Instant
 import java.time.ZoneId
 import java.util.UUID
@@ -59,7 +56,6 @@ const val OPPFOLGINGSPLAN_UTKAST_RETENTION_MONTHS = 4
  */
 class OppfolgingsplanService(
     private val database: DatabaseInterface,
-    private val esyfovarselProducer: EsyfovarselProducer,
     private val pdlService: PdlService,
     private val aaregService: AaregService,
     private val unntaksvurderingService: UnntaksvurderingService,
@@ -305,17 +301,6 @@ class OppfolgingsplanService(
         } ?: persistedOppfolgingsplan
     } else {
         persistedOppfolgingsplan
-    }
-
-    private fun produceOppfolgingsplanCreatedVarsel(sykmeldt: Sykmeldt) {
-        val hendelse = ArbeidstakerHendelse(
-            type = HendelseType.SM_OPPFOLGINGSPLAN_OPPRETTET,
-            ferdigstill = false,
-            arbeidstakerFnr = sykmeldt.fnr,
-            data = null,
-            orgnummer = sykmeldt.orgnummer,
-        )
-        esyfovarselProducer.sendVarselToEsyfovarsel(hendelse)
     }
 }
 

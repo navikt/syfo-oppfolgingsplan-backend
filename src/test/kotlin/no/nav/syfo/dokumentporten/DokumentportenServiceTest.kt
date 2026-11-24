@@ -19,7 +19,6 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.pdfgen.PdfGenService
 import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
-import no.nav.syfo.varsel.EsyfovarselProducer
 
 class DokumentportenServiceTest :
     DescribeSpec({
@@ -30,7 +29,6 @@ class DokumentportenServiceTest :
         val oppfolgingsplanService = OppfolgingsplanService(
             database = testDb,
             pdlService = mockk<PdlService>(relaxed = true),
-            esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
             aaregService = mockk<AaregService>(relaxed = true),
             unntaksvurderingService = mockk(relaxed = true),
             oppfolgingsplanFinalizationRepository = OppfolgingsplanFinalizationRepository(testDb),

@@ -1,5 +1,6 @@
 package no.nav.syfo.varsel.budstikka
 
+import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
@@ -9,6 +10,7 @@ import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import no.nav.budstikka.contract.Arbeidsgiversak
 import no.nav.budstikka.contract.Arbeidsgivervarsel
 import no.nav.budstikka.contract.Budstikka
 import no.nav.budstikka.contract.EncodedDispatch
@@ -259,7 +261,7 @@ class BudstikkaProducerTest :
                         emailTitle = EVALUERINGS_PAAMINNELSE_EMAIL_TITLE,
                         emailHtmlBody = EVALUERINGS_PAAMINNELSE_EMAIL_HTML,
                     ),
-                    tag = "Oppfølging",
+                    sakstype = Arbeidsgiversak.Type.OPPFOLGINGSPLAN,
                     text = EVALUERINGS_PAAMINNELSE_TEXT,
                     link = dineSykmeldteOversiktUrl,
                     messageType = Arbeidsgivervarsel.MessageType.BESKJED,
@@ -282,12 +284,17 @@ class BudstikkaProducerTest :
                 verify(exactly = 1) {
                     kafkaProducerMock.send(
                         withArg {
-                            it.topic() shouldBe expectedDispatch.topic
-                            it.key() shouldBe expectedDispatch.key
-                            it.value() shouldBe expectedDispatch.value
-                            it.value() shouldContain "\"emailBodyFormat\":\"HTML\""
-                            it.headers().associate { header -> header.key() to header.value().toList() } shouldBe
-                                expectedDispatch.headerBytes().mapValues { (_, value) -> value.toList() }
+                            assertSoftly {
+                                it.topic() shouldBe expectedDispatch.topic
+                                it.key() shouldBe expectedDispatch.key
+                                it.value() shouldBe expectedDispatch.value
+                                it.value() shouldContain "\"emailBodyFormat\":\"HTML\""
+                                it.value() shouldContain "\"sakstype\":\"OPPFOLGINGSPLAN\""
+                                it.value() shouldNotContain "\"tag\":"
+                                it.value() shouldContain "\"link\":\"$dineSykmeldteOversiktUrl\""
+                                it.headers().associate { header -> header.key() to header.value().toList() } shouldBe
+                                    expectedDispatch.headerBytes().mapValues { (_, value) -> value.toList() }
+                            }
                         },
                     )
                 }
@@ -317,7 +324,7 @@ class BudstikkaProducerTest :
                         emailTitle = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_TITLE,
                         emailHtmlBody = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML,
                     ),
-                    tag = "Oppfølging",
+                    sakstype = Arbeidsgiversak.Type.OPPFOLGINGSPLAN,
                     text = OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_BUDSTIKKA_TEXT,
                     link = "$dineSykmeldteOversiktUrl/$narmestelederId",
                     messageType = Arbeidsgivervarsel.MessageType.BESKJED,
@@ -334,10 +341,15 @@ class BudstikkaProducerTest :
                     )
                 }
 
-                OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML shouldContain
-                    "Du har en ansatt som er sykmeldt hvor fristen for å lage en oppfølgingsplan nærmer seg."
-                expectedDispatch.value shouldContain "\"emailBodyFormat\":\"HTML\""
-                expectedDispatch.value shouldContain "Har du spørsmål? Ring oss på 55 55 33 36."
+                assertSoftly {
+                    OPPRETT_OPPFOLGINGSPLAN_PAAMINNELSE_EMAIL_HTML shouldContain
+                        "Du har en ansatt som er sykmeldt hvor fristen for å lage en oppfølgingsplan nærmer seg."
+                    expectedDispatch.value shouldContain "\"emailBodyFormat\":\"HTML\""
+                    expectedDispatch.value shouldContain "Har du spørsmål? Ring oss på 55 55 33 36."
+                    expectedDispatch.value shouldContain "\"sakstype\":\"OPPFOLGINGSPLAN\""
+                    expectedDispatch.value shouldNotContain "\"tag\":"
+                    expectedDispatch.value shouldContain "\"link\":\"$dineSykmeldteOversiktUrl/$narmestelederId\""
+                }
             }
 
             it("uses the approved email content and evaluation email presentation") {

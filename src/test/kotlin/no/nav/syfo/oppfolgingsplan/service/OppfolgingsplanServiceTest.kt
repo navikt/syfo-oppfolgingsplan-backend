@@ -27,7 +27,6 @@ import no.nav.syfo.pdl.PdlService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.persistOppfolgingsplanUtkast
 import no.nav.syfo.setOppfolgingsplanUtkastUpdatedAt
-import no.nav.syfo.varsel.EsyfovarselProducer
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.ZoneOffset
@@ -90,7 +89,6 @@ class OppfolgingsplanServiceTest :
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = pdlServive,
-                        esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
                         aaregService = mockk(relaxed = true),
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanFinalizationRepository =
@@ -121,7 +119,6 @@ class OppfolgingsplanServiceTest :
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = pdlServive,
-                        esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
                         aaregService = mockk(relaxed = true),
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanFinalizationRepository =
@@ -152,7 +149,6 @@ class OppfolgingsplanServiceTest :
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),
-                        esyfovarselProducer = mockk(relaxed = true),
                         aaregService = aaregService,
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanFinalizationRepository =
@@ -186,7 +182,6 @@ class OppfolgingsplanServiceTest :
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),
-                        esyfovarselProducer = mockk(relaxed = true),
                         aaregService = aaregService,
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanFinalizationRepository =
@@ -211,7 +206,6 @@ class OppfolgingsplanServiceTest :
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),
-                        esyfovarselProducer = mockk(relaxed = true),
                         aaregService = aaregService,
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanFinalizationRepository =
@@ -282,7 +276,6 @@ class OppfolgingsplanServiceTest :
                     val service = OppfolgingsplanService(
                         database = TestDB.database,
                         pdlService = mockk(relaxed = true),
-                        esyfovarselProducer = mockk(relaxed = true),
                         aaregService = mockk(relaxed = true),
                         unntaksvurderingService = mockk(relaxed = true),
                         oppfolgingsplanFinalizationRepository =

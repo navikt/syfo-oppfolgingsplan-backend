@@ -28,7 +28,6 @@ import no.nav.syfo.oppfolgingsplan.service.OppfolgingsplanService
 import no.nav.syfo.persistOppfolgingsplan
 import no.nav.syfo.sykmelding.db.SykmeldingsperiodeRepository
 import no.nav.syfo.sykmelding.db.domain.SykmeldingsperiodeToStore
-import no.nav.syfo.varsel.EsyfovarselProducer
 import java.time.Instant
 import java.time.LocalDate
 
@@ -39,7 +38,6 @@ class SoftDeleteOppfolgingsplanerTaskTest :
 
         fun service() = OppfolgingsplanService(
             database = testDb,
-            esyfovarselProducer = mockk<EsyfovarselProducer>(relaxed = true),
             pdlService = mockk(relaxed = true),
             aaregService = mockk(relaxed = true),
             unntaksvurderingService = mockk(relaxed = true),
